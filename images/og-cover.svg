@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630">
+      <stop stop-color="#080B14"/>
+      <stop offset="1" stop-color="#151C31"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(1010 100) rotate(145) scale(600 420)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5EEAD4" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#5EEAD4" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+  <rect x="78" y="72" width="72" height="72" rx="18" fill="#12182B"/>
+  <path d="M95 121 111 105l10 10 18-21" fill="none" stroke="#8B5CF6" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M126 94h13v13" fill="none" stroke="#5EEAD4" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="171" y="122" fill="#F7F8FC" font-family="Arial, Helvetica, sans-serif" font-size="40" font-weight="700">TrendPilot <tspan fill="#5EEAD4">AI</tspan></text>
+  <text x="78" y="270" fill="#F7F8FC" font-family="Arial, Helvetica, sans-serif" font-size="78" font-weight="700">Discover AI</text>
+  <text x="78" y="355" fill="#F7F8FC" font-family="Arial, Helvetica, sans-serif" font-size="78" font-weight="700">opportunities early.</text>
+  <text x="82" y="430" fill="#9BA6BC" font-family="Arial, Helvetica, sans-serif" font-size="28">Signals, tools and content angles for affiliate marketers.</text>
+  <rect x="82" y="492" width="285" height="64" rx="18" fill="#8B5CF6"/>
+  <text x="121" y="533" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700">Explore trending tools</text>
+</svg>
