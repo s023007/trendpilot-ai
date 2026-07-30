@@ -1,5 +1,5 @@
 {
-  "version": "0.5.2",
+  "version": "0.5.3",
   "publicationMode": "manual-review",
   "maxPublishedTrends": 8,
   "maxReviewCandidates": 15,
@@ -148,7 +148,27 @@
     "cannabis",
     "marijuana",
     "thc",
-    "cbd"
+    "cbd",
+    "malware",
+    "ransomware",
+    "computer worm",
+    "ai worm",
+    "ai worms",
+    "document-borne worm",
+    "document-borne worms",
+    "self-propagating",
+    "self propagating",
+    "botnet",
+    "trojan",
+    "keylogger",
+    "credential theft",
+    "data exfiltration",
+    "malicious payload",
+    "remote code execution exploit",
+    "zero-day exploit",
+    "zero day exploit",
+    "cyberattack",
+    "cyber attack"
   ],
   "categories": [
     {
@@ -977,5 +997,24 @@
       ],
       "affiliateCoverage": 74
     }
-  ]
+  ],
+  "projectOnlyTerms": [
+    "show hn",
+    "open source",
+    "open-source",
+    "github repository",
+    "github repo",
+    "self hosted",
+    "self-hosted",
+    "prototype",
+    "demo project"
+  ],
+  "routePolicy": {
+    "requireConfirmedRouteBeforeReview": true,
+    "acceptedRoutes": [
+      "product-feed terms for the connected AliExpress feed",
+      "a non-empty direct affiliateUrl in js/affiliate-links.js"
+    ],
+    "potentialNetworkNamesAreNotConfirmedRoutes": true
+  }
 }
