@@ -1,0 +1,156 @@
+{
+  "id": "alibaba-consumer-electronics",
+  "enabled": true,
+  "adapter": "xml",
+  "network": "Admitad",
+  "advertiser": "Alibaba",
+  "programme": "Alibaba WW - Consumer Electronics hot products-daily update",
+  "location": {
+    "type": "secret_map",
+    "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
+    "secretKey": "alibaba-consumer-electronics"
+  },
+  "rowLimit": 25000,
+  "delimiter": "auto",
+  "encoding": "utf-8-sig",
+  "defaultCurrency": "USD",
+  "countries": [
+    "GLOBAL"
+  ],
+  "fieldMap": {
+    "id": [
+      "id",
+      "product_id",
+      "productId",
+      "sku",
+      "offer_id"
+    ],
+    "productId": [
+      "id",
+      "product_id",
+      "productId",
+      "sku",
+      "offer_id"
+    ],
+    "name": [
+      "name",
+      "title",
+      "product_name",
+      "productName",
+      "model"
+    ],
+    "description": [
+      "description",
+      "product_description",
+      "desc",
+      "short_description"
+    ],
+    "affiliateUrl": [
+      "url",
+      "deeplink",
+      "affiliate_url",
+      "buy_url",
+      "tracking_url"
+    ],
+    "productUrl": [
+      "product_url",
+      "productUrl",
+      "landing_page",
+      "original_url"
+    ],
+    "category": [
+      "category",
+      "categoryName",
+      "category_name",
+      "type",
+      "categoryId",
+      "category_id"
+    ],
+    "brand": [
+      "brand",
+      "vendor",
+      "manufacturer"
+    ],
+    "advertiser": [
+      "advertiser",
+      "merchant",
+      "merchant_name",
+      "shop"
+    ],
+    "currency": [
+      "currencyId",
+      "currency",
+      "currency_id"
+    ],
+    "imageUrl": [
+      "picture",
+      "image",
+      "imageUrl",
+      "image_url",
+      "main_image"
+    ],
+    "oldPrice": [
+      "oldprice",
+      "old_price",
+      "originalPrice",
+      "retail_price"
+    ],
+    "price": [
+      "price",
+      "current_price",
+      "salePrice",
+      "sale_price"
+    ],
+    "commissionRate": [
+      "commissionRate",
+      "commission_rate",
+      "commission_percent"
+    ],
+    "commissionValue": [
+      "commissionValue",
+      "commission_value"
+    ],
+    "commissionType": [
+      "commissionType",
+      "commission_type"
+    ],
+    "discountPercent": [
+      "discount",
+      "discountPercent",
+      "discount_percent"
+    ],
+    "availability": [
+      "available",
+      "availability",
+      "in_stock",
+      "stock"
+    ],
+    "updatedAt": [
+      "modified_time",
+      "modifiedTime",
+      "updated_at",
+      "last_updated"
+    ],
+    "merchantId": [
+      "shopId",
+      "shop_id",
+      "merchant_id",
+      "advertiser_id"
+    ],
+    "param": [
+      "param",
+      "params"
+    ],
+    "tags": [
+      "tags",
+      "keywords"
+    ]
+  },
+  "paramFields": {},
+  "rules": {},
+  "itemTags": [
+    "offer",
+    "item",
+    "product"
+  ]
+}
