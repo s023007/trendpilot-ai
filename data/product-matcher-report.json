@@ -1,6 +1,7 @@
 {
-  "version": "0.7.0",
-  "generatedAt": "2026-07-30T19:58:46+00:00",
+  "version": "0.7.2",
+  "buildId": "2026-07-31-product-first-published-split",
+  "generatedAt": "2026-07-30T20:38:45+00:00",
   "rankingMode": "product-first-network-neutral",
   "catalogueOffersRead": 54469,
   "counters": {
@@ -9,10 +10,10 @@
     "complianceBlocked": 13
   },
   "matchesPerTrend": {
-    "smart-pet-feeding": 8,
-    "seasonal-kids-costumes": 8,
-    "car-multimedia-head-units": 8,
     "wireless-carplay-retrofit": 8,
+    "seasonal-kids-costumes": 8,
+    "smart-pet-feeding": 8,
+    "car-multimedia-head-units": 8,
     "seasonal-party-decor": 8
   },
   "candidateMatchesByNetwork": {
@@ -23,9 +24,27 @@
     "Alibaba": 3073
   },
   "matchesByNetwork": {
-    "Admitad": 72
+    "Admitad": 40
   },
   "matchesByAdvertiser": {
+    "AliExpress": 40
+  },
+  "publishedMatchesByNetwork": {
+    "Admitad": 40
+  },
+  "publishedMatchesByAdvertiser": {
+    "AliExpress": 40
+  },
+  "reviewMatchesByNetwork": {
+    "Admitad": 32
+  },
+  "reviewMatchesByAdvertiser": {
+    "Alibaba": 32
+  },
+  "allFinalMatchesByNetwork": {
+    "Admitad": 72
+  },
+  "allFinalMatchesByAdvertiser": {
     "AliExpress": 40,
     "Alibaba": 32
   },
@@ -33,11 +52,11 @@
     "candidatesAssessed": 4,
     "readyForApproval": 3,
     "matchesPerCandidate": {
-      "compact-thermal-printers": 8,
       "high-capacity-power-banks": 8,
       "wireless-earbuds": 8,
+      "compact-thermal-printers": 8,
       "portable-projectors": 8
     }
   },
-  "note": "Products are ranked without network preference. Product relevance comes first, followed by quality/customer signals, commercial value, price fit and audience breadth. Equivalent listings are compared and the strongest compliant affiliate route is kept."
+  "note": "Products are ranked without network preference. Product relevance comes first, followed by quality/customer signals, commercial value, price fit and audience breadth. Equivalent listings are compared and the strongest compliant affiliate route is kept. Published and review-only matches are reported separately."
 }
