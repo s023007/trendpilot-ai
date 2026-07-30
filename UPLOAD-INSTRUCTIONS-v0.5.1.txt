@@ -1,0 +1,35 @@
+TrendPilot AI v0.5.1 — Strict Review Mode
+
+Replace/add these files in the same paths:
+- .github/workflows/update-products.yml
+- automation/trend_discovery.py
+- automation/product_matcher.py
+- config/trend-discovery.json
+- config/product-matcher.json
+- config/trend-approvals.json
+- data/discovered-trends.json
+- data/trend-review.json
+- data/trend-discovery-report.json
+- js/discovered-trends.js
+
+Do not delete:
+- data/source/admitad-hot-products.csv
+- the existing GitHub secret ADMITAD_ALIEXPRESS_FEED_25_40
+- js/affiliate-links.js
+- images, privacy.html, terms.html and verify-admitad.txt
+
+After upload:
+1. Run GitHub Actions: Update trends and affiliate products.
+2. Open data/trend-review.json.
+3. New trends stay hidden from the public site.
+4. A candidate is eligible only when readyForApproval is true.
+5. Do not approve anything yet. Share the review queue first so its quality can be checked.
+
+Later approval:
+- Open config/trend-approvals.json.
+- Add the candidate slug inside approvedSlugs.
+- Run Actions again.
+- Rejected slugs can be added to rejectedSlugs.
+
+Important:
+Traffic Enforcement Camera is rejected by default and will disappear from public automatic trends.
