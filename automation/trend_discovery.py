@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.5.2 adaptive commercial discovery and review queue.
+"""TrendPilot AI v0.5.3 confirmed-route discovery and review queue.
 
 New public signals are never published immediately. They first enter a review
 queue, receive product-match evidence, and can then be approved explicitly in
@@ -32,6 +32,7 @@ REPORT_PATH = ROOT / "data" / "trend-discovery-report.json"
 REJECTIONS_PATH = ROOT / "data" / "trend-rejections.json"
 JS_PATH = ROOT / "js" / "discovered-trends.js"
 STATIC_TRENDS_PATH = ROOT / "js" / "trends-data.js"
+AFFILIATE_LINKS_PATH = ROOT / "js" / "affiliate-links.js"
 
 
 def now_utc() -> datetime:
@@ -103,7 +104,7 @@ def http_get(url: str, timeout: int, accept: str = "*/*") -> bytes:
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "TrendPilotAI-TrendDiscovery/0.5.2 (+https://s023007.github.io/trendpilot-ai/)",
+            "User-Agent": "TrendPilotAI-TrendDiscovery/0.5.3 (+https://s023007.github.io/trendpilot-ai/)",
             "Accept": accept,
             "Accept-Language": "en-GB,en;q=0.9",
         },
@@ -236,6 +237,73 @@ def static_titles_and_slugs() -> tuple[set[str], set[str]]:
     titles = {normalise(item) for item in re.findall(r'"title"\s*:\s*"([^"]+)"', content)}
     slugs = set(re.findall(r'"slug"\s*:\s*"([^"]+)"', content))
     return titles, slugs
+
+
+def active_affiliate_slugs() -> set[str]:
+    """Return only direct products with a real affiliate URL configured."""
+    if not AFFILIATE_LINKS_PATH.exists():
+        return set()
+
+    content = AFFILIATE_LINKS_PATH.read_text(encoding="utf-8", errors="replace")
+    active: set[str] = set()
+    block_pattern = re.compile(r'"([^"]+)"\s*:\s*\{(.*?)\}', re.S)
+    for slug, block in block_pattern.findall(content):
+        url_match = re.search(r'"affiliateUrl"\s*:\s*"([^"]*)"', block)
+        if url_match and clean_text(url_match.group(1)):
+            active.add(clean_text(slug))
+    return active
+
+
+def is_project_only_signal(signal: dict, project_terms: list[str]) -> bool:
+    text = normalise(
+        f"{signal.get('title', '')} {signal.get('summary', '')} "
+        f"{' '.join(signal.get('tags', []) or [])}"
+    )
+    return any(has_term(text, term) for term in project_terms)
+
+
+def apply_confirmed_route(match: dict, active_direct_products: set[str]) -> dict:
+    """Keep only routes that can currently be monetised.
+
+    Potential network names are not active affiliate routes. A candidate must
+    have product-feed search terms or a configured direct affiliate URL.
+    Direct affiliate links take priority when both routes are available.
+    """
+    category = match["category"]
+    configured = unique_strings(
+        match.get("directProducts", category.get("directProducts", []))
+    )
+    active_direct = [slug for slug in configured if slug in active_direct_products]
+    match["directProducts"] = active_direct
+    match["confirmedRoute"] = (
+        "direct-affiliate" if active_direct
+        else "product-feed" if match.get("productTerms")
+        else None
+    )
+    return match
+
+
+def candidate_has_confirmed_route(candidate: dict, active_direct_products: set[str]) -> bool:
+    product_match = candidate.get("productMatch") or {}
+    include_terms = [
+        clean_text(item)
+        for item in product_match.get("includeTerms", [])
+        if clean_text(item)
+    ]
+    direct_products = [
+        clean_text(item)
+        for item in candidate.get("products", [])
+        if clean_text(item) in active_direct_products
+    ]
+    return bool(include_terms or direct_products)
+
+
+def candidate_is_safe(candidate: dict, blocked_terms: list[str]) -> bool:
+    text = normalise(
+        f"{candidate.get('title', '')} {candidate.get('summary', '')} "
+        f"{candidate.get('whyNow', '')}"
+    )
+    return not any(has_term(text, term) for term in blocked_terms)
 
 
 def title_similarity(a: str, b: str) -> float:
@@ -662,6 +730,8 @@ def main() -> int:
     blocked_terms = [normalise(term) for term in config.get("blockedTerms", [])]
     ambiguous_terms = {normalise(term) for term in config.get("ambiguousTerms", [])}
     software_descriptors = config.get("softwareDescriptorTerms", [])
+    project_only_terms = config.get("projectOnlyTerms", [])
+    active_direct_products = active_affiliate_slugs()
 
     source_report: list[dict] = []
     raw_signals: list[dict] = []
@@ -694,6 +764,9 @@ def main() -> int:
         "lowScoreSignals": 0,
         "insufficientEvidence": 0,
         "unmonetisableSignals": 0,
+        "noConfirmedAffiliateRoute": 0,
+        "projectOnlyWithoutAffiliateRoute": 0,
+        "purgedStaleCandidates": 0,
         "reviewCandidates": 0,
         "readyForApproval": 0,
         "publishedApprovedTrends": 0,
@@ -734,12 +807,28 @@ def main() -> int:
             )
             continue
 
-        category = match["category"]
-        direct_products = match.get("directProducts", category.get("directProducts", []))
-        has_network_route = bool(category.get("networkOnly"))
-        if not match["productTerms"] and not direct_products and not has_network_route:
+        match = apply_confirmed_route(match, active_direct_products)
+        if not match.get("confirmedRoute"):
             counters["unmonetisableSignals"] += 1
-            rejections.append(rejection_entry(signal, "no-affiliate-route"))
+            counters["noConfirmedAffiliateRoute"] += 1
+            project_only = is_project_only_signal(signal, project_only_terms)
+            if project_only:
+                counters["projectOnlyWithoutAffiliateRoute"] += 1
+            rejections.append(
+                rejection_entry(
+                    signal,
+                    (
+                        "project-without-active-affiliate-route"
+                        if project_only
+                        else "no-confirmed-affiliate-route"
+                    ),
+                    {
+                        "potentialNetworks": match["category"].get("networks", []),
+                        "activeDirectProducts": [],
+                        "productTerms": match.get("productTerms", []),
+                    },
+                )
+            )
             continue
 
         metrics = commercial_score(signal, match, config, current)
@@ -810,6 +899,15 @@ def main() -> int:
     )
     merged = merge_candidates(review_candidates, [*previous_review, *previous_public])
 
+    before_purge = len(merged)
+    merged = [
+        item
+        for item in merged
+        if candidate_is_safe(item, blocked_terms)
+        and candidate_has_confirmed_route(item, active_direct_products)
+    ]
+    counters["purgedStaleCandidates"] = before_purge - len(merged)
+
     approved_slugs = {clean_text(item) for item in approvals.get("approvedSlugs", []) if clean_text(item)}
     rejected_slugs = {clean_text(item) for item in approvals.get("rejectedSlugs", []) if clean_text(item)}
     merged = [item for item in merged if item.get("slug") not in rejected_slugs]
@@ -844,13 +942,13 @@ def main() -> int:
     counters["publishedApprovedTrends"] = len(published)
 
     output = {
-        "version": config.get("version", "0.5.2"),
+        "version": config.get("version", "0.5.3"),
         "generatedAt": current.isoformat(),
         "publicationMode": "manual-review",
         "trends": published,
     }
     review_output = {
-        "version": config.get("version", "0.5.2"),
+        "version": config.get("version", "0.5.3"),
         "generatedAt": current.isoformat(),
         "reviewQueue": pending,
         "instructions": (
@@ -859,7 +957,7 @@ def main() -> int:
         ),
     }
     rejection_output = {
-        "version": config.get("version", "0.5.2"),
+        "version": config.get("version", "0.5.3"),
         "generatedAt": current.isoformat(),
         "samples": rejections[: int(config.get("maxRejectionSamples", 60))],
         "topUnclassifiedTerms": top_unclassified_terms(rejections),
@@ -869,7 +967,7 @@ def main() -> int:
         ),
     }
     report = {
-        "version": config.get("version", "0.5.2"),
+        "version": config.get("version", "0.5.3"),
         "generatedAt": current.isoformat(),
         "publicationMode": "manual-review",
         "sources": source_report,
@@ -897,7 +995,7 @@ def main() -> int:
         + json.dumps(
             {
                 "generatedAt": current.isoformat(),
-                "version": config.get("version", "0.5.2"),
+                "version": config.get("version", "0.5.3"),
                 "publicationMode": "manual-review",
             },
             ensure_ascii=False,
