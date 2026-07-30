@@ -1,6 +1,6 @@
 {
-  "version": "0.4.1",
-  "generatedAt": "2026-07-30T05:20:50+00:00",
+  "version": "0.5.0",
+  "generatedAt": "2026-07-30T05:59:16+00:00",
   "sources": [
     {
       "label": "Admitad Hot Products snapshot",
@@ -16,13 +16,14 @@
   ],
   "counters": {
     "rowsRead": 30123,
-    "candidateMatches": 665,
+    "candidateMatches": 826,
     "complianceBlocked": 332
   },
   "matchesPerTrend": {
     "wireless-carplay-retrofit": 8,
     "seasonal-party-decor": 8,
     "seasonal-kids-costumes": 8,
+    "traffic-enforcement-camera": 8,
     "smart-pet-feeding": 7
   },
   "note": "Only small matched outputs are public. Private feed URLs are read from GitHub Actions secrets and are never written to the repository."
