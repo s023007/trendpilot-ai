@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.6.1",
   "sourceSettings": {
     "catalogCache": "automation/cache/offers.jsonl",
     "topProductsPerTrend": 8,
@@ -84,7 +84,27 @@
         "suspension"
       ],
       "minimumPrice": 10,
-      "maximumPrice": 120
+      "maximumPrice": 120,
+      "requiredTitleTerms": [
+        "carplay",
+        "android auto",
+        "wireless carplay",
+        "carplay adapter",
+        "carplay retrofit"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "frame only",
+        "fascia",
+        "trim panel",
+        "wiring harness",
+        "canbus box",
+        "camera only",
+        "microphone only",
+        "screen protector"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "smart-pet-feeding",
@@ -105,7 +125,24 @@
         "manual bowl"
       ],
       "minimumPrice": 20,
-      "maximumPrice": 220
+      "maximumPrice": 220,
+      "requiredTitleTerms": [
+        "pet feeder",
+        "smart pet feeder",
+        "food dispenser",
+        "remote feeding",
+        "cat feeder",
+        "dog feeder"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "bowl stand",
+        "manual bowl",
+        "replacement bowl",
+        "power cable only"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "seasonal-kids-costumes",
@@ -129,7 +166,26 @@
         "sexy"
       ],
       "minimumPrice": 3,
-      "maximumPrice": 80
+      "maximumPrice": 80,
+      "requiredTitleTerms": [
+        "kids costume",
+        "girls costume",
+        "boys costume",
+        "princess dress",
+        "cosplay costume",
+        "dance costume",
+        "halloween costume",
+        "carnival costume"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "mask only",
+        "wig only",
+        "gloves only",
+        "accessory set only"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "seasonal-party-decor",
@@ -152,14 +208,30 @@
         "casino"
       ],
       "minimumPrice": 1,
-      "maximumPrice": 100
+      "maximumPrice": 100,
+      "requiredTitleTerms": [
+        "party supplies",
+        "birthday decoration",
+        "party decoration",
+        "balloon set",
+        "baby shower",
+        "wedding decoration",
+        "halloween decoration",
+        "christmas decoration"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": true
     }
   ],
   "reviewSettings": {
     "minimumTrendScore": 72,
     "minimumProductMatches": 3,
-    "minimumBestMatchScore": 52,
-    "previewProducts": 3
+    "minimumBestMatchScore": 75,
+    "previewProducts": 3,
+    "minimumStrongMatches": 3,
+    "minimumAffiliateRouteMatches": 3
   },
   "networkWeights": {
     "Admitad": 1.0,
@@ -168,5 +240,31 @@
     "Impact": 1.0,
     "PartnerStack": 1.0,
     "Direct": 1.02
+  },
+  "productValidation": {
+    "requireAffiliateUrl": true,
+    "minimumTitleLength": 6,
+    "blockedAccessoryTitleTerms": [
+      "replacement part",
+      "spare part",
+      "replacement filter",
+      "replacement brush",
+      "filter only",
+      "brush only",
+      "mop pad",
+      "dust bag",
+      "case only",
+      "cover only",
+      "cable only",
+      "charger only",
+      "screen protector",
+      "components only",
+      "repair parts"
+    ],
+    "blockedAccessoryCategoryTerms": [
+      "parts & accessories",
+      "replacement parts",
+      "spare parts"
+    ]
   }
 }

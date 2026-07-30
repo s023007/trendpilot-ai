@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.6.1",
   "minimumCandidateScore": 70,
   "maxCandidates": 10,
   "maxReviewQueue": 15,
@@ -37,7 +37,32 @@
       "maximumPrice": 900,
       "buyerIntent": 91,
       "competition": 67,
-      "contentDepth": 94
+      "contentDepth": 94,
+      "requiredTitleTerms": [
+        "car multimedia",
+        "car radio",
+        "head unit",
+        "android car radio",
+        "multimedia player",
+        "carplay",
+        "android auto"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "frame only",
+        "fascia",
+        "trim panel",
+        "wiring harness",
+        "canbus box",
+        "canbus decoder",
+        "camera only",
+        "microphone only",
+        "cable only",
+        "adapter only",
+        "screen protector"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "portable-projectors",
@@ -61,7 +86,24 @@
       "minimumUniqueProducts": 5,
       "minimumOffers": 6,
       "minimumPrice": 15,
-      "maximumPrice": 700
+      "maximumPrice": 700,
+      "requiredTitleTerms": [
+        "portable projector",
+        "mini projector",
+        "home projector",
+        "projector"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "toy projector",
+        "projection lamp",
+        "projector lamp",
+        "replacement lamp",
+        "screen only",
+        "mount only"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "high-capacity-power-banks",
@@ -87,7 +129,37 @@
       "minimumUniqueProducts": 6,
       "minimumOffers": 8,
       "minimumPrice": 5,
-      "maximumPrice": 300
+      "maximumPrice": 300,
+      "requiredTitleTerms": [
+        "power bank",
+        "portable charger",
+        "magsafe power bank",
+        "solar power bank",
+        "usb c power bank",
+        "20000mah power bank",
+        "30000mah power bank",
+        "50000mah power bank"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "jump starter",
+        "car jump starter",
+        "battery pack",
+        "solar panel",
+        "foldable panel",
+        "outdoor light",
+        "flood light",
+        "power station",
+        "battery charger",
+        "car battery",
+        "battery cell"
+      ],
+      "excludeCategoryTerms": [
+        "electrical equipment & supplies",
+        "automotive batteries",
+        "power tool parts & accessories"
+      ],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "robot-vacuum-cleaners",
@@ -112,7 +184,35 @@
       "minimumUniqueProducts": 5,
       "minimumOffers": 6,
       "minimumPrice": 30,
-      "maximumPrice": 1500
+      "maximumPrice": 1500,
+      "requiredTitleTerms": [
+        "robot vacuum",
+        "robot cleaner",
+        "robotic vacuum"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "components",
+        "component",
+        "accessories",
+        "replacement",
+        "spare",
+        "brush",
+        "filter",
+        "mop pad",
+        "dust bag",
+        "battery",
+        "wheel",
+        "motor",
+        "charging dock",
+        "water tank"
+      ],
+      "excludeCategoryTerms": [
+        "parts & accessories",
+        "vacuum cleaner parts",
+        "power tool parts & accessories"
+      ],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "wireless-earbuds",
@@ -137,7 +237,23 @@
       "minimumUniqueProducts": 7,
       "minimumOffers": 8,
       "minimumPrice": 3,
-      "maximumPrice": 500
+      "maximumPrice": 500,
+      "requiredTitleTerms": [
+        "wireless earbuds",
+        "bluetooth earbuds",
+        "tws earbuds",
+        "noise cancelling earbuds"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "ear tips",
+        "charging case only",
+        "replacement case",
+        "silicone case",
+        "protective cover"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "smart-home-locks",
@@ -163,7 +279,22 @@
       "minimumUniqueProducts": 5,
       "minimumOffers": 6,
       "minimumPrice": 15,
-      "maximumPrice": 800
+      "maximumPrice": 800,
+      "requiredTitleTerms": [
+        "smart lock",
+        "fingerprint lock",
+        "keyless door lock",
+        "digital door lock"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "lock cylinder only",
+        "handle only",
+        "keypad only",
+        "replacement part"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "home-beauty-devices",
@@ -192,7 +323,23 @@
       "minimumUniqueProducts": 5,
       "minimumOffers": 6,
       "minimumPrice": 5,
-      "maximumPrice": 700
+      "maximumPrice": 700,
+      "requiredTitleTerms": [
+        "hair styler",
+        "led face mask",
+        "facial cleansing device",
+        "nail lamp",
+        "makeup brush cleaner",
+        "skin care device"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "replacement head",
+        "attachment only",
+        "brush head only"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "compact-thermal-printers",
@@ -218,7 +365,23 @@
       "minimumUniqueProducts": 5,
       "minimumOffers": 6,
       "minimumPrice": 5,
-      "maximumPrice": 600
+      "maximumPrice": 600,
+      "requiredTitleTerms": [
+        "mini printer",
+        "thermal printer",
+        "label maker",
+        "portable printer"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "printer part",
+        "printhead only",
+        "ink cartridge",
+        "label paper only",
+        "thermal paper only"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     },
     {
       "slug": "ai-voice-production-platforms",
@@ -246,7 +409,44 @@
       "minimumScore": 62,
       "buyerIntent": 90,
       "competition": 58,
-      "contentDepth": 95
+      "contentDepth": 95,
+      "requiredTitleTerms": [
+        "voice ai",
+        "text to speech",
+        "dubbing",
+        "voice agent",
+        "speech software"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false
     }
-  ]
+  ],
+  "productValidation": {
+    "requireAffiliateUrl": true,
+    "minimumTitleLength": 6,
+    "blockedAccessoryTitleTerms": [
+      "replacement part",
+      "spare part",
+      "replacement filter",
+      "replacement brush",
+      "filter only",
+      "brush only",
+      "mop pad",
+      "dust bag",
+      "case only",
+      "cover only",
+      "cable only",
+      "charger only",
+      "screen protector",
+      "components only",
+      "repair parts"
+    ],
+    "blockedAccessoryCategoryTerms": [
+      "parts & accessories",
+      "replacement parts",
+      "spare parts"
+    ]
+  }
 }
