@@ -1,0 +1,28 @@
+TrendPilot AI v0.6.1 — Product Completeness Guard
+
+ارفع الملفات التالية إلى نفس المسارات داخل المستودع:
+
+1. automation/product_quality.py                (ملف جديد)
+2. automation/commerce_discovery.py             (استبدال)
+3. automation/multi_network_matcher.py          (استبدال)
+4. config/commerce-taxonomy.json                 (استبدال)
+5. config/product-matcher.json                   (استبدال)
+6. README.md                                     (استبدال للتوثيق)
+
+لا تحذف data/source ولا ملف admitad-hot-products.csv.
+لا تغيّر Secrets الحالية.
+لا تحتاج إلى تغيير ملف GitHub Actions.
+
+بعد الرفع:
+Actions → Update trends and affiliate products → Run workflow
+
+ثم افحص:
+- data/commerce-discovery-report.json
+- data/trend-review.json
+
+ضوابط v0.6.1:
+- minimumBestMatchScore = 75
+- minimumStrongMatches = 3
+- minimumAffiliateRouteMatches = 3
+- استبعاد قطع الغيار والملحقات والمنتجات غير المكتملة
+- قواعد قابلة للتخصيص لكل فئة، وتعمل مع أي شبكة أو مورد جديد

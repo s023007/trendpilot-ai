@@ -18,3 +18,24 @@ No new secret is required. The existing secret remains:
 `ADMITAD_ALIEXPRESS_FEED_25_40`
 
 The button on a trend page now says **Why this is trending** only when a genuine external public source exists. Internal JSON reports are no longer opened for visitors.
+
+
+## v0.5.1
+New signals use strict filters, product evidence and manual approval before publication.
+
+
+## v0.6.0 — Commerce-First Multi-Network Engine
+
+Affiliate feeds and direct programmes are normalised through source adapters.
+New CSV/XML/direct sources can be added with a JSON configuration file without
+rewriting the discovery or matching engines. Equivalent offers across networks
+are deduplicated and the strongest compliant route is selected.
+
+## v0.6.1 — Product Completeness Guard
+
+Adds network-agnostic product validation before commerce discovery and matching.
+Approval now requires a best match score of at least 75, at least three strong
+matches and three valid affiliate routes. Accessory-only, replacement-part and
+weak-title products are held or rejected through configurable rules that work
+across Admitad, CJ, Awin, Impact, PartnerStack, direct programmes and future
+CSV/XML sources.
