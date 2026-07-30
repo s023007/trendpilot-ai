@@ -1436,3 +1436,83 @@ button {
     height: 54px;
   }
 }
+
+
+/* TrendPilot AI — catalogue price clarity update */
+.product-pricing-intro {
+  margin: -2px 0 18px;
+  max-width: 760px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.product-price-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  color: var(--muted-2) !important;
+  line-height: 1.45;
+}
+.catalogue-price {
+  color: var(--primary-2);
+  font-size: 11px;
+  font-weight: 850;
+}
+.price-prefix {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.catalogue-estimate {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 3px 7px;
+  border: 1px solid rgba(251,191,36,.18);
+  border-radius: 999px;
+  color: var(--warning);
+  background: rgba(251,191,36,.055);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: .025em;
+}
+.match-indicator {
+  color: var(--muted-2);
+  font-size: 8px;
+}
+.pricing-disclaimer {
+  display: grid;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 13px 14px;
+  border: 1px solid rgba(251,191,36,.18);
+  border-radius: 12px;
+  background: rgba(251,191,36,.045);
+}
+.pricing-disclaimer strong {
+  color: var(--warning);
+  font-size: 10px;
+}
+.pricing-disclaimer span,
+.pricing-disclaimer small {
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.55;
+}
+.pricing-disclaimer small {
+  color: var(--muted-2);
+}
+@media (max-width: 640px) {
+  .product-pricing-intro {
+    font-size: 11px;
+  }
+  .product-price-row {
+    gap: 5px 7px;
+  }
+  .catalogue-price {
+    font-size: 10px;
+  }
+}
