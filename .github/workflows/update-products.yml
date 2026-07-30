@@ -1,20 +1,20 @@
-name: Update matched affiliate products
+name: Update trends and affiliate products
 
 on:
   workflow_dispatch:
   schedule:
-    # Runs twice weekly at a non-peak minute.
-    - cron: "17 2 * * 1,4"
+    # Daily at 02:37 UTC (06:37 Oman time).
+    - cron: "37 2 * * *"
 
 permissions:
   contents: write
 
 concurrency:
-  group: trendpilot-product-matcher
+  group: trendpilot-daily-engine
   cancel-in-progress: true
 
 jobs:
-  match-products:
+  discover-and-match:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
@@ -27,6 +27,9 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Discover current monetisable trends
+        run: python automation/trend_discovery.py
+
       - name: Match trends to approved products
         env:
           ADMITAD_ALIEXPRESS_FEED_25_40: ${{ secrets.ADMITAD_ALIEXPRESS_FEED_25_40 }}
@@ -34,13 +37,14 @@ jobs:
 
       - name: Commit clean public outputs
         run: |
-          if git diff --quiet -- data/matched-products.json data/product-matcher-report.json js/matched-products.js; then
-            echo "No product changes to commit."
+          FILES="data/discovered-trends.json data/trend-discovery-report.json js/discovered-trends.js data/matched-products.json data/product-matcher-report.json js/matched-products.js"
+          if git diff --quiet -- $FILES; then
+            echo "No trend or product changes to commit."
             exit 0
           fi
 
           git config user.name "trendpilot-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/matched-products.json data/product-matcher-report.json js/matched-products.js
-          git commit -m "chore: refresh matched affiliate products"
+          git add $FILES
+          git commit -m "chore: refresh automatic trends and affiliate matches"
           git push
