@@ -1,2 +1,2 @@
 window.TRENDPILOT_DISCOVERED_TRENDS = [];
-window.TRENDPILOT_DISCOVERY_META = {"generatedAt": "2026-07-30T06:26:39+00:00", "version": "0.5.1", "publicationMode": "manual-review"};
+window.TRENDPILOT_DISCOVERY_META = {"generatedAt":null,"version":"0.5.2","publicationMode":"manual-review"};
