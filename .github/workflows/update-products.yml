@@ -16,7 +16,7 @@ concurrency:
 jobs:
   discover-and-match:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 40
 
     steps:
       - name: Check out repository
@@ -27,10 +27,57 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Build affiliate source URL map
+        env:
+          EXISTING_AFFILIATE_SOURCE_URLS_JSON: ${{ secrets.AFFILIATE_SOURCE_URLS_JSON }}
+          ALIBABA_CONSUMER_ELECTRONICS_XML_URL: ${{ secrets.ALIBABA_CONSUMER_ELECTRONICS_XML_URL }}
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          import os
+
+          raw = os.environ.get("EXISTING_AFFILIATE_SOURCE_URLS_JSON", "").strip()
+
+          if raw:
+              try:
+                  source_urls = json.loads(raw)
+              except json.JSONDecodeError as exc:
+                  raise SystemExit(
+                      f"AFFILIATE_SOURCE_URLS_JSON is not valid JSON: {exc}"
+                  )
+              if not isinstance(source_urls, dict):
+                  raise SystemExit(
+                      "AFFILIATE_SOURCE_URLS_JSON must contain a JSON object."
+                  )
+          else:
+              source_urls = {}
+
+          alibaba_url = os.environ.get(
+              "ALIBABA_CONSUMER_ELECTRONICS_XML_URL", ""
+          ).strip()
+
+          if not alibaba_url:
+              raise SystemExit(
+                  "Missing repository secret: "
+                  "ALIBABA_CONSUMER_ELECTRONICS_XML_URL"
+              )
+
+          source_urls["alibaba-consumer-electronics"] = alibaba_url
+
+          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
+              output.write(
+                  "AFFILIATE_SOURCE_URLS_JSON<<TREND_PILOT_SOURCE_URLS\n"
+              )
+              output.write(
+                  json.dumps(source_urls, separators=(",", ":")) + "\n"
+              )
+              output.write("TREND_PILOT_SOURCE_URLS\n")
+          PY
+
       - name: Ingest all enabled affiliate sources
         env:
           ADMITAD_ALIEXPRESS_FEED_25_40: ${{ secrets.ADMITAD_ALIEXPRESS_FEED_25_40 }}
-          AFFILIATE_SOURCE_URLS_JSON: ${{ secrets.AFFILIATE_SOURCE_URLS_JSON }}
         run: python automation/source_ingestion.py
 
       - name: Discover public trend signals
