@@ -1,9 +1,18 @@
 {
-  "version": "0.5.0",
-  "maxPublishedTrends": 12,
-  "minimumOpportunityScore": 60,
-  "retentionHours": 72,
+  "version": "0.5.1",
+  "publicationMode": "manual-review",
+  "maxPublishedTrends": 8,
+  "maxReviewCandidates": 15,
+  "minimumReviewScore": 68,
+  "minimumMatchQuality": 26,
+  "reviewRetentionHours": 168,
+  "publishedRetentionHours": 336,
   "requestTimeoutSeconds": 35,
+  "evidenceRules": {
+    "minimumDistinctSources": 2,
+    "strongGoogleTraffic": 5000,
+    "strongHackerNewsPoints": 80
+  },
   "sources": [
     {
       "id": "google-us",
@@ -59,11 +68,6 @@
     "discount",
     "kit",
     "device",
-    "tool",
-    "app",
-    "software",
-    "platform",
-    "system",
     "accessory",
     "portable",
     "wireless",
@@ -71,7 +75,40 @@
     "automatic",
     "ai"
   ],
+  "ambiguousTerms": [
+    "ai",
+    "app",
+    "camera",
+    "video",
+    "audio",
+    "tool",
+    "software",
+    "platform",
+    "device",
+    "system",
+    "accessory",
+    "wireless",
+    "smart",
+    "automatic",
+    "security"
+  ],
   "blockedTerms": [
+    "traffic enforcement",
+    "traffic enforcement camera",
+    "speed camera",
+    "red light camera",
+    "law enforcement",
+    "police camera",
+    "police body camera",
+    "surveillance",
+    "mass surveillance",
+    "facial recognition surveillance",
+    "hidden camera",
+    "spy camera",
+    "covert camera",
+    "stalkerware",
+    "military",
+    "weapon",
     "election",
     "president",
     "prime minister",
@@ -97,9 +134,7 @@
     "betting",
     "football score",
     "match score",
-    "vs",
     "celebrity",
-    "actor death",
     "adult",
     "porn",
     "sex toy",
@@ -122,27 +157,60 @@
       "terms": [
         "voice agent",
         "voice ai",
-        "speech to text",
         "text to speech",
-        "audio editor",
-        "podcast",
-        "microphone",
-        "earbuds",
-        "headphones",
-        "speaker",
-        "soundbar",
-        "voice recorder",
-        "dictation"
-      ],
-      "productTerms": [
-        "microphone",
-        "earbuds",
-        "headphones",
-        "speaker",
+        "speech to text",
+        "podcast microphone",
+        "wireless earbuds",
+        "noise cancelling headphones",
+        "portable speaker",
         "soundbar",
         "voice recorder",
         "audio interface"
       ],
+      "termProductMap": {
+        "voice agent": [
+          "voice agent",
+          "microphone"
+        ],
+        "voice ai": [
+          "voice ai",
+          "microphone"
+        ],
+        "text to speech": [
+          "text to speech",
+          "microphone"
+        ],
+        "speech to text": [
+          "speech to text",
+          "microphone"
+        ],
+        "podcast microphone": [
+          "podcast microphone",
+          "microphone"
+        ],
+        "wireless earbuds": [
+          "wireless earbuds",
+          "earbuds"
+        ],
+        "noise cancelling headphones": [
+          "noise cancelling headphones",
+          "headphones"
+        ],
+        "portable speaker": [
+          "portable speaker",
+          "speaker"
+        ],
+        "soundbar": [
+          "soundbar"
+        ],
+        "voice recorder": [
+          "voice recorder"
+        ],
+        "audio interface": [
+          "audio interface"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [
         "hearing aid"
       ],
@@ -152,8 +220,7 @@
       "minimumPrice": 5,
       "maximumPrice": 350,
       "directProducts": [
-        "elevenlabs",
-        "descript"
+        "elevenlabs"
       ],
       "networks": [
         "Direct SaaS programmes",
@@ -166,173 +233,128 @@
       "name": "Video",
       "icon": "▶",
       "terms": [
+        "ai video generator",
         "video editor",
-        "ai video",
-        "video generator",
-        "animation",
-        "subtitle",
+        "subtitle generator",
         "caption generator",
         "screen recorder",
-        "camera",
         "webcam",
-        "projector",
+        "mini projector",
         "ring light",
-        "gimbal"
-      ],
-      "productTerms": [
-        "camera",
-        "webcam",
-        "projector",
-        "ring light",
-        "gimbal",
-        "tripod",
+        "smartphone gimbal",
         "video light"
       ],
+      "termProductMap": {
+        "webcam": [
+          "webcam"
+        ],
+        "mini projector": [
+          "mini projector",
+          "projector"
+        ],
+        "ring light": [
+          "ring light"
+        ],
+        "smartphone gimbal": [
+          "smartphone gimbal",
+          "gimbal"
+        ],
+        "video light": [
+          "video light"
+        ],
+        "screen recorder": [
+          "screen recorder"
+        ],
+        "ai video generator": [
+          "ai video generator"
+        ],
+        "video editor": [
+          "video editor"
+        ],
+        "subtitle generator": [
+          "subtitle generator"
+        ],
+        "caption generator": [
+          "caption generator"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [
-        "surveillance hidden camera"
+        "surveillance",
+        "hidden camera",
+        "spy camera"
       ],
       "preferredCategories": [
         "Consumer Electronics"
       ],
       "minimumPrice": 8,
       "maximumPrice": 600,
-      "directProducts": [
-        "synthesia",
-        "invideo",
-        "pictory",
-        "descript"
-      ],
-      "networks": [
-        "Direct SaaS programmes",
-        "PartnerStack",
-        "Admitad"
-      ],
-      "affiliateCoverage": 92
-    },
-    {
-      "name": "Marketing",
-      "icon": "↗",
-      "terms": [
-        "seo",
-        "email marketing",
-        "copywriting",
-        "content marketing",
-        "social media tool",
-        "lead generation",
-        "landing page",
-        "advertising tool",
-        "ai writing",
-        "brand monitoring"
-      ],
-      "productTerms": [],
-      "excludeTerms": [],
-      "preferredCategories": [],
-      "minimumPrice": null,
-      "maximumPrice": null,
-      "directProducts": [
-        "writesonic",
-        "scalenut"
-      ],
-      "networks": [
-        "Direct SaaS programmes",
-        "PartnerStack",
-        "Awin"
-      ],
-      "affiliateCoverage": 88
-    },
-    {
-      "name": "Developer",
-      "icon": "</>",
-      "terms": [
-        "developer tool",
-        "coding agent",
-        "ai coding",
-        "api",
-        "database",
-        "automation platform",
-        "web scraper",
-        "agent framework",
-        "open source tool",
-        "software development"
-      ],
-      "productTerms": [],
-      "excludeTerms": [],
-      "preferredCategories": [],
-      "minimumPrice": null,
-      "maximumPrice": null,
       "directProducts": [],
       "networks": [
         "PartnerStack",
-        "Impact",
-        "Direct SaaS programmes"
+        "Admitad"
       ],
-      "affiliateCoverage": 58
-    },
-    {
-      "name": "Productivity",
-      "icon": "⌁",
-      "terms": [
-        "note taking",
-        "meeting assistant",
-        "transcription",
-        "dictation",
-        "calendar app",
-        "pdf tool",
-        "workspace",
-        "task manager",
-        "document ai",
-        "keyboard",
-        "desk setup"
-      ],
-      "productTerms": [
-        "keyboard",
-        "desk lamp",
-        "tablet stand",
-        "laptop stand",
-        "wireless mouse"
-      ],
-      "excludeTerms": [],
-      "preferredCategories": [
-        "Computer & Office"
-      ],
-      "minimumPrice": 4,
-      "maximumPrice": 250,
-      "directProducts": [
-        "descript"
-      ],
-      "networks": [
-        "PartnerStack",
-        "Admitad",
-        "Awin"
-      ],
-      "affiliateCoverage": 76
+      "affiliateCoverage": 78
     },
     {
       "name": "Automotive",
       "icon": "◇",
       "terms": [
-        "carplay",
-        "android auto",
+        "wireless carplay",
+        "carplay adapter",
+        "carplay retrofit",
+        "android auto adapter",
         "dash cam",
         "car vacuum",
         "tyre inflator",
         "tire inflator",
-        "car charger",
-        "car phone holder",
-        "car multimedia",
-        "car accessory"
-      ],
-      "productTerms": [
-        "carplay",
-        "android auto",
-        "dash cam",
-        "car vacuum",
-        "tire inflator",
-        "tyre inflator",
         "car charger",
         "car phone holder",
         "car multimedia"
       ],
+      "termProductMap": {
+        "wireless carplay": [
+          "wireless carplay",
+          "carplay"
+        ],
+        "carplay adapter": [
+          "carplay adapter",
+          "carplay"
+        ],
+        "carplay retrofit": [
+          "carplay retrofit",
+          "carplay"
+        ],
+        "android auto adapter": [
+          "android auto adapter",
+          "android auto"
+        ],
+        "dash cam": [
+          "dash cam"
+        ],
+        "car vacuum": [
+          "car vacuum"
+        ],
+        "tyre inflator": [
+          "tyre inflator",
+          "tire inflator"
+        ],
+        "tire inflator": [
+          "tire inflator",
+          "tyre inflator"
+        ],
+        "car charger": [
+          "car charger"
+        ],
+        "car phone holder": [
+          "car phone holder"
+        ],
+        "car multimedia": [
+          "car multimedia",
+          "carplay"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [
         "engine",
         "gearbox",
@@ -363,7 +385,6 @@
       "icon": "⌂",
       "terms": [
         "robot vacuum",
-        "security camera",
         "smart lock",
         "video doorbell",
         "air purifier",
@@ -373,25 +394,46 @@
         "smart plug",
         "automatic curtain"
       ],
-      "productTerms": [
-        "robot vacuum",
-        "security camera",
-        "smart lock",
-        "video doorbell",
-        "air purifier",
-        "smart light",
-        "led strip",
-        "projector",
-        "smart plug"
-      ],
+      "termProductMap": {
+        "robot vacuum": [
+          "robot vacuum"
+        ],
+        "smart lock": [
+          "smart lock"
+        ],
+        "video doorbell": [
+          "video doorbell"
+        ],
+        "air purifier": [
+          "air purifier"
+        ],
+        "smart light": [
+          "smart light"
+        ],
+        "led strip": [
+          "led strip"
+        ],
+        "home projector": [
+          "home projector",
+          "projector"
+        ],
+        "smart plug": [
+          "smart plug"
+        ],
+        "automatic curtain": [
+          "automatic curtain"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [
         "hidden camera",
-        "spy camera"
+        "spy camera",
+        "surveillance"
       ],
       "preferredCategories": [
         "Consumer Electronics",
         "Home Appliances",
-        "Security & Protection"
+        "Home & Garden"
       ],
       "minimumPrice": 5,
       "maximumPrice": 900,
@@ -409,23 +451,38 @@
       "terms": [
         "power bank",
         "wireless charger",
-        "magsafe",
-        "phone case",
-        "phone accessory",
-        "charging station",
-        "usb c hub",
-        "portable charger",
-        "smartphone accessory"
-      ],
-      "productTerms": [
-        "power bank",
-        "wireless charger",
-        "magsafe",
+        "magsafe charger",
         "phone case",
         "charging station",
         "usb c hub",
         "portable charger"
       ],
+      "termProductMap": {
+        "power bank": [
+          "power bank"
+        ],
+        "wireless charger": [
+          "wireless charger"
+        ],
+        "magsafe charger": [
+          "magsafe charger",
+          "magsafe"
+        ],
+        "phone case": [
+          "phone case"
+        ],
+        "charging station": [
+          "charging station"
+        ],
+        "usb c hub": [
+          "usb c hub"
+        ],
+        "portable charger": [
+          "portable charger",
+          "power bank"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [
         "battery cell"
       ],
@@ -447,7 +504,6 @@
       "name": "Fitness",
       "icon": "✦",
       "terms": [
-        "smartwatch",
         "fitness tracker",
         "walking pad",
         "massage gun",
@@ -456,14 +512,32 @@
         "sports watch",
         "running watch"
       ],
-      "productTerms": [
-        "smartwatch",
-        "fitness tracker",
-        "walking pad",
-        "massage gun",
-        "resistance band",
-        "sports watch"
-      ],
+      "termProductMap": {
+        "fitness tracker": [
+          "fitness tracker"
+        ],
+        "walking pad": [
+          "walking pad"
+        ],
+        "massage gun": [
+          "massage gun"
+        ],
+        "resistance band": [
+          "resistance band"
+        ],
+        "home gym": [
+          "home gym"
+        ],
+        "sports watch": [
+          "sports watch",
+          "smartwatch"
+        ],
+        "running watch": [
+          "running watch",
+          "sports watch"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [
         "diet pill",
         "weight loss pill"
@@ -486,24 +560,43 @@
       "name": "Pet",
       "icon": "♢",
       "terms": [
-        "pet feeder",
-        "automatic feeder",
-        "pet camera",
+        "smart pet feeder",
+        "automatic pet feeder",
         "cat water fountain",
         "dog water fountain",
         "self cleaning litter box",
-        "pet grooming",
+        "pet grooming vacuum",
         "gps pet tracker"
       ],
-      "productTerms": [
-        "pet feeder",
-        "automatic feeder",
-        "pet camera",
-        "water fountain",
-        "self cleaning litter box",
-        "pet grooming",
-        "gps pet tracker"
-      ],
+      "termProductMap": {
+        "smart pet feeder": [
+          "smart pet feeder",
+          "pet feeder"
+        ],
+        "automatic pet feeder": [
+          "automatic pet feeder",
+          "pet feeder"
+        ],
+        "cat water fountain": [
+          "cat water fountain",
+          "water fountain"
+        ],
+        "dog water fountain": [
+          "dog water fountain",
+          "water fountain"
+        ],
+        "self cleaning litter box": [
+          "self cleaning litter box"
+        ],
+        "pet grooming vacuum": [
+          "pet grooming vacuum",
+          "pet grooming"
+        ],
+        "gps pet tracker": [
+          "gps pet tracker"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [
         "manual bowl"
       ],
@@ -529,19 +622,33 @@
         "skincare device",
         "led face mask",
         "nail lamp",
-        "makeup tool",
-        "facial cleansing",
-        "beauty device"
+        "makeup brush cleaner",
+        "facial cleansing device"
       ],
-      "productTerms": [
-        "hair styler",
-        "hair dryer",
-        "skincare device",
-        "led face mask",
-        "nail lamp",
-        "makeup tool",
-        "facial cleansing"
-      ],
+      "termProductMap": {
+        "hair styler": [
+          "hair styler"
+        ],
+        "hair dryer": [
+          "hair dryer"
+        ],
+        "skincare device": [
+          "skincare device"
+        ],
+        "led face mask": [
+          "led face mask"
+        ],
+        "nail lamp": [
+          "nail lamp"
+        ],
+        "makeup brush cleaner": [
+          "makeup brush cleaner"
+        ],
+        "facial cleansing device": [
+          "facial cleansing device"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [
         "injectable",
         "prescription"
@@ -569,22 +676,43 @@
         "label maker",
         "thermal printer",
         "travel organiser",
-        "vacuum sealer",
-        "ice maker",
-        "coffee maker",
-        "kitchen gadget"
-      ],
-      "productTerms": [
-        "portable blender",
-        "mini printer",
-        "label maker",
-        "thermal printer",
         "travel organizer",
-        "travel organiser",
         "vacuum sealer",
         "ice maker",
         "coffee maker"
       ],
+      "termProductMap": {
+        "portable blender": [
+          "portable blender"
+        ],
+        "mini printer": [
+          "mini printer"
+        ],
+        "label maker": [
+          "label maker"
+        ],
+        "thermal printer": [
+          "thermal printer"
+        ],
+        "travel organiser": [
+          "travel organiser",
+          "travel organizer"
+        ],
+        "travel organizer": [
+          "travel organizer",
+          "travel organiser"
+        ],
+        "vacuum sealer": [
+          "vacuum sealer"
+        ],
+        "ice maker": [
+          "ice maker"
+        ],
+        "coffee maker": [
+          "coffee maker"
+        ]
+      },
+      "productTerms": [],
       "excludeTerms": [],
       "preferredCategories": [
         "Home Appliances",

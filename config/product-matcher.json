@@ -1,12 +1,12 @@
 {
-  "version": "0.5.0",
+  "version": "0.5.1",
   "sourceSettings": {
     "localHotProducts": "data/source/admitad-hot-products.csv",
     "remoteFeedEnvironmentVariable": "ADMITAD_ALIEXPRESS_FEED_25_40",
     "remoteFeedLabel": "AliExpress 25–40 USD feed",
     "maxRemoteRows": 25000,
     "topProductsPerTrend": 8,
-    "minimumScore": 25
+    "minimumScore": 40
   },
   "compliance": {
     "allowedSchemes": [
@@ -41,7 +41,14 @@
       "nicotine",
       "diet pill",
       "laxative",
-      "prescription medicine"
+      "prescription medicine",
+      "surveillance",
+      "hidden camera",
+      "spy camera",
+      "covert camera",
+      "traffic enforcement",
+      "speed camera",
+      "police camera"
     ],
     "blockedCategories": []
   },
@@ -142,5 +149,11 @@
       "minimumPrice": 1,
       "maximumPrice": 100
     }
-  ]
+  ],
+  "reviewSettings": {
+    "minimumTrendScore": 72,
+    "minimumProductMatches": 3,
+    "minimumBestMatchScore": 52,
+    "previewProducts": 3
+  }
 }

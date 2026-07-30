@@ -1,0 +1,8 @@
+{
+  "version": "0.5.1",
+  "approvedSlugs": [],
+  "rejectedSlugs": [
+    "traffic-enforcement-camera"
+  ],
+  "instructions": "Do not approve a candidate until data/trend-review.json shows readyForApproval: true. Add only its slug to approvedSlugs, then run Actions again."
+}
