@@ -1,0 +1,37 @@
+{
+  "id": "direct-elevenlabs",
+  "enabled": true,
+  "adapter": "direct",
+  "network": "Direct",
+  "advertiser": "ElevenLabs",
+  "programme": "ElevenLabs Affiliate Programme",
+  "location": {
+    "type": "direct"
+  },
+  "countries": [
+    "GLOBAL"
+  ],
+  "rules": {
+    "contentTraffic": "allowed",
+    "affiliateDisclosure": "required"
+  },
+  "directOffer": {
+    "affiliateKey": "elevenlabs",
+    "productId": "elevenlabs",
+    "name": "ElevenLabs",
+    "description": "AI voice generation, text-to-speech and dubbing platform.",
+    "category": "AI Voice & Audio",
+    "brand": "ElevenLabs",
+    "productUrl": "https://elevenlabs.io/",
+    "currency": "USD",
+    "commissionType": "programme",
+    "tags": [
+      "voice ai",
+      "text to speech",
+      "dubbing",
+      "voice agent",
+      "speech",
+      "audio software"
+    ]
+  }
+}

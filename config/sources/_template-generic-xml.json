@@ -1,0 +1,144 @@
+{
+  "id": "generic-xml-template",
+  "enabled": false,
+  "adapter": "xml",
+  "network": "REPLACE_NETWORK",
+  "advertiser": "REPLACE_ADVERTISER",
+  "programme": "REPLACE_PROGRAMME",
+  "location": {
+    "type": "secret_map",
+    "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
+    "secretKey": "generic-xml-template"
+  },
+  "rowLimit": 25000,
+  "delimiter": "auto",
+  "encoding": "utf-8-sig",
+  "defaultCurrency": "USD",
+  "countries": [
+    "GLOBAL"
+  ],
+  "fieldMap": {
+    "id": [
+      "id",
+      "product_id",
+      "productId",
+      "sku"
+    ],
+    "productId": [
+      "id",
+      "product_id",
+      "productId",
+      "sku"
+    ],
+    "name": [
+      "name",
+      "title",
+      "product_name",
+      "productName"
+    ],
+    "description": [
+      "description",
+      "product_description",
+      "desc"
+    ],
+    "affiliateUrl": [
+      "url",
+      "deeplink",
+      "affiliate_url",
+      "buy_url",
+      "tracking_url"
+    ],
+    "productUrl": [
+      "product_url",
+      "productUrl",
+      "landing_page"
+    ],
+    "category": [
+      "category",
+      "categoryName",
+      "category_name",
+      "type"
+    ],
+    "brand": [
+      "brand",
+      "manufacturer"
+    ],
+    "advertiser": [
+      "advertiser",
+      "merchant",
+      "merchant_name"
+    ],
+    "currency": [
+      "currencyId",
+      "currency",
+      "currency_id"
+    ],
+    "imageUrl": [
+      "picture",
+      "image",
+      "imageUrl",
+      "image_url"
+    ],
+    "oldPrice": [
+      "oldprice",
+      "old_price",
+      "originalPrice",
+      "retail_price"
+    ],
+    "price": [
+      "price",
+      "current_price",
+      "salePrice",
+      "sale_price"
+    ],
+    "commissionRate": [
+      "commissionRate",
+      "commission_rate",
+      "commission_percent"
+    ],
+    "commissionValue": [
+      "commissionValue",
+      "commission_value"
+    ],
+    "commissionType": [
+      "commissionType",
+      "commission_type"
+    ],
+    "discountPercent": [
+      "discount",
+      "discountPercent",
+      "discount_percent"
+    ],
+    "availability": [
+      "available",
+      "availability",
+      "in_stock"
+    ],
+    "updatedAt": [
+      "modified_time",
+      "modifiedTime",
+      "updated_at"
+    ],
+    "merchantId": [
+      "shopId",
+      "shop_id",
+      "merchant_id",
+      "advertiser_id"
+    ],
+    "param": [
+      "param",
+      "params"
+    ],
+    "tags": [
+      "tags",
+      "keywords"
+    ]
+  },
+  "paramFields": {},
+  "rules": {},
+  "itemTags": [
+    "item",
+    "product",
+    "offer"
+  ]
+}

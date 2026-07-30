@@ -1,0 +1,143 @@
+{
+  "id": "cj-advertiser-template",
+  "enabled": false,
+  "adapter": "csv",
+  "network": "CJ Affiliate",
+  "advertiser": "REPLACE_WITH_ADVERTISER",
+  "programme": "REPLACE_WITH_PROGRAMME",
+  "location": {
+    "type": "secret_map",
+    "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
+    "secretKey": "cj-advertiser-template"
+  },
+  "rowLimit": 30000,
+  "delimiter": "auto",
+  "encoding": "utf-8-sig",
+  "defaultCurrency": "USD",
+  "countries": [
+    "GLOBAL"
+  ],
+  "fieldMap": {
+    "id": [
+      "id",
+      "product_id",
+      "productId",
+      "sku"
+    ],
+    "productId": [
+      "id",
+      "product_id",
+      "productId",
+      "sku"
+    ],
+    "name": [
+      "name",
+      "title",
+      "product_name",
+      "productName"
+    ],
+    "description": [
+      "description",
+      "product_description",
+      "desc"
+    ],
+    "affiliateUrl": [
+      "url",
+      "deeplink",
+      "affiliate_url",
+      "buy_url",
+      "tracking_url"
+    ],
+    "productUrl": [
+      "product_url",
+      "productUrl",
+      "landing_page"
+    ],
+    "category": [
+      "category",
+      "categoryName",
+      "category_name",
+      "type"
+    ],
+    "brand": [
+      "brand",
+      "manufacturer"
+    ],
+    "advertiser": [
+      "advertiser",
+      "merchant",
+      "merchant_name"
+    ],
+    "currency": [
+      "currencyId",
+      "currency",
+      "currency_id"
+    ],
+    "imageUrl": [
+      "picture",
+      "image",
+      "imageUrl",
+      "image_url"
+    ],
+    "oldPrice": [
+      "oldprice",
+      "old_price",
+      "originalPrice",
+      "retail_price"
+    ],
+    "price": [
+      "price",
+      "current_price",
+      "salePrice",
+      "sale_price"
+    ],
+    "commissionRate": [
+      "commissionRate",
+      "commission_rate",
+      "commission_percent"
+    ],
+    "commissionValue": [
+      "commissionValue",
+      "commission_value"
+    ],
+    "commissionType": [
+      "commissionType",
+      "commission_type"
+    ],
+    "discountPercent": [
+      "discount",
+      "discountPercent",
+      "discount_percent"
+    ],
+    "availability": [
+      "available",
+      "availability",
+      "in_stock"
+    ],
+    "updatedAt": [
+      "modified_time",
+      "modifiedTime",
+      "updated_at"
+    ],
+    "merchantId": [
+      "shopId",
+      "shop_id",
+      "merchant_id",
+      "advertiser_id"
+    ],
+    "param": [
+      "param",
+      "params"
+    ],
+    "tags": [
+      "tags",
+      "keywords"
+    ]
+  },
+  "paramFields": {},
+  "rules": {
+    "contentTraffic": "check-programme-terms",
+    "brandBidding": "check-programme-terms"
+  },
+  "instructions": "Copy this file, change id/advertiser/programme and fieldMap, enable it, then add its private feed URL to the AFFILIATE_SOURCE_URLS_JSON GitHub secret."
+}

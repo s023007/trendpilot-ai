@@ -1,0 +1,146 @@
+{
+  "id": "admitad-hot-products",
+  "enabled": true,
+  "adapter": "csv",
+  "network": "Admitad",
+  "advertiser": "AliExpress",
+  "programme": "AliExpress WW — Hot Products",
+  "location": {
+    "type": "local_file",
+    "path": "data/source/admitad-hot-products.csv"
+  },
+  "rowLimit": 15000,
+  "delimiter": "auto",
+  "encoding": "utf-8-sig",
+  "defaultCurrency": "USD",
+  "countries": [
+    "GLOBAL"
+  ],
+  "fieldMap": {
+    "id": [
+      "id",
+      "product_id",
+      "productId",
+      "sku"
+    ],
+    "productId": [
+      "id",
+      "product_id",
+      "productId",
+      "sku"
+    ],
+    "name": [
+      "name",
+      "title",
+      "product_name",
+      "productName"
+    ],
+    "description": [
+      "description",
+      "product_description",
+      "desc"
+    ],
+    "affiliateUrl": [
+      "url",
+      "deeplink",
+      "affiliate_url",
+      "buy_url",
+      "tracking_url"
+    ],
+    "productUrl": [
+      "product_url",
+      "productUrl",
+      "landing_page"
+    ],
+    "category": [
+      "category",
+      "categoryName",
+      "category_name",
+      "type"
+    ],
+    "brand": [
+      "brand",
+      "manufacturer"
+    ],
+    "advertiser": [
+      "advertiser",
+      "merchant",
+      "merchant_name"
+    ],
+    "currency": [
+      "currencyId",
+      "currency",
+      "currency_id"
+    ],
+    "imageUrl": [
+      "picture",
+      "image",
+      "imageUrl",
+      "image_url"
+    ],
+    "oldPrice": [
+      "oldprice",
+      "old_price",
+      "originalPrice",
+      "retail_price"
+    ],
+    "price": [
+      "price",
+      "current_price",
+      "salePrice",
+      "sale_price"
+    ],
+    "commissionRate": [
+      "commissionRate",
+      "commission_rate",
+      "commission_percent"
+    ],
+    "commissionValue": [
+      "commissionValue",
+      "commission_value"
+    ],
+    "commissionType": [
+      "commissionType",
+      "commission_type"
+    ],
+    "discountPercent": [
+      "discount",
+      "discountPercent",
+      "discount_percent"
+    ],
+    "availability": [
+      "available",
+      "availability",
+      "in_stock"
+    ],
+    "updatedAt": [
+      "modified_time",
+      "modifiedTime",
+      "updated_at"
+    ],
+    "merchantId": [
+      "shopId",
+      "shop_id",
+      "merchant_id",
+      "advertiser_id"
+    ],
+    "param": [
+      "param",
+      "params"
+    ],
+    "tags": [
+      "tags",
+      "keywords"
+    ]
+  },
+  "paramFields": {
+    "commissionRate": "commissionRate",
+    "discountPercent": "discount",
+    "merchantId": "shopId"
+  },
+  "rules": {
+    "contentTraffic": "allowed",
+    "brandBidding": "forbidden",
+    "paidSearch": "approval-required"
+  }
+}
