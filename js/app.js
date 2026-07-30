@@ -1,6 +1,12 @@
 document.addEventListener("DOMContentLoaded", () => {
   const tools = window.TRENDPILOT_TOOLS || [];
-  const trends = window.TRENDPILOT_TRENDS || [];
+  const staticTrends = window.TRENDPILOT_TRENDS || [];
+  const discoveredTrends = window.TRENDPILOT_DISCOVERED_TRENDS || [];
+  const trendMap = new Map();
+  [...staticTrends, ...discoveredTrends].forEach((trend) => {
+    if (trend?.slug) trendMap.set(trend.slug, trend);
+  });
+  const trends = [...trendMap.values()].sort((a, b) => (b.score || 0) - (a.score || 0));
   const networks = window.TRENDPILOT_NETWORKS || [];
   const affiliateLinks = window.TRENDPILOT_LINKS || {};
   const feedMatches = window.TRENDPILOT_MATCHED_PRODUCTS || {};
@@ -82,16 +88,27 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("whyNow").textContent = trend.whyNow;
       document.getElementById("monetisationNote").textContent = trend.monetisationNote;
       const source = document.getElementById("sourceLink");
-      source.href = trend.sourceUrl; source.target = "_blank"; source.rel = "noopener";
+      const sourceUrl = String(trend.sourceUrl || "");
+      const sourceIsPublic = /^https?:\/\//i.test(sourceUrl) && !sourceUrl.startsWith(location.origin);
+      if (sourceIsPublic) {
+        source.hidden = false;
+        source.textContent = "Why this is trending";
+        source.href = sourceUrl;
+        source.target = "_blank";
+        source.rel = "noopener";
+      } else {
+        source.hidden = true;
+        source.removeAttribute("href");
+      }
       document.getElementById("trendSummaryPanel").innerHTML = `<span class="status-chip">${escapeHtml(trend.stage)}</span><div><span>Opportunity score</span><strong>${trend.score}/100</strong></div><div><span>Confidence</span><strong>${escapeHtml(trend.confidence)}</strong></div><div><span>Competition</span><strong>${competitionLabel(trend.competition)}</strong></div><div><span>Observed</span><strong>${escapeHtml(trend.observedAt)}</strong></div>`;
       const scoreRows = [
         ["Momentum", trend.momentum], ["Buyer intent", trend.buyerIntent], ["Low competition advantage", 100 - trend.competition], ["Affiliate coverage", trend.affiliateCoverage], ["Content depth", trend.contentDepth]
       ];
       document.getElementById("scoreBreakdown").innerHTML = scoreRows.map(([label, value]) => `<div class="score-row"><span>${label}</span><div class="bar"><i style="--value:${value}%"></i></div><strong>${value}</strong></div>`).join("");
-      document.getElementById("trendKeywords").innerHTML = trend.keywords.map((item) => `<span>${escapeHtml(item)}</span>`).join("");
-      document.getElementById("trendAngles").innerHTML = trend.angles.map((item) => `<article><span>Content angle</span><strong>${escapeHtml(item)}</strong></article>`).join("");
-      document.getElementById("networkMatches").innerHTML = trend.networkOpportunities.map((item) => `<span>${escapeHtml(item)}</span>`).join("");
-      const directMatches = trend.products.map((productSlug) => tools.find((tool) => tool.slug === productSlug)).filter(Boolean);
+      document.getElementById("trendKeywords").innerHTML = (trend.keywords || []).map((item) => `<span>${escapeHtml(item)}</span>`).join("");
+      document.getElementById("trendAngles").innerHTML = (trend.angles || []).map((item) => `<article><span>Content angle</span><strong>${escapeHtml(item)}</strong></article>`).join("");
+      document.getElementById("networkMatches").innerHTML = (trend.networkOpportunities || []).map((item) => `<span>${escapeHtml(item)}</span>`).join("");
+      const directMatches = (trend.products || []).map((productSlug) => tools.find((tool) => tool.slug === productSlug)).filter(Boolean);
       const automatedMatches = feedMatches[trend.slug] || [];
       const productArea = document.getElementById("matchedProducts");
       const directHtml = directMatches.map((tool) => {
@@ -122,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
         primary.target = "_blank";
         primary.rel = "sponsored nofollow noopener";
       } else {
-        productArea.innerHTML = `<div class="no-match"><strong>No compliant product match was published.</strong><p>The connector will search approved programmes and feeds from ${escapeHtml(trend.networkOpportunities.join(", "))}. A missing result is safer than an irrelevant or restricted product.</p></div>`;
+        productArea.innerHTML = `<div class="no-match"><strong>No compliant product match was published.</strong><p>The connector will search approved programmes and feeds from ${escapeHtml((trend.networkOpportunities || ["approved affiliate networks"]).join(", "))}. A missing result is safer than an irrelevant or restricted product.</p></div>`;
         const primary = document.getElementById("primaryMatch");
         primary.textContent = "View network plan";
         primary.href = "networks.html";
