@@ -20,6 +20,7 @@ from __future__ import annotations
 import csv
 import gzip
 import io
+import itertools
 import json
 import math
 import os
@@ -126,17 +127,38 @@ def iter_local_rows(path: Path) -> Iterator[dict]:
         yield from reader
 
 def iter_remote_rows(url: str, maximum: int) -> Iterator[dict]:
+    """Stream only the requested number of rows from the private feed.
+
+    The earlier implementation loaded the entire multi-million-row feed into
+    memory before applying the row limit. This version samples a few lines to
+    detect the delimiter, then continues reading the HTTP response line by line.
+    """
     stream = None
     response = None
     try:
         stream, response = open_remote_csv(url)
-        sample = stream.read(8192)
-        # TextIOWrapper from an HTTP response is not safely seekable.
-        combined = io.StringIO(sample + stream.read())
-        reader = csv.DictReader(combined, delimiter=detect_delimiter(sample))
+
+        sampled_lines = []
+        for _ in range(20):
+            line = stream.readline()
+            if not line:
+                break
+            sampled_lines.append(line)
+
+        sample = "".join(sampled_lines)
+        if not sample.strip():
+            return
+
+        reader = csv.DictReader(
+            itertools.chain(sampled_lines, stream),
+            delimiter=detect_delimiter(sample),
+        )
+
         for index, row in enumerate(reader, start=1):
             if index > maximum:
                 break
+            if index % 5000 == 0:
+                print(f"Remote rows processed: {index}")
             yield row
     finally:
         try:
