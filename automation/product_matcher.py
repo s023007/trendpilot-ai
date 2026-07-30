@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TrendPilot AI v0.4 Product Matcher
+TrendPilot AI v0.5 Product Matcher
 
 Reads:
 - a local Admitad Hot Products CSV snapshot;
@@ -35,6 +35,7 @@ from typing import Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "config" / "product-matcher.json"
+DISCOVERED_TRENDS_PATH = ROOT / "data" / "discovered-trends.json"
 
 FIELD_ALIASES = {
     "id": ("id", "product_id", "productId"),
@@ -54,7 +55,32 @@ FIELD_ALIASES = {
 
 def load_config() -> dict:
     with CONFIG_PATH.open("r", encoding="utf-8") as handle:
-        return json.load(handle)
+        config = json.load(handle)
+
+    # v0.5: automatically create product profiles for newly discovered trends.
+    existing = {profile.get("slug") for profile in config.get("trendProfiles", [])}
+    if DISCOVERED_TRENDS_PATH.exists():
+        try:
+            discovered = json.loads(DISCOVERED_TRENDS_PATH.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            discovered = {}
+        for trend in discovered.get("trends", []):
+            match = trend.get("productMatch") or {}
+            slug = text(trend.get("slug"))
+            include_terms = [text(item) for item in match.get("includeTerms", []) if text(item)]
+            if not slug or slug in existing or not include_terms:
+                continue
+            config.setdefault("trendProfiles", []).append({
+                "slug": slug,
+                "title": text(trend.get("title")) or slug,
+                "includeTerms": include_terms,
+                "preferredCategories": match.get("preferredCategories", []),
+                "excludeTerms": match.get("excludeTerms", []),
+                "minimumPrice": match.get("minimumPrice"),
+                "maximumPrice": match.get("maximumPrice"),
+            })
+            existing.add(slug)
+    return config
 
 def text(value: object) -> str:
     return str(value or "").strip()
@@ -101,7 +127,7 @@ def open_remote_csv(url: str) -> Tuple[io.TextIOBase, object]:
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "TrendPilotAI-ProductMatcher/0.4",
+            "User-Agent": "TrendPilotAI-ProductMatcher/0.5",
             "Accept-Encoding": "gzip",
             "Accept": "text/csv,text/plain,*/*",
         },
