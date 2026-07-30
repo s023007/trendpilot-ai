@@ -1,39 +1,6 @@
 {
-  "version": "0.5.0",
-  "generatedAt": "2026-07-30T05:58:45+00:00",
-  "sources": [
-    {
-      "label": "Google Trends — United States",
-      "status": "processed",
-      "signals": 10
-    },
-    {
-      "label": "Google Trends — United Kingdom",
-      "status": "processed",
-      "signals": 10
-    },
-    {
-      "label": "Google Trends — United Arab Emirates",
-      "status": "processed",
-      "signals": 10
-    },
-    {
-      "label": "Product Hunt RSS",
-      "status": "processed",
-      "signals": 50
-    },
-    {
-      "label": "Hacker News official API",
-      "status": "processed",
-      "signals": 35
-    }
-  ],
-  "counters": {
-    "rawSignals": 115,
-    "blockedSignals": 8,
-    "nonCommercialSignals": 106,
-    "publishedTrends": 1,
-    "retainedPreviousTrends": 0
-  },
-  "note": "Only public source links and filtered trend metadata are published. No API key is stored in the repository."
+  "version": "0.5.1",
+  "generatedAt": null,
+  "publicationMode": "manual-review",
+  "status": "awaiting-workflow-run"
 }
