@@ -1,0 +1,86 @@
+{
+  "source": "Alibaba consumer electronics XML",
+  "rootTag": "feed",
+  "contentType": "application/xml",
+  "finalUrlHost": "export.admitad.com",
+  "parsedEndEvents": 12000,
+  "candidateRecordTags": [
+    {
+      "tag": "entry",
+      "countInSample": 989,
+      "childFields": [
+        "id",
+        "title",
+        "description",
+        "link",
+        "image_link",
+        "additional_image_link",
+        "condition",
+        "availability",
+        "price",
+        "identifier_exists",
+        "product_type"
+      ],
+      "attributes": []
+    }
+  ],
+  "mostCommonTags": [
+    {
+      "tag": "title",
+      "countInSample": 991
+    },
+    {
+      "tag": "link",
+      "countInSample": 990
+    },
+    {
+      "tag": "id",
+      "countInSample": 990
+    },
+    {
+      "tag": "description",
+      "countInSample": 989
+    },
+    {
+      "tag": "image_link",
+      "countInSample": 989
+    },
+    {
+      "tag": "additional_image_link",
+      "countInSample": 989
+    },
+    {
+      "tag": "condition",
+      "countInSample": 989
+    },
+    {
+      "tag": "availability",
+      "countInSample": 989
+    },
+    {
+      "tag": "price",
+      "countInSample": 989
+    },
+    {
+      "tag": "identifier_exists",
+      "countInSample": 989
+    },
+    {
+      "tag": "product_type",
+      "countInSample": 989
+    },
+    {
+      "tag": "entry",
+      "countInSample": 989
+    },
+    {
+      "tag": "sale_price",
+      "countInSample": 127
+    },
+    {
+      "tag": "updated",
+      "countInSample": 1
+    }
+  ],
+  "instruction": "Use the candidateRecordTags entry that represents one product as itemTags in the Alibaba source configuration."
+}
