@@ -27,24 +27,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Discover current monetisable trends
+      - name: Discover candidates and build review queue
         run: python automation/trend_discovery.py
 
-      - name: Match trends to approved products
+      - name: Add strict product evidence
         env:
           ADMITAD_ALIEXPRESS_FEED_25_40: ${{ secrets.ADMITAD_ALIEXPRESS_FEED_25_40 }}
         run: python automation/product_matcher.py
 
-      - name: Commit clean public outputs
+      - name: Commit clean public outputs and review evidence
         run: |
-          FILES="data/discovered-trends.json data/trend-discovery-report.json js/discovered-trends.js data/matched-products.json data/product-matcher-report.json js/matched-products.js"
+          FILES="data/discovered-trends.json data/trend-review.json data/trend-discovery-report.json js/discovered-trends.js data/matched-products.json data/product-matcher-report.json js/matched-products.js"
           if git diff --quiet -- $FILES; then
-            echo "No trend or product changes to commit."
+            echo "No trend, review or product changes to commit."
             exit 0
           fi
 
           git config user.name "trendpilot-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add $FILES
-          git commit -m "chore: refresh automatic trends and affiliate matches"
+          git commit -m "chore: refresh strict trend review and affiliate evidence"
           git push
