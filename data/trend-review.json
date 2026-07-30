@@ -1,6 +1,6 @@
 {
-  "version": "0.6.0",
-  "generatedAt": "2026-07-30T09:04:05+00:00",
+  "version": "0.6.1",
+  "generatedAt": "2026-07-30T10:00:08+00:00",
   "reviewQueue": [
     {
       "slug": "car-multimedia-head-units",
@@ -76,7 +76,7 @@
         "1 advertiser(s)"
       ],
       "observedAt": "30 July 2026",
-      "discoveredAt": "2026-07-30T09:03:54+00:00",
+      "discoveredAt": "2026-07-30T09:59:48+00:00",
       "keywords": [
         "Car Multimedia Head Units",
         "car multimedia",
@@ -117,7 +117,32 @@
         ],
         "minimumPrice": 20,
         "maximumPrice": 900,
-        "minimumMatchedTerms": 1
+        "minimumMatchedTerms": 1,
+        "requiredTitleTerms": [
+          "car multimedia",
+          "car radio",
+          "head unit",
+          "android car radio",
+          "multimedia player",
+          "carplay",
+          "android auto"
+        ],
+        "minimumRequiredTitleTerms": 1,
+        "excludeTitleTerms": [
+          "frame only",
+          "fascia",
+          "trim panel",
+          "wiring harness",
+          "canbus box",
+          "canbus decoder",
+          "camera only",
+          "microphone only",
+          "cable only",
+          "adapter only",
+          "screen protector"
+        ],
+        "excludeCategoryTerms": [],
+        "allowAccessoryProducts": false
       },
       "automatic": true,
       "origin": "commerce-catalog",
@@ -144,7 +169,9 @@
       },
       "productEvidence": {
         "matchCount": 8,
-        "bestMatchScore": 98.23,
+        "bestMatchScore": 100.0,
+        "strongMatchCount": 8,
+        "affiliateRouteCount": 8,
         "networks": [
           "Admitad"
         ],
@@ -152,7 +179,63 @@
           "AliExpress"
         ],
         "activeDirectProducts": [],
+        "approvalThresholds": {
+          "minimumTrendScore": 72,
+          "minimumProductMatches": 3,
+          "minimumBestMatchScore": 75.0,
+          "minimumStrongMatches": 3,
+          "minimumAffiliateRouteMatches": 3
+        },
+        "approvalChecks": {
+          "trendScorePassed": true,
+          "productMatchCountPassed": true,
+          "bestMatchScorePassed": true,
+          "strongMatchCountPassed": true,
+          "affiliateRouteCountPassed": true,
+          "activeDirectRoute": false
+        },
+        "holdReasons": [],
         "topProducts": [
+          {
+            "id": "1005012248841451",
+            "name": "7\" For Truck Hino 300 616 617 2006-2014  Car Stereo Radio CarPlay Android15 Auto Head Unit GPS 4G+WIFI Navi Multimedia Player",
+            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005012248841451.html%253Fpdp_npi%253D6%252540dis%252521USD%252521355.21%252521177.60%252521%252521%2525212392.00%2525211196.00%252521%252540210152bd17852874862336321e2104%25252112000057864373266%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D1&i=5&f_id=50003",
+            "productUrl": "",
+            "category": "Car Electronics",
+            "currency": "USD",
+            "image": "https://ae-pic-a1.aliexpress-media.com/kf/S9596304f0b0f4b8288e4b92e17334ebcP.jpg",
+            "source": "admitad-hot-products",
+            "network": "Admitad",
+            "advertiser": "AliExpress",
+            "programme": "AliExpress WW — Hot Products",
+            "canonicalKey": "001ac667c956c4ba2185",
+            "offerQuality": 98.0,
+            "matchScore": 100.0,
+            "price": 177.6,
+            "oldPrice": 355.21,
+            "commissionRate": 11.53,
+            "discount": 50.0
+          },
+          {
+            "id": "1005012637371078",
+            "name": "7\" For Toyota Camry 1997-2001 Car Radio Wireless CarPlay Android 15 Auto QLED Screen Head Unit GPS Navi Plug & Play",
+            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005012637371078.html%253Fpdp_npi%253D6%252540dis%252521USD%252521321.50%252521176.82%252521%252521%2525212165.00%2525211190.75%252521%2525402140d36117852874811481597e0f69%25252112000058932704806%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D1&i=5&f_id=50003",
+            "productUrl": "",
+            "category": "Car Electronics",
+            "currency": "USD",
+            "image": "https://ae-pic-a1.aliexpress-media.com/kf/Se91d521999474d279489611143b155dcU.jpg",
+            "source": "admitad-hot-products",
+            "network": "Admitad",
+            "advertiser": "AliExpress",
+            "programme": "AliExpress WW — Hot Products",
+            "canonicalKey": "f3789c570a1a044a41e1",
+            "offerQuality": 97.5,
+            "matchScore": 100.0,
+            "price": 176.82,
+            "oldPrice": 321.5,
+            "commissionRate": 10.0,
+            "discount": 45.0
+          },
           {
             "id": "1005010365787707",
             "name": "GPS 9\" For VW Polo 6R 2011-2016 Wireless CarPlay Android 15 Car Radio WIFI Multimedia Player Head Unit Google Map Camera 4+64GB",
@@ -167,466 +250,16 @@
             "programme": "AliExpress WW — Hot Products",
             "canonicalKey": "07c7566c643a3dc159f0",
             "offerQuality": 97.5,
-            "matchScore": 98.23,
+            "matchScore": 100.0,
             "price": 205.17,
             "oldPrice": 373.03,
             "commissionRate": 9.23,
             "discount": 45.0
-          },
-          {
-            "id": "1005011820777241",
-            "name": "14.9 Inch Android 14 Carplay For BMW X1 F48 X2 F49 2016 17-2021 Car Multimedia Player GPS Navigation Auto Radio Screen Head unit",
-            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005011820777241.html%253Fpdp_npi%253D6%252540dis%252521USD%252521959.18%252521508.37%252521%252521%2525216459.13%2525213423.34%252521%2525402140d36117852874795461414e0f69%25252112000056690217260%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D1&i=5&f_id=50003",
-            "productUrl": "",
-            "category": "Car Electronics",
-            "currency": "USD",
-            "image": "https://ae-pic-a1.aliexpress-media.com/kf/Scf450d6a29b04726a861ed2c094d44ddI.jpg",
-            "source": "admitad-hot-products",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "programme": "AliExpress WW — Hot Products",
-            "canonicalKey": "c0c1738d69af567f8972",
-            "offerQuality": 97.7,
-            "matchScore": 95.36,
-            "price": 508.37,
-            "oldPrice": 959.18,
-            "commissionRate": 6.15,
-            "discount": 47.0
-          },
-          {
-            "id": "1005005714170184",
-            "name": "For Porsche Cayenne 1 2002-2010 Android 12 Car Multimedia Player 10.33\" Wireless Carplay 2din Navi GPS RDS Auto Stereo Head Unit",
-            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005005714170184.html%253Fpdp_npi%253D6%252540dis%252521USD%252521311.67%252521171.42%252521%252521%252521311.67%252521171.42%252521%2525402140d36217852874759623677e1114%25252112000034094580043%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D1&i=5&f_id=50003",
-            "productUrl": "",
-            "category": "Car Electronics",
-            "currency": "USD",
-            "image": "https://ae-pic-a1.aliexpress-media.com/kf/S2b2d1501838b4a4ba8e8132801a64eabh.png",
-            "source": "admitad-hot-products",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "programme": "AliExpress WW — Hot Products",
-            "canonicalKey": "db3751abbf57e0693bc1",
-            "offerQuality": 97.5,
-            "matchScore": 95.15,
-            "price": 171.42,
-            "oldPrice": 311.67,
-            "commissionRate": 6.15,
-            "discount": 45.0
-          }
-        ]
-      }
-    },
-    {
-      "slug": "high-capacity-power-banks",
-      "title": "High-Capacity Power Banks",
-      "category": "Mobile",
-      "icon": "▣",
-      "stage": "Rising",
-      "statusClass": "rising",
-      "score": 80,
-      "momentum": 84,
-      "buyerIntent": 86,
-      "competition": 66,
-      "affiliateCoverage": 88,
-      "contentDepth": 96,
-      "confidence": "Medium-high",
-      "summary": "The affiliate catalogue currently contains 33 relevant products across 1 network(s), creating a measurable commerce opportunity around High-Capacity Power Banks.",
-      "whyNow": "Detected from active affiliate feeds and direct programmes. The candidate is held for manual review before it can appear publicly.",
-      "sourceLabel": "TrendPilot multi-network commerce catalogue",
-      "sourceUrl": "",
-      "sourceEvidence": {
-        "offerCount": 33,
-        "uniqueProducts": 33,
-        "productOffers": 33,
-        "directOffers": 0,
-        "networks": [
-          "Admitad"
-        ],
-        "sources": [
-          "admitad-aliexpress-25-40"
-        ],
-        "advertisers": [
-          "AliExpress"
-        ],
-        "averageDiscount": 30.45,
-        "averageCommissionRate": 5.38,
-        "averageQuality": 96.04,
-        "topOffers": [
-          {
-            "name": "12V Jump Starter Battery Pack Car Jump Starter with Air Compressor Cordless Car Start Booster Smart Digital Power Bank for Truck",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "category": "Electrical Equipment & Supplies",
-            "price": 33.24,
-            "currency": "USD",
-            "commissionRate": 5.38
-          },
-          {
-            "name": "【A87T】EU PLUG 220W Outdoor Power Bank Battery Inverter Adapter For / / 18V Li- Batteries",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "category": "Electrical Equipment & Supplies",
-            "price": 39.49,
-            "currency": "USD",
-            "commissionRate": 5.38
-          },
-          {
-            "name": "For Makita Lithium Battery For DeWalt For Milwaukee For M18 For Bosch Digital Display Adapter Converter Charger USB C Power Bank",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "category": "Power Tool Parts & Accessories",
-            "price": 26.79,
-            "currency": "USD",
-            "commissionRate": 5.38
-          }
-        ]
-      },
-      "corroborationCount": 1,
-      "strongSignal": true,
-      "strengthReasons": [
-        "33 unique product matches",
-        "1 active affiliate network(s)",
-        "1 advertiser(s)"
-      ],
-      "observedAt": "30 July 2026",
-      "discoveredAt": "2026-07-30T09:03:56+00:00",
-      "keywords": [
-        "High-Capacity Power Banks",
-        "power bank",
-        "portable charger",
-        "magsafe power bank",
-        "solar power bank"
-      ],
-      "angles": [
-        "Best High-Capacity Power Banks options by price and features",
-        "How to choose High-Capacity Power Banks",
-        "High-Capacity Power Banks: comparison and buying guide"
-      ],
-      "products": [],
-      "networkOpportunities": [
-        "Admitad"
-      ],
-      "monetisationNote": "TrendPilot will compare compliant offers across all connected sources and publish only the strongest approved affiliate route.",
-      "productMatch": {
-        "includeTerms": [
-          "power bank",
-          "portable charger",
-          "magsafe power bank",
-          "solar power bank"
-        ],
-        "preferredCategories": [
-          "Consumer Electronics",
-          "Cellphones & Telecommunications"
-        ],
-        "excludeTerms": [
-          "battery cell",
-          "car battery"
-        ],
-        "minimumPrice": 5,
-        "maximumPrice": 300,
-        "minimumMatchedTerms": 1
-      },
-      "automatic": true,
-      "origin": "commerce-catalog",
-      "reviewStatus": "ready-for-approval",
-      "readyForApproval": true,
-      "commerceEvidence": {
-        "offerCount": 33,
-        "uniqueProducts": 33,
-        "productOffers": 33,
-        "directOffers": 0,
-        "networks": [
-          "Admitad"
-        ],
-        "sources": [
-          "admitad-aliexpress-25-40"
-        ],
-        "advertisers": [
-          "AliExpress"
-        ],
-        "averageDiscount": 30.45,
-        "averageCommissionRate": 5.38,
-        "averageQuality": 96.04
-      },
-      "productEvidence": {
-        "matchCount": 8,
-        "bestMatchScore": 62.91,
-        "networks": [
-          "Admitad"
-        ],
-        "advertisers": [
-          "AliExpress"
-        ],
-        "activeDirectProducts": [],
-        "topProducts": [
-          {
-            "id": "1005009184864640",
-            "name": "Portable 10W Outdoor IP64 Waterproof Solar Panel Mobile Power  5V USB Output Portable Solar Power Bank Solar Panel 10W",
-            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005009184864640.html%253Fpdp_npi%253D6%252540dis%252521USD%25252154.76%25252127.38%252521%252521%252521369.00%252521184.50%252521%2525402140d36217853660617414233e100c%25252112000048227822786%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D0&i=5&f_id=50002",
-            "productUrl": "",
-            "category": "Electrical Equipment & Supplies",
-            "currency": "USD",
-            "image": "https://ae-pic-a1.aliexpress-media.com/kf/S60f57dbaf44543b9ac9f2923fdca8768a.jpg",
-            "source": "admitad-aliexpress-25-40",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "programme": "AliExpress WW — 25–40 USD",
-            "canonicalKey": "a9e48c91fc7ec8a41d57",
-            "offerQuality": 98.0,
-            "matchScore": 62.91,
-            "price": 27.38,
-            "oldPrice": 54.76,
-            "commissionRate": 5.38,
-            "discount": 50.0
-          },
-          {
-            "id": "1005012719947967",
-            "name": "4-Fold / 5-Fold / 6-Fold Foldable Solar Panel 5V USB Waterproof Portable Charger for Phone Power Bank Outdoor Camping",
-            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005012719947967.html%253Fpdp_npi%253D6%252540dis%252521USD%25252150.06%25252125.53%252521%252521%252521337.33%252521172.04%252521%25254021013cc017853660986197065e0e7a%25252112000059142149784%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D0&i=5&f_id=50002",
-            "productUrl": "",
-            "category": "Electrical Equipment & Supplies",
-            "currency": "USD",
-            "image": "https://ae-pic-a1.aliexpress-media.com/kf/S69663aa878144e39aff9c3c465c0cd1aA.jpg",
-            "source": "admitad-aliexpress-25-40",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "programme": "AliExpress WW — 25–40 USD",
-            "canonicalKey": "b8e61a52b89448840cc5",
-            "offerQuality": 97.9,
-            "matchScore": 62.81,
-            "price": 25.53,
-            "oldPrice": 50.06,
-            "commissionRate": 5.38,
-            "discount": 49.0
-          },
-          {
-            "id": "1005011779398779",
-            "name": "12V Jump Starter Battery Pack Car Jump Starter with Air Compressor Cordless Car Start Booster Smart Digital Power Bank for Truck",
-            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005011779398779.html%253Fpdp_npi%253D6%252540dis%252521USD%252521118.72%25252133.24%252521%252521%252521800.00%252521224.00%252521%2525402101611117853661030472012e108d%25252112000056524337538%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D0&i=5&f_id=50002",
-            "productUrl": "",
-            "category": "Electrical Equipment & Supplies",
-            "currency": "USD",
-            "image": "https://ae-pic-a1.aliexpress-media.com/kf/S0afb477173f0480c9b5c86b5db53b795V.png",
-            "source": "admitad-aliexpress-25-40",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "programme": "AliExpress WW — 25–40 USD",
-            "canonicalKey": "21c737af6c4e9a8295be",
-            "offerQuality": 100.0,
-            "matchScore": 51.25,
-            "price": 33.24,
-            "oldPrice": 118.72,
-            "commissionRate": 5.38,
-            "discount": 72.0
-          }
-        ]
-      }
-    },
-    {
-      "slug": "robot-vacuum-cleaners",
-      "title": "Robot Vacuum Cleaners",
-      "category": "Smart Home",
-      "icon": "⌂",
-      "stage": "Emerging",
-      "statusClass": "early",
-      "score": 75,
-      "momentum": 79,
-      "buyerIntent": 81,
-      "competition": 79,
-      "affiliateCoverage": 75,
-      "contentDepth": 79,
-      "confidence": "Medium",
-      "summary": "The affiliate catalogue currently contains 7 relevant products across 1 network(s), creating a measurable commerce opportunity around Robot Vacuum Cleaners.",
-      "whyNow": "Detected from active affiliate feeds and direct programmes. The candidate is held for manual review before it can appear publicly.",
-      "sourceLabel": "TrendPilot multi-network commerce catalogue",
-      "sourceUrl": "",
-      "sourceEvidence": {
-        "offerCount": 7,
-        "uniqueProducts": 7,
-        "productOffers": 7,
-        "directOffers": 0,
-        "networks": [
-          "Admitad"
-        ],
-        "sources": [
-          "admitad-aliexpress-25-40"
-        ],
-        "advertisers": [
-          "AliExpress"
-        ],
-        "averageDiscount": 52.29,
-        "averageCommissionRate": 5.38,
-        "averageQuality": 98.23,
-        "topOffers": [
-          {
-            "name": "For MOVA X4 Pro Robot Vacuum Component Water Pump Motor For Home Environment Efficient Cleaning Vacuum Motor Silicone",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "category": "Power Tool Parts & Accessories",
-            "price": 32.15,
-            "currency": "USD",
-            "commissionRate": 5.38
-          },
-          {
-            "name": "For Dreame For L20 For Ultra L30 For Ultra Station For Ramp Board Replacement Part Robot Vacuum Cleaner Slope Plate Accessory",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "category": "Power Tool Parts & Accessories",
-            "price": 34.17,
-            "currency": "USD",
-            "commissionRate": 5.38
-          },
-          {
-            "name": "10.8V 2600mAh-6800mAh Rechargeable Li-ion Battery for Redmond Reb-R150 RV-R150 RV-R151 Vileda VR201 Petpro Robot Vacuum Cleaner",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "category": "Power Tool Parts & Accessories",
-            "price": 39.21,
-            "currency": "USD",
-            "commissionRate": 5.38
-          }
-        ]
-      },
-      "corroborationCount": 1,
-      "strongSignal": true,
-      "strengthReasons": [
-        "7 unique product matches",
-        "1 active affiliate network(s)",
-        "1 advertiser(s)"
-      ],
-      "observedAt": "30 July 2026",
-      "discoveredAt": "2026-07-30T09:03:57+00:00",
-      "keywords": [
-        "Robot Vacuum Cleaners",
-        "robot vacuum",
-        "robot cleaner",
-        "robotic vacuum"
-      ],
-      "angles": [
-        "Best Robot Vacuum Cleaners options by price and features",
-        "How to choose Robot Vacuum Cleaners",
-        "Robot Vacuum Cleaners: comparison and buying guide"
-      ],
-      "products": [],
-      "networkOpportunities": [
-        "Admitad"
-      ],
-      "monetisationNote": "TrendPilot will compare compliant offers across all connected sources and publish only the strongest approved affiliate route.",
-      "productMatch": {
-        "includeTerms": [
-          "robot vacuum",
-          "robot cleaner",
-          "robotic vacuum"
-        ],
-        "preferredCategories": [
-          "Home Appliances"
-        ],
-        "excludeTerms": [
-          "replacement brush",
-          "spare part",
-          "filter only"
-        ],
-        "minimumPrice": 30,
-        "maximumPrice": 1500,
-        "minimumMatchedTerms": 1
-      },
-      "automatic": true,
-      "origin": "commerce-catalog",
-      "reviewStatus": "needs-more-evidence",
-      "readyForApproval": false,
-      "commerceEvidence": {
-        "offerCount": 7,
-        "uniqueProducts": 7,
-        "productOffers": 7,
-        "directOffers": 0,
-        "networks": [
-          "Admitad"
-        ],
-        "sources": [
-          "admitad-aliexpress-25-40"
-        ],
-        "advertisers": [
-          "AliExpress"
-        ],
-        "averageDiscount": 52.29,
-        "averageCommissionRate": 5.38,
-        "averageQuality": 98.23
-      },
-      "productEvidence": {
-        "matchCount": 7,
-        "bestMatchScore": 50.62,
-        "networks": [
-          "Admitad"
-        ],
-        "advertisers": [
-          "AliExpress"
-        ],
-        "activeDirectProducts": [],
-        "topProducts": [
-          {
-            "id": "1005012265688026",
-            "name": "For MOVA X4 Pro Robot Vacuum Component Water Pump Motor For Home Environment Efficient Cleaning Vacuum Motor Silicone",
-            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005012265688026.html%253Fpdp_npi%253D6%252540dis%252521USD%25252194.57%25252132.15%252521%252521%252521637.26%252521216.67%252521%2525402140d36117853661375232671e0e6d%25252112000057921640184%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D0&i=5&f_id=50002",
-            "productUrl": "",
-            "category": "Power Tool Parts & Accessories",
-            "currency": "USD",
-            "image": "https://ae-pic-a1.aliexpress-media.com/kf/S97cdcd0aae22487e93636c5b5b75a292w.jpeg",
-            "source": "admitad-aliexpress-25-40",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "programme": "AliExpress WW — 25–40 USD",
-            "canonicalKey": "0fa79a661bf06f0cf1c2",
-            "offerQuality": 99.6,
-            "matchScore": 50.62,
-            "price": 32.15,
-            "oldPrice": 94.57,
-            "commissionRate": 5.38,
-            "discount": 66.0
-          },
-          {
-            "id": "1005012774305487",
-            "name": "For Dreame For L20 For Ultra L30 For Ultra Station For Ramp Board Replacement Part Robot Vacuum Cleaner Slope Plate Accessory",
-            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005012774305487.html%253Fpdp_npi%253D6%252540dis%252521USD%25252168.34%25252134.17%252521%252521%252521460.54%252521230.27%252521%2525402140d36217853660627565155e0ddc%25252112000059297989406%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D0&i=5&f_id=50002",
-            "productUrl": "",
-            "category": "Power Tool Parts & Accessories",
-            "currency": "USD",
-            "image": "https://ae-pic-a1.aliexpress-media.com/kf/S8832e1b7fa354128a612934f54609b7e8.jpeg",
-            "source": "admitad-aliexpress-25-40",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "programme": "AliExpress WW — 25–40 USD",
-            "canonicalKey": "001581bfb3ec89803b5a",
-            "offerQuality": 98.0,
-            "matchScore": 48.91,
-            "price": 34.17,
-            "oldPrice": 68.34,
-            "commissionRate": 5.38,
-            "discount": 50.0
-          },
-          {
-            "id": "1005011531147440",
-            "name": "10.8V 2600mAh-6800mAh Rechargeable Li-ion Battery for Redmond Reb-R150 RV-R150 RV-R151 Vileda VR201 Petpro Robot Vacuum Cleaner",
-            "url": "https://rzekl.com/g/1e8d1144947b96e8ce0216525dc3e8/?ulp=https%3A%2F%2Fs.click.aliexpress.com%2Fdeep_link.htm%3Faff_short_key%3D_c3s1yQkJ%26dl_target_url%3Dhttps%253A%252F%252Fwww.aliexpress.com%252Fitem%252F1005011531147440.html%253Fpdp_npi%253D6%252540dis%252521USD%25252178.42%25252139.21%252521%252521%252521528.43%252521264.21%252521%2525402140d36117853660734795030e0d9c%25252112000055836950358%252521affd%252521%252521%252521%2525211%2525210%252521%26hot_product%3D0&i=5&f_id=50002",
-            "productUrl": "",
-            "category": "Power Tool Parts & Accessories",
-            "currency": "USD",
-            "image": "https://ae-pic-a1.aliexpress-media.com/kf/S941f1fea2dac40e3b034c116e6e9344fP.jpg",
-            "source": "admitad-aliexpress-25-40",
-            "network": "Admitad",
-            "advertiser": "AliExpress",
-            "programme": "AliExpress WW — 25–40 USD",
-            "canonicalKey": "eb0775d44de1a30cc441",
-            "offerQuality": 98.0,
-            "matchScore": 48.91,
-            "price": 39.21,
-            "oldPrice": 78.42,
-            "commissionRate": 5.38,
-            "discount": 50.0
           }
         ]
       }
     }
   ],
   "instructions": "Candidates from public signals and the multi-network commerce catalogue are held here. Approve only entries with readyForApproval: true.",
-  "productEvidenceUpdatedAt": "2026-07-30T09:04:21+00:00"
+  "productEvidenceUpdatedAt": "2026-07-30T10:00:31+00:00"
 }
