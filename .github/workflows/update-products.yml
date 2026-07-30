@@ -1,0 +1,46 @@
+name: Update matched affiliate products
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs twice weekly at a non-peak minute.
+    - cron: "17 2 * * 1,4"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-product-matcher
+  cancel-in-progress: false
+
+jobs:
+  match-products:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Match trends to approved products
+        env:
+          ADMITAD_ALIEXPRESS_FEED_25_40: ${{ secrets.ADMITAD_ALIEXPRESS_FEED_25_40 }}
+        run: python automation/product_matcher.py
+
+      - name: Commit clean public outputs
+        run: |
+          if git diff --quiet -- data/matched-products.json data/product-matcher-report.json js/matched-products.js; then
+            echo "No product changes to commit."
+            exit 0
+          fi
+
+          git config user.name "trendpilot-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/matched-products.json data/product-matcher-report.json js/matched-products.js
+          git commit -m "chore: refresh matched affiliate products"
+          git push
