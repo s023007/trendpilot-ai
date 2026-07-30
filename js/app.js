@@ -3,6 +3,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const trends = window.TRENDPILOT_TRENDS || [];
   const networks = window.TRENDPILOT_NETWORKS || [];
   const affiliateLinks = window.TRENDPILOT_LINKS || {};
+  const feedMatches = window.TRENDPILOT_MATCHED_PRODUCTS || {};
+  const feedMeta = window.TRENDPILOT_MATCHED_PRODUCTS_META || {};
 
   const menuButton = document.getElementById("menuButton");
   const mainNav = document.getElementById("mainNav");
@@ -37,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const competitionLabel = (value) => value < 50 ? "Low" : value < 70 ? "Medium" : "High";
 
   function trendCard(t) {
-    const monetised = (t.products || []).some((slug) => affiliateLinks[slug]?.affiliateUrl);
+    const monetised = (t.products || []).some((slug) => affiliateLinks[slug]?.affiliateUrl) || (feedMatches[t.slug] || []).length > 0;
     return `<article class="trend-card reveal visible" data-category="${escapeHtml(t.category)}" data-search="${escapeHtml(trendSearchText(t))}">
       <div class="trend-card-top"><span class="trend-symbol">${escapeHtml(t.icon)}</span><span class="trend-stage ${escapeHtml(t.statusClass)}">${escapeHtml(t.stage)}</span><span class="trend-score">${t.score}</span></div>
       <span class="mini-label">${escapeHtml(t.category)}</span><h3>${escapeHtml(t.title)}</h3><p>${escapeHtml(t.summary)}</p>
@@ -89,23 +91,38 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("trendKeywords").innerHTML = trend.keywords.map((item) => `<span>${escapeHtml(item)}</span>`).join("");
       document.getElementById("trendAngles").innerHTML = trend.angles.map((item) => `<article><span>Content angle</span><strong>${escapeHtml(item)}</strong></article>`).join("");
       document.getElementById("networkMatches").innerHTML = trend.networkOpportunities.map((item) => `<span>${escapeHtml(item)}</span>`).join("");
-      const matches = trend.products.map((productSlug) => tools.find((tool) => tool.slug === productSlug)).filter(Boolean);
+      const directMatches = trend.products.map((productSlug) => tools.find((tool) => tool.slug === productSlug)).filter(Boolean);
+      const automatedMatches = feedMatches[trend.slug] || [];
       const productArea = document.getElementById("matchedProducts");
-      if (matches.length) {
-        productArea.innerHTML = matches.map((tool) => {
-          const link = affiliateLinks[tool.slug] || {};
-          const active = Boolean(link.affiliateUrl);
-          return `<article class="matched-product"><div class="tool-logo" style="--tool-a:${tool.colours[0]};--tool-b:${tool.colours[1]}">${escapeHtml(tool.initials)}</div><div><strong>${escapeHtml(tool.name)}</strong><span>${escapeHtml(tool.tagline)}</span><small>${active ? "Personal affiliate link active" : "Official programme available"}</small></div><a class="button button-small ${active ? "button-primary" : "button-outline"}" href="${escapeHtml(link.affiliateUrl || tool.productUrl)}" target="_blank" rel="sponsored nofollow noopener">${active ? "Visit with affiliate link" : "Visit product"}</a></article>`;
-        }).join("");
-        const first = matches[0];
-        const record = affiliateLinks[first.slug] || {};
+      const directHtml = directMatches.map((tool) => {
+        const link = affiliateLinks[tool.slug] || {};
+        const active = Boolean(link.affiliateUrl);
+        return `<article class="matched-product"><div class="tool-logo" style="--tool-a:${tool.colours[0]};--tool-b:${tool.colours[1]}">${escapeHtml(tool.initials)}</div><div><strong>${escapeHtml(tool.name)}</strong><span>${escapeHtml(tool.tagline)}</span><small>${active ? "Personal affiliate link active" : "Official programme available"}</small></div><a class="button button-small ${active ? "button-primary" : "button-outline"}" href="${escapeHtml(link.affiliateUrl || tool.productUrl)}" target="_blank" rel="sponsored nofollow noopener">${active ? "Visit with affiliate link" : "Visit product"}</a></article>`;
+      }).join("");
+      const automatedHtml = automatedMatches.map((product) => {
+        const price = product.price == null ? "" : `${escapeHtml(product.currency || "USD")} ${Number(product.price).toFixed(2)}`;
+        const oldPrice = product.oldPrice == null ? "" : `<s>${escapeHtml(product.currency || "USD")} ${Number(product.oldPrice).toFixed(2)}</s>`;
+        const commission = product.commissionRate == null ? "" : ` • Commission ${Number(product.commissionRate).toFixed(2)}%`;
+        const image = product.image ? `<img class="matched-product-image" src="${escapeHtml(product.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="matched-product-image placeholder">◈</div>`;
+        return `<article class="matched-product feed-product">${image}<div><strong>${escapeHtml(product.name)}</strong><span>${escapeHtml(product.category || "AliExpress product")}</span><small>${price} ${oldPrice}${commission} • Match ${Math.round(product.matchScore || 0)}</small></div><a class="button button-small button-primary" href="${escapeHtml(product.url)}" target="_blank" rel="sponsored nofollow noopener">View offer</a></article>`;
+      }).join("");
+      if (directHtml || automatedHtml) {
+        const generated = automatedMatches.length && feedMeta.generatedAt ? `<p class="matcher-stamp">Automated product shortlist updated ${escapeHtml(new Date(feedMeta.generatedAt).toLocaleString())}. Product availability and prices can change.</p>` : "";
+        productArea.innerHTML = directHtml + automatedHtml + generated;
         const primary = document.getElementById("primaryMatch");
-        primary.textContent = `View ${first.name}`;
-        primary.href = record.affiliateUrl || first.productUrl;
+        if (directMatches.length) {
+          const first = directMatches[0];
+          const record = affiliateLinks[first.slug] || {};
+          primary.textContent = `View ${first.name}`;
+          primary.href = record.affiliateUrl || first.productUrl;
+        } else {
+          primary.textContent = "View best matched offer";
+          primary.href = automatedMatches[0].url;
+        }
         primary.target = "_blank";
         primary.rel = "sponsored nofollow noopener";
       } else {
-        productArea.innerHTML = `<div class="no-match"><strong>No direct product link is active yet.</strong><p>The connector plan will search approved programmes and feeds from ${escapeHtml(trend.networkOpportunities.join(", "))}.</p></div>`;
+        productArea.innerHTML = `<div class="no-match"><strong>No compliant product match was published.</strong><p>The connector will search approved programmes and feeds from ${escapeHtml(trend.networkOpportunities.join(", "))}. A missing result is safer than an irrelevant or restricted product.</p></div>`;
         const primary = document.getElementById("primaryMatch");
         primary.textContent = "View network plan";
         primary.href = "networks.html";

@@ -396,5 +396,153 @@ window.TRENDPILOT_TRENDS = [
       "Admitad"
     ],
     "monetisationNote": "Early software programmes may be limited, but retail networks can monetise related phones, keyboards and accessories."
+  },
+  {
+    "slug": "wireless-carplay-retrofit",
+    "title": "Wireless CarPlay Retrofit Kits",
+    "category": "Automotive",
+    "icon": "◈",
+    "stage": "Commerce signal",
+    "statusClass": "rising",
+    "score": 82,
+    "momentum": 78,
+    "buyerIntent": 90,
+    "competition": 67,
+    "affiliateCoverage": 94,
+    "contentDepth": 86,
+    "confidence": "Medium",
+    "summary": "Retrofit adapters and OEM-style hubs let drivers add CarPlay or Android Auto without replacing the entire infotainment system.",
+    "whyNow": "The first Admitad Hot Products snapshot contains a meaningful cluster of CarPlay and Android Auto products. This is a commerce signal used to test product matching, not a claim of live search growth.",
+    "sourceLabel": "Admitad AliExpress Hot Products snapshot",
+    "sourceUrl": "https://s023007.github.io/trendpilot-ai/data/product-matcher-report.json",
+    "observedAt": "29 July 2026",
+    "keywords": [
+      "wireless CarPlay retrofit",
+      "CarPlay adapter",
+      "Android Auto retrofit",
+      "OEM CarPlay USB hub"
+    ],
+    "angles": [
+      "Best CarPlay retrofit kits by vehicle",
+      "Wireless adapter vs full infotainment replacement",
+      "How to check vehicle compatibility before buying"
+    ],
+    "products": [],
+    "networkOpportunities": [
+      "Admitad",
+      "AliExpress WW"
+    ],
+    "monetisationNote": "The Product Matcher selects only relevant, available products and publishes a small list of affiliate links from the approved AliExpress WW programme."
+  },
+  {
+    "slug": "smart-pet-feeding",
+    "title": "Smart Pet Feeding",
+    "category": "Shopping",
+    "icon": "●",
+    "stage": "Commerce watchlist",
+    "statusClass": "early",
+    "score": 74,
+    "momentum": 69,
+    "buyerIntent": 84,
+    "competition": 63,
+    "affiliateCoverage": 88,
+    "contentDepth": 78,
+    "confidence": "Low-medium",
+    "summary": "Connected pet feeders combine scheduled portions, remote control, cameras and voice features for owners who spend time away from home.",
+    "whyNow": "The current product snapshot contains several smart-feeding products. This watchlist validates matching and affiliate delivery before independent trend APIs are connected.",
+    "sourceLabel": "Admitad AliExpress Hot Products snapshot",
+    "sourceUrl": "https://s023007.github.io/trendpilot-ai/data/product-matcher-report.json",
+    "observedAt": "29 July 2026",
+    "keywords": [
+      "smart pet feeder",
+      "automatic cat feeder",
+      "remote dog feeder",
+      "pet feeder with camera"
+    ],
+    "angles": [
+      "Smart pet feeder buying guide",
+      "Camera feeder vs basic automatic feeder",
+      "What to check before leaving a feeder unattended"
+    ],
+    "products": [],
+    "networkOpportunities": [
+      "Admitad",
+      "AliExpress WW"
+    ],
+    "monetisationNote": "Only products matched by title, category, price and compliance filters are shown. Editorial review remains necessary before promotion."
+  },
+  {
+    "slug": "seasonal-kids-costumes",
+    "title": "Seasonal Kids Costumes",
+    "category": "Shopping",
+    "icon": "✦",
+    "stage": "Seasonal signal",
+    "statusClass": "rising",
+    "score": 76,
+    "momentum": 72,
+    "buyerIntent": 82,
+    "competition": 71,
+    "affiliateCoverage": 91,
+    "contentDepth": 80,
+    "confidence": "Medium",
+    "summary": "Costumes for school performances, birthdays, carnival events and Halloween create repeat seasonal buying opportunities.",
+    "whyNow": "The uploaded Hot Products snapshot contains a large costume cluster. The matcher uses it as a seasonal commerce test, while future trend sources will determine when the topic should be promoted.",
+    "sourceLabel": "Admitad AliExpress Hot Products snapshot",
+    "sourceUrl": "https://s023007.github.io/trendpilot-ai/data/product-matcher-report.json",
+    "observedAt": "29 July 2026",
+    "keywords": [
+      "kids costume",
+      "princess dress",
+      "children dance costume",
+      "Halloween costume for kids"
+    ],
+    "angles": [
+      "Age-appropriate costume buying guide",
+      "Costumes for school and dance performances",
+      "Sizing and delivery checklist for seasonal orders"
+    ],
+    "products": [],
+    "networkOpportunities": [
+      "Admitad",
+      "AliExpress WW"
+    ],
+    "monetisationNote": "The system blocks adult and restricted terms and publishes only a small shortlist. Product suitability and sizing claims must still be checked manually."
+  },
+  {
+    "slug": "seasonal-party-decor",
+    "title": "Seasonal Party Decorations",
+    "category": "Shopping",
+    "icon": "✺",
+    "stage": "Seasonal signal",
+    "statusClass": "early",
+    "score": 72,
+    "momentum": 68,
+    "buyerIntent": 80,
+    "competition": 73,
+    "affiliateCoverage": 90,
+    "contentDepth": 76,
+    "confidence": "Low-medium",
+    "summary": "Birthday, baby-shower, wedding and holiday decorations create event-driven demand that can be matched to timely product collections.",
+    "whyNow": "The snapshot contains a party-supplies cluster. This is an affiliate-system test rather than a verified live trend until external demand data is connected.",
+    "sourceLabel": "Admitad AliExpress Hot Products snapshot",
+    "sourceUrl": "https://s023007.github.io/trendpilot-ai/data/product-matcher-report.json",
+    "observedAt": "29 July 2026",
+    "keywords": [
+      "party decoration set",
+      "birthday party supplies",
+      "baby shower decorations",
+      "seasonal party decor"
+    ],
+    "angles": [
+      "Complete party-decoration checklist",
+      "Budget decoration sets by event",
+      "How to order seasonal decorations early"
+    ],
+    "products": [],
+    "networkOpportunities": [
+      "Admitad",
+      "AliExpress WW"
+    ],
+    "monetisationNote": "Products are matched by event keywords and category, then limited to a small affiliate shortlist."
   }
 ];
