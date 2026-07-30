@@ -1,0 +1,81 @@
+TrendPilot AI v0.6.0 — Commerce-First Multi-Network Engine
+
+PURPOSE
+This release is not tied to AliExpress. Every enabled source is converted into
+one offer schema, then the same discovery and matching engines work across
+Admitad, CJ Affiliate, direct programmes, CSV/XML suppliers and future networks.
+
+UPLOAD/REPLACE
+- .github/workflows/update-products.yml
+- .gitignore
+- automation/adapters/__init__.py
+- automation/adapters/common.py
+- automation/adapters/csv_adapter.py
+- automation/adapters/xml_adapter.py
+- automation/adapters/direct_adapter.py
+- automation/source_ingestion.py
+- automation/commerce_discovery.py
+- automation/multi_network_matcher.py
+- automation/product_matcher.py
+- automation/trend_discovery.py
+- config/affiliate-sources.json
+- config/commerce-taxonomy.json
+- config/product-matcher.json
+- config/trend-discovery.json
+- config/sources/admitad-hot-products.json
+- config/sources/admitad-aliexpress-25-40.json
+- config/sources/direct-elevenlabs.json
+- config/sources/_template-cj-csv.json
+- config/sources/_template-generic-csv.json
+- config/sources/_template-generic-xml.json
+- data/source-ingestion-report.json
+- data/offer-catalog-summary.json
+- data/commerce-candidates.json
+- data/commerce-discovery-report.json
+- data/trend-review.json
+- data/discovered-trends.json
+- data/trend-discovery-report.json
+- data/trend-rejections.json
+- data/matched-products.json
+- data/product-matcher-report.json
+- js/app.js
+- js/discovered-trends.js
+- js/matched-products.js
+
+KEEP UNCHANGED
+- config/trend-approvals.json
+- data/source/admitad-hot-products.csv
+- js/affiliate-links.js
+- images, legal pages and verify-admitad.txt
+- existing secret ADMITAD_ALIEXPRESS_FEED_25_40
+
+AFTER UPLOAD
+1. Run Actions → Update trends and affiliate products.
+2. Open data/source-ingestion-report.json.
+3. Open data/offer-catalog-summary.json.
+4. Open data/commerce-discovery-report.json.
+5. Open data/trend-review.json.
+6. Do not approve a trend unless readyForApproval is true.
+
+ADDING CJ OR ANOTHER PRIVATE FEED LATER
+1. Copy config/sources/_template-cj-csv.json.
+2. Rename it, for example config/sources/cj-example-store.json.
+3. Change id, advertiser, programme and fieldMap.
+4. Change enabled to true.
+5. Add one GitHub Actions secret named AFFILIATE_SOURCE_URLS_JSON.
+
+Example secret value:
+{"cj-example-store":"PRIVATE_CJ_FEED_URL","another-source":"PRIVATE_FEED_URL"}
+
+The private URLs are read during Actions and are never written to the repository.
+
+ADDING A LOCAL CSV/XML SUPPLIER
+- Copy a generic template.
+- Set location.type to local_file.
+- Set location.path to the uploaded file.
+- Enable the source.
+- No change to the main engine is required.
+
+SECURITY
+The full normalised offer cache is created at automation/cache/offers.jsonl.
+It is ignored by Git and is not committed publicly.
