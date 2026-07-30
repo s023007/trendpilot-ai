@@ -16,7 +16,7 @@ concurrency:
 jobs:
   discover-and-match:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Check out repository
@@ -27,24 +27,31 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Discover candidates and build review queue
-        run: python automation/trend_discovery.py
-
-      - name: Add strict product evidence
+      - name: Ingest all enabled affiliate sources
         env:
           ADMITAD_ALIEXPRESS_FEED_25_40: ${{ secrets.ADMITAD_ALIEXPRESS_FEED_25_40 }}
-        run: python automation/product_matcher.py
+          AFFILIATE_SOURCE_URLS_JSON: ${{ secrets.AFFILIATE_SOURCE_URLS_JSON }}
+        run: python automation/source_ingestion.py
+
+      - name: Discover public trend signals
+        run: python automation/trend_discovery.py
+
+      - name: Discover commerce-first opportunities
+        run: python automation/commerce_discovery.py
+
+      - name: Match offers across every connected network
+        run: python automation/multi_network_matcher.py
 
       - name: Commit clean public outputs and review evidence
         run: |
-          FILES="data/discovered-trends.json data/trend-review.json data/trend-discovery-report.json data/trend-rejections.json js/discovered-trends.js data/matched-products.json data/product-matcher-report.json js/matched-products.js"
+          FILES="data/source-ingestion-report.json data/offer-catalog-summary.json data/trend-discovery-report.json data/trend-rejections.json data/commerce-candidates.json data/commerce-discovery-report.json data/trend-review.json data/discovered-trends.json data/matched-products.json data/product-matcher-report.json js/discovered-trends.js js/matched-products.js"
           if git diff --quiet -- $FILES; then
-            echo "No trend, review or product changes to commit."
+            echo "No catalogue, trend or product changes to commit."
             exit 0
           fi
 
           git config user.name "trendpilot-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add $FILES
-          git commit -m "chore: refresh confirmed-route trend review and affiliate evidence"
+          git commit -m "chore: refresh multi-network commerce and trend engine"
           git push
