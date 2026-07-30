@@ -89,9 +89,12 @@ jobs:
       - name: Match offers across every connected network
         run: python automation/multi_network_matcher.py
 
+      - name: Verify Alibaba product relevance and destinations
+        run: python automation/product_link_guard.py
+
       - name: Commit clean public outputs and review evidence
         run: |
-          FILES="data/source-ingestion-report.json data/offer-catalog-summary.json data/trend-discovery-report.json data/trend-rejections.json data/commerce-candidates.json data/commerce-discovery-report.json data/trend-review.json data/discovered-trends.json data/matched-products.json data/product-matcher-report.json js/discovered-trends.js js/matched-products.js"
+          FILES="data/source-ingestion-report.json data/offer-catalog-summary.json data/trend-discovery-report.json data/trend-rejections.json data/commerce-candidates.json data/commerce-discovery-report.json data/trend-review.json data/discovered-trends.json data/matched-products.json data/product-matcher-report.json data/product-link-validation-report.json js/discovered-trends.js js/matched-products.js"
           if git diff --quiet -- $FILES; then
             echo "No catalogue, trend or product changes to commit."
             exit 0
