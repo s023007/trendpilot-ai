@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.6.0 commerce-first discovery.
+"""TrendPilot AI v0.6.1 commerce-first discovery.
 
 Builds review candidates from the normalised multi-network offer catalogue.
 It does not publish candidates automatically.
@@ -14,6 +14,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from adapters.common import has_term, load_json, normalise, text
+from product_quality import validate_offer
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE_PATH = ROOT / "automation" / "cache" / "offers.jsonl"
@@ -53,7 +54,7 @@ def static_slugs() -> set[str]:
     return output
 
 
-def offer_matches(offer: dict, family: dict) -> bool:
+def offer_matches(offer: dict, family: dict, global_rules: dict | None = None) -> bool:
     haystack = normalise(
         f"{offer.get('name', '')} {offer.get('description', '')} "
         f"{offer.get('category', '')} {' '.join(offer.get('tags', []) or [])}"
@@ -65,6 +66,10 @@ def offer_matches(offer: dict, family: dict) -> bool:
     if len(matched) < minimum_terms:
         return False
     if any(has_term(haystack, term) for term in excludes):
+        return False
+
+    valid_product, _ = validate_offer(offer, family, global_rules or {})
+    if not valid_product:
         return False
 
     price = offer.get("price")
@@ -209,6 +214,11 @@ def candidate_from_family(family: dict, matches: list[dict], score: int, evidenc
             "minimumPrice": family.get("minimumPrice"),
             "maximumPrice": family.get("maximumPrice"),
             "minimumMatchedTerms": int(family.get("minimumMatchedTerms") or 1),
+            "requiredTitleTerms": family.get("requiredTitleTerms", []),
+            "minimumRequiredTitleTerms": int(family.get("minimumRequiredTitleTerms") or 0),
+            "excludeTitleTerms": family.get("excludeTitleTerms", []),
+            "excludeCategoryTerms": family.get("excludeCategoryTerms", []),
+            "allowAccessoryProducts": bool(family.get("allowAccessoryProducts", False)),
         },
         "automatic": True,
         "origin": "commerce-catalog",
@@ -221,6 +231,7 @@ def candidate_from_family(family: dict, matches: list[dict], score: int, evidenc
 def main() -> int:
     config = load_json(CONFIG_PATH, {})
     offers = read_offers()
+    product_validation = config.get("productValidation", {})
     existing_slugs = static_slugs()
     candidates = []
     counters = defaultdict(int)
@@ -233,7 +244,7 @@ def main() -> int:
             counters["existingTrendSkipped"] += 1
             continue
 
-        matches = [offer for offer in offers if offer_matches(offer, family)]
+        matches = [offer for offer in offers if offer_matches(offer, family, product_validation)]
         score, evidence = score_family(matches, family)
 
         minimum_products = int(family.get("minimumUniqueProducts") or 5)
@@ -252,7 +263,7 @@ def main() -> int:
     candidates.sort(key=lambda item: item.get("score", 0), reverse=True)
     candidates = candidates[: int(config.get("maxCandidates", 10))]
 
-    review = load_json(REVIEW_PATH, {"version": "0.6.0", "reviewQueue": []})
+    review = load_json(REVIEW_PATH, {"version": "0.6.1", "reviewQueue": []})
     retained = [
         item
         for item in review.get("reviewQueue", [])
@@ -262,7 +273,7 @@ def main() -> int:
     merged.sort(key=lambda item: item.get("score", 0), reverse=True)
     merged = merged[: int(config.get("maxReviewQueue", 15))]
     review.update({
-        "version": "0.6.0",
+        "version": "0.6.1",
         "generatedAt": now_iso(),
         "reviewQueue": merged,
         "instructions": (
@@ -272,12 +283,12 @@ def main() -> int:
     })
 
     output = {
-        "version": "0.6.0",
+        "version": "0.6.1",
         "generatedAt": now_iso(),
         "candidates": candidates,
     }
     report = {
-        "version": "0.6.0",
+        "version": "0.6.1",
         "generatedAt": now_iso(),
         "catalogueOffersRead": len(offers),
         "counters": {

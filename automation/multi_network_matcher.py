@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.6.0 multi-network offer matcher."""
+"""TrendPilot AI v0.6.1 multi-network offer matcher."""
 from __future__ import annotations
 
 import json
@@ -9,6 +9,8 @@ from collections import Counter, defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+from product_quality import validate_offer
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "config" / "product-matcher.json"
@@ -72,6 +74,11 @@ def profile_from_trend(trend: dict, visibility: str) -> Optional[dict]:
         "minimumPrice": match.get("minimumPrice"),
         "maximumPrice": match.get("maximumPrice"),
         "minimumMatchedTerms": int(match.get("minimumMatchedTerms") or 1),
+        "requiredTitleTerms": match.get("requiredTitleTerms", []),
+        "minimumRequiredTitleTerms": int(match.get("minimumRequiredTitleTerms") or 0),
+        "excludeTitleTerms": match.get("excludeTitleTerms", []),
+        "excludeCategoryTerms": match.get("excludeCategoryTerms", []),
+        "allowAccessoryProducts": bool(match.get("allowAccessoryProducts", False)),
         "visibility": visibility,
         "directProducts": direct_products,
     }
@@ -82,6 +89,11 @@ def load_config() -> dict:
     for profile in config.get("trendProfiles", []):
         profile.setdefault("visibility", "public")
         profile.setdefault("minimumMatchedTerms", 1)
+        profile.setdefault("requiredTitleTerms", [])
+        profile.setdefault("minimumRequiredTitleTerms", 0)
+        profile.setdefault("excludeTitleTerms", [])
+        profile.setdefault("excludeCategoryTerms", [])
+        profile.setdefault("allowAccessoryProducts", False)
 
     existing = {profile.get("slug") for profile in config.get("trendProfiles", [])}
     for path, key, visibility in (
@@ -136,6 +148,14 @@ def score_offer(offer: dict, profile: dict, config: dict) -> Optional[float]:
     if any(has_term(haystack, term) for term in profile.get("excludeTerms", [])):
         return None
 
+    valid_product, _ = validate_offer(
+        offer,
+        profile,
+        config.get("productValidation", {}),
+    )
+    if not valid_product:
+        return None
+
     price = offer.get("price")
     if price is not None:
         minimum_price = profile.get("minimumPrice")
@@ -145,7 +165,9 @@ def score_offer(offer: dict, profile: dict, config: dict) -> Optional[float]:
         if maximum_price is not None and float(price) > float(maximum_price):
             return None
 
+    title_matches = [term for term in includes if has_term(offer.get("name", ""), term)]
     score = 18.0 + min(42.0, len(matched) * 14.0)
+    score += min(16.0, len(title_matches) * 8.0)
     category = normalise(offer.get("category"))
     preferred = [normalise(item) for item in profile.get("preferredCategories", []) if normalise(item)]
     if category and category in preferred:
@@ -231,46 +253,92 @@ def sort_and_deduplicate(items: list[dict], maximum: int) -> list[dict]:
 
 
 def update_review_evidence(review_matches: dict[str, list], config: dict) -> tuple[int, int]:
-    review_data = load_json(REVIEW_PATH, {"version": "0.6.0", "reviewQueue": []})
+    review_data = load_json(REVIEW_PATH, {"version": "0.6.1", "reviewQueue": []})
     settings = config.get("reviewSettings", {})
     active_direct = active_affiliate_slugs()
     assessed = 0
     ready = 0
 
+    minimum_trend_score = int(settings.get("minimumTrendScore", 72))
+    minimum_product_matches = int(settings.get("minimumProductMatches", 3))
+    minimum_best_score = float(settings.get("minimumBestMatchScore", 75))
+    minimum_strong_matches = int(settings.get("minimumStrongMatches", 3))
+    minimum_affiliate_routes = int(settings.get("minimumAffiliateRouteMatches", 3))
+    preview_products = int(settings.get("previewProducts", 3))
+
     for candidate in review_data.get("reviewQueue", []):
         slug = text(candidate.get("slug"))
         products = review_matches.get(slug, [])
         best_score = max((float(item.get("matchScore") or 0) for item in products), default=0)
+        strong_products = [
+            item for item in products
+            if float(item.get("matchScore") or 0) >= minimum_best_score
+        ]
+        affiliate_route_products = [item for item in products if text(item.get("url"))]
         networks = sorted({text(item.get("network")) for item in products if text(item.get("network"))})
         advertisers = sorted({text(item.get("advertiser")) for item in products if text(item.get("advertiser"))})
         direct_products = [text(item) for item in candidate.get("products", []) if text(item)]
         active_direct_products = [item for item in direct_products if item in active_direct]
         trend_score = int(candidate.get("score") or 0)
 
-        product_route_ready = (
-            len(products) >= int(settings.get("minimumProductMatches", 3))
-            and best_score >= float(settings.get("minimumBestMatchScore", 52))
+        checks = {
+            "trendScorePassed": trend_score >= minimum_trend_score,
+            "productMatchCountPassed": len(products) >= minimum_product_matches,
+            "bestMatchScorePassed": best_score >= minimum_best_score,
+            "strongMatchCountPassed": len(strong_products) >= minimum_strong_matches,
+            "affiliateRouteCountPassed": len(affiliate_route_products) >= minimum_affiliate_routes,
+            "activeDirectRoute": bool(active_direct_products),
+        }
+        product_route_ready = all(
+            checks[key]
+            for key in (
+                "productMatchCountPassed",
+                "bestMatchScorePassed",
+                "strongMatchCountPassed",
+                "affiliateRouteCountPassed",
+            )
         )
-        direct_route_ready = bool(active_direct_products)
-        is_ready = (
-            trend_score >= int(settings.get("minimumTrendScore", 72))
-            and (product_route_ready or direct_route_ready)
-        )
+        direct_route_ready = checks["activeDirectRoute"]
+        is_ready = checks["trendScorePassed"] and (product_route_ready or direct_route_ready)
+
+        hold_reasons = []
+        if not checks["trendScorePassed"]:
+            hold_reasons.append(f"trend-score-below-{minimum_trend_score}")
+        if not direct_route_ready:
+            if not checks["productMatchCountPassed"]:
+                hold_reasons.append(f"fewer-than-{minimum_product_matches}-product-matches")
+            if not checks["bestMatchScorePassed"]:
+                hold_reasons.append(f"best-match-below-{minimum_best_score:g}")
+            if not checks["strongMatchCountPassed"]:
+                hold_reasons.append(f"fewer-than-{minimum_strong_matches}-strong-matches")
+            if not checks["affiliateRouteCountPassed"]:
+                hold_reasons.append(f"fewer-than-{minimum_affiliate_routes}-affiliate-routes")
 
         candidate["productEvidence"] = {
             "matchCount": len(products),
             "bestMatchScore": round(best_score, 2),
+            "strongMatchCount": len(strong_products),
+            "affiliateRouteCount": len(affiliate_route_products),
             "networks": networks,
             "advertisers": advertisers,
             "activeDirectProducts": active_direct_products,
-            "topProducts": products[: int(settings.get("previewProducts", 3))],
+            "approvalThresholds": {
+                "minimumTrendScore": minimum_trend_score,
+                "minimumProductMatches": minimum_product_matches,
+                "minimumBestMatchScore": minimum_best_score,
+                "minimumStrongMatches": minimum_strong_matches,
+                "minimumAffiliateRouteMatches": minimum_affiliate_routes,
+            },
+            "approvalChecks": checks,
+            "holdReasons": hold_reasons,
+            "topProducts": products[:preview_products],
         }
         candidate["readyForApproval"] = is_ready
         candidate["reviewStatus"] = "ready-for-approval" if is_ready else "needs-more-evidence"
         assessed += 1
         ready += int(is_ready)
 
-    review_data["version"] = "0.6.0"
+    review_data["version"] = "0.6.1"
     review_data["productEvidenceUpdatedAt"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     REVIEW_PATH.write_text(json.dumps(review_data, ensure_ascii=False, indent=2), encoding="utf-8")
     return assessed, ready
@@ -328,12 +396,12 @@ def main() -> int:
 
     generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     output = {
-        "version": "0.6.0",
+        "version": "0.6.1",
         "generatedAt": generated_at,
         "productsByTrend": public_matches,
     }
     report = {
-        "version": "0.6.0",
+        "version": "0.6.1",
         "generatedAt": generated_at,
         "catalogueOffersRead": len(offers),
         "counters": dict(counters),
@@ -359,7 +427,7 @@ def main() -> int:
         "window.TRENDPILOT_MATCHED_PRODUCTS = "
         + json.dumps(public_matches, ensure_ascii=False, separators=(",", ":"))
         + ";\nwindow.TRENDPILOT_MATCHED_PRODUCTS_META = "
-        + json.dumps({"generatedAt": generated_at, "version": "0.6.0"}, ensure_ascii=False)
+        + json.dumps({"generatedAt": generated_at, "version": "0.6.1"}, ensure_ascii=False)
         + ";\n",
         encoding="utf-8",
     )
