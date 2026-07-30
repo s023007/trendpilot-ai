@@ -37,7 +37,7 @@ jobs:
 
       - name: Commit clean public outputs and review evidence
         run: |
-          FILES="data/discovered-trends.json data/trend-review.json data/trend-discovery-report.json js/discovered-trends.js data/matched-products.json data/product-matcher-report.json js/matched-products.js"
+          FILES="data/discovered-trends.json data/trend-review.json data/trend-discovery-report.json data/trend-rejections.json js/discovered-trends.js data/matched-products.json data/product-matcher-report.json js/matched-products.js"
           if git diff --quiet -- $FILES; then
             echo "No trend, review or product changes to commit."
             exit 0
