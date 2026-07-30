@@ -24,8 +24,8 @@ jobs:
           import collections
           import json
           import os
-          import urllib.request
           import urllib.parse
+          import urllib.request
           import xml.etree.ElementTree as ET
           from pathlib import Path
 
@@ -108,8 +108,8 @@ jobs:
                   for tag, count in tag_counts.most_common(40)
               ],
               "instruction": (
-                  "Use the first candidateRecordTags entry that represents one "
-                  "product as itemTags in the Alibaba source configuration."
+                  "Use the candidateRecordTags entry that represents one product "
+                  "as itemTags in the Alibaba source configuration."
               ),
           }
 
@@ -125,7 +125,7 @@ jobs:
       - name: Commit XML probe report
         shell: bash
         run: |
-          if git diff --quiet -- data/alibaba-xml-probe.json; then
+          if [ -z "$(git status --porcelain -- data/alibaba-xml-probe.json)" ]; then
             echo "No probe changes to commit."
             exit 0
           fi
