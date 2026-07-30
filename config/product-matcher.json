@@ -1,5 +1,5 @@
 {
-  "version": "0.6.1",
+  "version": "0.6.2",
   "sourceSettings": {
     "catalogCache": "automation/cache/offers.jsonl",
     "topProductsPerTrend": 8,
@@ -59,6 +59,123 @@
   },
   "trendProfiles": [
     {
+      "slug": "car-multimedia-head-units",
+      "title": "Car Multimedia Head Units",
+      "includeTerms": [
+        "car multimedia",
+        "car radio",
+        "head unit",
+        "android car radio",
+        "multimedia player",
+        "carplay",
+        "android auto"
+      ],
+      "preferredCategories": [
+        "Car Electronics"
+      ],
+      "excludeTerms": [
+        "engine",
+        "gearbox",
+        "transmission",
+        "brake",
+        "bumper",
+        "radiator",
+        "head gasket",
+        "cylinder",
+        "suspension"
+      ],
+      "minimumPrice": 20,
+      "maximumPrice": 900,
+      "minimumMatchedTerms": 1,
+      "requiredTitleTerms": [
+        "car multimedia",
+        "car radio",
+        "head unit",
+        "android car radio",
+        "multimedia player",
+        "carplay",
+        "android auto"
+      ],
+      "minimumRequiredTitleTerms": 1,
+      "excludeTitleTerms": [
+        "frame only",
+        "fascia",
+        "trim panel",
+        "wiring harness",
+        "canbus box",
+        "canbus decoder",
+        "camera only",
+        "microphone only",
+        "cable only",
+        "adapter only",
+        "screen protector"
+      ],
+      "excludeCategoryTerms": [],
+      "allowAccessoryProducts": false,
+      "rankingRules": {
+        "preferGeneralProducts": true,
+        "preferredPriceMin": 45,
+        "preferredPriceMax": 180,
+        "priceTolerance": 160,
+        "maximumPriceFitBonus": 8,
+        "broadAudienceTerms": [
+          "universal",
+          "2 din",
+          "double din",
+          "portable",
+          "standalone",
+          "wireless carplay",
+          "android auto",
+          "carplay screen"
+        ],
+        "narrowAudienceTerms": [
+          "truck",
+          "hino",
+          "camry",
+          "cayenne",
+          "passat",
+          "golf",
+          "jetta",
+          "polo",
+          "touran",
+          "skoda",
+          "bmw",
+          "mercedes",
+          "audi",
+          "porsche",
+          "peugeot",
+          "citroen",
+          "toyota",
+          "volkswagen",
+          "mazda",
+          "ford",
+          "honda",
+          "hyundai",
+          "kia",
+          "nissan",
+          "lexus",
+          "jeep",
+          "subaru",
+          "renault",
+          "fiat",
+          "opel",
+          "suzuki",
+          "mitsubishi"
+        ],
+        "narrowAudiencePatterns": [
+          "(?:^| )for [a-z0-9]+(?: [a-z0-9]+){0,5}",
+          "(?:19|20)\\d{2} (?:19|20)?\\d{2}",
+          "(?:^| )[a-z]\\d{2,3}(?: |$)"
+        ],
+        "broadAudienceBonusPerTerm": 3.5,
+        "maximumBroadAudienceBonus": 10,
+        "narrowAudiencePenaltyPerTerm": 3.5,
+        "narrowAudiencePenaltyPerPattern": 7,
+        "maximumNarrowAudiencePenalty": 24,
+        "generalProductMissPenalty": 3
+      }
+    },
+    {
       "slug": "wireless-carplay-retrofit",
       "title": "Wireless CarPlay Retrofit Kits",
       "includeTerms": [
@@ -104,7 +221,65 @@
         "screen protector"
       ],
       "excludeCategoryTerms": [],
-      "allowAccessoryProducts": false
+      "allowAccessoryProducts": false,
+      "rankingRules": {
+        "preferGeneralProducts": true,
+        "preferredPriceMin": 25,
+        "preferredPriceMax": 120,
+        "priceTolerance": 100,
+        "maximumPriceFitBonus": 8,
+        "broadAudienceTerms": [
+          "universal",
+          "2 din",
+          "double din",
+          "portable",
+          "wireless carplay",
+          "android auto",
+          "carplay adapter"
+        ],
+        "narrowAudienceTerms": [
+          "truck",
+          "hino",
+          "camry",
+          "cayenne",
+          "passat",
+          "golf",
+          "jetta",
+          "polo",
+          "touran",
+          "skoda",
+          "bmw",
+          "mercedes",
+          "audi",
+          "porsche",
+          "peugeot",
+          "citroen",
+          "toyota",
+          "volkswagen",
+          "mazda",
+          "ford",
+          "honda",
+          "hyundai",
+          "kia",
+          "nissan",
+          "lexus",
+          "jeep",
+          "subaru",
+          "renault",
+          "fiat",
+          "opel",
+          "suzuki",
+          "mitsubishi"
+        ],
+        "narrowAudiencePatterns": [
+          "(?:^| )for [a-z0-9]+(?: [a-z0-9]+){0,5}",
+          "(?:19|20)\\d{2} (?:19|20)?\\d{2}",
+          "(?:^| )[a-z]\\d{2,3}(?: |$)"
+        ],
+        "narrowAudiencePenaltyPerTerm": 3.5,
+        "narrowAudiencePenaltyPerPattern": 7,
+        "maximumNarrowAudiencePenalty": 24
+      }
     },
     {
       "slug": "smart-pet-feeding",
@@ -266,5 +441,30 @@
       "replacement parts",
       "spare parts"
     ]
+  },
+  "rankingSettings": {
+    "baseRelevanceScore": 12,
+    "matchedTermPoints": 11,
+    "maximumMatchedTermPoints": 34,
+    "titleTermPoints": 7,
+    "maximumTitleTermPoints": 18,
+    "exactCategoryBonus": 12,
+    "partialCategoryBonus": 7,
+    "maximumQualityPoints": 7,
+    "qualityDivisor": 15,
+    "maximumCommissionPoints": 8,
+    "commissionMultiplier": 0.5,
+    "maximumDiscountPoints": 5,
+    "discountMultiplier": 0.08,
+    "maximumPriceFitBonus": 8,
+    "defaultPriceFitBonus": 2,
+    "broadAudienceBonusPerTerm": 3.5,
+    "maximumBroadAudienceBonus": 10,
+    "narrowAudiencePenaltyPerTerm": 4,
+    "narrowAudiencePenaltyPerPattern": 7,
+    "maximumNarrowAudiencePenalty": 24,
+    "highScoreCompressionStart": 75,
+    "highScoreCompressionRatio": 0.45,
+    "maximumFinalScore": 99.5
   }
 }
