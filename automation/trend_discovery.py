@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.5.3 confirmed-route discovery and review queue.
+"""TrendPilot AI v0.6.0 confirmed-route discovery and review queue.
 
 New public signals are never published immediately. They first enter a review
 queue, receive product-match evidence, and can then be approved explicitly in
@@ -104,7 +104,7 @@ def http_get(url: str, timeout: int, accept: str = "*/*") -> bytes:
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "TrendPilotAI-TrendDiscovery/0.5.3 (+https://s023007.github.io/trendpilot-ai/)",
+            "User-Agent": "TrendPilotAI-TrendDiscovery/0.6.0 (+https://s023007.github.io/trendpilot-ai/)",
             "Accept": accept,
             "Accept-Language": "en-GB,en;q=0.9",
         },
@@ -942,13 +942,13 @@ def main() -> int:
     counters["publishedApprovedTrends"] = len(published)
 
     output = {
-        "version": config.get("version", "0.5.3"),
+        "version": config.get("version", "0.6.0"),
         "generatedAt": current.isoformat(),
         "publicationMode": "manual-review",
         "trends": published,
     }
     review_output = {
-        "version": config.get("version", "0.5.3"),
+        "version": config.get("version", "0.6.0"),
         "generatedAt": current.isoformat(),
         "reviewQueue": pending,
         "instructions": (
@@ -957,7 +957,7 @@ def main() -> int:
         ),
     }
     rejection_output = {
-        "version": config.get("version", "0.5.3"),
+        "version": config.get("version", "0.6.0"),
         "generatedAt": current.isoformat(),
         "samples": rejections[: int(config.get("maxRejectionSamples", 60))],
         "topUnclassifiedTerms": top_unclassified_terms(rejections),
@@ -967,7 +967,7 @@ def main() -> int:
         ),
     }
     report = {
-        "version": config.get("version", "0.5.3"),
+        "version": config.get("version", "0.6.0"),
         "generatedAt": current.isoformat(),
         "publicationMode": "manual-review",
         "sources": source_report,
@@ -995,7 +995,7 @@ def main() -> int:
         + json.dumps(
             {
                 "generatedAt": current.isoformat(),
-                "version": config.get("version", "0.5.3"),
+                "version": config.get("version", "0.6.0"),
                 "publicationMode": "manual-review",
             },
             ensure_ascii=False,
