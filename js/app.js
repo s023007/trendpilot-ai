@@ -120,8 +120,10 @@ document.addEventListener("DOMContentLoaded", () => {
         const price = product.price == null ? "" : `${escapeHtml(product.currency || "USD")} ${Number(product.price).toFixed(2)}`;
         const oldPrice = product.oldPrice == null ? "" : `<s>${escapeHtml(product.currency || "USD")} ${Number(product.oldPrice).toFixed(2)}</s>`;
         const commission = product.commissionRate == null ? "" : ` • Commission ${Number(product.commissionRate).toFixed(2)}%`;
+        const network = product.network ? ` • ${escapeHtml(product.network)}` : "";
+        const advertiser = product.advertiser ? escapeHtml(product.advertiser) : escapeHtml(product.category || "Affiliate product");
         const image = product.image ? `<img class="matched-product-image" src="${escapeHtml(product.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="matched-product-image placeholder">◈</div>`;
-        return `<article class="matched-product feed-product">${image}<div><strong>${escapeHtml(product.name)}</strong><span>${escapeHtml(product.category || "AliExpress product")}</span><small>${price} ${oldPrice}${commission} • Match ${Math.round(product.matchScore || 0)}</small></div><a class="button button-small button-primary" href="${escapeHtml(product.url)}" target="_blank" rel="sponsored nofollow noopener">View offer</a></article>`;
+        return `<article class="matched-product feed-product">${image}<div><strong>${escapeHtml(product.name)}</strong><span>${advertiser}${network}</span><small>${price} ${oldPrice}${commission} • Match ${Math.round(product.matchScore || 0)}</small></div><a class="button button-small button-primary" href="${escapeHtml(product.url)}" target="_blank" rel="sponsored nofollow noopener">View offer</a></article>`;
       }).join("");
       if (directHtml || automatedHtml) {
         const generated = automatedMatches.length && feedMeta.generatedAt ? `<p class="matcher-stamp">Automated product shortlist updated ${escapeHtml(new Date(feedMeta.generatedAt).toLocaleString())}. Product availability and prices can change.</p>` : "";
