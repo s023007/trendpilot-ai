@@ -1,0 +1,605 @@
+{
+  "version": "0.5.0",
+  "maxPublishedTrends": 12,
+  "minimumOpportunityScore": 60,
+  "retentionHours": 72,
+  "requestTimeoutSeconds": 35,
+  "sources": [
+    {
+      "id": "google-us",
+      "type": "rss",
+      "label": "Google Trends — United States",
+      "url": "https://trends.google.com/trending/rss?geo=US",
+      "weight": 34,
+      "enabled": true
+    },
+    {
+      "id": "google-gb",
+      "type": "rss",
+      "label": "Google Trends — United Kingdom",
+      "url": "https://trends.google.com/trending/rss?geo=GB",
+      "weight": 32,
+      "enabled": true
+    },
+    {
+      "id": "google-ae",
+      "type": "rss",
+      "label": "Google Trends — United Arab Emirates",
+      "url": "https://trends.google.com/trending/rss?geo=AE",
+      "weight": 34,
+      "enabled": true
+    },
+    {
+      "id": "product-hunt",
+      "type": "rss",
+      "label": "Product Hunt RSS",
+      "url": "https://www.producthunt.com/feed",
+      "weight": 36,
+      "enabled": true
+    },
+    {
+      "id": "hacker-news",
+      "type": "hacker_news",
+      "label": "Hacker News official API",
+      "url": "https://hacker-news.firebaseio.com/v0/beststories.json",
+      "weight": 25,
+      "enabled": true,
+      "maxItems": 35,
+      "minimumPoints": 35
+    }
+  ],
+  "buyerIntentTerms": [
+    "best",
+    "review",
+    "alternative",
+    "price",
+    "deal",
+    "buy",
+    "shop",
+    "discount",
+    "kit",
+    "device",
+    "tool",
+    "app",
+    "software",
+    "platform",
+    "system",
+    "accessory",
+    "portable",
+    "wireless",
+    "smart",
+    "automatic",
+    "ai"
+  ],
+  "blockedTerms": [
+    "election",
+    "president",
+    "prime minister",
+    "senator",
+    "parliament",
+    "war",
+    "missile",
+    "shooting",
+    "murder",
+    "death",
+    "dies",
+    "dead",
+    "funeral",
+    "earthquake",
+    "hurricane",
+    "flood",
+    "wildfire",
+    "weather",
+    "lottery",
+    "jackpot",
+    "casino",
+    "gambling",
+    "betting",
+    "football score",
+    "match score",
+    "vs",
+    "celebrity",
+    "actor death",
+    "adult",
+    "porn",
+    "sex toy",
+    "gun",
+    "rifle",
+    "pistol",
+    "ammunition",
+    "vape",
+    "cigarette",
+    "nicotine",
+    "cannabis",
+    "marijuana",
+    "thc",
+    "cbd"
+  ],
+  "categories": [
+    {
+      "name": "Audio",
+      "icon": "◉",
+      "terms": [
+        "voice agent",
+        "voice ai",
+        "speech to text",
+        "text to speech",
+        "audio editor",
+        "podcast",
+        "microphone",
+        "earbuds",
+        "headphones",
+        "speaker",
+        "soundbar",
+        "voice recorder",
+        "dictation"
+      ],
+      "productTerms": [
+        "microphone",
+        "earbuds",
+        "headphones",
+        "speaker",
+        "soundbar",
+        "voice recorder",
+        "audio interface"
+      ],
+      "excludeTerms": [
+        "hearing aid"
+      ],
+      "preferredCategories": [
+        "Consumer Electronics"
+      ],
+      "minimumPrice": 5,
+      "maximumPrice": 350,
+      "directProducts": [
+        "elevenlabs",
+        "descript"
+      ],
+      "networks": [
+        "Direct SaaS programmes",
+        "PartnerStack",
+        "Admitad"
+      ],
+      "affiliateCoverage": 90
+    },
+    {
+      "name": "Video",
+      "icon": "▶",
+      "terms": [
+        "video editor",
+        "ai video",
+        "video generator",
+        "animation",
+        "subtitle",
+        "caption generator",
+        "screen recorder",
+        "camera",
+        "webcam",
+        "projector",
+        "ring light",
+        "gimbal"
+      ],
+      "productTerms": [
+        "camera",
+        "webcam",
+        "projector",
+        "ring light",
+        "gimbal",
+        "tripod",
+        "video light"
+      ],
+      "excludeTerms": [
+        "surveillance hidden camera"
+      ],
+      "preferredCategories": [
+        "Consumer Electronics"
+      ],
+      "minimumPrice": 8,
+      "maximumPrice": 600,
+      "directProducts": [
+        "synthesia",
+        "invideo",
+        "pictory",
+        "descript"
+      ],
+      "networks": [
+        "Direct SaaS programmes",
+        "PartnerStack",
+        "Admitad"
+      ],
+      "affiliateCoverage": 92
+    },
+    {
+      "name": "Marketing",
+      "icon": "↗",
+      "terms": [
+        "seo",
+        "email marketing",
+        "copywriting",
+        "content marketing",
+        "social media tool",
+        "lead generation",
+        "landing page",
+        "advertising tool",
+        "ai writing",
+        "brand monitoring"
+      ],
+      "productTerms": [],
+      "excludeTerms": [],
+      "preferredCategories": [],
+      "minimumPrice": null,
+      "maximumPrice": null,
+      "directProducts": [
+        "writesonic",
+        "scalenut"
+      ],
+      "networks": [
+        "Direct SaaS programmes",
+        "PartnerStack",
+        "Awin"
+      ],
+      "affiliateCoverage": 88
+    },
+    {
+      "name": "Developer",
+      "icon": "</>",
+      "terms": [
+        "developer tool",
+        "coding agent",
+        "ai coding",
+        "api",
+        "database",
+        "automation platform",
+        "web scraper",
+        "agent framework",
+        "open source tool",
+        "software development"
+      ],
+      "productTerms": [],
+      "excludeTerms": [],
+      "preferredCategories": [],
+      "minimumPrice": null,
+      "maximumPrice": null,
+      "directProducts": [],
+      "networks": [
+        "PartnerStack",
+        "Impact",
+        "Direct SaaS programmes"
+      ],
+      "affiliateCoverage": 58
+    },
+    {
+      "name": "Productivity",
+      "icon": "⌁",
+      "terms": [
+        "note taking",
+        "meeting assistant",
+        "transcription",
+        "dictation",
+        "calendar app",
+        "pdf tool",
+        "workspace",
+        "task manager",
+        "document ai",
+        "keyboard",
+        "desk setup"
+      ],
+      "productTerms": [
+        "keyboard",
+        "desk lamp",
+        "tablet stand",
+        "laptop stand",
+        "wireless mouse"
+      ],
+      "excludeTerms": [],
+      "preferredCategories": [
+        "Computer & Office"
+      ],
+      "minimumPrice": 4,
+      "maximumPrice": 250,
+      "directProducts": [
+        "descript"
+      ],
+      "networks": [
+        "PartnerStack",
+        "Admitad",
+        "Awin"
+      ],
+      "affiliateCoverage": 76
+    },
+    {
+      "name": "Automotive",
+      "icon": "◇",
+      "terms": [
+        "carplay",
+        "android auto",
+        "dash cam",
+        "car vacuum",
+        "tyre inflator",
+        "tire inflator",
+        "car charger",
+        "car phone holder",
+        "car multimedia",
+        "car accessory"
+      ],
+      "productTerms": [
+        "carplay",
+        "android auto",
+        "dash cam",
+        "car vacuum",
+        "tire inflator",
+        "tyre inflator",
+        "car charger",
+        "car phone holder",
+        "car multimedia"
+      ],
+      "excludeTerms": [
+        "engine",
+        "gearbox",
+        "transmission",
+        "brake",
+        "bumper",
+        "radiator",
+        "head gasket",
+        "cylinder",
+        "suspension"
+      ],
+      "preferredCategories": [
+        "Car Electronics",
+        "Automobiles & Motorcycles"
+      ],
+      "minimumPrice": 5,
+      "maximumPrice": 600,
+      "directProducts": [],
+      "networks": [
+        "Admitad",
+        "Awin",
+        "CJ"
+      ],
+      "affiliateCoverage": 94
+    },
+    {
+      "name": "Smart Home",
+      "icon": "⌂",
+      "terms": [
+        "robot vacuum",
+        "security camera",
+        "smart lock",
+        "video doorbell",
+        "air purifier",
+        "smart light",
+        "led strip",
+        "home projector",
+        "smart plug",
+        "automatic curtain"
+      ],
+      "productTerms": [
+        "robot vacuum",
+        "security camera",
+        "smart lock",
+        "video doorbell",
+        "air purifier",
+        "smart light",
+        "led strip",
+        "projector",
+        "smart plug"
+      ],
+      "excludeTerms": [
+        "hidden camera",
+        "spy camera"
+      ],
+      "preferredCategories": [
+        "Consumer Electronics",
+        "Home Appliances",
+        "Security & Protection"
+      ],
+      "minimumPrice": 5,
+      "maximumPrice": 900,
+      "directProducts": [],
+      "networks": [
+        "Admitad",
+        "Awin",
+        "CJ"
+      ],
+      "affiliateCoverage": 93
+    },
+    {
+      "name": "Mobile",
+      "icon": "▣",
+      "terms": [
+        "power bank",
+        "wireless charger",
+        "magsafe",
+        "phone case",
+        "phone accessory",
+        "charging station",
+        "usb c hub",
+        "portable charger",
+        "smartphone accessory"
+      ],
+      "productTerms": [
+        "power bank",
+        "wireless charger",
+        "magsafe",
+        "phone case",
+        "charging station",
+        "usb c hub",
+        "portable charger"
+      ],
+      "excludeTerms": [
+        "battery cell"
+      ],
+      "preferredCategories": [
+        "Cellphones & Telecommunications",
+        "Consumer Electronics"
+      ],
+      "minimumPrice": 2,
+      "maximumPrice": 250,
+      "directProducts": [],
+      "networks": [
+        "Admitad",
+        "Awin",
+        "CJ"
+      ],
+      "affiliateCoverage": 96
+    },
+    {
+      "name": "Fitness",
+      "icon": "✦",
+      "terms": [
+        "smartwatch",
+        "fitness tracker",
+        "walking pad",
+        "massage gun",
+        "resistance band",
+        "home gym",
+        "sports watch",
+        "running watch"
+      ],
+      "productTerms": [
+        "smartwatch",
+        "fitness tracker",
+        "walking pad",
+        "massage gun",
+        "resistance band",
+        "sports watch"
+      ],
+      "excludeTerms": [
+        "diet pill",
+        "weight loss pill"
+      ],
+      "preferredCategories": [
+        "Sports & Entertainment",
+        "Consumer Electronics"
+      ],
+      "minimumPrice": 3,
+      "maximumPrice": 800,
+      "directProducts": [],
+      "networks": [
+        "Admitad",
+        "Awin",
+        "CJ"
+      ],
+      "affiliateCoverage": 89
+    },
+    {
+      "name": "Pet",
+      "icon": "♢",
+      "terms": [
+        "pet feeder",
+        "automatic feeder",
+        "pet camera",
+        "cat water fountain",
+        "dog water fountain",
+        "self cleaning litter box",
+        "pet grooming",
+        "gps pet tracker"
+      ],
+      "productTerms": [
+        "pet feeder",
+        "automatic feeder",
+        "pet camera",
+        "water fountain",
+        "self cleaning litter box",
+        "pet grooming",
+        "gps pet tracker"
+      ],
+      "excludeTerms": [
+        "manual bowl"
+      ],
+      "preferredCategories": [
+        "Pet Products"
+      ],
+      "minimumPrice": 4,
+      "maximumPrice": 700,
+      "directProducts": [],
+      "networks": [
+        "Admitad",
+        "Awin",
+        "CJ"
+      ],
+      "affiliateCoverage": 91
+    },
+    {
+      "name": "Beauty",
+      "icon": "✧",
+      "terms": [
+        "hair styler",
+        "hair dryer",
+        "skincare device",
+        "led face mask",
+        "nail lamp",
+        "makeup tool",
+        "facial cleansing",
+        "beauty device"
+      ],
+      "productTerms": [
+        "hair styler",
+        "hair dryer",
+        "skincare device",
+        "led face mask",
+        "nail lamp",
+        "makeup tool",
+        "facial cleansing"
+      ],
+      "excludeTerms": [
+        "injectable",
+        "prescription"
+      ],
+      "preferredCategories": [
+        "Beauty & Health",
+        "Home Appliances"
+      ],
+      "minimumPrice": 3,
+      "maximumPrice": 600,
+      "directProducts": [],
+      "networks": [
+        "Admitad",
+        "Awin",
+        "CJ"
+      ],
+      "affiliateCoverage": 90
+    },
+    {
+      "name": "Shopping",
+      "icon": "◈",
+      "terms": [
+        "portable blender",
+        "mini printer",
+        "label maker",
+        "thermal printer",
+        "travel organiser",
+        "vacuum sealer",
+        "ice maker",
+        "coffee maker",
+        "kitchen gadget"
+      ],
+      "productTerms": [
+        "portable blender",
+        "mini printer",
+        "label maker",
+        "thermal printer",
+        "travel organizer",
+        "travel organiser",
+        "vacuum sealer",
+        "ice maker",
+        "coffee maker"
+      ],
+      "excludeTerms": [],
+      "preferredCategories": [
+        "Home Appliances",
+        "Home & Garden",
+        "Computer & Office"
+      ],
+      "minimumPrice": 3,
+      "maximumPrice": 700,
+      "directProducts": [],
+      "networks": [
+        "Admitad",
+        "Awin",
+        "CJ"
+      ],
+      "affiliateCoverage": 92
+    }
+  ]
+}
