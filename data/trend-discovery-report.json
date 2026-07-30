@@ -1,50 +1,6 @@
 {
-  "version": "0.5.3",
-  "generatedAt": "2026-07-30T07:40:05+00:00",
+  "version": "0.6.0",
+  "generatedAt": null,
   "publicationMode": "manual-review",
-  "sources": [
-    {
-      "label": "Google Trends — United States",
-      "status": "processed",
-      "signals": 10
-    },
-    {
-      "label": "Google Trends — United Kingdom",
-      "status": "processed",
-      "signals": 10
-    },
-    {
-      "label": "Google Trends — United Arab Emirates",
-      "status": "processed",
-      "signals": 10
-    },
-    {
-      "label": "Product Hunt RSS",
-      "status": "processed",
-      "signals": 50
-    },
-    {
-      "label": "Hacker News official API",
-      "status": "processed",
-      "signals": 35
-    }
-  ],
-  "counters": {
-    "rawSignals": 115,
-    "blockedSignals": 5,
-    "nonCommercialSignals": 108,
-    "softwareCommercialSignals": 2,
-    "ambiguousSignals": 0,
-    "lowScoreSignals": 0,
-    "insufficientEvidence": 0,
-    "unmonetisableSignals": 2,
-    "noConfirmedAffiliateRoute": 2,
-    "projectOnlyWithoutAffiliateRoute": 1,
-    "purgedStaleCandidates": 1,
-    "reviewCandidates": 0,
-    "readyForApproval": 0,
-    "publishedApprovedTrends": 0,
-    "approvalHeldForEvidence": 0
-  },
-  "note": "New trends are held for review. Sensitive, ambiguous and weakly evidenced signals are blocked before publication."
+  "status": "awaiting-workflow-run"
 }

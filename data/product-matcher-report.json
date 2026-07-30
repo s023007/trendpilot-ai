@@ -1,34 +1,26 @@
 {
-  "version": "0.5.3",
-  "generatedAt": "2026-07-30T07:40:42+00:00",
-  "sources": [
-    {
-      "label": "Admitad Hot Products snapshot",
-      "type": "local snapshot",
-      "status": "processed"
-    },
-    {
-      "label": "AliExpress 25–40 USD feed",
-      "type": "private remote feed",
-      "status": "processed",
-      "rowLimit": 25000
-    }
-  ],
+  "version": "0.6.0",
+  "generatedAt": "2026-07-30T08:05:09+00:00",
+  "catalogueOffersRead": 5083,
   "counters": {
-    "rowsRead": 30123,
-    "candidateMatches": 632,
-    "complianceBlocked": 333
+    "offersRead": 5083,
+    "candidateMatches": 709
   },
   "matchesPerTrend": {
-    "wireless-carplay-retrofit": 8,
+    "smart-pet-feeding": 4,
     "seasonal-party-decor": 8,
     "seasonal-kids-costumes": 8,
-    "smart-pet-feeding": 7
+    "wireless-carplay-retrofit": 8
+  },
+  "matchesByNetwork": {
+    "Admitad": 36
   },
   "reviewEvidence": {
-    "candidatesAssessed": 0,
-    "readyForApproval": 0,
-    "matchesPerCandidate": {}
+    "candidatesAssessed": 1,
+    "readyForApproval": 1,
+    "matchesPerCandidate": {
+      "car-multimedia-head-units": 8
+    }
   },
-  "note": "Only approved/public trend matches are displayed. Review candidates receive evidence privately in the repository review file. Private feed URLs are never written."
+  "note": "Equivalent products are deduplicated across networks. The strongest compliant offer is selected by match, commission, discount and data quality."
 }

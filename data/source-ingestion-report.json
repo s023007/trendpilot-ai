@@ -1,0 +1,60 @@
+{
+  "version": "0.6.0",
+  "generatedAt": "2026-07-30T08:04:43+00:00",
+  "cache": {
+    "path": "automation/cache/offers.jsonl",
+    "committed": false,
+    "offerCount": 5083
+  },
+  "sources": [
+    {
+      "sourceId": "cj-advertiser-template",
+      "status": "disabled",
+      "adapter": "csv",
+      "configFile": "config/sources/_template-cj-csv.json"
+    },
+    {
+      "sourceId": "generic-csv-template",
+      "status": "disabled",
+      "adapter": "csv",
+      "configFile": "config/sources/_template-generic-csv.json"
+    },
+    {
+      "sourceId": "generic-xml-template",
+      "status": "disabled",
+      "adapter": "xml",
+      "configFile": "config/sources/_template-generic-xml.json"
+    },
+    {
+      "sourceId": "admitad-aliexpress-25-40",
+      "status": "credential-or-location-missing",
+      "adapter": "csv",
+      "locationType": "environment_url"
+    },
+    {
+      "sourceId": "admitad-hot-products",
+      "status": "processed",
+      "adapter": "csv",
+      "network": "Admitad",
+      "advertiser": "AliExpress",
+      "offersAccepted": 5082,
+      "complianceBlocked": 41,
+      "invalidRows": 0
+    },
+    {
+      "sourceId": "direct-elevenlabs",
+      "status": "processed",
+      "adapter": "direct",
+      "network": "Direct",
+      "advertiser": "ElevenLabs",
+      "offersAccepted": 1,
+      "complianceBlocked": 0,
+      "invalidRows": 0
+    }
+  ],
+  "counters": {
+    "offersAccepted": 5083,
+    "complianceBlocked": 41
+  },
+  "note": "Private feed URLs are read from GitHub Actions secrets and are never written to reports or the repository."
+}
