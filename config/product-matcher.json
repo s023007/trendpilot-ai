@@ -1,10 +1,10 @@
 {
-  "version": "0.4",
+  "version": "0.4.1",
   "sourceSettings": {
     "localHotProducts": "data/source/admitad-hot-products.csv",
     "remoteFeedEnvironmentVariable": "ADMITAD_ALIEXPRESS_FEED_25_40",
     "remoteFeedLabel": "AliExpress 25–40 USD feed",
-    "maxRemoteRows": 200000,
+    "maxRemoteRows": 25000,
     "topProductsPerTrend": 8,
     "minimumScore": 25
   },
