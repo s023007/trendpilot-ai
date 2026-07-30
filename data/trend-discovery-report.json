@@ -1,6 +1,6 @@
 {
   "version": "0.5.3",
-  "generatedAt": "2026-07-30T07:21:51+00:00",
+  "generatedAt": "2026-07-30T07:40:05+00:00",
   "publicationMode": "manual-review",
   "sources": [
     {
@@ -31,14 +31,17 @@
   ],
   "counters": {
     "rawSignals": 115,
-    "blockedSignals": 6,
-    "nonCommercialSignals": 107,
+    "blockedSignals": 5,
+    "nonCommercialSignals": 108,
     "softwareCommercialSignals": 2,
     "ambiguousSignals": 0,
-    "lowScoreSignals": 1,
+    "lowScoreSignals": 0,
     "insufficientEvidence": 0,
-    "unmonetisableSignals": 0,
-    "reviewCandidates": 1,
+    "unmonetisableSignals": 2,
+    "noConfirmedAffiliateRoute": 2,
+    "projectOnlyWithoutAffiliateRoute": 1,
+    "purgedStaleCandidates": 1,
+    "reviewCandidates": 0,
     "readyForApproval": 0,
     "publishedApprovedTrends": 0,
     "approvalHeldForEvidence": 0
