@@ -1,0 +1,28 @@
+{
+  "version": "0.4",
+  "generatedAt": "2026-07-30T00:15:23+00:00",
+  "sources": [
+    {
+      "label": "Admitad Hot Products snapshot",
+      "type": "local snapshot",
+      "status": "processed"
+    },
+    {
+      "label": "AliExpress 25–40 USD feed",
+      "type": "private remote feed",
+      "status": "secret not supplied"
+    }
+  ],
+  "counters": {
+    "rowsRead": 5123,
+    "candidateMatches": 628,
+    "complianceBlocked": 41
+  },
+  "matchesPerTrend": {
+    "wireless-carplay-retrofit": 8,
+    "seasonal-party-decor": 8,
+    "seasonal-kids-costumes": 8,
+    "smart-pet-feeding": 4
+  },
+  "note": "Only small matched outputs are public. Private feed URLs are read from GitHub Actions secrets and are never written to the repository."
+}
