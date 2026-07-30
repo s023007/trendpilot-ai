@@ -1,0 +1,146 @@
+{
+  "version": "0.4",
+  "sourceSettings": {
+    "localHotProducts": "data/source/admitad-hot-products.csv",
+    "remoteFeedEnvironmentVariable": "ADMITAD_ALIEXPRESS_FEED_25_40",
+    "remoteFeedLabel": "AliExpress 25–40 USD feed",
+    "maxRemoteRows": 200000,
+    "topProductsPerTrend": 8,
+    "minimumScore": 25
+  },
+  "compliance": {
+    "allowedSchemes": [
+      "http",
+      "https"
+    ],
+    "blockedTerms": [
+      "adult",
+      "sex toy",
+      "casino",
+      "gambling",
+      "betting",
+      "gun",
+      "rifle",
+      "pistol",
+      "ammunition",
+      "bullet",
+      "switchblade",
+      "taser",
+      "brass knuckle",
+      "pepper spray",
+      "counterfeit",
+      "fake brand",
+      "replica rolex",
+      "cannabis",
+      "marijuana",
+      "thc",
+      "cbd",
+      "magic mushroom",
+      "vape",
+      "cigarette",
+      "nicotine",
+      "diet pill",
+      "laxative",
+      "prescription medicine"
+    ],
+    "blockedCategories": []
+  },
+  "trendProfiles": [
+    {
+      "slug": "wireless-carplay-retrofit",
+      "title": "Wireless CarPlay Retrofit Kits",
+      "includeTerms": [
+        "carplay",
+        "android auto",
+        "wireless carplay",
+        "carplay adapter",
+        "carplay retrofit",
+        "usb adapter hub"
+      ],
+      "preferredCategories": [
+        "Car Electronics"
+      ],
+      "excludeTerms": [
+        "engine",
+        "gearbox",
+        "transmission",
+        "brake",
+        "bumper",
+        "radiator",
+        "head gasket",
+        "cylinder",
+        "suspension"
+      ],
+      "minimumPrice": 10,
+      "maximumPrice": 120
+    },
+    {
+      "slug": "smart-pet-feeding",
+      "title": "Smart Pet Feeding",
+      "includeTerms": [
+        "pet feeder",
+        "smart pet feeder",
+        "food dispenser",
+        "remote feeding",
+        "cat feeder",
+        "dog feeder"
+      ],
+      "preferredCategories": [
+        "Pet Products"
+      ],
+      "excludeTerms": [
+        "bowl stand",
+        "manual bowl"
+      ],
+      "minimumPrice": 20,
+      "maximumPrice": 220
+    },
+    {
+      "slug": "seasonal-kids-costumes",
+      "title": "Seasonal Kids Costumes",
+      "includeTerms": [
+        "kids costume",
+        "girls costume",
+        "boys costume",
+        "princess dress",
+        "cosplay costume",
+        "dance costume",
+        "halloween costume",
+        "carnival costume"
+      ],
+      "preferredCategories": [
+        "Children's Clothing",
+        "Cosplay Costumes"
+      ],
+      "excludeTerms": [
+        "adult",
+        "sexy"
+      ],
+      "minimumPrice": 3,
+      "maximumPrice": 80
+    },
+    {
+      "slug": "seasonal-party-decor",
+      "title": "Seasonal Party Decorations",
+      "includeTerms": [
+        "party supplies",
+        "birthday decoration",
+        "party decoration",
+        "balloon set",
+        "baby shower",
+        "wedding decoration",
+        "halloween decoration",
+        "christmas decoration"
+      ],
+      "preferredCategories": [
+        "Festive & Party Supplies"
+      ],
+      "excludeTerms": [
+        "adult",
+        "casino"
+      ],
+      "minimumPrice": 1,
+      "maximumPrice": 100
+    }
+  ]
+}
