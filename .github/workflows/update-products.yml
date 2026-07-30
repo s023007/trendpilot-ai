@@ -11,12 +11,12 @@ permissions:
 
 concurrency:
   group: trendpilot-product-matcher
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   match-products:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 20
 
     steps:
       - name: Check out repository
