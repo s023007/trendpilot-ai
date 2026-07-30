@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.5.1 strict trend discovery and review queue.
+"""TrendPilot AI v0.5.2 adaptive commercial discovery and review queue.
 
 New public signals are never published immediately. They first enter a review
 queue, receive product-match evidence, and can then be approved explicitly in
@@ -29,6 +29,7 @@ APPROVALS_PATH = ROOT / "config" / "trend-approvals.json"
 DATA_PATH = ROOT / "data" / "discovered-trends.json"
 REVIEW_PATH = ROOT / "data" / "trend-review.json"
 REPORT_PATH = ROOT / "data" / "trend-discovery-report.json"
+REJECTIONS_PATH = ROOT / "data" / "trend-rejections.json"
 JS_PATH = ROOT / "js" / "discovered-trends.js"
 STATIC_TRENDS_PATH = ROOT / "js" / "trends-data.js"
 
@@ -102,7 +103,7 @@ def http_get(url: str, timeout: int, accept: str = "*/*") -> bytes:
     request = urllib.request.Request(
         url,
         headers={
-            "User-Agent": "TrendPilotAI-TrendDiscovery/0.5.1 (+https://s023007.github.io/trendpilot-ai/)",
+            "User-Agent": "TrendPilotAI-TrendDiscovery/0.5.2 (+https://s023007.github.io/trendpilot-ai/)",
             "Accept": accept,
             "Accept-Language": "en-GB,en;q=0.9",
         },
@@ -127,6 +128,21 @@ def element_text(element: ET.Element, candidates: Iterable[str]) -> str:
         if local_name(child.tag) in wanted and clean_text(child.text):
             return clean_text(child.text)
     return ""
+
+
+def element_texts(element: ET.Element, candidates: Iterable[str]) -> list[str]:
+    wanted = {item.lower() for item in candidates}
+    values: list[str] = []
+    seen: set[str] = set()
+    for child in element.iter():
+        if local_name(child.tag) not in wanted:
+            continue
+        value = clean_text(child.text or child.attrib.get("term") or child.attrib.get("label"))
+        key = normalise(value)
+        if value and key not in seen:
+            seen.add(key)
+            values.append(value)
+    return values
 
 
 def element_link(element: ET.Element) -> str:
@@ -154,6 +170,7 @@ def parse_rss(payload: bytes, source: dict) -> list[dict]:
             {
                 "title": title,
                 "summary": element_text(entry, ["description", "summary", "content", "news_item_title"]),
+                "tags": element_texts(entry, ["category", "subject", "tag"]),
                 "url": element_link(entry) or source["url"],
                 "publishedAt": parse_date(element_text(entry, ["pubdate", "published", "updated"])),
                 "traffic": element_text(entry, ["approx_traffic", "traffic"]),
@@ -236,7 +253,10 @@ def title_similarity(a: str, b: str) -> float:
 
 def category_match(signal: dict, categories: list[dict], ambiguous_terms: set[str]) -> Optional[dict]:
     title = normalise(signal.get("title"))
-    full_text = normalise(f"{signal.get('title', '')} {signal.get('summary', '')}")
+    full_text = normalise(
+        f"{signal.get('title', '')} {signal.get('summary', '')} "
+        f"{' '.join(signal.get('tags', []) or [])}"
+    )
     best: Optional[dict] = None
 
     for category in categories:
@@ -279,6 +299,101 @@ def category_match(signal: dict, categories: list[dict], ambiguous_terms: set[st
     return best
 
 
+def software_category_match(
+    signal: dict,
+    categories: list[dict],
+    descriptor_terms: list[str],
+) -> Optional[dict]:
+    """Classify commercial software signals without accepting generic news.
+
+    This fallback is limited to Product Hunt and Hacker News. It requires both
+    a software descriptor and a category-specific term, so generic words such
+    as "AI", "app" or "platform" cannot create a candidate alone.
+    """
+    source_id = clean_text(signal.get("sourceId"))
+    if source_id not in {"product-hunt", "hacker-news"}:
+        return None
+
+    title = normalise(signal.get("title"))
+    full_text = normalise(
+        f"{signal.get('title', '')} {signal.get('summary', '')} "
+        f"{' '.join(signal.get('tags', []) or [])}"
+    )
+    descriptor_hits = [term for term in descriptor_terms if has_term(full_text, term)]
+    if not descriptor_hits:
+        return None
+
+    best: Optional[dict] = None
+    for category in categories:
+        matched = [term for term in category.get("terms", []) if has_term(full_text, term)]
+        if not matched:
+            continue
+
+        title_matches = [term for term in matched if has_term(title, term)]
+        quality = 24 + len(matched) * 14 + len(title_matches) * 8 + min(12, len(descriptor_hits) * 3)
+
+        product_terms: list[str] = []
+        term_map = category.get("termProductMap", {})
+        for term in matched:
+            mapped = term_map.get(term, [])
+            if isinstance(mapped, str):
+                mapped = [mapped]
+            for product_term in mapped:
+                product_term = clean_text(product_term)
+                if product_term and normalise(product_term) not in {normalise(x) for x in product_terms}:
+                    product_terms.append(product_term)
+
+        direct_products: list[str] = []
+        for rule in category.get("directProductRules", []):
+            if any(has_term(full_text, term) for term in rule.get("terms", [])):
+                direct_products.extend(rule.get("products", []))
+        direct_products = unique_strings(direct_products)
+
+        candidate = {
+            "category": category,
+            "matchedTerms": unique_strings([*matched, *descriptor_hits]),
+            "titleMatches": title_matches,
+            "productTerms": product_terms,
+            "directProducts": direct_products,
+            "matchQuality": quality,
+            "routeType": "software",
+        }
+        if best is None or candidate["matchQuality"] > best["matchQuality"]:
+            best = candidate
+    return best
+
+
+def rejection_entry(signal: dict, reason: str, details: Optional[dict] = None) -> dict:
+    entry = {
+        "title": clean_text(signal.get("title")),
+        "sourceId": clean_text(signal.get("sourceId")),
+        "sourceLabel": clean_text(signal.get("sourceLabel")),
+        "reason": reason,
+    }
+    if details:
+        entry["details"] = details
+    return entry
+
+
+def top_unclassified_terms(rejections: list[dict], limit: int = 30) -> list[dict]:
+    stopwords = {
+        "the", "a", "an", "and", "or", "to", "of", "for", "in", "on", "with",
+        "is", "are", "from", "at", "by", "new", "how", "why", "what", "who",
+        "this", "that", "your", "you", "its", "it", "as", "after", "before",
+        "today", "live", "latest", "official", "best",
+    }
+    counts: dict[str, int] = {}
+    for item in rejections:
+        if item.get("reason") != "no-commercial-taxonomy-match":
+            continue
+        for token in normalise(item.get("title")).split():
+            if len(token) < 3 or token in stopwords or token.isdigit():
+                continue
+            counts[token] = counts.get(token, 0) + 1
+    ranked = sorted(counts.items(), key=lambda pair: (-pair[1], pair[0]))[:limit]
+    return [{"term": term, "count": count} for term, count in ranked]
+
+
 def is_hard_blocked(signal: dict, blocked_terms: list[str]) -> bool:
     text = normalise(f"{signal.get('title', '')} {signal.get('summary', '')}")
     return any(has_term(text, term) for term in blocked_terms)
@@ -297,6 +412,18 @@ def signal_strength(signal: dict, match: dict, config: dict) -> tuple[bool, list
         reasons.append(f"Hacker News points {points}")
     if source_id == "product-hunt" and match.get("titleMatches"):
         reasons.append("precise Product Hunt title match")
+    if (
+        source_id == "product-hunt"
+        and match.get("routeType") == "software"
+        and len(match.get("matchedTerms", [])) >= 2
+    ):
+        reasons.append("commercial Product Hunt software signal")
+    if (
+        source_id == "hacker-news"
+        and match.get("routeType") == "software"
+        and points >= int(evidence.get("strongHackerNewsPoints", 80))
+    ):
+        reasons.append("high-engagement commercial software signal")
     if len(match.get("titleMatches", [])) >= 2:
         reasons.append("multiple precise title matches")
     return bool(reasons), reasons
@@ -327,7 +454,8 @@ def commercial_score(signal: dict, match: dict, config: dict, current: datetime)
 
     if match["productTerms"]:
         score += 6
-    if category.get("directProducts"):
+    direct_products = match.get("directProducts", category.get("directProducts", []))
+    if direct_products:
         score += 5
     final = int(max(0, min(98, round(score))))
 
@@ -340,7 +468,7 @@ def commercial_score(signal: dict, match: dict, config: dict, current: datetime)
                 56
                 + buyer_hits * 6
                 + len(match["productTerms"]) * 5
-                + len(category.get("directProducts", [])) * 5,
+                + len(direct_products) * 5,
             ),
         )
     )
@@ -423,6 +551,9 @@ def build_candidate(cluster: list[dict], current: datetime) -> dict:
     stage = "Emerging" if score < 76 else "Rising" if score < 88 else "Rising fast"
     status_class = "early" if score < 76 else "rising" if score < 88 else "hot"
 
+    direct_products = unique_strings(
+        match.get("directProducts", category.get("directProducts", []))
+    )
     product_match = None
     if product_terms:
         product_match = {
@@ -471,11 +602,12 @@ def build_candidate(cluster: list[dict], current: datetime) -> dict:
             f"What to check before choosing {title}",
             f"{title}: features, price and alternatives",
         ],
-        "products": category.get("directProducts", []),
+        "products": direct_products,
         "networkOpportunities": category.get("networks", ["Admitad"]),
         "monetisationNote": (
             "This candidate remains in review until a clear affiliate route is confirmed "
-            "and its slug is explicitly approved."
+            "and its slug is explicitly approved. Software-only candidates may require "
+            "a direct SaaS programme rather than an AliExpress product."
         ),
         "productMatch": product_match,
         "automatic": True,
@@ -529,6 +661,7 @@ def main() -> int:
     timeout = int(config.get("requestTimeoutSeconds", 35))
     blocked_terms = [normalise(term) for term in config.get("blockedTerms", [])]
     ambiguous_terms = {normalise(term) for term in config.get("ambiguousTerms", [])}
+    software_descriptors = config.get("softwareDescriptorTerms", [])
 
     source_report: list[dict] = []
     raw_signals: list[dict] = []
@@ -556,6 +689,7 @@ def main() -> int:
         "rawSignals": len(raw_signals),
         "blockedSignals": 0,
         "nonCommercialSignals": 0,
+        "softwareCommercialSignals": 0,
         "ambiguousSignals": 0,
         "lowScoreSignals": 0,
         "insufficientEvidence": 0,
@@ -567,24 +701,57 @@ def main() -> int:
     }
 
     enriched: list[dict] = []
+    rejections: list[dict] = []
     for signal in raw_signals:
         if is_hard_blocked(signal, blocked_terms):
             counters["blockedSignals"] += 1
+            rejections.append(rejection_entry(signal, "blocked-sensitive-or-unsafe"))
             continue
+
         match = category_match(signal, config.get("categories", []), ambiguous_terms)
         if not match:
+            match = software_category_match(
+                signal,
+                config.get("softwareCategories", []),
+                software_descriptors,
+            )
+            if match:
+                counters["softwareCommercialSignals"] += 1
+
+        if not match:
             counters["nonCommercialSignals"] += 1
+            rejections.append(rejection_entry(signal, "no-commercial-taxonomy-match"))
             continue
-        if match["matchQuality"] < int(config.get("minimumMatchQuality", 26)):
+
+        if match["matchQuality"] < int(config.get("minimumMatchQuality", 22)):
             counters["ambiguousSignals"] += 1
+            rejections.append(
+                rejection_entry(
+                    signal,
+                    "ambiguous-commercial-match",
+                    {"matchQuality": match["matchQuality"]},
+                )
+            )
             continue
+
         category = match["category"]
-        if not match["productTerms"] and not category.get("directProducts"):
+        direct_products = match.get("directProducts", category.get("directProducts", []))
+        has_network_route = bool(category.get("networkOnly"))
+        if not match["productTerms"] and not direct_products and not has_network_route:
             counters["unmonetisableSignals"] += 1
+            rejections.append(rejection_entry(signal, "no-affiliate-route"))
             continue
+
         metrics = commercial_score(signal, match, config, current)
-        if metrics["score"] < int(config.get("minimumReviewScore", 68)):
+        if metrics["score"] < int(config.get("minimumReviewScore", 64)):
             counters["lowScoreSignals"] += 1
+            rejections.append(
+                rejection_entry(
+                    signal,
+                    "commercial-score-below-review-threshold",
+                    {"score": metrics["score"]},
+                )
+            )
             continue
         strong, reasons = signal_strength(signal, match, config)
         enriched.append(
@@ -608,6 +775,17 @@ def main() -> int:
         minimum_sources = int(config.get("evidenceRules", {}).get("minimumDistinctSources", 2))
         if not has_strong and len(distinct_sources) < minimum_sources:
             counters["insufficientEvidence"] += len(cluster)
+            for item in cluster:
+                rejections.append(
+                    rejection_entry(
+                        item["signal"],
+                        "insufficient-source-evidence",
+                        {
+                            "distinctSources": len(distinct_sources),
+                            "strongSignal": has_strong,
+                        },
+                    )
+                )
             continue
         review_candidates.append(build_candidate(cluster, current))
 
@@ -666,13 +844,13 @@ def main() -> int:
     counters["publishedApprovedTrends"] = len(published)
 
     output = {
-        "version": config.get("version", "0.5.1"),
+        "version": config.get("version", "0.5.2"),
         "generatedAt": current.isoformat(),
         "publicationMode": "manual-review",
         "trends": published,
     }
     review_output = {
-        "version": config.get("version", "0.5.1"),
+        "version": config.get("version", "0.5.2"),
         "generatedAt": current.isoformat(),
         "reviewQueue": pending,
         "instructions": (
@@ -680,8 +858,18 @@ def main() -> int:
             "config/trend-approvals.json approvedSlugs, then run the workflow again."
         ),
     }
+    rejection_output = {
+        "version": config.get("version", "0.5.2"),
+        "generatedAt": current.isoformat(),
+        "samples": rejections[: int(config.get("maxRejectionSamples", 60))],
+        "topUnclassifiedTerms": top_unclassified_terms(rejections),
+        "note": (
+            "This diagnostic file contains public signal titles and rejection reasons only. "
+            "It helps improve the taxonomy without publishing weak trends."
+        ),
+    }
     report = {
-        "version": config.get("version", "0.5.1"),
+        "version": config.get("version", "0.5.2"),
         "generatedAt": current.isoformat(),
         "publicationMode": "manual-review",
         "sources": source_report,
@@ -697,6 +885,10 @@ def main() -> int:
     DATA_PATH.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
     REVIEW_PATH.write_text(json.dumps(review_output, ensure_ascii=False, indent=2), encoding="utf-8")
     REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    REJECTIONS_PATH.write_text(
+        json.dumps(rejection_output, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
     JS_PATH.write_text(
         "window.TRENDPILOT_DISCOVERED_TRENDS = "
         + json.dumps(published, ensure_ascii=False, separators=(",", ":"))
@@ -705,7 +897,7 @@ def main() -> int:
         + json.dumps(
             {
                 "generatedAt": current.isoformat(),
-                "version": config.get("version", "0.5.1"),
+                "version": config.get("version", "0.5.2"),
                 "publicationMode": "manual-review",
             },
             ensure_ascii=False,
@@ -715,6 +907,7 @@ def main() -> int:
     )
 
     print(f"Raw signals: {len(raw_signals)}")
+    print(f"Commercial software signals: {counters['softwareCommercialSignals']}")
     print(f"Candidates held for review: {len(pending)}")
     print(f"Ready for approval: {counters['readyForApproval']}")
     print(f"Published approved trends: {len(published)}")

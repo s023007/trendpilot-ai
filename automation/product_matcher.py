@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TrendPilot AI v0.5.1 Product Matcher
+TrendPilot AI v0.5.2 Product Matcher
 
 Reads:
 - a local Admitad Hot Products CSV snapshot;
