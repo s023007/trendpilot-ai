@@ -1,8 +1,10 @@
 {
   "version": "0.5.1",
-  "approvedSlugs": [],
+  "approvedSlugs": [
+    "car-multimedia-head-units"
+  ],
   "rejectedSlugs": [
     "traffic-enforcement-camera"
   ],
-  "instructions": "Do not approve a candidate until data/trend-review.json shows readyForApproval: true. Add only its slug to approvedSlugs, then run Actions again."
+  "instructions": "Do not approve a candidate unless it has sufficient evidence, strong product matches, and a confirmed affiliate route."
 }
