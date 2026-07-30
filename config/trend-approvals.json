@@ -1,10 +1,13 @@
 {
-  "version": "0.5.1",
+  "version": "0.7.2",
   "approvedSlugs": [
-    "car-multimedia-head-units"
+    "high-capacity-power-banks",
+    "wireless-earbuds",
+    "compact-thermal-printers",
+    "portable-projectors"
   ],
   "rejectedSlugs": [
     "traffic-enforcement-camera"
   ],
-  "instructions": "Upload this file to config/trend-approvals.json, replacing the old file, then run the GitHub Action."
+  "instructions": "Approved product-evidence trends may be published after the matcher confirms valid affiliate offers. Do not approve candidates only because products exist; keep compliance and evidence checks enabled."
 }
