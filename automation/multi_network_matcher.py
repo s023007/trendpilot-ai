@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.6.1 multi-network offer matcher."""
+"""TrendPilot AI v0.6.2 multi-network offer matcher.
+
+Ranks offers by relevance, audience breadth, commercial value and data quality.
+The logic is network-agnostic and works with any normalised affiliate source.
+"""
 from __future__ import annotations
 
 import json
@@ -131,7 +135,110 @@ def blocked(offer: dict, config: dict) -> bool:
     return any(term and term in haystack for term in terms)
 
 
-def score_offer(offer: dict, profile: dict, config: dict) -> Optional[float]:
+def _number(value: object, default: float = 0.0) -> float:
+    try:
+        result = float(value)
+    except (TypeError, ValueError):
+        return default
+    return result if math.isfinite(result) else default
+
+
+def _regex_hits(value: object, patterns: list[object]) -> list[str]:
+    haystack = normalise(value)
+    hits: list[str] = []
+    for raw_pattern in patterns or []:
+        pattern = text(raw_pattern)
+        if not pattern:
+            continue
+        try:
+            if re.search(pattern, haystack, re.I):
+                hits.append(pattern)
+        except re.error:
+            # A bad optional ranking pattern must never stop the daily workflow.
+            continue
+    return hits
+
+
+def _price_fit_bonus(price: object, profile: dict, settings: dict) -> float:
+    rules = profile.get("rankingRules", {}) or {}
+    if price is None:
+        return 0.0
+    numeric_price = _number(price, -1.0)
+    if numeric_price < 0:
+        return 0.0
+
+    preferred_min = rules.get("preferredPriceMin")
+    preferred_max = rules.get("preferredPriceMax")
+    maximum_bonus = _number(
+        rules.get("maximumPriceFitBonus"),
+        _number(settings.get("maximumPriceFitBonus"), 8.0),
+    )
+    if preferred_min is None or preferred_max is None:
+        return min(maximum_bonus, _number(settings.get("defaultPriceFitBonus"), 2.0))
+
+    low = _number(preferred_min, 0.0)
+    high = max(low, _number(preferred_max, low))
+    if low <= numeric_price <= high:
+        return maximum_bonus
+
+    distance = low - numeric_price if numeric_price < low else numeric_price - high
+    default_tolerance = max(high - low, high * 0.65, 1.0)
+    tolerance = max(1.0, _number(rules.get("priceTolerance"), default_tolerance))
+    return round(max(0.0, maximum_bonus * (1.0 - distance / tolerance)), 3)
+
+
+def _audience_adjustment(offer: dict, profile: dict, settings: dict) -> tuple[float, float, dict]:
+    """Reward broad-use products and demote narrow fitment products.
+
+    Rules are profile-driven, so future product categories and affiliate networks
+    can define their own broad/narrow signals without changing Python code.
+    """
+    rules = profile.get("rankingRules", {}) or {}
+    title = text(offer.get("name"))
+
+    broad_terms = [text(item) for item in rules.get("broadAudienceTerms", []) if text(item)]
+    narrow_terms = [text(item) for item in rules.get("narrowAudienceTerms", []) if text(item)]
+    broad_hits = [term for term in broad_terms if has_term(title, term)]
+    narrow_hits = [term for term in narrow_terms if has_term(title, term)]
+    pattern_hits = _regex_hits(title, rules.get("narrowAudiencePatterns", []))
+
+    bonus_per_term = _number(
+        rules.get("broadAudienceBonusPerTerm"),
+        _number(settings.get("broadAudienceBonusPerTerm"), 3.5),
+    )
+    maximum_bonus = _number(
+        rules.get("maximumBroadAudienceBonus"),
+        _number(settings.get("maximumBroadAudienceBonus"), 10.0),
+    )
+    term_penalty = _number(
+        rules.get("narrowAudiencePenaltyPerTerm"),
+        _number(settings.get("narrowAudiencePenaltyPerTerm"), 4.0),
+    )
+    pattern_penalty = _number(
+        rules.get("narrowAudiencePenaltyPerPattern"),
+        _number(settings.get("narrowAudiencePenaltyPerPattern"), 7.0),
+    )
+    maximum_penalty = _number(
+        rules.get("maximumNarrowAudiencePenalty"),
+        _number(settings.get("maximumNarrowAudiencePenalty"), 24.0),
+    )
+
+    bonus = min(maximum_bonus, len(broad_hits) * bonus_per_term)
+    penalty = min(maximum_penalty, len(narrow_hits) * term_penalty + len(pattern_hits) * pattern_penalty)
+
+    # A profile may explicitly prefer products suitable for a wider audience.
+    if bool(rules.get("preferGeneralProducts", False)) and (narrow_hits or pattern_hits) and not broad_hits:
+        penalty = min(maximum_penalty, penalty + _number(rules.get("generalProductMissPenalty"), 3.0))
+
+    details = {
+        "broadTerms": broad_hits,
+        "narrowTerms": narrow_hits,
+        "narrowPatterns": pattern_hits,
+    }
+    return round(bonus, 3), round(penalty, 3), details
+
+
+def score_offer(offer: dict, profile: dict, config: dict) -> Optional[dict]:
     if offer.get("offerType") == "direct":
         return None
     if not offer.get("available", True):
@@ -160,35 +267,77 @@ def score_offer(offer: dict, profile: dict, config: dict) -> Optional[float]:
     if price is not None:
         minimum_price = profile.get("minimumPrice")
         maximum_price = profile.get("maximumPrice")
-        if minimum_price is not None and float(price) < float(minimum_price):
+        if minimum_price is not None and _number(price) < _number(minimum_price):
             return None
-        if maximum_price is not None and float(price) > float(maximum_price):
+        if maximum_price is not None and _number(price) > _number(maximum_price):
             return None
 
+    settings = config.get("rankingSettings", {}) or {}
     title_matches = [term for term in includes if has_term(offer.get("name", ""), term)]
-    score = 18.0 + min(42.0, len(matched) * 14.0)
-    score += min(16.0, len(title_matches) * 8.0)
+
+    relevance = _number(settings.get("baseRelevanceScore"), 12.0)
+    relevance += min(
+        _number(settings.get("maximumMatchedTermPoints"), 34.0),
+        len(matched) * _number(settings.get("matchedTermPoints"), 11.0),
+    )
+    relevance += min(
+        _number(settings.get("maximumTitleTermPoints"), 18.0),
+        len(title_matches) * _number(settings.get("titleTermPoints"), 7.0),
+    )
+
     category = normalise(offer.get("category"))
     preferred = [normalise(item) for item in profile.get("preferredCategories", []) if normalise(item)]
     if category and category in preferred:
-        score += 18
+        relevance += _number(settings.get("exactCategoryBonus"), 12.0)
     elif category and any(item in category or category in item for item in preferred):
-        score += 11
+        relevance += _number(settings.get("partialCategoryBonus"), 7.0)
 
-    commission = offer.get("commissionRate")
-    if commission is not None:
-        score += min(11, float(commission))
-    discount = offer.get("discountPercent")
-    if discount is not None:
-        score += min(8, float(discount) / 10)
-    score += min(7, float(offer.get("qualityScore") or 0) / 15)
+    quality = min(
+        _number(settings.get("maximumQualityPoints"), 7.0),
+        _number(offer.get("qualityScore")) / max(1.0, _number(settings.get("qualityDivisor"), 15.0)),
+    )
+    commission = min(
+        _number(settings.get("maximumCommissionPoints"), 8.0),
+        _number(offer.get("commissionRate")) * _number(settings.get("commissionMultiplier"), 0.5),
+    )
+    discount = min(
+        _number(settings.get("maximumDiscountPoints"), 5.0),
+        _number(offer.get("discountPercent")) * _number(settings.get("discountMultiplier"), 0.08),
+    )
+    price_fit = _price_fit_bonus(price, profile, settings)
+    commercial = quality + commission + discount + price_fit
+
+    broad_bonus, narrow_penalty, audience_details = _audience_adjustment(offer, profile, settings)
+    raw_score = relevance + commercial + broad_bonus - narrow_penalty
 
     weights = config.get("networkWeights", {})
-    score *= float(weights.get(text(offer.get("network")), 1.0))
-    return round(min(100.0, score), 2)
+    weighted_score = raw_score * _number(weights.get(text(offer.get("network"))), 1.0)
 
+    # Compress only the very top end. This prevents dozens of products from
+    # receiving an indistinguishable score of 100 while preserving the existing
+    # review thresholds for genuinely strong matches.
+    compression_start = _number(settings.get("highScoreCompressionStart"), 75.0)
+    compression_ratio = _number(settings.get("highScoreCompressionRatio"), 0.45)
+    if weighted_score > compression_start:
+        weighted_score = compression_start + (weighted_score - compression_start) * compression_ratio
+    maximum_final = _number(settings.get("maximumFinalScore"), 99.5)
+    final_score = round(max(0.0, min(maximum_final, weighted_score)), 2)
 
-def public_offer(offer: dict, score: float) -> dict:
+    # These component scores make future ranking audits easier while the public
+    # page continues to display only the final match score.
+    return {
+        "score": final_score,
+        "relevance": round(relevance, 2),
+        "commercial": round(commercial, 2),
+        "audienceBonus": round(broad_bonus, 2),
+        "specificityPenalty": round(narrow_penalty, 2),
+        "priceFit": round(price_fit, 2),
+        "matchedTerms": matched,
+        "titleMatchedTerms": title_matches,
+        "audienceDetails": audience_details,
+    }
+
+def public_offer(offer: dict, scoring: dict) -> dict:
     result = {
         "id": text(offer.get("productId") or offer.get("offerKey")),
         "name": text(offer.get("name")),
@@ -203,7 +352,14 @@ def public_offer(offer: dict, score: float) -> dict:
         "programme": text(offer.get("programme")),
         "canonicalKey": text(offer.get("canonicalKey")),
         "offerQuality": offer.get("qualityScore"),
-        "matchScore": score,
+        "matchScore": scoring["score"],
+        "rankingSignals": {
+            "relevance": scoring["relevance"],
+            "commercial": scoring["commercial"],
+            "audienceBonus": scoring["audienceBonus"],
+            "specificityPenalty": scoring["specificityPenalty"],
+            "priceFit": scoring["priceFit"],
+        },
     }
     for source_key, public_key in (
         ("price", "price"),
@@ -222,18 +378,24 @@ def sort_and_deduplicate(items: list[dict], maximum: int) -> list[dict]:
     for item in items:
         key = text(item.get("canonicalKey")) or text(item.get("id")) or text(item.get("url"))
         previous = best.get(key)
+        current_signals = item.get("rankingSignals", {}) or {}
+        previous_signals = (previous.get("rankingSignals", {}) or {}) if previous else {}
         current_rank = (
             item.get("matchScore", 0),
-            item.get("commissionRate", 0),
-            item.get("discount", 0),
+            -current_signals.get("specificityPenalty", 0),
+            current_signals.get("audienceBonus", 0),
+            current_signals.get("commercial", 0),
             item.get("offerQuality", 0),
+            item.get("commissionRate", 0),
             -(item.get("price") or 10**12),
         )
         previous_rank = (
             previous.get("matchScore", 0),
-            previous.get("commissionRate", 0),
-            previous.get("discount", 0),
+            -previous_signals.get("specificityPenalty", 0),
+            previous_signals.get("audienceBonus", 0),
+            previous_signals.get("commercial", 0),
             previous.get("offerQuality", 0),
+            previous.get("commissionRate", 0),
             -(previous.get("price") or 10**12),
         ) if previous else None
         if previous is None or current_rank > previous_rank:
@@ -243,9 +405,12 @@ def sort_and_deduplicate(items: list[dict], maximum: int) -> list[dict]:
     output.sort(
         key=lambda item: (
             item.get("matchScore", 0),
-            item.get("commissionRate", 0),
-            item.get("discount", 0),
+            -(item.get("rankingSignals", {}) or {}).get("specificityPenalty", 0),
+            (item.get("rankingSignals", {}) or {}).get("audienceBonus", 0),
+            (item.get("rankingSignals", {}) or {}).get("commercial", 0),
             item.get("offerQuality", 0),
+            item.get("commissionRate", 0),
+            -(item.get("price") or 10**12),
         ),
         reverse=True,
     )
@@ -253,7 +418,7 @@ def sort_and_deduplicate(items: list[dict], maximum: int) -> list[dict]:
 
 
 def update_review_evidence(review_matches: dict[str, list], config: dict) -> tuple[int, int]:
-    review_data = load_json(REVIEW_PATH, {"version": "0.6.1", "reviewQueue": []})
+    review_data = load_json(REVIEW_PATH, {"version": "0.6.2", "reviewQueue": []})
     settings = config.get("reviewSettings", {})
     active_direct = active_affiliate_slugs()
     assessed = 0
@@ -338,7 +503,7 @@ def update_review_evidence(review_matches: dict[str, list], config: dict) -> tup
         assessed += 1
         ready += int(is_ready)
 
-    review_data["version"] = "0.6.1"
+    review_data["version"] = "0.6.2"
     review_data["productEvidenceUpdatedAt"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     REVIEW_PATH.write_text(json.dumps(review_data, ensure_ascii=False, indent=2), encoding="utf-8")
     return assessed, ready
@@ -361,10 +526,10 @@ def main() -> int:
             continue
 
         for profile in config.get("trendProfiles", []):
-            score = score_offer(offer, profile, config)
-            if score is None or score < minimum_score:
+            scoring = score_offer(offer, profile, config)
+            if scoring is None or scoring["score"] < minimum_score:
                 continue
-            item = public_offer(offer, score)
+            item = public_offer(offer, scoring)
             raw_matches[profile["slug"]].append(item)
             counters["candidateMatches"] += 1
 
@@ -396,12 +561,12 @@ def main() -> int:
 
     generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     output = {
-        "version": "0.6.1",
+        "version": "0.6.2",
         "generatedAt": generated_at,
         "productsByTrend": public_matches,
     }
     report = {
-        "version": "0.6.1",
+        "version": "0.6.2",
         "generatedAt": generated_at,
         "catalogueOffersRead": len(offers),
         "counters": dict(counters),
@@ -427,7 +592,7 @@ def main() -> int:
         "window.TRENDPILOT_MATCHED_PRODUCTS = "
         + json.dumps(public_matches, ensure_ascii=False, separators=(",", ":"))
         + ";\nwindow.TRENDPILOT_MATCHED_PRODUCTS_META = "
-        + json.dumps({"generatedAt": generated_at, "version": "0.6.1"}, ensure_ascii=False)
+        + json.dumps({"generatedAt": generated_at, "version": "0.6.2"}, ensure_ascii=False)
         + ";\n",
         encoding="utf-8",
     )
