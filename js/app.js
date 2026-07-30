@@ -117,16 +117,34 @@ document.addEventListener("DOMContentLoaded", () => {
         return `<article class="matched-product"><div class="tool-logo" style="--tool-a:${tool.colours[0]};--tool-b:${tool.colours[1]}">${escapeHtml(tool.initials)}</div><div><strong>${escapeHtml(tool.name)}</strong><span>${escapeHtml(tool.tagline)}</span><small>${active ? "Personal affiliate link active" : "Official programme available"}</small></div><a class="button button-small ${active ? "button-primary" : "button-outline"}" href="${escapeHtml(link.affiliateUrl || tool.productUrl)}" target="_blank" rel="sponsored nofollow noopener">${active ? "Visit with affiliate link" : "Visit product"}</a></article>`;
       }).join("");
       const automatedHtml = automatedMatches.map((product) => {
-        const price = product.price == null ? "" : `${escapeHtml(product.currency || "USD")} ${Number(product.price).toFixed(2)}`;
-        const oldPrice = product.oldPrice == null ? "" : `<s>${escapeHtml(product.currency || "USD")} ${Number(product.oldPrice).toFixed(2)}</s>`;
-        const commission = product.commissionRate == null ? "" : ` • Commission ${Number(product.commissionRate).toFixed(2)}%`;
+        const numericPrice = Number(product.price);
+        const hasPrice = product.price != null && Number.isFinite(numericPrice) && numericPrice >= 0;
+        const currency = escapeHtml(product.currency || "USD");
+        const price = hasPrice
+          ? `<span class="catalogue-price"><span class="price-prefix">From</span> ${currency} ${numericPrice.toFixed(2)}</span><span class="catalogue-estimate">Catalogue estimate</span>`
+          : `<span class="catalogue-estimate">Check store for current price</span>`;
         const network = product.network ? ` • ${escapeHtml(product.network)}` : "";
         const advertiser = product.advertiser ? escapeHtml(product.advertiser) : escapeHtml(product.category || "Affiliate product");
         const image = product.image ? `<img class="matched-product-image" src="${escapeHtml(product.image)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : `<div class="matched-product-image placeholder">◈</div>`;
-        return `<article class="matched-product feed-product">${image}<div><strong>${escapeHtml(product.name)}</strong><span>${advertiser}${network}</span><small>${price} ${oldPrice}${commission} • Match ${Math.round(product.matchScore || 0)}</small></div><a class="button button-small button-primary" href="${escapeHtml(product.url)}" target="_blank" rel="sponsored nofollow noopener">View offer</a></article>`;
+        return `<article class="matched-product feed-product">${image}<div><strong>${escapeHtml(product.name)}</strong><span>${advertiser}${network}</span><small class="product-price-row">${price}<span class="match-indicator">Match ${Math.round(product.matchScore || 0)}</span></small></div><a class="button button-small button-primary" href="${escapeHtml(product.url)}" target="_blank" rel="sponsored nofollow noopener">View current offer</a></article>`;
       }).join("");
       if (directHtml || automatedHtml) {
-        const generated = automatedMatches.length && feedMeta.generatedAt ? `<p class="matcher-stamp">Automated product shortlist updated ${escapeHtml(new Date(feedMeta.generatedAt).toLocaleString())}. Product availability and prices can change.</p>` : "";
+        let refreshedAt = "";
+        if (automatedMatches.length && feedMeta.generatedAt) {
+          const refreshedDate = new Date(feedMeta.generatedAt);
+          if (!Number.isNaN(refreshedDate.getTime())) {
+            refreshedAt = refreshedDate.toLocaleString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            });
+          }
+        }
+        const generated = automatedMatches.length
+          ? `<div class="pricing-disclaimer"><strong>Catalogue price notice</strong><span>Prices are feed estimates and may differ at checkout. Shipping, taxes, coupons, selected options and availability can change.</span>${refreshedAt ? `<small>Offer catalogue last refreshed ${escapeHtml(refreshedAt)}.</small>` : ""}</div>`
+          : "";
         productArea.innerHTML = directHtml + automatedHtml + generated;
         const primary = document.getElementById("primaryMatch");
         if (directMatches.length) {
