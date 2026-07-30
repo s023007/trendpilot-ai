@@ -1,10 +1,10 @@
 {
-  "version": "0.5.1",
+  "version": "0.5.2",
   "publicationMode": "manual-review",
   "maxPublishedTrends": 8,
   "maxReviewCandidates": 15,
-  "minimumReviewScore": 68,
-  "minimumMatchQuality": 26,
+  "minimumReviewScore": 64,
+  "minimumMatchQuality": 22,
   "reviewRetentionHours": 168,
   "publishedRetentionHours": 336,
   "requestTimeoutSeconds": 35,
@@ -728,6 +728,254 @@
         "CJ"
       ],
       "affiliateCoverage": 92
+    }
+  ],
+  "maxRejectionSamples": 60,
+  "softwareDescriptorTerms": [
+    "app",
+    "software",
+    "platform",
+    "tool",
+    "assistant",
+    "agent",
+    "automation",
+    "generator",
+    "editor",
+    "api",
+    "dashboard",
+    "extension",
+    "workspace",
+    "copilot",
+    "workflow"
+  ],
+  "softwareCategories": [
+    {
+      "name": "AI & Automation",
+      "icon": "✦",
+      "terms": [
+        "ai agent",
+        "ai assistant",
+        "copilot",
+        "automation",
+        "workflow automation",
+        "chatbot",
+        "llm",
+        "generative ai",
+        "meeting assistant",
+        "research assistant",
+        "voice ai",
+        "customer support ai"
+      ],
+      "termProductMap": {
+        "voice ai": [
+          "microphone",
+          "voice recorder"
+        ],
+        "meeting assistant": [
+          "conference microphone",
+          "webcam"
+        ]
+      },
+      "directProductRules": [
+        {
+          "terms": [
+            "voice ai",
+            "voice agent",
+            "text to speech",
+            "dubbing",
+            "speech"
+          ],
+          "products": [
+            "elevenlabs"
+          ]
+        }
+      ],
+      "preferredCategories": [
+        "Consumer Electronics",
+        "Computer & Office"
+      ],
+      "excludeTerms": [
+        "surveillance",
+        "weapon",
+        "adult"
+      ],
+      "minimumPrice": 5,
+      "maximumPrice": 500,
+      "networkOnly": true,
+      "networks": [
+        "Direct SaaS programmes",
+        "PartnerStack",
+        "Admitad"
+      ],
+      "affiliateCoverage": 78
+    },
+    {
+      "name": "Creator Software",
+      "icon": "▶",
+      "terms": [
+        "video generator",
+        "video editor",
+        "image generator",
+        "design tool",
+        "presentation maker",
+        "podcast",
+        "subtitle generator",
+        "caption generator",
+        "social media",
+        "writing assistant",
+        "content creator",
+        "screen recorder"
+      ],
+      "termProductMap": {
+        "podcast": [
+          "podcast microphone",
+          "microphone"
+        ],
+        "screen recorder": [
+          "webcam",
+          "microphone"
+        ],
+        "video editor": [
+          "webcam",
+          "ring light"
+        ],
+        "content creator": [
+          "ring light",
+          "microphone",
+          "tripod"
+        ]
+      },
+      "directProductRules": [
+        {
+          "terms": [
+            "podcast",
+            "voice",
+            "speech",
+            "dubbing"
+          ],
+          "products": [
+            "elevenlabs"
+          ]
+        }
+      ],
+      "preferredCategories": [
+        "Consumer Electronics",
+        "Computer & Office"
+      ],
+      "excludeTerms": [
+        "surveillance",
+        "hidden camera"
+      ],
+      "minimumPrice": 5,
+      "maximumPrice": 600,
+      "networkOnly": true,
+      "networks": [
+        "PartnerStack",
+        "Direct SaaS programmes",
+        "Admitad"
+      ],
+      "affiliateCoverage": 76
+    },
+    {
+      "name": "Productivity Software",
+      "icon": "▣",
+      "terms": [
+        "task manager",
+        "project management",
+        "notes app",
+        "calendar app",
+        "email assistant",
+        "meeting notes",
+        "document editor",
+        "spreadsheet",
+        "knowledge base",
+        "team workspace",
+        "productivity app",
+        "time tracker"
+      ],
+      "termProductMap": {},
+      "preferredCategories": [
+        "Computer & Office"
+      ],
+      "excludeTerms": [],
+      "minimumPrice": 5,
+      "maximumPrice": 400,
+      "networkOnly": true,
+      "networks": [
+        "PartnerStack",
+        "Direct SaaS programmes"
+      ],
+      "affiliateCoverage": 68
+    },
+    {
+      "name": "Developer Tools",
+      "icon": "◇",
+      "terms": [
+        "developer tool",
+        "developer platform",
+        "api",
+        "database",
+        "code editor",
+        "testing tool",
+        "deployment",
+        "observability",
+        "analytics",
+        "github",
+        "cloud platform",
+        "security testing"
+      ],
+      "termProductMap": {},
+      "preferredCategories": [
+        "Computer & Office"
+      ],
+      "excludeTerms": [
+        "malware",
+        "spyware",
+        "credential theft"
+      ],
+      "minimumPrice": 5,
+      "maximumPrice": 500,
+      "networkOnly": true,
+      "networks": [
+        "PartnerStack",
+        "Direct SaaS programmes"
+      ],
+      "affiliateCoverage": 64
+    },
+    {
+      "name": "Marketing & Commerce Software",
+      "icon": "↗",
+      "terms": [
+        "seo",
+        "marketing automation",
+        "crm",
+        "sales assistant",
+        "lead generation",
+        "ecommerce",
+        "shopify",
+        "ad creative",
+        "email marketing",
+        "social media management",
+        "conversion analytics"
+      ],
+      "termProductMap": {},
+      "preferredCategories": [
+        "Computer & Office"
+      ],
+      "excludeTerms": [
+        "brand bidding",
+        "spam"
+      ],
+      "minimumPrice": 5,
+      "maximumPrice": 500,
+      "networkOnly": true,
+      "networks": [
+        "PartnerStack",
+        "Awin",
+        "CJ",
+        "Direct SaaS programmes"
+      ],
+      "affiliateCoverage": 74
     }
   ]
 }
