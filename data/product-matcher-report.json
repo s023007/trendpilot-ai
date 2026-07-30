@@ -1,31 +1,43 @@
 {
-  "version": "0.6.2",
-  "generatedAt": "2026-07-30T18:37:59+00:00",
+  "version": "0.7.0",
+  "generatedAt": "2026-07-30T19:18:40+00:00",
+  "rankingMode": "product-first-network-neutral",
   "catalogueOffersRead": 54469,
   "counters": {
     "offersRead": 54469,
-    "candidateMatches": 1858,
+    "candidateMatches": 3803,
     "complianceBlocked": 13
   },
   "matchesPerTrend": {
-    "seasonal-party-decor": 8,
-    "car-multimedia-head-units": 8,
-    "seasonal-kids-costumes": 8,
+    "smart-pet-feeding": 8,
     "wireless-carplay-retrofit": 8,
-    "smart-pet-feeding": 7
+    "car-multimedia-head-units": 8,
+    "seasonal-party-decor": 8,
+    "seasonal-kids-costumes": 8
+  },
+  "candidateMatchesByNetwork": {
+    "Admitad": 3803
+  },
+  "candidateMatchesByAdvertiser": {
+    "AliExpress": 730,
+    "Alibaba": 3073
   },
   "matchesByNetwork": {
-    "Admitad": 64
+    "Admitad": 72
+  },
+  "matchesByAdvertiser": {
+    "AliExpress": 40,
+    "Alibaba": 32
   },
   "reviewEvidence": {
     "candidatesAssessed": 4,
-    "readyForApproval": 1,
+    "readyForApproval": 3,
     "matchesPerCandidate": {
-      "portable-projectors": 8,
       "wireless-earbuds": 8,
-      "compact-thermal-printers": 1,
-      "high-capacity-power-banks": 8
+      "high-capacity-power-banks": 8,
+      "portable-projectors": 8,
+      "compact-thermal-printers": 8
     }
   },
-  "note": "Equivalent products are deduplicated across networks. The strongest compliant offer is selected by match, commission, discount and data quality."
+  "note": "Products are ranked without network preference. Product relevance comes first, followed by quality/customer signals, commercial value, price fit and audience breadth. Equivalent listings are compared and the strongest compliant affiliate route is kept."
 }
