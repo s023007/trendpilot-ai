@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-TrendPilot AI v0.5 Product Matcher
+TrendPilot AI v0.5.1 Product Matcher
 
 Reads:
 - a local Admitad Hot Products CSV snapshot;
@@ -36,6 +36,8 @@ from typing import Dict, Iterable, Iterator, List, Mapping, Optional, Tuple
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "config" / "product-matcher.json"
 DISCOVERED_TRENDS_PATH = ROOT / "data" / "discovered-trends.json"
+REVIEW_PATH = ROOT / "data" / "trend-review.json"
+AFFILIATE_LINKS_PATH = ROOT / "js" / "affiliate-links.js"
 
 FIELD_ALIASES = {
     "id": ("id", "product_id", "productId"),
@@ -53,33 +55,56 @@ FIELD_ALIASES = {
     "param": ("param", "params"),
 }
 
+def load_json(path: Path, fallback: dict) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return fallback
+
+
+def profile_from_trend(trend: dict, visibility: str) -> Optional[dict]:
+    match = trend.get("productMatch") or {}
+    slug = text(trend.get("slug"))
+    include_terms = [text(item) for item in match.get("includeTerms", []) if text(item)]
+    if not slug or not include_terms:
+        return None
+    return {
+        "slug": slug,
+        "title": text(trend.get("title")) or slug,
+        "includeTerms": include_terms,
+        "preferredCategories": match.get("preferredCategories", []),
+        "excludeTerms": match.get("excludeTerms", []),
+        "minimumPrice": match.get("minimumPrice"),
+        "maximumPrice": match.get("maximumPrice"),
+        "minimumMatchedTerms": int(match.get("minimumMatchedTerms") or 1),
+        "visibility": visibility,
+        "directProducts": trend.get("products", []),
+    }
+
+
 def load_config() -> dict:
     with CONFIG_PATH.open("r", encoding="utf-8") as handle:
         config = json.load(handle)
 
-    # v0.5: automatically create product profiles for newly discovered trends.
+    for profile in config.get("trendProfiles", []):
+        profile.setdefault("visibility", "public")
+        profile.setdefault("minimumMatchedTerms", 1)
+
     existing = {profile.get("slug") for profile in config.get("trendProfiles", [])}
-    if DISCOVERED_TRENDS_PATH.exists():
-        try:
-            discovered = json.loads(DISCOVERED_TRENDS_PATH.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError):
-            discovered = {}
-        for trend in discovered.get("trends", []):
-            match = trend.get("productMatch") or {}
-            slug = text(trend.get("slug"))
-            include_terms = [text(item) for item in match.get("includeTerms", []) if text(item)]
-            if not slug or slug in existing or not include_terms:
-                continue
-            config.setdefault("trendProfiles", []).append({
-                "slug": slug,
-                "title": text(trend.get("title")) or slug,
-                "includeTerms": include_terms,
-                "preferredCategories": match.get("preferredCategories", []),
-                "excludeTerms": match.get("excludeTerms", []),
-                "minimumPrice": match.get("minimumPrice"),
-                "maximumPrice": match.get("maximumPrice"),
-            })
-            existing.add(slug)
+
+    discovered = load_json(DISCOVERED_TRENDS_PATH, {"trends": []})
+    for trend in discovered.get("trends", []):
+        profile = profile_from_trend(trend, "public")
+        if profile and profile["slug"] not in existing:
+            config.setdefault("trendProfiles", []).append(profile)
+            existing.add(profile["slug"])
+
+    review = load_json(REVIEW_PATH, {"reviewQueue": []})
+    for trend in review.get("reviewQueue", []):
+        profile = profile_from_trend(trend, "review")
+        if profile and profile["slug"] not in existing:
+            config.setdefault("trendProfiles", []).append(profile)
+            existing.add(profile["slug"])
     return config
 
 def text(value: object) -> str:
@@ -88,7 +113,7 @@ def text(value: object) -> str:
 def normalise(value: object) -> str:
     value = text(value).lower()
     value = re.sub(r"[\u2010-\u2015]", "-", value)
-    value = re.sub(r"[^a-z0-9%$€£+\-./ ]+", " ", value)
+    value = re.sub(r"[^a-z0-9%$€£+ ]+", " ", value)
     return re.sub(r"\s+", " ", value).strip()
 
 def first_value(row: Mapping[str, object], aliases: Iterable[str]) -> str:
@@ -234,17 +259,43 @@ def row_to_product(
         "source": source_label,
     }
 
+def has_term(haystack: object, term: object) -> bool:
+    hay = normalise(haystack)
+    needle = normalise(term)
+    if not hay or not needle:
+        return False
+    return re.search(rf"(?:^| ){re.escape(needle)}(?:$| )", hay) is not None
+
+
 def contains_any(haystack: str, needles: Iterable[str]) -> bool:
-    return any(normalise(needle) in haystack for needle in needles if normalise(needle))
+    return any(has_term(haystack, needle) for needle in needles if normalise(needle))
+
+
+def active_affiliate_slugs() -> set[str]:
+    if not AFFILIATE_LINKS_PATH.exists():
+        return set()
+    content = AFFILIATE_LINKS_PATH.read_text(encoding="utf-8", errors="replace")
+    active: set[str] = set()
+    pattern = re.compile(
+        r'"([^"]+)"\s*:\s*\{(.*?)\}',
+        re.S,
+    )
+    for slug, block in pattern.findall(content):
+        match = re.search(r'"affiliateUrl"\s*:\s*"([^"]*)"', block)
+        if match and match.group(1).strip():
+            active.add(slug)
+    return active
 
 def score_product(product: dict, profile: dict) -> Optional[float]:
     haystack = normalise(f"{product['name']} {product.get('category', '')}")
     includes = [normalise(term) for term in profile.get("includeTerms", []) if normalise(term)]
     excludes = [normalise(term) for term in profile.get("excludeTerms", []) if normalise(term)]
 
-    if not includes or not any(term in haystack for term in includes):
+    matched = [term for term in includes if has_term(haystack, term)]
+    minimum_matched = int(profile.get("minimumMatchedTerms") or 1)
+    if not includes or len(matched) < minimum_matched:
         return None
-    if any(term in haystack for term in excludes):
+    if any(has_term(haystack, term) for term in excludes):
         return None
     if not product.get("available", True):
         return None
@@ -259,7 +310,7 @@ def score_product(product: dict, profile: dict) -> Optional[float]:
             return None
 
     score = 20.0
-    matched_terms = sum(1 for term in includes if term in haystack)
+    matched_terms = len(matched)
     score += min(42.0, matched_terms * 14.0)
 
     preferred_categories = [normalise(item) for item in profile.get("preferredCategories", [])]
@@ -353,6 +404,49 @@ def trim_and_sort(matches: dict[str, list], maximum: int) -> None:
         )
         matches[slug] = products[:maximum]
 
+def update_review_evidence(review_matches: dict[str, list], config: dict) -> tuple[int, int]:
+    review_data = load_json(REVIEW_PATH, {"version": config.get("version"), "reviewQueue": []})
+    settings = config.get("reviewSettings", {})
+    active_direct = active_affiliate_slugs()
+    assessed = 0
+    ready = 0
+
+    for candidate in review_data.get("reviewQueue", []):
+        slug = text(candidate.get("slug"))
+        products = review_matches.get(slug, [])
+        best_score = max((float(item.get("matchScore") or 0) for item in products), default=0.0)
+        direct_products = [text(item) for item in candidate.get("products", []) if text(item)]
+        active_direct_products = [item for item in direct_products if item in active_direct]
+        trend_score = int(candidate.get("score") or 0)
+
+        product_route_ready = (
+            len(products) >= int(settings.get("minimumProductMatches", 3))
+            and best_score >= float(settings.get("minimumBestMatchScore", 52))
+        )
+        direct_route_ready = bool(active_direct_products)
+        is_ready = (
+            trend_score >= int(settings.get("minimumTrendScore", 72))
+            and (product_route_ready or direct_route_ready)
+        )
+
+        candidate["productEvidence"] = {
+            "matchCount": len(products),
+            "bestMatchScore": round(best_score, 2),
+            "activeDirectProducts": active_direct_products,
+            "topProducts": products[: int(settings.get("previewProducts", 3))],
+        }
+        candidate["readyForApproval"] = is_ready
+        candidate["reviewStatus"] = "ready-for-approval" if is_ready else "needs-more-evidence"
+        assessed += 1
+        if is_ready:
+            ready += 1
+
+    review_data["version"] = config.get("version", "0.5.1")
+    review_data["productEvidenceUpdatedAt"] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    REVIEW_PATH.write_text(json.dumps(review_data, ensure_ascii=False, indent=2), encoding="utf-8")
+    return assessed, ready
+
+
 def main() -> int:
     config = load_config()
     settings = config["sourceSettings"]
@@ -423,19 +517,38 @@ def main() -> int:
 
     trim_and_sort(matches, int(settings["topProductsPerTrend"]))
 
+    public_slugs = {
+        profile["slug"]
+        for profile in config["trendProfiles"]
+        if profile.get("visibility", "public") == "public"
+    }
+    review_slugs = {
+        profile["slug"]
+        for profile in config["trendProfiles"]
+        if profile.get("visibility") == "review"
+    }
+    public_matches = {slug: items for slug, items in matches.items() if slug in public_slugs}
+    review_matches = {slug: items for slug, items in matches.items() if slug in review_slugs}
+    review_assessed, review_ready = update_review_evidence(review_matches, config)
+
     generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     output = {
         "version": config["version"],
         "generatedAt": generated_at,
-        "productsByTrend": dict(matches),
+        "productsByTrend": public_matches,
     }
     report = {
         "version": config["version"],
         "generatedAt": generated_at,
         "sources": sources,
         "counters": dict(counters),
-        "matchesPerTrend": {slug: len(items) for slug, items in matches.items()},
-        "note": "Only small matched outputs are public. Private feed URLs are read from GitHub Actions secrets and are never written to the repository.",
+        "matchesPerTrend": {slug: len(items) for slug, items in public_matches.items()},
+        "reviewEvidence": {
+            "candidatesAssessed": review_assessed,
+            "readyForApproval": review_ready,
+            "matchesPerCandidate": {slug: len(items) for slug, items in review_matches.items()},
+        },
+        "note": "Only approved/public trend matches are displayed. Review candidates receive evidence privately in the repository review file. Private feed URLs are never written.",
     }
 
     data_path = ROOT / "data" / "matched-products.json"
@@ -448,7 +561,7 @@ def main() -> int:
     report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     js_path.write_text(
         "window.TRENDPILOT_MATCHED_PRODUCTS = "
-        + json.dumps(dict(matches), ensure_ascii=False, separators=(",", ":"))
+        + json.dumps(public_matches, ensure_ascii=False, separators=(",", ":"))
         + ";\n"
         + "window.TRENDPILOT_MATCHED_PRODUCTS_META = "
         + json.dumps({"generatedAt": generated_at, "version": config["version"]}, ensure_ascii=False)
@@ -458,8 +571,10 @@ def main() -> int:
 
     print(f"Rows read: {counters['rowsRead']}")
     print(f"Candidate matches: {counters['candidateMatches']}")
-    for slug, items in matches.items():
+    for slug, items in public_matches.items():
         print(f"{slug}: {len(items)} public matches")
+    print(f"Review candidates assessed: {review_assessed}")
+    print(f"Ready for approval: {review_ready}")
     return 0
 
 if __name__ == "__main__":

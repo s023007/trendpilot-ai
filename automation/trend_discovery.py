@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.5 automatic trend discovery.
+"""TrendPilot AI v0.5.1 strict trend discovery and review queue.
 
-Public, no-key sources:
-- Google Trends RSS feeds selected in config/trend-discovery.json
-- Product Hunt's official RSS feed
-- Hacker News' official Firebase API
+New public signals are never published immediately. They first enter a review
+queue, receive product-match evidence, and can then be approved explicitly in
+config/trend-approvals.json.
 
-The engine publishes only commercially relevant and policy-safe signals. It does
-not invent trends when sources fail; recent previously discovered signals are
-retained for a short configured window.
+No API keys or private affiliate-feed URLs are written to public output files.
 """
 from __future__ import annotations
 
@@ -19,10 +16,8 @@ import json
 import math
 import re
 import time
-import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
-from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
@@ -30,7 +25,9 @@ from typing import Iterable, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "config" / "trend-discovery.json"
+APPROVALS_PATH = ROOT / "config" / "trend-approvals.json"
 DATA_PATH = ROOT / "data" / "discovered-trends.json"
+REVIEW_PATH = ROOT / "data" / "trend-review.json"
 REPORT_PATH = ROOT / "data" / "trend-discovery-report.json"
 JS_PATH = ROOT / "js" / "discovered-trends.js"
 STATIC_TRENDS_PATH = ROOT / "js" / "trends-data.js"
@@ -48,18 +45,17 @@ def clean_text(value: object) -> str:
 
 def normalise(value: object) -> str:
     value = clean_text(value).lower()
+    value = re.sub(r"[\u2010-\u2015]", "-", value)
     value = re.sub(r"[^a-z0-9+\- ]+", " ", value)
     return re.sub(r"\s+", " ", value).strip()
 
 
-
-
-def has_term(haystack: str, term: str) -> bool:
-    haystack = normalise(haystack)
-    term = normalise(term)
-    if not haystack or not term:
+def has_term(haystack: object, term: object) -> bool:
+    hay = normalise(haystack)
+    needle = normalise(term)
+    if not hay or not needle:
         return False
-    return re.search(rf"(?:^| ){re.escape(term)}(?:$| )", haystack) is not None
+    return re.search(rf"(?:^| ){re.escape(needle)}(?:$| )", hay) is not None
 
 
 def slugify(value: str) -> str:
@@ -71,19 +67,19 @@ def local_name(tag: str) -> str:
     return tag.rsplit("}", 1)[-1].lower()
 
 
-def parse_date(value: str) -> Optional[datetime]:
-    value = clean_text(value)
-    if not value:
+def parse_date(value: object) -> Optional[datetime]:
+    raw = clean_text(value)
+    if not raw:
         return None
     try:
-        parsed = email.utils.parsedate_to_datetime(value)
+        parsed = email.utils.parsedate_to_datetime(raw)
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc)
     except (TypeError, ValueError, OverflowError):
         pass
     try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return parsed.astimezone(timezone.utc)
@@ -91,22 +87,38 @@ def parse_date(value: str) -> Optional[datetime]:
         return None
 
 
+def load_json(path: Path, fallback: dict) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return copy_json(fallback)
+
+
+def copy_json(value: dict) -> dict:
+    return json.loads(json.dumps(value))
+
+
 def http_get(url: str, timeout: int, accept: str = "*/*") -> bytes:
-    request = urllib.request.Request(url, headers={
-        "User-Agent": "TrendPilotAI-TrendDiscovery/0.5 (+https://s023007.github.io/trendpilot-ai/)",
-        "Accept": accept,
-        "Accept-Language": "en-GB,en;q=0.9",
-    })
-    last_error = None
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "TrendPilotAI-TrendDiscovery/0.5.1 (+https://s023007.github.io/trendpilot-ai/)",
+            "Accept": accept,
+            "Accept-Language": "en-GB,en;q=0.9",
+        },
+    )
+    last_error: Optional[Exception] = None
     for attempt in range(3):
         try:
             with urllib.request.urlopen(request, timeout=timeout) as response:
                 return response.read(6_000_000)
-        except Exception as exc:  # network errors are recorded in the report
+        except Exception as exc:
             last_error = exc
             if attempt < 2:
                 time.sleep(1.5 * (attempt + 1))
-    raise last_error  # type: ignore[misc]
+    if last_error:
+        raise last_error
+    raise RuntimeError("Unable to retrieve source.")
 
 
 def element_text(element: ET.Element, candidates: Iterable[str]) -> str:
@@ -124,34 +136,33 @@ def element_link(element: ET.Element) -> str:
         href = clean_text(child.attrib.get("href"))
         if href:
             return href
-        if clean_text(child.text):
-            return clean_text(child.text)
+        text = clean_text(child.text)
+        if text:
+            return text
     return ""
 
 
 def parse_rss(payload: bytes, source: dict) -> list[dict]:
     root = ET.fromstring(payload)
     entries = [el for el in root.iter() if local_name(el.tag) in {"item", "entry"}]
-    signals = []
+    signals: list[dict] = []
     for entry in entries:
         title = element_text(entry, ["title"])
         if not title:
             continue
-        summary = element_text(entry, ["description", "summary", "content", "news_item_title"])
-        link = element_link(entry) or source["url"]
-        published = element_text(entry, ["pubdate", "published", "updated"])
-        traffic = element_text(entry, ["approx_traffic", "traffic"])
-        signals.append({
-            "title": title,
-            "summary": summary,
-            "url": link,
-            "publishedAt": parse_date(published),
-            "traffic": traffic,
-            "sourceId": source["id"],
-            "sourceLabel": source["label"],
-            "sourceWeight": float(source.get("weight", 25)),
-            "sourceType": "rss",
-        })
+        signals.append(
+            {
+                "title": title,
+                "summary": element_text(entry, ["description", "summary", "content", "news_item_title"]),
+                "url": element_link(entry) or source["url"],
+                "publishedAt": parse_date(element_text(entry, ["pubdate", "published", "updated"])),
+                "traffic": element_text(entry, ["approx_traffic", "traffic"]),
+                "sourceId": source["id"],
+                "sourceLabel": source["label"],
+                "sourceWeight": float(source.get("weight", 25)),
+                "sourceType": source.get("type", "rss"),
+            }
+        )
     return signals
 
 
@@ -183,7 +194,7 @@ def fetch_hacker_news(source: dict, timeout: int) -> list[dict]:
             "sourceType": "hacker_news",
         }
 
-    signals = []
+    signals: list[dict] = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
         for item in executor.map(load_item, ids):
             if item:
@@ -191,7 +202,7 @@ def fetch_hacker_news(source: dict, timeout: int) -> list[dict]:
     return signals
 
 
-def traffic_value(value: str) -> int:
+def traffic_value(value: object) -> int:
     raw = clean_text(value).upper().replace(",", "")
     match = re.search(r"(\d+(?:\.\d+)?)\s*([KMB]?)", raw)
     if not match:
@@ -201,46 +212,109 @@ def traffic_value(value: str) -> int:
     return int(number * multiplier)
 
 
-def category_match(signal: dict, categories: list[dict]) -> tuple[Optional[dict], list[str]]:
-    haystack = normalise(f"{signal.get('title', '')} {signal.get('summary', '')}")
-    best = None
-    best_terms: list[str] = []
-    for category in categories:
-        matched = [term for term in category.get("terms", []) if has_term(haystack, term)]
-        if len(matched) > len(best_terms):
-            best, best_terms = category, matched
-    return best, best_terms
-
-
-def similar(a: str, b: str) -> bool:
-    na, nb = normalise(a), normalise(b)
-    if not na or not nb:
-        return False
-    if na == nb or na in nb or nb in na:
-        return True
-    return SequenceMatcher(None, na, nb).ratio() >= 0.76
-
-
 def static_titles_and_slugs() -> tuple[set[str], set[str]]:
     if not STATIC_TRENDS_PATH.exists():
         return set(), set()
     content = STATIC_TRENDS_PATH.read_text(encoding="utf-8", errors="replace")
-    return (
-        {normalise(item) for item in re.findall(r'"title"\s*:\s*"([^"]+)"', content)},
-        set(re.findall(r'"slug"\s*:\s*"([^"]+)"', content)),
-    )
+    titles = {normalise(item) for item in re.findall(r'"title"\s*:\s*"([^"]+)"', content)}
+    slugs = set(re.findall(r'"slug"\s*:\s*"([^"]+)"', content))
+    return titles, slugs
 
 
-def commercial_score(signal: dict, category: dict, matched_terms: list[str], config: dict, current: datetime) -> dict:
+def title_similarity(a: str, b: str) -> float:
+    na, nb = normalise(a), normalise(b)
+    if not na or not nb:
+        return 0.0
+    if na == nb:
+        return 1.0
+    seq = SequenceMatcher(None, na, nb).ratio()
+    ta, tb = set(na.split()), set(nb.split())
+    union = ta | tb
+    jaccard = len(ta & tb) / len(union) if union else 0.0
+    return max(seq, jaccard)
+
+
+def category_match(signal: dict, categories: list[dict], ambiguous_terms: set[str]) -> Optional[dict]:
+    title = normalise(signal.get("title"))
+    full_text = normalise(f"{signal.get('title', '')} {signal.get('summary', '')}")
+    best: Optional[dict] = None
+
+    for category in categories:
+        matched = [term for term in category.get("terms", []) if has_term(full_text, term)]
+        if not matched:
+            continue
+        specific = [term for term in matched if normalise(term) not in ambiguous_terms]
+        if not specific:
+            continue
+
+        title_matches = [term for term in specific if has_term(title, term)]
+        longest = max((len(normalise(term).split()) for term in specific), default=0)
+        quality = len(specific) * 18 + len(title_matches) * 10 + longest * 4
+
+        product_terms: list[str] = []
+        term_map = category.get("termProductMap", {})
+        for term in specific:
+            mapped = term_map.get(term, [])
+            if isinstance(mapped, str):
+                mapped = [mapped]
+            for product_term in mapped:
+                product_term = clean_text(product_term)
+                if product_term and normalise(product_term) not in {normalise(x) for x in product_terms}:
+                    product_terms.append(product_term)
+
+        if not product_terms:
+            for product_term in category.get("productTerms", []):
+                if has_term(full_text, product_term):
+                    product_terms.append(clean_text(product_term))
+
+        candidate = {
+            "category": category,
+            "matchedTerms": specific,
+            "titleMatches": title_matches,
+            "productTerms": product_terms,
+            "matchQuality": quality,
+        }
+        if best is None or candidate["matchQuality"] > best["matchQuality"]:
+            best = candidate
+    return best
+
+
+def is_hard_blocked(signal: dict, blocked_terms: list[str]) -> bool:
+    text = normalise(f"{signal.get('title', '')} {signal.get('summary', '')}")
+    return any(has_term(text, term) for term in blocked_terms)
+
+
+def signal_strength(signal: dict, match: dict, config: dict) -> tuple[bool, list[str]]:
+    evidence = config.get("evidenceRules", {})
+    reasons: list[str] = []
+    traffic = traffic_value(signal.get("traffic"))
+    points = int(signal.get("points") or 0)
+    source_id = str(signal.get("sourceId") or "")
+
+    if traffic >= int(evidence.get("strongGoogleTraffic", 5000)):
+        reasons.append(f"search traffic {traffic}")
+    if points >= int(evidence.get("strongHackerNewsPoints", 80)):
+        reasons.append(f"Hacker News points {points}")
+    if source_id == "product-hunt" and match.get("titleMatches"):
+        reasons.append("precise Product Hunt title match")
+    if len(match.get("titleMatches", [])) >= 2:
+        reasons.append("multiple precise title matches")
+    return bool(reasons), reasons
+
+
+def commercial_score(signal: dict, match: dict, config: dict, current: datetime) -> dict:
+    category = match["category"]
     text = normalise(f"{signal.get('title', '')} {signal.get('summary', '')}")
     score = float(signal.get("sourceWeight", 25))
-    score += min(28, len(matched_terms) * 11)
-    buyer_hits = sum(1 for term in config.get("buyerIntentTerms", []) if has_term(text, term))
-    score += min(16, buyer_hits * 4)
+    score += min(32, len(match["matchedTerms"]) * 12)
+    score += min(14, len(match["titleMatches"]) * 7)
 
-    traffic = traffic_value(signal.get("traffic", ""))
+    buyer_hits = sum(1 for term in config.get("buyerIntentTerms", []) if has_term(text, term))
+    score += min(12, buyer_hits * 3)
+
+    traffic = traffic_value(signal.get("traffic"))
     if traffic:
-        score += min(18, max(3, math.log10(max(traffic, 10)) * 3.2))
+        score += min(18, max(3, math.log10(max(traffic, 10)) * 3.1))
     points = int(signal.get("points") or 0)
     if points:
         score += min(14, math.log2(max(points, 2)) * 1.6)
@@ -248,48 +322,107 @@ def commercial_score(signal: dict, category: dict, matched_terms: list[str], con
     published = signal.get("publishedAt")
     age_hours = 24.0
     if isinstance(published, datetime):
-        age_hours = max(0, (current - published).total_seconds() / 3600)
-    score += max(0, 10 - min(10, age_hours / 7.2))
-    score += max(0, (float(category.get("affiliateCoverage", 60)) - 55) / 8)
+        age_hours = max(0.0, (current - published).total_seconds() / 3600)
+    score += max(0.0, 10.0 - min(10.0, age_hours / 7.2))
+
+    if match["productTerms"]:
+        score += 6
+    if category.get("directProducts"):
+        score += 5
     final = int(max(0, min(98, round(score))))
 
-    momentum = int(max(55, min(98, final + (4 if traffic >= 10000 else 0))))
-    buyer_intent = int(max(52, min(97, 60 + buyer_hits * 7 + len(category.get("directProducts", [])) * 4 + min(12, len(category.get("productTerms", []))))))
-    competition = int(max(42, min(82, 78 - len(matched_terms) * 4 + (8 if len(normalise(signal.get("title", "")).split()) <= 2 else 0))))
-    content_depth = int(max(65, min(96, 72 + len(matched_terms) * 6 + buyer_hits * 2)))
-    return {"score": final, "momentum": momentum, "buyerIntent": buyer_intent, "competition": competition, "contentDepth": content_depth}
+    momentum = int(max(50, min(98, final + (4 if traffic >= 10000 else 0))))
+    buyer_intent = int(
+        max(
+            45,
+            min(
+                97,
+                56
+                + buyer_hits * 6
+                + len(match["productTerms"]) * 5
+                + len(category.get("directProducts", [])) * 5,
+            ),
+        )
+    )
+    competition = int(max(42, min(86, 80 - len(match["matchedTerms"]) * 4)))
+    content_depth = int(max(62, min(96, 70 + len(match["matchedTerms"]) * 6 + buyer_hits * 2)))
+    return {
+        "score": final,
+        "momentum": momentum,
+        "buyerIntent": buyer_intent,
+        "competition": competition,
+        "contentDepth": content_depth,
+    }
 
 
-def title_case_signal(title: str) -> str:
-    title = clean_text(title)
-    if title.isupper() or title.islower():
-        return title.title()
-    return title
+def cluster_records(records: list[dict]) -> list[list[dict]]:
+    clusters: list[list[dict]] = []
+    for record in records:
+        placed = False
+        for cluster in clusters:
+            if record["match"]["category"]["name"] != cluster[0]["match"]["category"]["name"]:
+                continue
+            if title_similarity(record["signal"]["title"], cluster[0]["signal"]["title"]) >= 0.84:
+                cluster.append(record)
+                placed = True
+                break
+        if not placed:
+            clusters.append([record])
+    return clusters
 
 
-def build_trend(signal: dict, category: dict, matched_terms: list[str], metrics: dict, current: datetime) -> dict:
-    title = title_case_signal(signal["title"])
-    slug = slugify(title)
-    score = metrics["score"]
-    stage = "Emerging" if score < 72 else "Rising" if score < 86 else "Rising fast"
-    status_class = "early" if score < 72 else "rising" if score < 86 else "hot"
-    traffic = clean_text(signal.get("traffic"))
-    points = int(signal.get("points") or 0)
-    evidence = f" Approximate search traffic: {traffic}." if traffic else (f" Hacker News score: {points}." if points else "")
+def unique_strings(items: Iterable[object]) -> list[str]:
+    output: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        value = clean_text(item)
+        key = normalise(value)
+        if value and key not in seen:
+            seen.add(key)
+            output.append(value)
+    return output
+
+
+def build_candidate(cluster: list[dict], current: datetime) -> dict:
+    primary = max(cluster, key=lambda item: item["metrics"]["score"])
+    signal = primary["signal"]
+    match = primary["match"]
+    category = match["category"]
+    metrics = primary["metrics"]
+    title = clean_text(signal["title"])
+    if title.islower() or title.isupper():
+        title = title.title()
+
+    all_sources = []
+    strength_reasons: list[str] = []
+    all_matched_terms: list[str] = []
+    all_product_terms: list[str] = []
+    for item in cluster:
+        all_sources.append(
+            {
+                "id": item["signal"].get("sourceId"),
+                "label": item["signal"].get("sourceLabel"),
+                "url": item["signal"].get("url"),
+                "observedAt": (
+                    item["signal"]["publishedAt"].isoformat()
+                    if isinstance(item["signal"].get("publishedAt"), datetime)
+                    else current.isoformat()
+                ),
+            }
+        )
+        strength_reasons.extend(item["strengthReasons"])
+        all_matched_terms.extend(item["match"]["matchedTerms"])
+        all_product_terms.extend(item["match"]["productTerms"])
+
+    distinct_sources = {str(item.get("id")) for item in all_sources if item.get("id")}
+    product_terms = unique_strings(all_product_terms)
+    matched_terms = unique_strings(all_matched_terms)
     source_label = clean_text(signal.get("sourceLabel"))
-    summary = f"Fresh public signals show growing attention around {title}. TrendPilot retained it because the topic maps to the commercially relevant {category['name']} category."
-    why_now = f"Detected automatically from {source_label}.{evidence} The signal passed the commercial-intent, recency and safety filters before publication."
-    keywords = []
-    for item in [title, *matched_terms, *category.get("productTerms", [])[:4]]:
-        item = clean_text(item)
-        if item and normalise(item) not in {normalise(x) for x in keywords}:
-            keywords.append(item)
-    angles = [
-        f"Best {title} options for practical buyers",
-        f"What to check before choosing {title}",
-        f"{title}: price, features and alternatives",
-    ]
-    product_terms = list(dict.fromkeys(category.get("productTerms", [])))
+    observed = signal.get("publishedAt") if isinstance(signal.get("publishedAt"), datetime) else current
+    score = metrics["score"]
+    stage = "Emerging" if score < 76 else "Rising" if score < 88 else "Rising fast"
+    status_class = "early" if score < 76 else "rising" if score < 88 else "hot"
+
     product_match = None
     if product_terms:
         product_match = {
@@ -298,10 +431,12 @@ def build_trend(signal: dict, category: dict, matched_terms: list[str], metrics:
             "excludeTerms": category.get("excludeTerms", []),
             "minimumPrice": category.get("minimumPrice"),
             "maximumPrice": category.get("maximumPrice"),
+            "minimumMatchedTerms": 1,
         }
-    observed = signal.get("publishedAt") if isinstance(signal.get("publishedAt"), datetime) else current
+
+    keywords = unique_strings([title, *matched_terms, *product_terms])[:8]
     return {
-        "slug": slug,
+        "slug": slugify(title),
         "title": title,
         "category": category["name"],
         "icon": category.get("icon", "↗"),
@@ -311,50 +446,92 @@ def build_trend(signal: dict, category: dict, matched_terms: list[str], metrics:
         "momentum": metrics["momentum"],
         "buyerIntent": metrics["buyerIntent"],
         "competition": metrics["competition"],
-        "affiliateCoverage": int(category.get("affiliateCoverage", 65)),
+        "affiliateCoverage": int(category.get("affiliateCoverage", 60)),
         "contentDepth": metrics["contentDepth"],
-        "confidence": "High" if score >= 82 else "Medium-high" if score >= 70 else "Medium",
-        "summary": summary,
-        "whyNow": why_now,
+        "confidence": "High" if score >= 86 else "Medium-high" if score >= 76 else "Medium",
+        "summary": (
+            f"Fresh public signals indicate growing attention around {title}. "
+            f"The candidate is being held for review before it can appear publicly."
+        ),
+        "whyNow": (
+            f"Detected from {source_label}. It passed strict safety and commercial relevance filters, "
+            f"but publication still requires product evidence and explicit approval."
+        ),
         "sourceLabel": source_label,
         "sourceUrl": clean_text(signal.get("url")),
+        "sourceEvidence": all_sources,
+        "corroborationCount": len(distinct_sources),
+        "strongSignal": any(item["strong"] for item in cluster),
+        "strengthReasons": unique_strings(strength_reasons),
         "observedAt": observed.strftime("%d %B %Y"),
         "discoveredAt": current.isoformat(),
-        "keywords": keywords[:8],
-        "angles": angles,
+        "keywords": keywords,
+        "angles": [
+            f"Best {title} options for practical buyers",
+            f"What to check before choosing {title}",
+            f"{title}: features, price and alternatives",
+        ],
         "products": category.get("directProducts", []),
         "networkOpportunities": category.get("networks", ["Admitad"]),
-        "monetisationNote": "TrendPilot first publishes a useful opportunity page, then attaches only approved and relevant affiliate offers.",
+        "monetisationNote": (
+            "This candidate remains in review until a clear affiliate route is confirmed "
+            "and its slug is explicitly approved."
+        ),
         "productMatch": product_match,
         "automatic": True,
         "sourceId": signal.get("sourceId"),
+        "reviewStatus": "pending-product-evidence",
+        "readyForApproval": False,
+        "quality": {
+            "matchedTerms": matched_terms,
+            "productTerms": product_terms,
+            "preciseTitleMatches": unique_strings(primary["match"]["titleMatches"]),
+        },
     }
 
 
-def load_previous(current: datetime, retention_hours: int) -> list[dict]:
-    if not DATA_PATH.exists():
-        return []
-    try:
-        data = json.loads(DATA_PATH.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return []
-    retained = []
-    threshold = current - timedelta(hours=retention_hours)
-    for trend in data.get("trends", []):
-        discovered = parse_date(trend.get("discoveredAt", ""))
+def load_recent_items(path: Path, list_key: str, current: datetime, hours: int) -> list[dict]:
+    data = load_json(path, {list_key: []})
+    threshold = current - timedelta(hours=hours)
+    retained: list[dict] = []
+    for item in data.get(list_key, []):
+        discovered = parse_date(item.get("discoveredAt", ""))
         if discovered and discovered >= threshold:
-            retained.append(trend)
+            retained.append(item)
     return retained
 
 
+def merge_candidates(current_candidates: list[dict], previous_candidates: list[dict]) -> list[dict]:
+    merged: dict[str, dict] = {}
+    for item in previous_candidates:
+        slug = clean_text(item.get("slug"))
+        if slug:
+            merged[slug] = item
+    for item in current_candidates:
+        slug = clean_text(item.get("slug"))
+        if not slug:
+            continue
+        previous = merged.get(slug, {})
+        for key in ("productEvidence", "readyForApproval", "reviewStatus"):
+            if key in previous:
+                item[key] = previous[key]
+        merged[slug] = item
+    return list(merged.values())
+
+
 def main() -> int:
-    config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    config = load_json(CONFIG_PATH, {})
+    approvals = load_json(
+        APPROVALS_PATH,
+        {"approvedSlugs": [], "rejectedSlugs": ["traffic-enforcement-camera"]},
+    )
     current = now_utc()
     timeout = int(config.get("requestTimeoutSeconds", 35))
-    blocked = [normalise(term) for term in config.get("blockedTerms", [])]
-    source_report = []
-    raw_signals: list[dict] = []
+    blocked_terms = [normalise(term) for term in config.get("blockedTerms", [])]
+    ambiguous_terms = {normalise(term) for term in config.get("ambiguousTerms", [])}
 
+    source_report: list[dict] = []
+    raw_signals: list[dict] = []
     for source in config.get("sources", []):
         if not source.get("enabled", True):
             continue
@@ -362,82 +539,185 @@ def main() -> int:
             if source.get("type") == "hacker_news":
                 signals = fetch_hacker_news(source, timeout)
             else:
-                payload = http_get(source["url"], timeout, "application/rss+xml,application/atom+xml,application/xml,text/xml,*/*")
+                payload = http_get(
+                    source["url"],
+                    timeout,
+                    "application/rss+xml,application/atom+xml,application/xml,text/xml,*/*",
+                )
                 signals = parse_rss(payload, source)
             raw_signals.extend(signals)
             source_report.append({"label": source["label"], "status": "processed", "signals": len(signals)})
         except Exception as exc:
-            source_report.append({"label": source["label"], "status": "error", "errorType": type(exc).__name__})
+            source_report.append(
+                {"label": source["label"], "status": "error", "errorType": type(exc).__name__}
+            )
+
+    counters = {
+        "rawSignals": len(raw_signals),
+        "blockedSignals": 0,
+        "nonCommercialSignals": 0,
+        "ambiguousSignals": 0,
+        "lowScoreSignals": 0,
+        "insufficientEvidence": 0,
+        "unmonetisableSignals": 0,
+        "reviewCandidates": 0,
+        "readyForApproval": 0,
+        "publishedApprovedTrends": 0,
+        "approvalHeldForEvidence": 0,
+    }
+
+    enriched: list[dict] = []
+    for signal in raw_signals:
+        if is_hard_blocked(signal, blocked_terms):
+            counters["blockedSignals"] += 1
+            continue
+        match = category_match(signal, config.get("categories", []), ambiguous_terms)
+        if not match:
+            counters["nonCommercialSignals"] += 1
+            continue
+        if match["matchQuality"] < int(config.get("minimumMatchQuality", 26)):
+            counters["ambiguousSignals"] += 1
+            continue
+        category = match["category"]
+        if not match["productTerms"] and not category.get("directProducts"):
+            counters["unmonetisableSignals"] += 1
+            continue
+        metrics = commercial_score(signal, match, config, current)
+        if metrics["score"] < int(config.get("minimumReviewScore", 68)):
+            counters["lowScoreSignals"] += 1
+            continue
+        strong, reasons = signal_strength(signal, match, config)
+        enriched.append(
+            {
+                "signal": signal,
+                "match": match,
+                "metrics": metrics,
+                "strong": strong,
+                "strengthReasons": reasons,
+            }
+        )
+
+    review_candidates: list[dict] = []
+    for cluster in cluster_records(enriched):
+        distinct_sources = {
+            str(item["signal"].get("sourceId"))
+            for item in cluster
+            if item["signal"].get("sourceId")
+        }
+        has_strong = any(item["strong"] for item in cluster)
+        minimum_sources = int(config.get("evidenceRules", {}).get("minimumDistinctSources", 2))
+        if not has_strong and len(distinct_sources) < minimum_sources:
+            counters["insufficientEvidence"] += len(cluster)
+            continue
+        review_candidates.append(build_candidate(cluster, current))
 
     static_titles, static_slugs = static_titles_and_slugs()
-    candidates = []
-    blocked_count = 0
-    irrelevant_count = 0
-    for signal in raw_signals:
-        haystack = normalise(f"{signal.get('title', '')} {signal.get('summary', '')}")
-        if any(term and has_term(haystack, term) for term in blocked):
-            blocked_count += 1
-            continue
-        category, matched_terms = category_match(signal, config.get("categories", []))
-        if not category or not matched_terms:
-            irrelevant_count += 1
-            continue
-        metrics = commercial_score(signal, category, matched_terms, config, current)
-        if metrics["score"] < int(config.get("minimumOpportunityScore", 60)):
-            irrelevant_count += 1
-            continue
-        trend = build_trend(signal, category, matched_terms, metrics, current)
-        if trend["slug"] in static_slugs or normalise(trend["title"]) in static_titles:
-            continue
-        candidates.append(trend)
+    review_candidates = [
+        item
+        for item in review_candidates
+        if item["slug"] not in static_slugs and normalise(item["title"]) not in static_titles
+    ]
 
-    candidates.sort(key=lambda t: (t["score"], t["momentum"], t["buyerIntent"]), reverse=True)
-    deduped: list[dict] = []
-    for trend in candidates:
-        duplicate = next((item for item in deduped if similar(item["title"], trend["title"])), None)
-        if duplicate:
-            # Preserve the stronger signal and mention corroborating sources.
-            if trend["score"] > duplicate["score"]:
-                deduped.remove(duplicate)
-                deduped.append(trend)
-            continue
-        deduped.append(trend)
+    previous_review = load_recent_items(
+        REVIEW_PATH,
+        "reviewQueue",
+        current,
+        int(config.get("reviewRetentionHours", 168)),
+    )
+    previous_public = load_recent_items(
+        DATA_PATH,
+        "trends",
+        current,
+        int(config.get("publishedRetentionHours", 336)),
+    )
+    merged = merge_candidates(review_candidates, [*previous_review, *previous_public])
 
-    previous = load_previous(current, int(config.get("retentionHours", 72)))
-    for trend in previous:
-        if trend.get("slug") not in {item.get("slug") for item in deduped}:
-            deduped.append(trend)
+    approved_slugs = {clean_text(item) for item in approvals.get("approvedSlugs", []) if clean_text(item)}
+    rejected_slugs = {clean_text(item) for item in approvals.get("rejectedSlugs", []) if clean_text(item)}
+    merged = [item for item in merged if item.get("slug") not in rejected_slugs]
 
-    deduped.sort(key=lambda t: (t.get("score", 0), t.get("discoveredAt", "")), reverse=True)
-    published = deduped[: int(config.get("maxPublishedTrends", 12))]
+    merged.sort(
+        key=lambda item: (
+            bool(item.get("readyForApproval")),
+            int(item.get("score") or 0),
+            item.get("discoveredAt", ""),
+        ),
+        reverse=True,
+    )
+    merged = merged[: int(config.get("maxReviewCandidates", 15))]
 
-    output = {"version": config["version"], "generatedAt": current.isoformat(), "trends": published}
-    report = {
-        "version": config["version"],
+    published: list[dict] = []
+    pending: list[dict] = []
+    for item in merged:
+        slug = clean_text(item.get("slug"))
+        if slug in approved_slugs and item.get("readyForApproval"):
+            public_item = copy_json(item)
+            public_item["reviewStatus"] = "approved"
+            published.append(public_item)
+        else:
+            if slug in approved_slugs and not item.get("readyForApproval"):
+                item["reviewStatus"] = "approval-held-for-evidence"
+                counters["approvalHeldForEvidence"] += 1
+            pending.append(item)
+
+    published = published[: int(config.get("maxPublishedTrends", 8))]
+    counters["reviewCandidates"] = len(pending)
+    counters["readyForApproval"] = sum(1 for item in pending if item.get("readyForApproval"))
+    counters["publishedApprovedTrends"] = len(published)
+
+    output = {
+        "version": config.get("version", "0.5.1"),
         "generatedAt": current.isoformat(),
-        "sources": source_report,
-        "counters": {
-            "rawSignals": len(raw_signals),
-            "blockedSignals": blocked_count,
-            "nonCommercialSignals": irrelevant_count,
-            "publishedTrends": len(published),
-            "retainedPreviousTrends": sum(1 for item in published if item.get("discoveredAt") != current.isoformat()),
-        },
-        "note": "Only public source links and filtered trend metadata are published. No API key is stored in the repository.",
+        "publicationMode": "manual-review",
+        "trends": published,
     }
+    review_output = {
+        "version": config.get("version", "0.5.1"),
+        "generatedAt": current.isoformat(),
+        "reviewQueue": pending,
+        "instructions": (
+            "Review candidates here. Only add a ready candidate slug to "
+            "config/trend-approvals.json approvedSlugs, then run the workflow again."
+        ),
+    }
+    report = {
+        "version": config.get("version", "0.5.1"),
+        "generatedAt": current.isoformat(),
+        "publicationMode": "manual-review",
+        "sources": source_report,
+        "counters": counters,
+        "note": (
+            "New trends are held for review. Sensitive, ambiguous and weakly evidenced signals "
+            "are blocked before publication."
+        ),
+    }
+
     DATA_PATH.parent.mkdir(parents=True, exist_ok=True)
     JS_PATH.parent.mkdir(parents=True, exist_ok=True)
     DATA_PATH.write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+    REVIEW_PATH.write_text(json.dumps(review_output, ensure_ascii=False, indent=2), encoding="utf-8")
     REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
     JS_PATH.write_text(
-        "window.TRENDPILOT_DISCOVERED_TRENDS = " + json.dumps(published, ensure_ascii=False, separators=(",", ":")) + ";\n" +
-        "window.TRENDPILOT_DISCOVERY_META = " + json.dumps({"generatedAt": current.isoformat(), "version": config["version"]}, ensure_ascii=False) + ";\n",
+        "window.TRENDPILOT_DISCOVERED_TRENDS = "
+        + json.dumps(published, ensure_ascii=False, separators=(",", ":"))
+        + ";\n"
+        + "window.TRENDPILOT_DISCOVERY_META = "
+        + json.dumps(
+            {
+                "generatedAt": current.isoformat(),
+                "version": config.get("version", "0.5.1"),
+                "publicationMode": "manual-review",
+            },
+            ensure_ascii=False,
+        )
+        + ";\n",
         encoding="utf-8",
     )
+
     print(f"Raw signals: {len(raw_signals)}")
-    print(f"Published automatic trends: {len(published)}")
-    for trend in published:
-        print(f"- {trend['title']} ({trend['category']}, {trend['score']})")
+    print(f"Candidates held for review: {len(pending)}")
+    print(f"Ready for approval: {counters['readyForApproval']}")
+    print(f"Published approved trends: {len(published)}")
     return 0
 
 
