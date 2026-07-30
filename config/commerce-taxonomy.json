@@ -1,0 +1,252 @@
+{
+  "version": "0.6.0",
+  "minimumCandidateScore": 70,
+  "maxCandidates": 10,
+  "maxReviewQueue": 15,
+  "families": [
+    {
+      "slug": "car-multimedia-head-units",
+      "title": "Car Multimedia Head Units",
+      "category": "Automotive",
+      "icon": "◇",
+      "enabled": true,
+      "includeTerms": [
+        "car multimedia",
+        "car radio",
+        "head unit",
+        "android car radio",
+        "multimedia player"
+      ],
+      "excludeTerms": [
+        "engine",
+        "gearbox",
+        "transmission",
+        "brake",
+        "bumper",
+        "radiator",
+        "head gasket"
+      ],
+      "preferredCategories": [
+        "Car Electronics"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 8,
+      "minimumOffers": 10,
+      "minimumScore": 70,
+      "minimumPrice": 20,
+      "maximumPrice": 900,
+      "buyerIntent": 91,
+      "competition": 67,
+      "contentDepth": 94
+    },
+    {
+      "slug": "portable-projectors",
+      "title": "Portable Projectors",
+      "category": "Video",
+      "icon": "▶",
+      "enabled": true,
+      "includeTerms": [
+        "portable projector",
+        "mini projector",
+        "home projector"
+      ],
+      "excludeTerms": [
+        "toy projector",
+        "projection lamp"
+      ],
+      "preferredCategories": [
+        "Consumer Electronics"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 5,
+      "minimumOffers": 6,
+      "minimumPrice": 15,
+      "maximumPrice": 700
+    },
+    {
+      "slug": "high-capacity-power-banks",
+      "title": "High-Capacity Power Banks",
+      "category": "Mobile",
+      "icon": "▣",
+      "enabled": true,
+      "includeTerms": [
+        "power bank",
+        "portable charger",
+        "magsafe power bank",
+        "solar power bank"
+      ],
+      "excludeTerms": [
+        "battery cell",
+        "car battery"
+      ],
+      "preferredCategories": [
+        "Consumer Electronics",
+        "Cellphones & Telecommunications"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 6,
+      "minimumOffers": 8,
+      "minimumPrice": 5,
+      "maximumPrice": 300
+    },
+    {
+      "slug": "robot-vacuum-cleaners",
+      "title": "Robot Vacuum Cleaners",
+      "category": "Smart Home",
+      "icon": "⌂",
+      "enabled": true,
+      "includeTerms": [
+        "robot vacuum",
+        "robot cleaner",
+        "robotic vacuum"
+      ],
+      "excludeTerms": [
+        "replacement brush",
+        "spare part",
+        "filter only"
+      ],
+      "preferredCategories": [
+        "Home Appliances"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 5,
+      "minimumOffers": 6,
+      "minimumPrice": 30,
+      "maximumPrice": 1500
+    },
+    {
+      "slug": "wireless-earbuds",
+      "title": "Wireless Earbuds",
+      "category": "Audio",
+      "icon": "◉",
+      "enabled": true,
+      "includeTerms": [
+        "wireless earbuds",
+        "bluetooth earbuds",
+        "tws earbuds",
+        "noise cancelling earbuds"
+      ],
+      "excludeTerms": [
+        "hearing aid",
+        "ear tips only"
+      ],
+      "preferredCategories": [
+        "Consumer Electronics"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 7,
+      "minimumOffers": 8,
+      "minimumPrice": 3,
+      "maximumPrice": 500
+    },
+    {
+      "slug": "smart-home-locks",
+      "title": "Smart Home Locks",
+      "category": "Smart Home",
+      "icon": "⌂",
+      "enabled": true,
+      "includeTerms": [
+        "smart lock",
+        "fingerprint lock",
+        "keyless door lock",
+        "digital door lock"
+      ],
+      "excludeTerms": [
+        "padlock only",
+        "lock cylinder only"
+      ],
+      "preferredCategories": [
+        "Home Improvement",
+        "Security & Protection"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 5,
+      "minimumOffers": 6,
+      "minimumPrice": 15,
+      "maximumPrice": 800
+    },
+    {
+      "slug": "home-beauty-devices",
+      "title": "Home Beauty Devices",
+      "category": "Beauty",
+      "icon": "✧",
+      "enabled": true,
+      "includeTerms": [
+        "hair styler",
+        "led face mask",
+        "facial cleansing device",
+        "nail lamp",
+        "makeup brush cleaner",
+        "skin care device"
+      ],
+      "excludeTerms": [
+        "pet hair dryer",
+        "dog hair dryer",
+        "prescription"
+      ],
+      "preferredCategories": [
+        "Beauty & Health",
+        "Home Appliances"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 5,
+      "minimumOffers": 6,
+      "minimumPrice": 5,
+      "maximumPrice": 700
+    },
+    {
+      "slug": "compact-thermal-printers",
+      "title": "Compact Thermal Printers",
+      "category": "Office",
+      "icon": "▣",
+      "enabled": true,
+      "includeTerms": [
+        "mini printer",
+        "thermal printer",
+        "label maker",
+        "portable printer"
+      ],
+      "excludeTerms": [
+        "printer part",
+        "printhead only",
+        "ink cartridge"
+      ],
+      "preferredCategories": [
+        "Computer & Office"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 5,
+      "minimumOffers": 6,
+      "minimumPrice": 5,
+      "maximumPrice": 600
+    },
+    {
+      "slug": "ai-voice-production-platforms",
+      "title": "AI Voice Production Platforms",
+      "category": "Audio",
+      "icon": "◉",
+      "enabled": true,
+      "includeTerms": [
+        "voice ai",
+        "text to speech",
+        "dubbing",
+        "voice agent",
+        "speech software"
+      ],
+      "excludeTerms": [
+        "surveillance",
+        "voice changer prank"
+      ],
+      "preferredCategories": [
+        "AI Voice & Audio"
+      ],
+      "minimumMatchedTerms": 1,
+      "minimumUniqueProducts": 1,
+      "minimumOffers": 1,
+      "minimumScore": 62,
+      "buyerIntent": 90,
+      "competition": 58,
+      "contentDepth": 95
+    }
+  ]
+}

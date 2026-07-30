@@ -1,10 +1,7 @@
 {
-  "version": "0.5.3",
+  "version": "0.6.0",
   "sourceSettings": {
-    "localHotProducts": "data/source/admitad-hot-products.csv",
-    "remoteFeedEnvironmentVariable": "ADMITAD_ALIEXPRESS_FEED_25_40",
-    "remoteFeedLabel": "AliExpress 25–40 USD feed",
-    "maxRemoteRows": 25000,
+    "catalogCache": "automation/cache/offers.jsonl",
     "topProductsPerTrend": 8,
     "minimumScore": 40
   },
@@ -163,5 +160,13 @@
     "minimumProductMatches": 3,
     "minimumBestMatchScore": 52,
     "previewProducts": 3
+  },
+  "networkWeights": {
+    "Admitad": 1.0,
+    "CJ Affiliate": 1.0,
+    "Awin": 1.0,
+    "Impact": 1.0,
+    "PartnerStack": 1.0,
+    "Direct": 1.02
   }
 }
