@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.7.0 product-first multi-network matcher.
+"""TrendPilot AI v0.7.2 product-first multi-network matcher.
 
 The product is evaluated first. The affiliate network, advertiser and source do
 not receive ranking preference. Compatible offers from Admitad, CJ, Amazon,
@@ -24,7 +24,8 @@ from typing import Optional
 
 from product_quality import validate_offer
 
-VERSION = "0.7.0"
+VERSION = "0.7.2"
+BUILD_ID = "2026-07-31-product-first-published-split"
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "config" / "product-matcher.json"
@@ -921,17 +922,42 @@ def main() -> int:
     }
     assessed, ready = update_review_evidence(review_matches, config)
 
+    published_matches_by_network = Counter()
+    published_matches_by_advertiser = Counter()
+    review_matches_by_network = Counter()
+    review_matches_by_advertiser = Counter()
+
+    for products in public_matches.values():
+        for item in products:
+            published_matches_by_network[
+                text(item.get("network")) or "Unknown"
+            ] += 1
+            published_matches_by_advertiser[
+                text(item.get("advertiser")) or "Unknown"
+            ] += 1
+
+    for products in review_matches.values():
+        for item in products:
+            review_matches_by_network[
+                text(item.get("network")) or "Unknown"
+            ] += 1
+            review_matches_by_advertiser[
+                text(item.get("advertiser")) or "Unknown"
+            ] += 1
+
     generated_at = (
         datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     )
     output = {
         "version": VERSION,
+        "buildId": BUILD_ID,
         "generatedAt": generated_at,
         "rankingMode": "product-first-network-neutral",
         "productsByTrend": public_matches,
     }
     report = {
         "version": VERSION,
+        "buildId": BUILD_ID,
         "generatedAt": generated_at,
         "rankingMode": "product-first-network-neutral",
         "catalogueOffersRead": len(offers),
@@ -944,8 +970,15 @@ def main() -> int:
         "candidateMatchesByAdvertiser": dict(
             candidate_matches_by_advertiser
         ),
-        "matchesByNetwork": dict(final_matches_by_network),
-        "matchesByAdvertiser": dict(final_matches_by_advertiser),
+        # Backward-compatible fields now represent published website results only.
+        "matchesByNetwork": dict(published_matches_by_network),
+        "matchesByAdvertiser": dict(published_matches_by_advertiser),
+        "publishedMatchesByNetwork": dict(published_matches_by_network),
+        "publishedMatchesByAdvertiser": dict(published_matches_by_advertiser),
+        "reviewMatchesByNetwork": dict(review_matches_by_network),
+        "reviewMatchesByAdvertiser": dict(review_matches_by_advertiser),
+        "allFinalMatchesByNetwork": dict(final_matches_by_network),
+        "allFinalMatchesByAdvertiser": dict(final_matches_by_advertiser),
         "reviewEvidence": {
             "candidatesAssessed": assessed,
             "readyForApproval": ready,
@@ -958,7 +991,8 @@ def main() -> int:
             "Products are ranked without network preference. Product relevance "
             "comes first, followed by quality/customer signals, commercial value, "
             "price fit and audience breadth. Equivalent listings are compared and "
-            "the strongest compliant affiliate route is kept."
+            "the strongest compliant affiliate route is kept. Published and review-only "
+            "matches are reported separately."
         ),
     }
 
@@ -1002,7 +1036,11 @@ def main() -> int:
     )
     print(
         "Published advertisers: "
-        + json.dumps(dict(final_matches_by_advertiser), ensure_ascii=False)
+        + json.dumps(dict(published_matches_by_advertiser), ensure_ascii=False)
+    )
+    print(
+        "Review advertisers: "
+        + json.dumps(dict(review_matches_by_advertiser), ensure_ascii=False)
     )
     print(f"Review candidates assessed: {assessed}")
     print(f"Ready for approval: {ready}")
