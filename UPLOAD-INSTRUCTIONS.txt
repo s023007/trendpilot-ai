@@ -1,0 +1,23 @@
+TrendPilot AI v0.4 — Upload instructions
+
+Upload the contents of this package to the ROOT of your existing trendpilot-ai repository.
+
+Important hidden folders:
+- Upload `.github` because it contains the automation workflow.
+- Upload `automation`, `config` and `data`.
+- Replace `index.html`, `trends.html`, `trend.html`, `css/style.css`,
+  `js/app.js` and `js/trends-data.js`.
+- Add `js/matched-products.js`.
+
+Do not delete:
+- images
+- privacy.html
+- terms.html
+- verify-admitad.txt
+- your existing GitHub Actions secret
+
+After upload:
+1. Open GitHub → Actions.
+2. Open “Update matched affiliate products”.
+3. Press “Run workflow”.
+4. Wait for a green check.
