@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.6.0 multi-network affiliate source ingestion.
+"""TrendPilot AI v2.1 multi-network affiliate source ingestion.
 
 Every enabled JSON file inside config/sources is loaded automatically. Feed
 formats are converted to one normalised offer schema. The full cache is used
@@ -25,6 +25,7 @@ SUMMARY_PATH = ROOT / "data" / "offer-catalog-summary.json"
 ADAPTERS = {
     "csv": "adapters.csv_adapter",
     "xml": "adapters.xml_adapter",
+    "json": "adapters.json_adapter",
     "direct": "adapters.direct_adapter",
 }
 
