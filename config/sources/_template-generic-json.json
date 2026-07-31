@@ -1,14 +1,14 @@
 {
-  "id": "replace-csv-source",
+  "id": "replace-json-source",
   "enabled": false,
-  "adapter": "csv",
+  "adapter": "json",
   "network": "REPLACE_NETWORK",
   "advertiser": "REPLACE_ADVERTISER",
   "programme": "REPLACE_PROGRAMME",
   "location": {
     "type": "secret_map",
     "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
-    "secretKey": "replace-csv-source"
+    "secretKey": "replace-json-source"
   },
   "rowLimit": 25000,
   "defaultCurrency": "USD",
@@ -135,6 +135,7 @@
     "contentTraffic": "check-programme-terms",
     "brandBidding": "check-programme-terms"
   },
-  "delimiter": "auto",
-  "encoding": "utf-8-sig"
+  "encoding": "utf-8",
+  "itemsPath": "",
+  "requestHeadersFromEnvironment": {}
 }

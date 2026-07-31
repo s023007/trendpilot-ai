@@ -1,0 +1,34 @@
+{
+  "id": "replace-direct-programme",
+  "enabled": false,
+  "adapter": "direct",
+  "network": "Direct",
+  "advertiser": "REPLACE_ADVERTISER",
+  "programme": "REPLACE_PROGRAMME",
+  "location": {
+    "type": "direct"
+  },
+  "countries": [
+    "GLOBAL"
+  ],
+  "rules": {
+    "contentTraffic": "check-programme-terms",
+    "affiliateDisclosure": "required"
+  },
+  "directOffer": {
+    "affiliateKey": "replace-key",
+    "productId": "replace-product-id",
+    "name": "REPLACE_PRODUCT_OR_SERVICE",
+    "description": "REPLACE_DESCRIPTION",
+    "category": "REPLACE_CATEGORY",
+    "brand": "REPLACE_BRAND",
+    "productUrl": "https://example.com/product-page",
+    "imageUrl": "https://example.com/product-image.jpg",
+    "currency": "USD",
+    "commissionType": "programme",
+    "tags": [
+      "replace",
+      "keywords"
+    ]
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "id": "generic-xml-template",
+  "id": "replace-xml-source",
   "enabled": false,
   "adapter": "xml",
   "network": "REPLACE_NETWORK",
@@ -8,11 +8,9 @@
   "location": {
     "type": "secret_map",
     "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
-    "secretKey": "generic-xml-template"
+    "secretKey": "replace-xml-source"
   },
   "rowLimit": 25000,
-  "delimiter": "auto",
-  "encoding": "utf-8-sig",
   "defaultCurrency": "USD",
   "countries": [
     "GLOBAL"
@@ -51,7 +49,8 @@
     "productUrl": [
       "product_url",
       "productUrl",
-      "landing_page"
+      "landing_page",
+      "destination_url"
     ],
     "category": [
       "category",
@@ -77,7 +76,8 @@
       "picture",
       "image",
       "imageUrl",
-      "image_url"
+      "image_url",
+      "thumbnail"
     ],
     "oldPrice": [
       "oldprice",
@@ -125,20 +125,21 @@
       "merchant_id",
       "advertiser_id"
     ],
-    "param": [
-      "param",
-      "params"
-    ],
     "tags": [
       "tags",
       "keywords"
     ]
   },
   "paramFields": {},
-  "rules": {},
+  "rules": {
+    "contentTraffic": "check-programme-terms",
+    "brandBidding": "check-programme-terms"
+  },
+  "encoding": "utf-8",
   "itemTags": [
     "item",
     "product",
-    "offer"
+    "offer",
+    "entry"
   ]
 }
