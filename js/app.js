@@ -147,6 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
           : "";
         productArea.innerHTML = directHtml + automatedHtml + generated;
         const primary = document.getElementById("primaryMatch");
+        primary.hidden = false;
         if (directMatches.length) {
           const first = directMatches[0];
           const record = affiliateLinks[first.slug] || {};
@@ -159,10 +160,14 @@ document.addEventListener("DOMContentLoaded", () => {
         primary.target = "_blank";
         primary.rel = "sponsored nofollow noopener";
       } else {
-        productArea.innerHTML = `<div class="no-match"><strong>No compliant product match was published.</strong><p>The connector will search approved programmes and feeds from ${escapeHtml((trend.networkOpportunities || ["approved affiliate networks"]).join(", "))}. A missing result is safer than an irrelevant or restricted product.</p></div>`;
+        productArea.innerHTML = `<div class="no-match"><strong>No verified product offer is available right now.</strong><p>This trend remains visible for research, but TrendPilot will not send visitors to a general store, search page or unrelated product. A product button will appear automatically after a precise offer passes validation.</p></div>`;
         const primary = document.getElementById("primaryMatch");
-        primary.textContent = "View network plan";
-        primary.href = "networks.html";
+        primary.hidden = true;
+        primary.textContent = "";
+        primary.removeAttribute("href");
+        primary.removeAttribute("target");
+        primary.removeAttribute("rel");
+        document.getElementById("monetisationNote").textContent = "Research-only trend: no precise, verified product offer is currently published.";
       }
     }
   }
