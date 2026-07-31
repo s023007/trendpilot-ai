@@ -1,0 +1,102 @@
+{
+  "sourceId": "admitad-joom-gb",
+  "probeVersion": "1.0.0",
+  "sampleBytes": 8388608,
+  "candidateRecordTags": [
+    {
+      "tag": "offer",
+      "seenClosedRecords": 7228,
+      "fieldHintScore": 8,
+      "childTags": [
+        "availability",
+        "categoryId",
+        "currencyId",
+        "modified_time",
+        "name",
+        "picture",
+        "price",
+        "url",
+        "vendor",
+        "gtin"
+      ],
+      "attributes": [
+        "id"
+      ],
+      "safeExamples": [
+        {
+          "url": "[redacted]"
+        },
+        {
+          "url": "[redacted]"
+        }
+      ]
+    }
+  ],
+  "mostFrequentTags": [
+    [
+      "name",
+      7229
+    ],
+    [
+      "url",
+      7229
+    ],
+    [
+      "availability",
+      7229
+    ],
+    [
+      "categoryId",
+      7228
+    ],
+    [
+      "currencyId",
+      7228
+    ],
+    [
+      "modified_time",
+      7228
+    ],
+    [
+      "picture",
+      7228
+    ],
+    [
+      "price",
+      7228
+    ],
+    [
+      "vendor",
+      7228
+    ],
+    [
+      "offer",
+      7228
+    ],
+    [
+      "category",
+      4492
+    ],
+    [
+      "gtin",
+      2100
+    ],
+    [
+      "company",
+      1
+    ],
+    [
+      "currency",
+      1
+    ],
+    [
+      "currencies",
+      1
+    ],
+    [
+      "categories",
+      1
+    ]
+  ],
+  "note": "Only structure is stored. Private URLs are not stored in this report."
+}
