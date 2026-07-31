@@ -148,6 +148,80 @@ jobs:
           print(f"Geekbuying header fields: {len(headers)}")
           PY
 
+
+      - name: Download FilamentPRO EU feed privately
+        env:
+          FILAMENTPRO_EU_CSV_URL: ${{ secrets.FILAMENTPRO_EU_CSV_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p automation/cache
+
+          if [ -z "${FILAMENTPRO_EU_CSV_URL:-}" ]; then
+            echo "FILAMENTPRO_EU_CSV_URL is missing."
+            exit 1
+          fi
+
+          TMP_FILE="$(mktemp)"
+          curl \
+            --fail \
+            --location \
+            --globoff \
+            --compressed \
+            --retry 3 \
+            --retry-delay 3 \
+            --connect-timeout 30 \
+            --max-time 240 \
+            --user-agent "Mozilla/5.0 TrendPilotAI/1.0" \
+            --output "$TMP_FILE" \
+            "$FILAMENTPRO_EU_CSV_URL"
+
+          python - "$TMP_FILE" <<'PY'
+          import gzip
+          import io
+          import sys
+          import zipfile
+          from pathlib import Path
+
+          src = Path(sys.argv[1])
+          dst = Path("automation/cache/filamentpro-eu.csv")
+          raw = src.read_bytes()
+
+          if raw[:2] == b"PK":
+              with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+                  members = [
+                      name for name in zf.namelist()
+                      if not name.endswith("/") and name.lower().endswith((".csv", ".txt"))
+                  ]
+                  if not members:
+                      raise SystemExit("FilamentPRO download is ZIP but contains no CSV/TXT feed.")
+                  raw = zf.read(members[0])
+          elif raw[:2] == b"\x1f\x8b":
+              raw = gzip.decompress(raw)
+
+          probe = raw[:4096].lstrip().lower()
+          if probe.startswith(b"<!doctype html") or probe.startswith(b"<html"):
+              raise SystemExit(
+                  "FilamentPRO URL returned an HTML page instead of the CSV feed. "
+                  "Copy the direct CSV feed URL from Admitad and update FILAMENTPRO_EU_CSV_URL."
+              )
+
+          text = raw.decode("utf-8-sig", errors="replace")
+          first_line = text.splitlines()[0] if text.splitlines() else ""
+          headers = {item.strip() for item in first_line.split(";")}
+          required = {"id", "name", "url", "price", "picture", "categoryId", "currencyId"}
+
+          if not required.issubset(headers):
+              raise SystemExit(
+                  "FilamentPRO download is not the expected EU CSV feed. "
+                  f"Header sample: {first_line[:250]}"
+              )
+
+          dst.write_text(text, encoding="utf-8", newline="")
+          print(f"FilamentPRO EU feed downloaded: {len(raw):,} bytes")
+          print(f"FilamentPRO header fields: {len(headers)}")
+          PY
+
       - name: Ingest all enabled affiliate sources
         env:
           # Legacy AliExpress source remains optional.
