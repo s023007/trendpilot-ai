@@ -6,8 +6,9 @@
   "advertiser": "Geekbuying",
   "programme": "Geekbuying WW - Main 2",
   "location": {
-    "type": "local_file",
-    "path": "automation/cache/geekbuying-main.csv"
+    "type": "secret_map",
+    "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
+    "secretKey": "admitad-geekbuying-main"
   },
   "rowLimit": 25000,
   "delimiter": ";",
@@ -40,9 +41,7 @@
     "brand": [
       "vendor"
     ],
-    "advertiser": [
-      "store"
-    ],
+    "advertiser": [],
     "currency": [
       "currencyId"
     ],
