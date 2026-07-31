@@ -1,10 +1,10 @@
 {
   "version": "0.6.0",
-  "generatedAt": "2026-07-31T11:53:42+00:00",
+  "generatedAt": "2026-07-31T12:55:49+00:00",
   "cache": {
     "path": "automation/cache/offers.jsonl",
     "committed": false,
-    "offerCount": 54469
+    "offerCount": 55831
   },
   "sources": [
     {
@@ -53,8 +53,8 @@
       "adapter": "csv",
       "network": "Admitad",
       "advertiser": "Geekbuying",
-      "offersAccepted": 0,
-      "complianceBlocked": 0,
+      "offersAccepted": 1362,
+      "complianceBlocked": 3,
       "invalidRows": 0
     },
     {
@@ -89,8 +89,8 @@
     }
   ],
   "counters": {
-    "offersAccepted": 54469,
-    "complianceBlocked": 655
+    "offersAccepted": 55831,
+    "complianceBlocked": 658
   },
   "note": "Private feed URLs are read from GitHub Actions secrets and are never written to reports or the repository."
 }
