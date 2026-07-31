@@ -1,7 +1,7 @@
 {
   "version": "0.7.2",
   "buildId": "2026-07-31-product-first-published-split",
-  "generatedAt": "2026-07-31T05:58:04+00:00",
+  "generatedAt": "2026-07-31T06:41:50+00:00",
   "rankingMode": "product-first-network-neutral",
   "catalogueOffersRead": 54469,
   "counters": {
@@ -11,13 +11,13 @@
   },
   "matchesPerTrend": {
     "wireless-earbuds": 8,
-    "seasonal-party-decor": 8,
+    "smart-pet-feeding": 8,
+    "seasonal-kids-costumes": 8,
+    "wireless-carplay-retrofit": 8,
     "car-multimedia-head-units": 8,
     "high-capacity-power-banks": 8,
-    "wireless-carplay-retrofit": 8,
     "portable-projectors": 8,
-    "smart-pet-feeding": 8,
-    "seasonal-kids-costumes": 8
+    "seasonal-party-decor": 8
   },
   "candidateMatchesByNetwork": {
     "Admitad": 3803
@@ -34,10 +34,10 @@
     "AliExpress": 40
   },
   "publishedMatchesByNetwork": {
-    "Admitad": 41
+    "Admitad": 39
   },
   "publishedMatchesByAdvertiser": {
-    "AliExpress": 40,
+    "AliExpress": 38,
     "Alibaba": 1
   },
   "reviewMatchesByNetwork": {
@@ -65,20 +65,29 @@
     "Alibaba": 24,
     "AliExpress": 40
   },
+  "publicTrendSlugs": [
+    "car-multimedia-head-units",
+    "high-capacity-power-banks",
+    "seasonal-kids-costumes",
+    "seasonal-party-decor",
+    "smart-pet-feeding",
+    "wireless-carplay-retrofit"
+  ],
   "linkGuard": {
-    "version": "1.1.0",
-    "generatedAt": "2026-07-31T05:58:17+00:00",
-    "allOffersReviewed": 64,
-    "alibabaOffersReviewed": 24,
-    "offersKept": 41,
-    "offersRemoved": 23,
+    "version": "1.3.0",
+    "generatedAt": "2026-07-31T06:42:02+00:00",
+    "offersReviewed": 64,
+    "offersKept": 39,
+    "offersRemoved": 25,
+    "keptByReason": {
+      "verified-aliexpress-item": 38,
+      "verified-alibaba-product-detail": 1
+    },
     "removedByReason": {
-      "homepage-destination;resolved": 10,
-      "content-policy-passed": 40,
+      "not-an-alibaba-product-detail-page;resolved": 20,
+      "match-score-below-threshold": 2,
       "excluded-niche-variant:solar,solar charger": 1,
       "excluded-niche-variant:solar": 1,
-      "verified-product-detail": 1,
-      "not-a-product-detail-page;resolved": 10,
       "missing-product-identity": 1
     }
   }

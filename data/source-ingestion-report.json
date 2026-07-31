@@ -1,6 +1,6 @@
 {
   "version": "0.6.0",
-  "generatedAt": "2026-07-31T05:52:51+00:00",
+  "generatedAt": "2026-07-31T06:36:44+00:00",
   "cache": {
     "path": "automation/cache/offers.jsonl",
     "committed": false,
@@ -14,13 +14,25 @@
       "configFile": "config/sources/_template-cj-csv.json"
     },
     {
-      "sourceId": "generic-csv-template",
+      "sourceId": "replace-direct-programme",
+      "status": "disabled",
+      "adapter": "direct",
+      "configFile": "config/sources/_template-direct-programme.json"
+    },
+    {
+      "sourceId": "replace-csv-source",
       "status": "disabled",
       "adapter": "csv",
       "configFile": "config/sources/_template-generic-csv.json"
     },
     {
-      "sourceId": "generic-xml-template",
+      "sourceId": "replace-json-source",
+      "status": "disabled",
+      "adapter": "json",
+      "configFile": "config/sources/_template-generic-json.json"
+    },
+    {
+      "sourceId": "replace-xml-source",
       "status": "disabled",
       "adapter": "xml",
       "configFile": "config/sources/_template-generic-xml.json"
