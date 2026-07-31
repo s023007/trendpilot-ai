@@ -1,0 +1,82 @@
+{
+  "id": "admitad-filamentpro-eu",
+  "enabled": true,
+  "adapter": "csv",
+  "network": "Admitad",
+  "advertiser": "FilamentPRO",
+  "programme": "FilamentPRO EU CPS - feed eu",
+  "location": {
+    "type": "local_file",
+    "path": "automation/cache/filamentpro-eu.csv"
+  },
+  "rowLimit": 10000,
+  "delimiter": ";",
+  "encoding": "utf-8-sig",
+  "defaultCurrency": "USD",
+  "countries": [
+    "EU"
+  ],
+  "fieldMap": {
+    "id": [
+      "id"
+    ],
+    "productId": [
+      "id"
+    ],
+    "name": [
+      "name"
+    ],
+    "description": [
+      "description"
+    ],
+    "affiliateUrl": [
+      "url"
+    ],
+    "productUrl": [],
+    "category": [
+      "categoryId"
+    ],
+    "brand": [
+      "vendor"
+    ],
+    "advertiser": [],
+    "currency": [
+      "currencyId"
+    ],
+    "imageUrl": [
+      "picture"
+    ],
+    "oldPrice": [
+      "oldprice"
+    ],
+    "price": [
+      "price"
+    ],
+    "commissionRate": [],
+    "commissionValue": [],
+    "commissionType": [],
+    "discountPercent": [],
+    "availability": [
+      "available"
+    ],
+    "updatedAt": [
+      "modified_time"
+    ],
+    "merchantId": [],
+    "param": [
+      "param"
+    ],
+    "tags": [
+      "categoryId",
+      "vendor",
+      "type"
+    ]
+  },
+  "paramFields": {},
+  "rules": {},
+  "itemTags": [
+    "3d printing",
+    "3d printer filament",
+    "maker"
+  ]
+}
