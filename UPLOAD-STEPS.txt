@@ -1,0 +1,26 @@
+TrendPilot AI — exact offer quality fix v1.1.0
+
+Upload and replace:
+1. js/app.js
+2. automation/product_link_guard.py
+
+Do not change update-products.yml. It already runs product_link_guard.py.
+
+Then run:
+Actions
+→ Update trends and affiliate products
+→ Run workflow
+
+After Success, open:
+data/product-link-validation-report.json
+
+Search:
+"version": "1.1.0"
+"excluded-niche-variant:solar"
+"publishedMatchesByAdvertiserAfter"
+
+Expected behaviour:
+- Trends with zero verified offers show no product CTA.
+- They no longer send visitors to Networks or another non-product page.
+- Solar power banks are removed from the general high-capacity power-bank trend.
+- Alibaba is published only when its affiliate link resolves to one exact product page.
