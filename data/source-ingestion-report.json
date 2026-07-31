@@ -1,6 +1,6 @@
 {
   "version": "0.6.0",
-  "generatedAt": "2026-07-31T06:36:44+00:00",
+  "generatedAt": "2026-07-31T11:34:28+00:00",
   "cache": {
     "path": "automation/cache/offers.jsonl",
     "committed": false,
@@ -46,6 +46,12 @@
       "offersAccepted": 24713,
       "complianceBlocked": 287,
       "invalidRows": 0
+    },
+    {
+      "sourceId": "admitad-geekbuying-main",
+      "status": "error",
+      "adapter": "csv",
+      "errorType": "UnicodeEncodeError"
     },
     {
       "sourceId": "admitad-hot-products",

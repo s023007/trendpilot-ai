@@ -1,7 +1,7 @@
 {
   "version": "0.7.2",
   "buildId": "2026-07-31-product-first-published-split",
-  "generatedAt": "2026-07-31T06:41:50+00:00",
+  "generatedAt": "2026-07-31T11:39:20+00:00",
   "rankingMode": "product-first-network-neutral",
   "catalogueOffersRead": 54469,
   "counters": {
@@ -10,14 +10,14 @@
     "complianceBlocked": 13
   },
   "matchesPerTrend": {
-    "wireless-earbuds": 8,
     "smart-pet-feeding": 8,
-    "seasonal-kids-costumes": 8,
-    "wireless-carplay-retrofit": 8,
     "car-multimedia-head-units": 8,
+    "wireless-carplay-retrofit": 8,
+    "seasonal-kids-costumes": 8,
     "high-capacity-power-banks": 8,
-    "portable-projectors": 8,
-    "seasonal-party-decor": 8
+    "wireless-earbuds": 8,
+    "seasonal-party-decor": 8,
+    "portable-projectors": 8
   },
   "candidateMatchesByNetwork": {
     "Admitad": 3803
@@ -30,8 +30,8 @@
     "Admitad": 64
   },
   "matchesByAdvertiser": {
-    "Alibaba": 24,
-    "AliExpress": 40
+    "AliExpress": 40,
+    "Alibaba": 24
   },
   "publishedMatchesByNetwork": {
     "Admitad": 39
@@ -62,8 +62,8 @@
   },
   "note": "Products are ranked without network preference. Product relevance comes first, followed by quality/customer signals, commercial value, price fit and audience breadth. Equivalent listings are compared and the strongest compliant affiliate route is kept. Published and review-only matches are reported separately.",
   "publishedMatchesByAdvertiserBeforeLinkGuard": {
-    "Alibaba": 24,
-    "AliExpress": 40
+    "AliExpress": 40,
+    "Alibaba": 24
   },
   "publicTrendSlugs": [
     "car-multimedia-head-units",
@@ -75,7 +75,7 @@
   ],
   "linkGuard": {
     "version": "1.3.0",
-    "generatedAt": "2026-07-31T06:42:02+00:00",
+    "generatedAt": "2026-07-31T11:39:34+00:00",
     "offersReviewed": 64,
     "offersKept": 39,
     "offersRemoved": 25,
@@ -84,10 +84,10 @@
       "verified-alibaba-product-detail": 1
     },
     "removedByReason": {
-      "not-an-alibaba-product-detail-page;resolved": 20,
       "match-score-below-threshold": 2,
       "excluded-niche-variant:solar,solar charger": 1,
       "excluded-niche-variant:solar": 1,
+      "not-an-alibaba-product-detail-page;resolved": 20,
       "missing-product-identity": 1
     }
   }
