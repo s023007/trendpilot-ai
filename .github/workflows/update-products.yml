@@ -31,7 +31,6 @@ jobs:
         env:
           SOURCE_URLS_JSON: ${{ secrets.AFFILIATE_SOURCE_URLS_JSON }}
           LEGACY_ALIBABA_URL: ${{ secrets.ALIBABA_CONSUMER_ELECTRONICS_XML_URL }}
-          GEEKBUYING_CSV_URL: ${{ secrets.GEEKBUYING_CSV_URL }}
         shell: bash
         run: |
           python - <<'PY'
@@ -61,10 +60,6 @@ jobs:
                   legacy_alibaba,
               )
 
-          geekbuying_url = os.environ.get("GEEKBUYING_CSV_URL", "").strip()
-          if geekbuying_url:
-              source_urls["admitad-geekbuying-main"] = geekbuying_url
-
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
               output.write(
                   "AFFILIATE_SOURCE_URLS_JSON<<TREND_PILOT_SOURCE_URLS\n"
@@ -73,6 +68,84 @@ jobs:
                   json.dumps(source_urls, separators=(",", ":")) + "\n"
               )
               output.write("TREND_PILOT_SOURCE_URLS\n")
+          PY
+
+
+      - name: Download Geekbuying feed privately
+        env:
+          GEEKBUYING_CSV_URL: ${{ secrets.GEEKBUYING_CSV_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p automation/cache
+
+          if [ -z "${GEEKBUYING_CSV_URL:-}" ]; then
+            echo "GEEKBUYING_CSV_URL is missing."
+            exit 1
+          fi
+
+          TMP_FILE="$(mktemp)"
+          curl \
+            --fail \
+            --location \
+            --globoff \
+            --compressed \
+            --retry 3 \
+            --retry-delay 3 \
+            --connect-timeout 30 \
+            --max-time 240 \
+            --user-agent "Mozilla/5.0 TrendPilotAI/1.0" \
+            --output "$TMP_FILE" \
+            "$GEEKBUYING_CSV_URL"
+
+          python - "$TMP_FILE" <<'PY'
+          import csv
+          import gzip
+          import io
+          import os
+          import shutil
+          import sys
+          import zipfile
+          from pathlib import Path
+
+          src = Path(sys.argv[1])
+          dst = Path("automation/cache/geekbuying-main.csv")
+          raw = src.read_bytes()
+
+          if raw[:2] == b"PK":
+              with zipfile.ZipFile(io.BytesIO(raw)) as zf:
+                  members = [
+                      name for name in zf.namelist()
+                      if not name.endswith("/") and name.lower().endswith((".csv", ".txt"))
+                  ]
+                  if not members:
+                      raise SystemExit("Geekbuying download is ZIP but contains no CSV/TXT feed.")
+                  raw = zf.read(members[0])
+          elif raw[:2] == b"\x1f\x8b":
+              raw = gzip.decompress(raw)
+
+          # Reject login/error HTML pages instead of reporting a misleading 0 offers.
+          probe = raw[:4096].lstrip().lower()
+          if probe.startswith(b"<!doctype html") or probe.startswith(b"<html"):
+              raise SystemExit(
+                  "Geekbuying URL returned an HTML page instead of the CSV feed. "
+                  "Regenerate/copy the direct CSV feed URL in Admitad and update GEEKBUYING_CSV_URL."
+              )
+
+          text = raw.decode("utf-8-sig", errors="replace")
+          first_line = text.splitlines()[0] if text.splitlines() else ""
+          required = {"name", "url", "price", "picture"}
+          headers = {item.strip() for item in first_line.split(";")}
+
+          if not required.issubset(headers):
+              raise SystemExit(
+                  "Geekbuying download is not the expected Main CSV feed. "
+                  f"Header sample: {first_line[:250]}"
+              )
+
+          dst.write_text(text, encoding="utf-8", newline="")
+          print(f"Geekbuying feed downloaded: {len(raw):,} bytes")
+          print(f"Geekbuying header fields: {len(headers)}")
           PY
 
       - name: Ingest all enabled affiliate sources
