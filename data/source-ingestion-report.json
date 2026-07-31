@@ -1,10 +1,10 @@
 {
   "version": "0.6.0",
-  "generatedAt": "2026-07-31T12:55:49+00:00",
+  "generatedAt": "2026-07-31T17:06:08+00:00",
   "cache": {
     "path": "automation/cache/offers.jsonl",
     "committed": false,
-    "offerCount": 55831
+    "offerCount": 55959
   },
   "sources": [
     {
@@ -45,6 +45,16 @@
       "advertiser": "AliExpress",
       "offersAccepted": 24713,
       "complianceBlocked": 287,
+      "invalidRows": 0
+    },
+    {
+      "sourceId": "admitad-filamentpro-eu",
+      "status": "processed",
+      "adapter": "csv",
+      "network": "Admitad",
+      "advertiser": "FilamentPRO",
+      "offersAccepted": 128,
+      "complianceBlocked": 0,
       "invalidRows": 0
     },
     {
@@ -89,7 +99,7 @@
     }
   ],
   "counters": {
-    "offersAccepted": 55831,
+    "offersAccepted": 55959,
     "complianceBlocked": 658
   },
   "note": "Private feed URLs are read from GitHub Actions secrets and are never written to reports or the repository."
