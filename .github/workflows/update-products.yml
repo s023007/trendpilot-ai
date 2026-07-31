@@ -222,6 +222,132 @@ jobs:
           print(f"FilamentPRO header fields: {len(headers)}")
           PY
 
+
+      - name: Download Joom GB XML feed privately
+        env:
+          JOOM_GB_XML_URL: ${{ secrets.JOOM_GB_XML_URL }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p automation/cache
+
+          if [ -z "${JOOM_GB_XML_URL:-}" ]; then
+            echo "JOOM_GB_XML_URL is missing."
+            exit 1
+          fi
+
+          TMP_FILE="$(mktemp)"
+          DEST_FILE="automation/cache/joom-gb.xml"
+
+          curl \
+            --fail \
+            --location \
+            --globoff \
+            --compressed \
+            --retry 3 \
+            --retry-delay 4 \
+            --connect-timeout 30 \
+            --max-time 900 \
+            --user-agent "Mozilla/5.0 TrendPilotAI/1.0" \
+            --output "$TMP_FILE" \
+            "$JOOM_GB_XML_URL"
+
+          python - "$TMP_FILE" "$DEST_FILE" <<'PY'
+          import gzip
+          import shutil
+          import sys
+          import zipfile
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          src = Path(sys.argv[1])
+          dst = Path(sys.argv[2])
+
+          if src.stat().st_size < 1024:
+              raise SystemExit("Joom feed download is unexpectedly small.")
+
+          with src.open("rb") as fh:
+              magic = fh.read(4)
+
+          if magic[:2] == b"\x1f\x8b":
+              with gzip.open(src, "rb") as source, dst.open("wb") as target:
+                  shutil.copyfileobj(source, target, length=1024 * 1024)
+
+          elif magic[:2] == b"PK":
+              with zipfile.ZipFile(src) as zf:
+                  candidates = [
+                      info for info in zf.infolist()
+                      if not info.is_dir()
+                      and info.filename.lower().endswith((".xml", ".xml.gz"))
+                  ]
+                  if not candidates:
+                      raise SystemExit("Joom ZIP contains no XML feed.")
+                  chosen = max(candidates, key=lambda item: item.file_size)
+                  with zf.open(chosen) as source, dst.open("wb") as target:
+                      shutil.copyfileobj(source, target, length=1024 * 1024)
+
+          else:
+              shutil.move(str(src), str(dst))
+
+          with dst.open("rb") as fh:
+              probe = fh.read(4096).lstrip().lower()
+
+          if probe.startswith(b"<!doctype html") or probe.startswith(b"<html"):
+              raise SystemExit(
+                  "Joom URL returned HTML instead of the XML feed. "
+                  "Regenerate the GB XML link in Admitad and update JOOM_GB_XML_URL."
+              )
+
+          # Validate the discovered structure without loading the large file in memory.
+          seen_offer = False
+          fields = set()
+          for _, element in ET.iterparse(dst, events=("end",)):
+              tag = str(element.tag).rsplit("}", 1)[-1].lower()
+              if tag != "offer":
+                  continue
+              seen_offer = True
+              for child in list(element):
+                  fields.add(str(child.tag).rsplit("}", 1)[-1])
+              fields.update(
+                  str(key).rsplit("}", 1)[-1]
+                  for key in element.attrib
+              )
+              element.clear()
+              break
+
+          required = {
+              "id", "name", "url", "availability",
+              "categoryId", "currencyId", "picture", "price", "vendor"
+          }
+
+          if not seen_offer or not required.issubset(fields):
+              raise SystemExit(
+                  "Joom XML structure does not match the successful probe. "
+                  f"Detected fields: {sorted(fields)}"
+              )
+
+          print(f"Joom GB XML downloaded: {dst.stat().st_size:,} bytes")
+          print("Joom XML structure: verified <offer> records")
+          PY
+
+      - name: Raise private catalogue limit for Joom
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("config/affiliate-sources.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          current = int(data.get("maxOffersInCache", 100000))
+          data["maxOffersInCache"] = max(current, 180000)
+          path.write_text(
+              json.dumps(data, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print("Runtime offer cache limit:", data["maxOffersInCache"])
+          PY
+
       - name: Ingest all enabled affiliate sources
         env:
           # Legacy AliExpress source remains optional.
