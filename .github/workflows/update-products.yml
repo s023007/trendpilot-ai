@@ -16,7 +16,7 @@ concurrency:
 jobs:
   discover-and-match:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 60
 
     steps:
       - name: Check out repository
@@ -27,18 +27,17 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Build affiliate source URL map
+      - name: Prepare optional affiliate source URL map
         env:
-          EXISTING_AFFILIATE_SOURCE_URLS_JSON: ${{ secrets.AFFILIATE_SOURCE_URLS_JSON }}
-          ALIBABA_CONSUMER_ELECTRONICS_XML_URL: ${{ secrets.ALIBABA_CONSUMER_ELECTRONICS_XML_URL }}
+          SOURCE_URLS_JSON: ${{ secrets.AFFILIATE_SOURCE_URLS_JSON }}
+          LEGACY_ALIBABA_URL: ${{ secrets.ALIBABA_CONSUMER_ELECTRONICS_XML_URL }}
         shell: bash
         run: |
           python - <<'PY'
           import json
           import os
 
-          raw = os.environ.get("EXISTING_AFFILIATE_SOURCE_URLS_JSON", "").strip()
-
+          raw = os.environ.get("SOURCE_URLS_JSON", "").strip()
           if raw:
               try:
                   source_urls = json.loads(raw)
@@ -53,17 +52,13 @@ jobs:
           else:
               source_urls = {}
 
-          alibaba_url = os.environ.get(
-              "ALIBABA_CONSUMER_ELECTRONICS_XML_URL", ""
-          ).strip()
-
-          if not alibaba_url:
-              raise SystemExit(
-                  "Missing repository secret: "
-                  "ALIBABA_CONSUMER_ELECTRONICS_XML_URL"
+          # Backward compatibility only. Alibaba is optional, not mandatory.
+          legacy_alibaba = os.environ.get("LEGACY_ALIBABA_URL", "").strip()
+          if legacy_alibaba:
+              source_urls.setdefault(
+                  "alibaba-consumer-electronics",
+                  legacy_alibaba,
               )
-
-          source_urls["alibaba-consumer-electronics"] = alibaba_url
 
           with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as output:
               output.write(
@@ -77,7 +72,9 @@ jobs:
 
       - name: Ingest all enabled affiliate sources
         env:
+          # Legacy AliExpress source remains optional.
           ADMITAD_ALIEXPRESS_FEED_25_40: ${{ secrets.ADMITAD_ALIEXPRESS_FEED_25_40 }}
+          AFFILIATE_SOURCE_URLS_JSON: ${{ env.AFFILIATE_SOURCE_URLS_JSON }}
         run: python automation/source_ingestion.py
 
       - name: Discover public trend signals
@@ -89,7 +86,7 @@ jobs:
       - name: Match offers across every connected network
         run: python automation/multi_network_matcher.py
 
-      - name: Verify Alibaba product relevance and destinations
+      - name: Verify exact products across all connected networks
         run: python automation/product_link_guard.py
 
       - name: Commit clean public outputs and review evidence
