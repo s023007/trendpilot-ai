@@ -1,0 +1,81 @@
+{
+  "id": "admitad-geekbuying-main",
+  "enabled": true,
+  "adapter": "csv",
+  "network": "Admitad",
+  "advertiser": "Geekbuying",
+  "programme": "Geekbuying WW - Main 2",
+  "location": {
+    "type": "secret_map",
+    "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
+    "secretKey": "admitad-geekbuying-main"
+  },
+  "rowLimit": 25000,
+  "delimiter": ";",
+  "encoding": "utf-8-sig",
+  "defaultCurrency": "USD",
+  "countries": [
+    "GLOBAL"
+  ],
+  "fieldMap": {
+    "id": [
+      "id"
+    ],
+    "productId": [
+      "id",
+      "vendorCode"
+    ],
+    "name": [
+      "name"
+    ],
+    "description": [
+      "description"
+    ],
+    "affiliateUrl": [
+      "url"
+    ],
+    "productUrl": [],
+    "category": [
+      "categoryId"
+    ],
+    "brand": [
+      "vendor"
+    ],
+    "advertiser": [
+      "store"
+    ],
+    "currency": [
+      "currencyId"
+    ],
+    "imageUrl": [
+      "picture"
+    ],
+    "oldPrice": [
+      "oldprice"
+    ],
+    "price": [
+      "price"
+    ],
+    "commissionRate": [],
+    "commissionValue": [],
+    "commissionType": [],
+    "discountPercent": [],
+    "availability": [],
+    "updatedAt": [
+      "modified_time"
+    ],
+    "merchantId": [],
+    "param": [
+      "param"
+    ],
+    "tags": [
+      "categoryId",
+      "type",
+      "typePrefix",
+      "model"
+    ]
+  },
+  "paramFields": {},
+  "rules": {},
+  "itemTags": []
+}
