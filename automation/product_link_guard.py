@@ -1,17 +1,13 @@
 #!/usr/bin/env python3
-"""TrendPilot AI product-link guard.
+"""TrendPilot AI product relevance and destination guard.
 
 Runs after multi_network_matcher.py.
 
-Purpose:
-1. Prevent irrelevant Alibaba products from being published under a trend.
-2. Resolve Alibaba affiliate links and publish only links that land on a
-   product-detail page, not a homepage, category page, or search page.
-3. Keep public JSON/JS and matcher report counts consistent.
-
-The script is intentionally conservative. An Alibaba offer that cannot be
-verified is removed from public output rather than sending visitors to a
-random page.
+Rules:
+1. A product must actually be the product named by the trend.
+2. Niche variants that conflict with a broad mainstream trend are removed.
+3. Alibaba links must resolve to one exact product-detail page.
+4. A missing verified offer is safer than a general shop/search page.
 """
 from __future__ import annotations
 
@@ -26,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-VERSION = "1.0.0"
+VERSION = "1.1.0"
 
 ROOT = Path(__file__).resolve().parents[1]
 MATCHED_JSON = ROOT / "data" / "matched-products.json"
@@ -50,6 +46,20 @@ REQUIRED_PRODUCT_IDENTITY: dict[str, tuple[str, ...]] = {
     "compact-thermal-printers": (
         "thermal printer", "label printer", "receipt printer",
         "mini printer", "portable printer", "bluetooth printer",
+    ),
+}
+
+# These variants are valid products, but they do not fit the broad mainstream
+# buying intent of this trend. They can be used later under a dedicated trend.
+EXCLUDED_VARIANTS: dict[str, tuple[str, ...]] = {
+    "high-capacity-power-banks": (
+        "solar",
+        "solar panel",
+        "solar charger",
+        "photovoltaic",
+        "sun powered",
+        "hand crank",
+        "emergency radio",
     ),
 }
 
@@ -84,7 +94,7 @@ def clean_text(value: object) -> str:
 
 
 def normalise(value: object) -> str:
-    value = clean_text(value).lower()
+    value = urllib.parse.unquote(clean_text(value)).lower()
     value = re.sub(r"[\u2010-\u2015]", "-", value)
     value = re.sub(r"[^a-z0-9+ ]+", " ", value)
     return re.sub(r"\s+", " ", value).strip()
@@ -96,15 +106,37 @@ def contains_phrase(haystack: str, phrase: str) -> bool:
     return needle in hay
 
 
-def title_matches_trend(slug: str, title: str) -> tuple[bool, str]:
-    required = REQUIRED_PRODUCT_IDENTITY.get(slug)
-    if not required:
-        return True, "no-strict-identity-rule"
+def item_search_text(item: dict[str, Any], final_url: str = "") -> str:
+    return " ".join(
+        clean_text(value)
+        for value in (
+            item.get("name"),
+            item.get("description"),
+            item.get("category"),
+            item.get("tags"),
+            item.get("productType"),
+            item.get("productUrl"),
+            final_url,
+        )
+        if clean_text(value)
+    )
 
-    hits = [phrase for phrase in required if contains_phrase(title, phrase)]
-    if hits:
-        return True, "identity:" + ",".join(hits[:3])
-    return False, "missing-product-identity"
+
+def content_policy(slug: str, item: dict[str, Any], final_url: str = "") -> tuple[bool, str]:
+    text = item_search_text(item, final_url)
+    required = REQUIRED_PRODUCT_IDENTITY.get(slug)
+
+    if required:
+        identity_hits = [term for term in required if contains_phrase(text, term)]
+        if not identity_hits:
+            return False, "missing-product-identity"
+
+    excluded = EXCLUDED_VARIANTS.get(slug, ())
+    excluded_hits = [term for term in excluded if contains_phrase(text, term)]
+    if excluded_hits:
+        return False, "excluded-niche-variant:" + ",".join(excluded_hits[:3])
+
+    return True, "content-policy-passed"
 
 
 def is_tracking_host(host: str) -> bool:
@@ -167,35 +199,79 @@ def resolve_url(url: str, timeout: float = 12.0) -> tuple[str, str]:
         with urllib.request.urlopen(request, timeout=timeout) as response:
             return response.geturl(), "resolved"
     except urllib.error.HTTPError as exc:
-        final_url = exc.geturl() or url
-        return final_url, f"http-{exc.code}"
+        return exc.geturl() or url, f"http-{exc.code}"
     except (urllib.error.URLError, TimeoutError, socket.timeout, ValueError) as exc:
         return url, f"resolve-error:{type(exc).__name__}"
 
 
-def validate_alibaba_offer(slug: str, item: dict[str, Any]) -> dict[str, Any]:
-    title = clean_text(item.get("name"))
+def validate_item(slug: str, item: dict[str, Any]) -> dict[str, Any]:
+    advertiser = clean_text(item.get("advertiser")).lower()
+
+    # Apply product identity and niche policy to every connected source.
+    content_ok, content_reason = content_policy(slug, item)
+    if not content_ok:
+        return {
+            "keep": False,
+            "reason": content_reason,
+            "finalUrl": "",
+        }
+
+    # Non-Alibaba sources retain their existing link policy.
+    if advertiser != "alibaba":
+        return {
+            "keep": True,
+            "reason": content_reason,
+            "finalUrl": clean_text(item.get("productUrl") or item.get("url")),
+        }
+
     url = clean_text(item.get("url"))
     product_url = clean_text(item.get("productUrl"))
-
-    identity_ok, identity_reason = title_matches_trend(slug, title)
-    if not identity_ok:
-        return {"keep": False, "reason": identity_reason, "finalUrl": ""}
-
-    candidate_url = product_url or url
-    if not candidate_url:
-        return {"keep": False, "reason": "missing-product-link", "finalUrl": ""}
+    if not (product_url or url):
+        return {
+            "keep": False,
+            "reason": "missing-product-link",
+            "finalUrl": "",
+        }
 
     if product_url:
-        ok, reason = classify_destination(product_url)
-        if ok:
-            return {"keep": True, "reason": reason, "finalUrl": product_url}
+        destination_ok, destination_reason = classify_destination(product_url)
+        if destination_ok:
+            final_url = product_url
+            final_content_ok, final_content_reason = content_policy(
+                slug, item, final_url
+            )
+            if not final_content_ok:
+                return {
+                    "keep": False,
+                    "reason": final_content_reason,
+                    "finalUrl": final_url,
+                }
+            return {
+                "keep": True,
+                "reason": destination_reason,
+                "finalUrl": final_url,
+            }
 
     final_url, resolve_status = resolve_url(url)
-    ok, reason = classify_destination(final_url)
+    destination_ok, destination_reason = classify_destination(final_url)
+    if not destination_ok:
+        return {
+            "keep": False,
+            "reason": f"{destination_reason};{resolve_status}",
+            "finalUrl": final_url,
+        }
+
+    final_content_ok, final_content_reason = content_policy(slug, item, final_url)
+    if not final_content_ok:
+        return {
+            "keep": False,
+            "reason": final_content_reason,
+            "finalUrl": final_url,
+        }
+
     return {
-        "keep": ok,
-        "reason": reason if ok else f"{reason};{resolve_status}",
+        "keep": True,
+        "reason": destination_reason,
         "finalUrl": final_url,
     }
 
@@ -231,16 +307,26 @@ def network_counts(products_by_trend: dict[str, list[dict]]) -> Counter:
 def renumber(products: list[dict]) -> None:
     for position, item in enumerate(products, start=1):
         item["rank"] = position
-        item["rankingLabel"] = "Best match" if position == 1 else f"Rank #{position}"
+        item["rankingLabel"] = (
+            "Best match" if position == 1 else f"Rank #{position}"
+        )
 
 
 def write_js(products_by_trend: dict[str, list[dict]], metadata: dict[str, Any]) -> None:
     MATCHED_JS.parent.mkdir(parents=True, exist_ok=True)
     MATCHED_JS.write_text(
         "window.TRENDPILOT_MATCHED_PRODUCTS = "
-        + json.dumps(products_by_trend, ensure_ascii=False, separators=(",", ":"))
+        + json.dumps(
+            products_by_trend,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
         + ";\nwindow.TRENDPILOT_MATCHED_PRODUCTS_META = "
-        + json.dumps(metadata, ensure_ascii=False, separators=(",", ":"))
+        + json.dumps(
+            metadata,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
         + ";\n",
         encoding="utf-8",
     )
@@ -256,9 +342,11 @@ def main() -> int:
         raise SystemExit("matched-products.json has no productsByTrend object")
 
     before_advertisers = advertiser_counts(products_by_trend)
-    reviewed = 0
+    all_reviewed = 0
+    alibaba_reviewed = 0
     kept = 0
     removed = 0
+    reasons: Counter = Counter()
     records: list[dict[str, Any]] = []
 
     for slug, products in products_by_trend.items():
@@ -270,17 +358,18 @@ def main() -> int:
             if not isinstance(item, dict):
                 continue
 
-            advertiser = clean_text(item.get("advertiser")).lower()
-            if advertiser != "alibaba":
-                clean_products.append(item)
-                continue
+            all_reviewed += 1
+            advertiser = clean_text(item.get("advertiser")) or "Unknown"
+            if advertiser.lower() == "alibaba":
+                alibaba_reviewed += 1
 
-            reviewed += 1
-            result = validate_alibaba_offer(slug, item)
+            result = validate_item(slug, item)
+            reasons[result["reason"]] += 1
             records.append({
                 "trend": slug,
                 "id": clean_text(item.get("id")),
                 "name": clean_text(item.get("name")),
+                "advertiser": advertiser,
                 "originalUrl": clean_text(item.get("url")),
                 "finalUrl": result["finalUrl"],
                 "kept": bool(result["keep"]),
@@ -288,10 +377,15 @@ def main() -> int:
             })
 
             if result["keep"]:
-                item["linkValidation"] = {
-                    "status": "verified-product-detail",
+                item["contentValidation"] = {
+                    "status": "passed",
                     "checkedBy": f"product-link-guard-{VERSION}",
                 }
+                if advertiser.lower() == "alibaba":
+                    item["linkValidation"] = {
+                        "status": "verified-product-detail",
+                        "checkedBy": f"product-link-guard-{VERSION}",
+                    }
                 clean_products.append(item)
                 kept += 1
             else:
@@ -300,12 +394,19 @@ def main() -> int:
         renumber(clean_products)
         products_by_trend[slug] = clean_products
 
-    generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    generated_at = datetime.now(timezone.utc).replace(
+        microsecond=0
+    ).isoformat()
+
     data["productsByTrend"] = products_by_trend
     data["linkValidation"] = {
         "version": VERSION,
         "generatedAt": generated_at,
-        "policy": "publish-only-verified-alibaba-product-detail-links",
+        "policy": (
+            "publish-only-product-relevant-offers; "
+            "verify-alibaba-product-detail-destinations; "
+            "exclude-solar-power-banks-from-mainstream-power-bank-trend"
+        ),
     }
     write_json(MATCHED_JSON, data)
 
@@ -323,15 +424,19 @@ def main() -> int:
 
     if MATCHER_REPORT.exists():
         report = load_json(MATCHER_REPORT)
-        report["publishedMatchesByAdvertiserBeforeLinkGuard"] = dict(before_advertisers)
+        report["publishedMatchesByAdvertiserBeforeLinkGuard"] = dict(
+            before_advertisers
+        )
         report["publishedMatchesByAdvertiser"] = dict(after_advertisers)
         report["publishedMatchesByNetwork"] = dict(after_networks)
         report["linkGuard"] = {
             "version": VERSION,
             "generatedAt": generated_at,
-            "alibabaOffersReviewed": reviewed,
-            "alibabaOffersKept": kept,
-            "alibabaOffersRemoved": removed,
+            "allOffersReviewed": all_reviewed,
+            "alibabaOffersReviewed": alibaba_reviewed,
+            "offersKept": kept,
+            "offersRemoved": removed,
+            "removedByReason": dict(reasons),
         }
         write_json(MATCHER_REPORT, report)
 
@@ -339,25 +444,29 @@ def main() -> int:
         "version": VERSION,
         "generatedAt": generated_at,
         "policy": (
-            "Only product-relevant Alibaba offers with verified "
-            "product-detail destinations are published."
+            "Publish only exact product matches. Alibaba destinations must "
+            "be product-detail pages. Solar and other niche power-bank "
+            "variants are excluded from the broad high-capacity trend."
         ),
         "counters": {
-            "alibabaOffersReviewed": reviewed,
-            "alibabaOffersKept": kept,
-            "alibabaOffersRemoved": removed,
+            "allOffersReviewed": all_reviewed,
+            "alibabaOffersReviewed": alibaba_reviewed,
+            "offersKept": kept,
+            "offersRemoved": removed,
         },
+        "removedByReason": dict(reasons),
         "publishedMatchesByAdvertiserBefore": dict(before_advertisers),
         "publishedMatchesByAdvertiserAfter": dict(after_advertisers),
         "records": records,
     }
     write_json(VALIDATION_REPORT, validation_report)
 
-    print(f"Alibaba offers reviewed: {reviewed}")
-    print(f"Alibaba offers kept: {kept}")
-    print(f"Alibaba offers removed: {removed}")
+    print(f"All offers reviewed: {all_reviewed}")
+    print(f"Alibaba offers reviewed: {alibaba_reviewed}")
+    print(f"Offers kept: {kept}")
+    print(f"Offers removed: {removed}")
     print(
-        "Published advertisers after link guard: "
+        "Published advertisers after guard: "
         + json.dumps(dict(after_advertisers), ensure_ascii=False)
     )
     return 0
