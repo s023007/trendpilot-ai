@@ -6,9 +6,8 @@
   "advertiser": "Geekbuying",
   "programme": "Geekbuying WW - Main 2",
   "location": {
-    "type": "secret_map",
-    "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
-    "secretKey": "admitad-geekbuying-main"
+    "type": "local_file",
+    "path": "automation/cache/geekbuying-main.csv"
   },
   "rowLimit": 25000,
   "delimiter": ";",
