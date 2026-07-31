@@ -1,0 +1,76 @@
+{
+  "id": "admitad-joom-gb",
+  "enabled": true,
+  "adapter": "xml",
+  "network": "Admitad",
+  "advertiser": "Joom",
+  "programme": "Joom Many GEOs - GB",
+  "location": {
+    "type": "local_file",
+    "path": "automation/cache/joom-gb.xml"
+  },
+  "rowLimit": 100000,
+  "delimiter": "auto",
+  "encoding": "utf-8-sig",
+  "defaultCurrency": "GBP",
+  "countries": [
+    "GB"
+  ],
+  "fieldMap": {
+    "id": [
+      "id",
+      "gtin"
+    ],
+    "productId": [
+      "id",
+      "gtin"
+    ],
+    "name": [
+      "name"
+    ],
+    "description": [],
+    "affiliateUrl": [
+      "url"
+    ],
+    "productUrl": [],
+    "category": [
+      "categoryId"
+    ],
+    "brand": [
+      "vendor"
+    ],
+    "advertiser": [],
+    "currency": [
+      "currencyId"
+    ],
+    "imageUrl": [
+      "picture"
+    ],
+    "oldPrice": [],
+    "price": [
+      "price"
+    ],
+    "commissionRate": [],
+    "commissionValue": [],
+    "commissionType": [],
+    "discountPercent": [],
+    "availability": [
+      "availability"
+    ],
+    "updatedAt": [
+      "modified_time"
+    ],
+    "merchantId": [],
+    "param": [],
+    "tags": [
+      "categoryId",
+      "vendor",
+      "gtin"
+    ]
+  },
+  "paramFields": {},
+  "rules": {},
+  "itemTags": [
+    "offer"
+  ]
+}
