@@ -1,7 +1,7 @@
 {
   "version": "0.7.2",
   "buildId": "2026-07-31-product-first-published-split",
-  "generatedAt": "2026-07-31T01:29:41+00:00",
+  "generatedAt": "2026-07-31T05:58:04+00:00",
   "rankingMode": "product-first-network-neutral",
   "catalogueOffersRead": 54469,
   "counters": {
@@ -10,14 +10,14 @@
     "complianceBlocked": 13
   },
   "matchesPerTrend": {
-    "seasonal-kids-costumes": 8,
-    "wireless-carplay-retrofit": 8,
-    "high-capacity-power-banks": 8,
-    "smart-pet-feeding": 8,
-    "car-multimedia-head-units": 8,
-    "portable-projectors": 8,
     "wireless-earbuds": 8,
-    "seasonal-party-decor": 8
+    "seasonal-party-decor": 8,
+    "car-multimedia-head-units": 8,
+    "high-capacity-power-banks": 8,
+    "wireless-carplay-retrofit": 8,
+    "portable-projectors": 8,
+    "smart-pet-feeding": 8,
+    "seasonal-kids-costumes": 8
   },
   "candidateMatchesByNetwork": {
     "Admitad": 3803
@@ -30,15 +30,15 @@
     "Admitad": 64
   },
   "matchesByAdvertiser": {
-    "AliExpress": 40,
-    "Alibaba": 24
+    "Alibaba": 24,
+    "AliExpress": 40
   },
   "publishedMatchesByNetwork": {
-    "Admitad": 43
+    "Admitad": 41
   },
   "publishedMatchesByAdvertiser": {
     "AliExpress": 40,
-    "Alibaba": 3
+    "Alibaba": 1
   },
   "reviewMatchesByNetwork": {
     "Admitad": 8
@@ -62,24 +62,24 @@
   },
   "note": "Products are ranked without network preference. Product relevance comes first, followed by quality/customer signals, commercial value, price fit and audience breadth. Equivalent listings are compared and the strongest compliant affiliate route is kept. Published and review-only matches are reported separately.",
   "publishedMatchesByAdvertiserBeforeLinkGuard": {
-    "AliExpress": 40,
-    "Alibaba": 24
+    "Alibaba": 24,
+    "AliExpress": 40
   },
   "linkGuard": {
     "version": "1.1.0",
-    "generatedAt": "2026-07-31T01:29:53+00:00",
+    "generatedAt": "2026-07-31T05:58:17+00:00",
     "allOffersReviewed": 64,
     "alibabaOffersReviewed": 24,
-    "offersKept": 43,
-    "offersRemoved": 21,
+    "offersKept": 41,
+    "offersRemoved": 23,
     "removedByReason": {
+      "homepage-destination;resolved": 10,
       "content-policy-passed": 40,
       "excluded-niche-variant:solar,solar charger": 1,
       "excluded-niche-variant:solar": 1,
-      "homepage-destination;resolved": 8,
-      "verified-product-detail": 3,
-      "missing-product-identity": 1,
-      "not-a-product-detail-page;resolved": 10
+      "verified-product-detail": 1,
+      "not-a-product-detail-page;resolved": 10,
+      "missing-product-identity": 1
     }
   }
 }
