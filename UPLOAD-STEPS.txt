@@ -1,26 +1,56 @@
-TrendPilot AI — exact offer quality fix v1.1.0
+TrendPilot AI v2.1 — bright multi-network product-first update
 
-Upload and replace:
-1. js/app.js
-2. automation/product_link_guard.py
+UPLOAD AND REPLACE:
 
-Do not change update-products.yml. It already runs product_link_guard.py.
+1. index.html
+2. trends.html
+3. trend.html
+4. css/style.css
+5. js/app.js
+6. automation/product_link_guard.py
+7. automation/source_ingestion.py
+8. automation/adapters/json_adapter.py
+9. .github/workflows/update-products.yml
 
-Then run:
-Actions
-→ Update trends and affiliate products
-→ Run workflow
+OPTIONAL DISABLED TEMPLATES — upload them into config/sources:
+10. config/sources/_template-generic-csv.json
+11. config/sources/_template-generic-xml.json
+12. config/sources/_template-generic-json.json
+13. config/sources/_template-direct-programme.json
 
-After Success, open:
-data/product-link-validation-report.json
+The template files are disabled and will not change the current site.
 
-Search:
-"version": "1.1.0"
-"excluded-niche-variant:solar"
-"publishedMatchesByAdvertiserAfter"
+DO NOT DELETE OR REPLACE:
+- js/affiliate-links.js
+- js/data.js
+- js/trends-data.js
+- js/discovered-trends.js
+- js/matched-products.js (the Action refreshes it)
+- existing config/sources files for AliExpress, Alibaba and ElevenLabs
+- data/
+- images/
+- repository secrets
+- verify-admitad.txt
 
-Expected behaviour:
-- Trends with zero verified offers show no product CTA.
-- They no longer send visitors to Networks or another non-product page.
-- Solar power banks are removed from the general high-capacity power-bank trend.
-- Alibaba is published only when its affiliate link resolves to one exact product page.
+AFTER UPLOADING:
+1. GitHub → Actions
+2. Update trends and affiliate products
+3. Run workflow
+4. Wait for Success
+5. Open data/product-link-validation-report.json
+6. Search for: "version": "1.3.0"
+7. Open the website in a private tab.
+
+The workflow no longer requires Alibaba. New feed URLs are stored in one
+GitHub secret named AFFILIATE_SOURCE_URLS_JSON.
+
+This version supports:
+- CSV feeds
+- XML feeds
+- JSON feeds/endpoints
+- direct affiliate programmes
+- multiple networks and advertisers without ranking preference
+
+OAuth, signed APIs and special APIs such as Amazon Product Advertising API
+still require a dedicated adapter/connector because they cannot be handled by
+a normal feed URL alone.

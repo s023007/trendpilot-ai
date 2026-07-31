@@ -1,12 +1,55 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080b14"><meta id="metaDescription" name="description" content="Trend opportunity analysis from TrendPilot AI."><title>Trend Opportunity — TrendPilot AI</title><link rel="icon" href="images/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/style.css"></head><body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7f9ff">
+  <meta id="metaDescription" name="description" content="Verified trend products from TrendPilot AI.">
+  <title>Verified Trend — TrendPilot AI</title>
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css?v=2.0.0">
+</head>
+<body class="bright-site page-trend-detail">
 <header class="site-header"><div class="container nav-wrap">
-<a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="38" height="38"><span>TrendPilot <strong>AI</strong></span></a>
-<button class="menu-button" id="menuButton" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
-<nav class="main-nav" id="mainNav"><a href="index.html#radar">Trend radar</a><a href="trends.html">All trends</a><a href="networks.html">Networks</a><a href="affiliate-programs.html">Affiliate programmes</a></nav>
-</div></header><main id="trendPage"><section class="tool-page-hero section"><div class="container tool-page-grid"><div><a class="back-link" href="trends.html">← All trends</a><div class="tool-title-line"><div class="trend-detail-icon" id="trendIcon">↗</div><div><span class="kicker" id="trendCategory">Category</span><h1 id="trendTitle">Trend</h1></div></div><p class="tool-page-lead" id="trendSummary"></p><div class="hero-actions"><a class="button button-primary" id="primaryMatch" href="affiliate-programs.html">View best match</a><a class="button button-outline" id="sourceLink" href="#">Why this is trending</a></div><p class="link-status" id="monetisationNote"></p></div>
-<aside class="affiliate-summary" id="trendSummaryPanel"></aside></div></section>
-<section class="section section-tight"><div class="container detail-layout"><article class="detail-main"><section class="content-panel"><span class="kicker">Why now</span><h2 id="whyNowTitle">Why this trend matters</h2><p id="whyNow"></p></section><section class="content-panel"><span class="kicker">Opportunity model</span><h2>How the score was formed</h2><div class="score-breakdown" id="scoreBreakdown"></div></section><section class="content-panel"><span class="kicker">Keyword cluster</span><h2>Search and content directions</h2><div class="idea-tags" id="trendKeywords"></div></section><section class="content-panel"><span class="kicker">Content plan</span><h2>Pages that can attract buying traffic</h2><div class="content-angle-grid" id="trendAngles"></div></section><section class="content-panel"><span class="kicker">Matched products</span><h2>Affiliate products connected to this trend</h2><p class="product-pricing-intro">Prices shown here are catalogue estimates from affiliate feeds, not guaranteed checkout totals. Open the store to confirm the current price, shipping, taxes and availability.</p><div class="matched-products" id="matchedProducts"></div></section></article><aside class="detail-sidebar"><div class="sidebar-card"><h3>Recommended networks</h3><div class="network-chips" id="networkMatches"></div></div><div class="sidebar-card"><h3>Editorial rule</h3><p>Publish useful research first. Use an affiliate link only when the product genuinely solves the visitor’s problem.</p></div></aside></div></section></main><footer class="site-footer"><div class="container footer-grid">
-<div class="footer-brand"><a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="34" height="34"><span>TrendPilot <strong>AI</strong></span></a><p>Trend intelligence first. Affiliate monetisation second.</p></div>
-<div class="footer-links"><div><strong>Explore</strong><a href="trends.html">Trend radar</a><a href="networks.html">Network connectors</a><a href="affiliate-programs.html">Affiliate programmes</a></div><div><strong>Legal</strong><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div></div>
-</div><div class="container footer-bottom"><span>© 2026 TrendPilot AI.</span><span>Automatic signals refreshed daily by GitHub Actions.</span></div></footer>
-<script src="js/data.js"></script><script src="js/trends-data.js"></script><script src="js/discovered-trends.js"></script><script src="js/affiliate-links.js"></script><script src="js/matched-products.js"></script><script src="js/app.js"></script></body></html>
+  <a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="40" height="40"><span>TrendPilot <strong>AI</strong></span></a>
+  <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+  <nav class="main-nav" id="mainNav"><a href="index.html">Home</a><a href="trends.html">Verified trends</a><a href="index.html#topOffers">Best offers</a></nav>
+</div></header>
+<main id="trendPage">
+  <section class="trend-detail-hero section">
+    <div class="container trend-detail-grid">
+      <div class="trend-hero-media reveal" id="trendHeroMedia"></div>
+      <div class="trend-hero-info reveal">
+        <a class="back-link-v2" href="trends.html">← Verified trends</a>
+        <div class="trend-label-row"><span class="kicker" id="trendCategory">Category</span><span class="verified-pill">✓ Verified offers</span></div>
+        <h1 id="trendTitle">Trend</h1>
+        <p id="trendSummary"></p>
+        <div class="best-offer-summary" id="bestOfferSummary"></div>
+        <div class="hero-actions" id="trendHeroActions"></div>
+        <p class="link-status" id="monetisationNote"></p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-tight">
+    <div class="container">
+      <div class="section-heading-v2"><div><span class="kicker">Available products</span><h2>Open a precise product offer</h2></div><p>Products are ranked by relevance and offer quality. Prices are catalogue estimates; confirm current checkout details at the store.</p></div>
+      <div class="offer-grid offer-grid-detail" id="trendOffers"></div>
+    </div>
+  </section>
+
+  <section class="section section-soft">
+    <div class="container insight-layout">
+      <article class="insight-main">
+        <section class="content-panel-v2"><span class="kicker">Why now</span><h2>Why this trend matters</h2><p id="whyNow"></p></section>
+        <section class="content-panel-v2"><span class="kicker">Opportunity model</span><h2>How the score was formed</h2><div class="score-breakdown-v2" id="scoreBreakdown"></div></section>
+        <section class="content-panel-v2"><span class="kicker">Useful directions</span><h2>Keywords and content angles</h2><div class="idea-tags-v2" id="trendKeywords"></div><div class="content-angle-grid-v2" id="trendAngles"></div></section>
+      </article>
+      <aside class="trend-summary-card" id="trendSummaryPanel"></aside>
+    </div>
+  </section>
+</main>
+<footer class="site-footer site-footer-v2"><div class="container footer-bottom"><span>© <span id="currentYear"></span> TrendPilot AI.</span><a href="trends.html">Browse verified trends</a></div></footer>
+<script src="js/data.js"></script><script src="js/trends-data.js"></script><script src="js/discovered-trends.js"></script><script src="js/affiliate-links.js"></script><script src="js/matched-products.js"></script><script src="js/app.js?v=2.0.0"></script>
+</body>
+</html>

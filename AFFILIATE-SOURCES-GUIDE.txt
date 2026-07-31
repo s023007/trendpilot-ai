@@ -1,0 +1,42 @@
+ADDING NEW AFFILIATE COMPANIES
+
+A) CSV / XML / JSON FEED
+1. Copy the matching disabled template in config/sources.
+2. Rename the file, for example:
+   awin-example-store.json
+3. Change:
+   id
+   enabled to true
+   network
+   advertiser
+   programme
+   secretKey
+   fieldMap when the feed uses different column/tag names
+4. Add the private feed URL to the GitHub Actions secret:
+   AFFILIATE_SOURCE_URLS_JSON
+
+Example secret value:
+{
+  "alibaba-consumer-electronics": "PRIVATE_XML_URL",
+  "awin-example-store": "PRIVATE_CSV_URL",
+  "impact-example-brand": "PRIVATE_JSON_URL",
+  "cj-example-shop": "PRIVATE_FEED_URL"
+}
+
+The JSON key must exactly equal location.secretKey in the source config.
+
+B) DIRECT PROGRAMME OR SOFTWARE SERVICE
+1. Copy _template-direct-programme.json.
+2. Add its affiliate link to js/affiliate-links.js using affiliateKey.
+3. Add the programme's exact public product/service page and image.
+4. Enable the source config.
+
+C) LINK SAFETY
+The system keeps the affiliate tracking URL for commissions but publishes it
+only after confirming that it leads to a precise product/detail page. Search,
+category, homepage and general-store links are rejected.
+
+D) SPECIAL APIS
+Amazon Product Advertising API and APIs requiring OAuth/signatures need a
+dedicated adapter. The architecture is ready for additional adapters, but
+credentials and signing logic must be added for each such API.

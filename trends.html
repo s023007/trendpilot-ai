@@ -1,13 +1,39 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#080b14"><meta name="description" content="Browse tracked technology, AI, creator and e-commerce trends ranked by opportunity score."><title>All Trends — TrendPilot AI</title><link rel="icon" href="images/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/style.css"></head><body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7f9ff">
+  <meta name="description" content="Browse only verified trends that currently have precise, reachable product offers.">
+  <title>Verified Trends — TrendPilot AI</title>
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css?v=2.0.0">
+</head>
+<body class="bright-site page-trends">
 <header class="site-header"><div class="container nav-wrap">
-<a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="38" height="38"><span>TrendPilot <strong>AI</strong></span></a>
-<button class="menu-button" id="menuButton" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
-<nav class="main-nav" id="mainNav"><a href="index.html#radar">Trend radar</a><a href="trends.html">All trends</a><a href="networks.html">Networks</a><a href="affiliate-programs.html">Affiliate programmes</a></nav>
-</div></header><main><section class="subpage-hero section"><div class="container narrow-heading"><span class="kicker">Trend intelligence</span><h1>Every signal in the radar.</h1><p>Browse by category, opportunity stage and monetisation potential. Each score is an editorial model, not a promise of results.</p></div></section>
-<section class="section section-tight"><div class="container"><div class="accuracy-note"><strong>Source clarity:</strong> The radar combines editorial seed research with automatic public signals from Google Trends, Product Hunt and Hacker News. Product-feed matches are never treated as proof that a topic is trending.</div>
-<div class="filter-bar"><div class="search-box"><span>⌕</span><input id="trendSearch" type="search" placeholder="Search all tracked trends…"></div><div class="filter-buttons" id="trendFilters"><button class="filter-button active" data-filter="All">All</button><button class="filter-button" data-filter="Audio">Audio</button><button class="filter-button" data-filter="Video">Video</button><button class="filter-button" data-filter="Marketing">Marketing</button><button class="filter-button" data-filter="Developer">Developer</button><button class="filter-button" data-filter="E-commerce">E-commerce</button><button class="filter-button" data-filter="Automotive">Automotive</button><button class="filter-button" data-filter="Shopping">Shopping</button><button class="filter-button" data-filter="Education">Education</button><button class="filter-button" data-filter="Productivity">Productivity</button><button class="filter-button" data-filter="Smart Home">Smart Home</button><button class="filter-button" data-filter="Mobile">Mobile</button><button class="filter-button" data-filter="Fitness">Fitness</button><button class="filter-button" data-filter="Pet">Pet</button><button class="filter-button" data-filter="Beauty">Beauty</button></div></div>
-<div class="trend-grid full-trend-grid" id="trendGrid"></div><div class="empty-state hidden" id="trendEmpty"><h3>No trend found</h3><p>Try another search or category.</p></div></div></section></main><footer class="site-footer"><div class="container footer-grid">
-<div class="footer-brand"><a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="34" height="34"><span>TrendPilot <strong>AI</strong></span></a><p>Trend intelligence first. Affiliate monetisation second.</p></div>
-<div class="footer-links"><div><strong>Explore</strong><a href="trends.html">Trend radar</a><a href="networks.html">Network connectors</a><a href="affiliate-programs.html">Affiliate programmes</a></div><div><strong>Legal</strong><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div></div>
-</div><div class="container footer-bottom"><span>© 2026 TrendPilot AI.</span><span>Automatic signals refreshed daily by GitHub Actions.</span></div></footer>
-<script src="js/trends-data.js"></script><script src="js/discovered-trends.js"></script><script src="js/affiliate-links.js"></script><script src="js/matched-products.js"></script><script src="js/app.js"></script></body></html>
+  <a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="40" height="40"><span>TrendPilot <strong>AI</strong></span></a>
+  <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+  <nav class="main-nav" id="mainNav"><a href="index.html">Home</a><a href="trends.html">Verified trends</a><a href="index.html#topOffers">Best offers</a><a href="affiliate-programs.html">Affiliate programmes</a></nav>
+</div></header>
+<main>
+  <section class="subpage-hero-v2 section">
+    <div class="container subpage-hero-grid">
+      <div><span class="kicker">Verified product trends</span><h1>Only trends with a useful next click.</h1><p>Research-only signals stay out of this public list. Every visible trend has at least one product that can be opened directly.</p></div>
+      <div class="verified-seal"><strong id="verifiedTrendCount">0</strong><span>live verified trends</span><small>updated automatically</small></div>
+    </div>
+  </section>
+  <section class="section section-tight">
+    <div class="container">
+      <div class="filter-panel-v2">
+        <label class="search-box-v2"><span>⌕</span><input id="trendSearch" type="search" placeholder="Search verified trends or products…" autocomplete="off"></label>
+        <div class="filter-buttons-v2" id="trendFilters"></div>
+      </div>
+      <div class="verified-trend-grid verified-trend-grid-all" id="trendGrid"></div>
+      <div class="empty-state-v2 hidden" id="trendEmpty"><div>⌕</div><h2>No verified result found</h2><p>Try another keyword or category.</p></div>
+    </div>
+  </section>
+</main>
+<footer class="site-footer site-footer-v2"><div class="container footer-bottom"><span>© <span id="currentYear"></span> TrendPilot AI.</span><a href="index.html">Return home</a></div></footer>
+<script src="js/data.js"></script><script src="js/trends-data.js"></script><script src="js/discovered-trends.js"></script><script src="js/affiliate-links.js"></script><script src="js/matched-products.js"></script><script src="js/app.js?v=2.0.0"></script>
+</body>
+</html>

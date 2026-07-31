@@ -1,0 +1,30 @@
+{
+  "package": "TrendPilot AI v2.1 multi-network ready",
+  "guardVersion": "1.3.0",
+  "sourceAdapters": [
+    "csv",
+    "xml",
+    "json",
+    "direct"
+  ],
+  "networkNeutralRanking": true,
+  "requiredNetwork": null,
+  "files": [
+    ".github/workflows/update-products.yml",
+    "AFFILIATE-SOURCES-GUIDE.txt",
+    "MANIFEST.json",
+    "UPLOAD-STEPS.txt",
+    "automation/adapters/json_adapter.py",
+    "automation/product_link_guard.py",
+    "automation/source_ingestion.py",
+    "config/sources/_template-direct-programme.json",
+    "config/sources/_template-generic-csv.json",
+    "config/sources/_template-generic-json.json",
+    "config/sources/_template-generic-xml.json",
+    "css/style.css",
+    "index.html",
+    "js/app.js",
+    "trend.html",
+    "trends.html"
+  ]
+}
