@@ -427,6 +427,9 @@ jobs:
         run: python automation/source_ingestion.py
 
       - name: Discover public trend signals
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          YOUTUBE_API_KEY: ${{ secrets.YOUTUBE_API_KEY }}
         run: python automation/trend_discovery.py
 
       - name: Discover commerce-first opportunities
