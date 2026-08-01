@@ -1,5 +1,5 @@
 {
-  "version": "0.6.0",
+  "version": "0.8.0",
   "publicationMode": "manual-review",
   "maxPublishedTrends": 8,
   "maxReviewCandidates": 15,
@@ -7,11 +7,17 @@
   "minimumMatchQuality": 22,
   "reviewRetentionHours": 168,
   "publishedRetentionHours": 336,
-  "requestTimeoutSeconds": 35,
+  "requestTimeoutSeconds": 20,
   "evidenceRules": {
     "minimumDistinctSources": 2,
     "strongGoogleTraffic": 5000,
-    "strongHackerNewsPoints": 80
+    "strongHackerNewsPoints": 80,
+    "minimumDistinctSourceFamilies": 2,
+    "strongGitHubStars": 250,
+    "strongStackExchangeScore": 18,
+    "strongStackExchangeViews": 5000,
+    "strongYouTubeViews": 100000,
+    "strongYouTubeLikes": 5000
   },
   "sources": [
     {
@@ -20,7 +26,8 @@
       "label": "Google Trends — United States",
       "url": "https://trends.google.com/trending/rss?geo=US",
       "weight": 34,
-      "enabled": true
+      "enabled": true,
+      "family": "google-trends"
     },
     {
       "id": "google-gb",
@@ -28,7 +35,8 @@
       "label": "Google Trends — United Kingdom",
       "url": "https://trends.google.com/trending/rss?geo=GB",
       "weight": 32,
-      "enabled": true
+      "enabled": true,
+      "family": "google-trends"
     },
     {
       "id": "google-ae",
@@ -36,6 +44,43 @@
       "label": "Google Trends — United Arab Emirates",
       "url": "https://trends.google.com/trending/rss?geo=AE",
       "weight": 34,
+      "enabled": true,
+      "family": "google-trends"
+    },
+    {
+      "id": "google-om",
+      "family": "google-trends",
+      "type": "rss",
+      "label": "Google Trends — Oman",
+      "url": "https://trends.google.com/trending/rss?geo=OM",
+      "weight": 30,
+      "enabled": true
+    },
+    {
+      "id": "google-sa",
+      "family": "google-trends",
+      "type": "rss",
+      "label": "Google Trends — Saudi Arabia",
+      "url": "https://trends.google.com/trending/rss?geo=SA",
+      "weight": 32,
+      "enabled": true
+    },
+    {
+      "id": "google-ca",
+      "family": "google-trends",
+      "type": "rss",
+      "label": "Google Trends — Canada",
+      "url": "https://trends.google.com/trending/rss?geo=CA",
+      "weight": 30,
+      "enabled": true
+    },
+    {
+      "id": "google-au",
+      "family": "google-trends",
+      "type": "rss",
+      "label": "Google Trends — Australia",
+      "url": "https://trends.google.com/trending/rss?geo=AU",
+      "weight": 30,
       "enabled": true
     },
     {
@@ -44,7 +89,8 @@
       "label": "Product Hunt RSS",
       "url": "https://www.producthunt.com/feed",
       "weight": 36,
-      "enabled": true
+      "enabled": true,
+      "family": "product-hunt"
     },
     {
       "id": "hacker-news",
@@ -54,7 +100,72 @@
       "weight": 25,
       "enabled": true,
       "maxItems": 35,
-      "minimumPoints": 35
+      "minimumPoints": 35,
+      "family": "hacker-news"
+    },
+    {
+      "id": "github-rising",
+      "family": "github",
+      "type": "github_search",
+      "label": "GitHub — rising repositories",
+      "url": "https://api.github.com/search/repositories",
+      "weight": 29,
+      "enabled": true,
+      "daysBack": 14,
+      "minimumStars": 35,
+      "maxItems": 35,
+      "query": "AI in:name,description,topics",
+      "tokenEnv": "GITHUB_TOKEN"
+    },
+    {
+      "id": "stackoverflow-hot",
+      "family": "stackexchange",
+      "type": "stackexchange",
+      "label": "Stack Overflow — hot questions",
+      "url": "https://api.stackexchange.com/2.3/questions",
+      "weight": 22,
+      "enabled": true,
+      "site": "stackoverflow",
+      "sort": "hot",
+      "order": "desc",
+      "minimumScore": 2,
+      "minimumViews": 750,
+      "maxItems": 40
+    },
+    {
+      "id": "youtube-tech-us",
+      "family": "youtube",
+      "type": "youtube_popular",
+      "label": "YouTube — popular science & technology (US)",
+      "url": "https://www.googleapis.com/youtube/v3/videos",
+      "weight": 31,
+      "enabled": true,
+      "secretEnv": "YOUTUBE_API_KEY",
+      "regionCode": "US",
+      "videoCategoryId": "28",
+      "maxItems": 25
+    },
+    {
+      "id": "curated-trend-sites",
+      "family": "curated-trend-sites",
+      "type": "curated_watchlist",
+      "label": "Verified external trend watchlist",
+      "path": "config/external-trend-watchlist.json",
+      "weight": 32,
+      "enabled": true,
+      "allowedDomains": [
+        "explodingtopics.com",
+        "trends.pinterest.com",
+        "pinterest.com",
+        "ads.tiktok.com",
+        "tiktok.com",
+        "trendhunter.com",
+        "trends.google.com",
+        "producthunt.com",
+        "amazon.com",
+        "amazon.co.uk",
+        "amazon.ae"
+      ]
     }
   ],
   "buyerIntentTerms": [
@@ -1016,5 +1127,6 @@
       "a non-empty direct affiliateUrl in js/affiliate-links.js"
     ],
     "potentialNetworkNamesAreNotConfirmedRoutes": true
-  }
+  },
+  "sourceWorkers": 7
 }
