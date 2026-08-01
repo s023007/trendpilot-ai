@@ -1,4 +1,4 @@
-// TrendPilot AI v2.2.0 — product-first experience with source visibility
+// TrendPilot AI v2.3.0 — compact filters and verified store browsing
 (() => {
   "use strict";
 
@@ -22,6 +22,32 @@
   const validHttpUrl = (value) => /^https?:\/\//i.test(String(value || "").trim());
   const competitionLabel = (value) => Number(value) < 50 ? "Low" : Number(value) < 70 ? "Medium" : "High";
   const cleanName = (value) => String(value || "").replace(/\s+/g, " ").trim();
+
+  const SOURCE_META = {
+    aliexpress: { tagline: "High-volume marketplace picks across everyday product categories.", colours: ["#ff6a65", "#ffb34d"] },
+    alibaba: { tagline: "Supplier and product-detail opportunities with strict destination checks.", colours: ["#ff7a18", "#ffb347"] },
+    joom: { tagline: "Marketplace products selected from Joom only after exact trend matching.", colours: ["#ff4465", "#705cff"] },
+    geekbuying: { tagline: "Consumer electronics, smart home and maker products with precise product links.", colours: ["#ff4b3e", "#4c7cff"] },
+    filamentpro: { tagline: "3D-printing filament and maker supplies from the verified EU catalogue.", colours: ["#20b26b", "#3c74ff"] },
+    elevenlabs: { tagline: "Direct AI audio and voice products with a verified programme destination.", colours: ["#101828", "#22c55e"] }
+  };
+
+  function advertiserName(offer) {
+    const raw = cleanName(offer?.advertiser || offer?.network || "Verified source");
+    return raw.toLowerCase() === "true" ? "Geekbuying" : raw;
+  }
+
+  function sourceSlug(value) {
+    return cleanName(value).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  }
+
+  function sourceMeta(name) {
+    const key = sourceSlug(name).replace(/-/g, "");
+    return SOURCE_META[key] || {
+      tagline: "Verified products from this source that passed trend matching and destination checks.",
+      colours: ["#6757f6", "#15bfae"]
+    };
+  }
 
   function directOffersForTrend(trend) {
     return (trend.products || []).map((slug) => {
@@ -89,6 +115,7 @@
 
   const allOffers = dedupeOffers(publicTrends.flatMap((trend) => trend.verifiedOffers.map((offer) => ({
     ...offer,
+    advertiser: advertiserName(offer),
     trendSlug: trend.slug,
     trendTitle: trend.title,
     trendCategory: trend.category
@@ -97,19 +124,32 @@
       || (Number(b.offerQuality) || 0) - (Number(a.offerQuality) || 0);
   });
 
-  // Keep ranking product-first, but create a separate homepage collection
-  // containing the strongest verified product from every published advertiser.
-  function bestOfferFromEachAdvertiser(offers) {
-    const selected = new Map();
+  function buildSourceGroups(offers) {
+    const groups = new Map();
     offers.forEach((offer) => {
-      const label = cleanName(offer.advertiser || offer.network || "Verified source");
-      const key = label.toLowerCase();
-      if (!selected.has(key)) selected.set(key, offer);
+      const name = advertiserName(offer);
+      const slug = sourceSlug(name);
+      if (!slug) return;
+      if (!groups.has(slug)) groups.set(slug, { name, slug, offers: [], categories: new Set() });
+      const group = groups.get(slug);
+      group.offers.push(offer);
+      const category = cleanName(offer.trendCategory || offer.category || "Other");
+      if (category) group.categories.add(category);
     });
-    return [...selected.values()];
+    return [...groups.values()].map((group) => ({
+      ...group,
+      categories: [...group.categories].sort(),
+      offers: group.offers.sort((a, b) => (Number(b.matchScore) || 0) - (Number(a.matchScore) || 0) || (Number(b.offerQuality) || 0) - (Number(a.offerQuality) || 0))
+    })).sort((a, b) => (Number(b.offers[0]?.matchScore) || 0) - (Number(a.offers[0]?.matchScore) || 0) || a.name.localeCompare(b.name));
   }
 
-  const sourceShowcaseOffers = bestOfferFromEachAdvertiser(allOffers);
+  const sourceGroups = buildSourceGroups(allOffers);
+  const sourceShowcaseOffers = sourceGroups.map((group) => group.offers[0]).filter(Boolean);
+  const bestDealOffers = allOffers.filter((offer) => {
+    const price = Number(offer.price);
+    const oldPrice = Number(offer.oldPrice);
+    return Number(offer.discount) > 0 || (Number.isFinite(price) && price > 0 && Number.isFinite(oldPrice) && oldPrice > price);
+  }).sort((a, b) => (Number(b.discount) || 0) - (Number(a.discount) || 0) || (Number(b.matchScore) || 0) - (Number(a.matchScore) || 0));
 
   function formatPrice(offer) {
     const rawPrice = offer.price;
@@ -144,7 +184,9 @@
   }
 
   function sourceLabel(offer) {
-    return [offer.advertiser, offer.network].filter(Boolean).join(" • ") || "Verified product";
+    const advertiser = advertiserName(offer);
+    const network = cleanName(offer.network);
+    return network && network.toLowerCase() !== advertiser.toLowerCase() ? `${advertiser} • ${network}` : advertiser || "Verified product";
   }
 
   function offerCard(offer, rank = 0) {
@@ -189,6 +231,45 @@
     </article>`;
   }
 
+  function storeCard(group) {
+    const meta = sourceMeta(group.name);
+    const initials = escapeHtml(group.name.slice(0, 2).toUpperCase());
+    const categoryChips = group.categories.slice(0, 3).map((category) => `<span>${escapeHtml(category)}</span>`).join("");
+    const products = group.offers.slice(0, 3).map((offer) => `<li><span>✓</span><strong>${escapeHtml(offer.name)}</strong></li>`).join("");
+    return `<article class="store-card reveal" style="--store-a:${escapeHtml(meta.colours[0])};--store-b:${escapeHtml(meta.colours[1])}">
+      <div class="store-card-head"><div class="store-avatar">${initials}</div><div><span class="mini-label">Verified source</span><h3>${escapeHtml(group.name)}</h3></div><strong class="store-count">${group.offers.length}</strong></div>
+      <p>${escapeHtml(meta.tagline)}</p>
+      <div class="store-category-chips">${categoryChips || "<span>Published products</span>"}</div>
+      <ul class="store-mini-products">${products}</ul>
+      <a class="button button-outline store-card-action" href="store.html?store=${encodeURIComponent(group.slug)}">Explore ${escapeHtml(group.name)} →</a>
+    </article>`;
+  }
+
+  function setupFilterDrawer({ toggle, drawer, backdrop, closeButton }) {
+    if (!toggle || !drawer) return { close: () => {} };
+    const close = () => {
+      drawer.classList.remove("open");
+      backdrop?.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+      drawer.setAttribute("aria-hidden", "true");
+      document.body.classList.remove("drawer-open");
+    };
+    const open = () => {
+      if (!window.matchMedia("(max-width: 760px)").matches) return;
+      drawer.classList.add("open");
+      backdrop?.classList.add("open");
+      toggle.setAttribute("aria-expanded", "true");
+      drawer.setAttribute("aria-hidden", "false");
+      document.body.classList.add("drawer-open");
+    };
+    toggle.addEventListener("click", () => drawer.classList.contains("open") ? close() : open());
+    closeButton?.addEventListener("click", close);
+    backdrop?.addEventListener("click", close);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") close(); });
+    window.addEventListener("resize", () => { if (!window.matchMedia("(max-width: 760px)").matches) close(); });
+    return { close };
+  }
+
   function initialiseMenu() {
     const menuButton = document.getElementById("menuButton");
     const mainNav = document.getElementById("mainNav");
@@ -207,7 +288,10 @@
     document.addEventListener("click", (event) => {
       if (mainNav?.classList.contains("open") && !mainNav.contains(event.target) && !menuButton?.contains(event.target)) close();
     });
-    window.addEventListener("scroll", () => document.querySelector(".site-header")?.classList.toggle("scrolled", window.scrollY > 12), { passive: true });
+    window.addEventListener("scroll", () => {
+      document.querySelector(".site-header")?.classList.toggle("scrolled", window.scrollY > 12);
+      if (mainNav?.classList.contains("open")) close();
+    }, { passive: true });
   }
 
   function initialiseReveal() {
@@ -254,6 +338,16 @@
         ? sourceShowcaseOffers.map((offer, index) => offerCard(offer, index + 1)).join("")
         : `<div class="safe-empty-card"><strong>No source has a published product yet</strong><span>A source appears here only after one exact product passes matching and link validation.</span></div>`;
     }
+
+    const storeDirectory = document.getElementById("storeDirectoryGrid");
+    if (storeDirectory) storeDirectory.innerHTML = sourceGroups.slice(0, 6).map(storeCard).join("");
+
+    const dealSection = document.getElementById("bestDealsSection");
+    const dealsGrid = document.getElementById("bestDealsGrid");
+    if (dealSection && dealsGrid && bestDealOffers.length) {
+      dealSection.classList.remove("hidden");
+      dealsGrid.innerHTML = bestDealOffers.slice(0, 8).map((offer, index) => offerCard(offer, index + 1)).join("");
+    }
   }
 
   function renderTrendsPage() {
@@ -267,7 +361,15 @@
     const filters = document.getElementById("trendFilters");
     if (filters) filters.innerHTML = categories.map((category, index) => `<button class="filter-button-v2${index === 0 ? " active" : ""}" type="button" data-filter="${escapeHtml(category)}">${escapeHtml(category)}</button>`).join("");
 
+    const drawer = setupFilterDrawer({
+      toggle: document.getElementById("trendFilterToggle"),
+      drawer: document.getElementById("trendFilterDrawer"),
+      backdrop: document.getElementById("trendFilterBackdrop"),
+      closeButton: document.getElementById("trendFilterClose")
+    });
+
     let activeFilter = "All";
+    const activeLabel = document.getElementById("trendActiveFilter");
     const search = document.getElementById("trendSearch");
     const applyFilter = () => {
       const query = String(search?.value || "").toLowerCase().trim();
@@ -283,10 +385,113 @@
       const button = event.target.closest("button[data-filter]");
       if (!button) return;
       activeFilter = button.dataset.filter;
+      if (activeLabel) activeLabel.textContent = activeFilter;
       filters.querySelectorAll("button").forEach((entry) => entry.classList.toggle("active", entry === button));
       applyFilter();
+      drawer.close();
     });
     search?.addEventListener("input", applyFilter);
+  }
+
+  function renderStoresDirectory() {
+    const grid = document.getElementById("storeDirectoryPageGrid");
+    if (!grid) return;
+    grid.innerHTML = sourceGroups.map(storeCard).join("");
+    document.getElementById("storeDirectoryEmpty")?.classList.toggle("hidden", sourceGroups.length > 0);
+    const count = document.getElementById("verifiedStoreCount");
+    if (count) count.textContent = String(sourceGroups.length);
+  }
+
+  function renderStorePage() {
+    if (!document.getElementById("storePage")) return;
+    const slug = sourceSlug(new URLSearchParams(location.search).get("store") || "");
+    const group = sourceGroups.find((entry) => entry.slug === slug);
+    if (!group) {
+      location.replace("stores.html");
+      return;
+    }
+
+    const meta = sourceMeta(group.name);
+    document.title = `${group.name} Verified Products — TrendPilot AI`;
+    const metaDescription = document.getElementById("metaDescription");
+    if (metaDescription) metaDescription.content = `${group.offers.length} currently published verified products from ${group.name}.`;
+    const avatar = document.getElementById("storeAvatar");
+    if (avatar) {
+      avatar.textContent = group.name.slice(0, 2).toUpperCase();
+      avatar.style.setProperty("--store-a", meta.colours[0]);
+      avatar.style.setProperty("--store-b", meta.colours[1]);
+    }
+    document.getElementById("storeName").textContent = group.name;
+    document.getElementById("storeDescription").textContent = meta.tagline;
+    document.getElementById("storePublishedCount").textContent = String(group.offers.length);
+    document.getElementById("storeCategoryCount").textContent = String(group.categories.length);
+    document.getElementById("storeTopName").textContent = group.name;
+    document.getElementById("storeTopGrid").innerHTML = group.offers.slice(0, 3).map((offer, index) => offerCard(offer, index + 1)).join("");
+
+    const filters = document.getElementById("storeFilters");
+    const categories = ["All", ...group.categories];
+    filters.innerHTML = categories.map((category, index) => `<button class="filter-button-v2${index === 0 ? " active" : ""}" type="button" data-filter="${escapeHtml(category)}">${escapeHtml(category)}</button>`).join("");
+    const drawer = setupFilterDrawer({
+      toggle: document.getElementById("storeFilterToggle"),
+      drawer: document.getElementById("storeFilterDrawer"),
+      backdrop: document.getElementById("storeFilterBackdrop"),
+      closeButton: document.getElementById("storeFilterClose")
+    });
+
+    const grid = document.getElementById("storeProductGrid");
+    const empty = document.getElementById("storeEmpty");
+    const loadMore = document.getElementById("storeLoadMore");
+    const resultCount = document.getElementById("storeResultCount");
+    const search = document.getElementById("storeSearch");
+    const sort = document.getElementById("storeSort");
+    const activeLabel = document.getElementById("storeActiveFilter");
+    let activeCategory = "All";
+    let visibleLimit = 12;
+
+    const filteredOffers = () => {
+      const query = String(search.value || "").toLowerCase().trim();
+      const mode = sort.value;
+      let offers = group.offers.filter((offer) => {
+        const category = cleanName(offer.trendCategory || offer.category || "Other");
+        const searchText = [offer.name, category, offer.trendTitle, offer.advertiser].join(" ").toLowerCase();
+        if (activeCategory !== "All" && category !== activeCategory) return false;
+        if (query && !searchText.includes(query)) return false;
+        const price = Number(offer.price);
+        const oldPrice = Number(offer.oldPrice);
+        if (mode === "under-25" && !(Number.isFinite(price) && price > 0 && price <= 25)) return false;
+        if (mode === "deals" && !(Number(offer.discount) > 0 || (Number.isFinite(oldPrice) && Number.isFinite(price) && oldPrice > price && price > 0))) return false;
+        return true;
+      });
+      if (mode === "best-value") offers = offers.sort((a, b) => (Number(b.discount) || 0) - (Number(a.discount) || 0) || (Number(b.matchScore) || 0) - (Number(a.matchScore) || 0));
+      if (mode === "all") offers = offers.sort((a, b) => cleanName(a.name).localeCompare(cleanName(b.name)));
+      return offers;
+    };
+
+    const renderProducts = (makeVisible = false) => {
+      const offers = filteredOffers();
+      const visible = offers.slice(0, visibleLimit);
+      grid.innerHTML = visible.map((offer, index) => offerCard(offer, index + 1)).join("");
+      resultCount.textContent = `${offers.length} verified product${offers.length === 1 ? "" : "s"}`;
+      empty.classList.toggle("hidden", offers.length > 0);
+      loadMore.classList.toggle("hidden", visibleLimit >= offers.length);
+      bindImageFallbacks(grid);
+      if (makeVisible) grid.querySelectorAll(".reveal").forEach((item) => item.classList.add("visible"));
+    };
+
+    filters.addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-filter]");
+      if (!button) return;
+      activeCategory = button.dataset.filter;
+      activeLabel.textContent = activeCategory;
+      visibleLimit = 12;
+      filters.querySelectorAll("button").forEach((entry) => entry.classList.toggle("active", entry === button));
+      renderProducts(true);
+      drawer.close();
+    });
+    search.addEventListener("input", () => { visibleLimit = 12; renderProducts(true); });
+    sort.addEventListener("change", () => { visibleLimit = 12; renderProducts(true); });
+    loadMore.addEventListener("click", () => { visibleLimit += 12; renderProducts(true); });
+    renderProducts();
   }
 
   function renderTrendDetail() {
@@ -380,6 +585,8 @@
     initialiseMenu();
     renderHome();
     renderTrendsPage();
+    renderStoresDirectory();
+    renderStorePage();
     renderTrendDetail();
     renderLegacyPages();
     bindImageFallbacks();
