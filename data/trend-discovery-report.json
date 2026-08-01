@@ -1,45 +1,124 @@
 {
-  "version": "0.6.0",
-  "generatedAt": "2026-08-01T05:45:26+00:00",
+  "version": "0.8.0",
+  "generatedAt": "2026-08-01T17:15:49+00:00",
   "publicationMode": "manual-review",
   "sources": [
     {
+      "id": "google-us",
+      "family": "google-trends",
+      "type": "rss",
       "label": "Google Trends — United States",
       "status": "processed",
       "signals": 10
     },
     {
+      "id": "google-gb",
+      "family": "google-trends",
+      "type": "rss",
       "label": "Google Trends — United Kingdom",
       "status": "processed",
       "signals": 10
     },
     {
+      "id": "google-ae",
+      "family": "google-trends",
+      "type": "rss",
       "label": "Google Trends — United Arab Emirates",
       "status": "processed",
       "signals": 10
     },
     {
+      "id": "google-om",
+      "family": "google-trends",
+      "type": "rss",
+      "label": "Google Trends — Oman",
+      "status": "processed",
+      "signals": 10
+    },
+    {
+      "id": "google-sa",
+      "family": "google-trends",
+      "type": "rss",
+      "label": "Google Trends — Saudi Arabia",
+      "status": "processed",
+      "signals": 10
+    },
+    {
+      "id": "google-ca",
+      "family": "google-trends",
+      "type": "rss",
+      "label": "Google Trends — Canada",
+      "status": "processed",
+      "signals": 10
+    },
+    {
+      "id": "google-au",
+      "family": "google-trends",
+      "type": "rss",
+      "label": "Google Trends — Australia",
+      "status": "processed",
+      "signals": 10
+    },
+    {
+      "id": "product-hunt",
+      "family": "product-hunt",
+      "type": "rss",
       "label": "Product Hunt RSS",
       "status": "processed",
       "signals": 50
     },
     {
+      "id": "hacker-news",
+      "family": "hacker-news",
+      "type": "hacker_news",
       "label": "Hacker News official API",
       "status": "processed",
       "signals": 35
+    },
+    {
+      "id": "github-rising",
+      "family": "github",
+      "type": "github_search",
+      "label": "GitHub — rising repositories",
+      "status": "processed",
+      "signals": 35
+    },
+    {
+      "id": "stackoverflow-hot",
+      "family": "stackexchange",
+      "type": "stackexchange",
+      "label": "Stack Overflow — hot questions",
+      "status": "processed",
+      "signals": 4
+    },
+    {
+      "id": "youtube-tech-us",
+      "family": "youtube",
+      "type": "youtube_popular",
+      "label": "YouTube — popular science & technology (US)",
+      "status": "skipped-missing-secret",
+      "secret": "YOUTUBE_API_KEY"
+    },
+    {
+      "id": "curated-trend-sites",
+      "family": "curated-trend-sites",
+      "type": "curated_watchlist",
+      "label": "Verified external trend watchlist",
+      "status": "processed",
+      "signals": 0
     }
   ],
   "counters": {
-    "rawSignals": 115,
-    "blockedSignals": 4,
-    "nonCommercialSignals": 110,
-    "softwareCommercialSignals": 1,
+    "rawSignals": 194,
+    "blockedSignals": 2,
+    "nonCommercialSignals": 179,
+    "softwareCommercialSignals": 13,
     "ambiguousSignals": 0,
     "lowScoreSignals": 0,
     "insufficientEvidence": 0,
-    "unmonetisableSignals": 1,
-    "noConfirmedAffiliateRoute": 1,
-    "projectOnlyWithoutAffiliateRoute": 0,
+    "unmonetisableSignals": 13,
+    "noConfirmedAffiliateRoute": 13,
+    "projectOnlyWithoutAffiliateRoute": 5,
     "purgedStaleCandidates": 0,
     "reviewCandidates": 3,
     "readyForApproval": 2,
