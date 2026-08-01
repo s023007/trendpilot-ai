@@ -1,10 +1,10 @@
 {
   "version": "0.6.0",
-  "generatedAt": "2026-07-31T19:14:02+00:00",
+  "generatedAt": "2026-08-01T00:21:49+00:00",
   "cache": {
     "path": "automation/cache/offers.jsonl",
     "committed": false,
-    "offerCount": 154418
+    "offerCount": 153056
   },
   "sources": [
     {
@@ -59,13 +59,9 @@
     },
     {
       "sourceId": "admitad-geekbuying-main",
-      "status": "processed",
+      "status": "credential-or-location-missing",
       "adapter": "csv",
-      "network": "Admitad",
-      "advertiser": "Geekbuying",
-      "offersAccepted": 1362,
-      "complianceBlocked": 3,
-      "invalidRows": 0
+      "locationType": "secret_map"
     },
     {
       "sourceId": "admitad-hot-products",
@@ -109,8 +105,8 @@
     }
   ],
   "counters": {
-    "offersAccepted": 154418,
-    "complianceBlocked": 2199
+    "offersAccepted": 153056,
+    "complianceBlocked": 2196
   },
   "note": "Private feed URLs are read from GitHub Actions secrets and are never written to reports or the repository."
 }
