@@ -1,0 +1,38 @@
+{
+  "version": "2.4.0",
+  "purpose": "Multi-source trend intelligence with source-family corroboration and evidence-first review",
+  "trendEngineVersion": "0.8.0",
+  "fiveStages": [
+    "collect",
+    "normalise",
+    "corroborate",
+    "commercially-validate",
+    "review-and-publish"
+  ],
+  "activeSources": [
+    "Google Trends multi-region",
+    "Product Hunt RSS",
+    "Hacker News API",
+    "GitHub Search API",
+    "Stack Exchange API",
+    "Curated external watchlist"
+  ],
+  "optionalSources": [
+    "YouTube Data API v3"
+  ],
+  "files": [
+    "automation/trend_discovery.py",
+    "trend_discovery.py",
+    "config/trend-discovery.json",
+    "config/external-trend-watchlist.json",
+    ".github/workflows/update-products.yml",
+    "review.html",
+    "trend.html",
+    "js/app.js",
+    "app.js",
+    "css/style.css",
+    "README.md",
+    "TREND-SOURCES-GUIDE.txt",
+    "UPLOAD-STEPS.txt"
+  ]
+}

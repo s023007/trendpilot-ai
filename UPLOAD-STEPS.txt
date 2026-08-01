@@ -1,31 +1,40 @@
-TrendPilot AI — professional UI repair v2.3.1
+TrendPilot AI v2.4.0 — Multi-Source Trend Intelligence
 
-The problem was in css/style.css:
-the v2.3 store/filter CSS was saved with literal \n characters instead of real
-line breaks. Browsers ignored that entire block, so store cards appeared as raw,
-unstyled text.
+ارفع محتويات هذا المجلد إلى جذر مستودع trendpilot-ai مع المحافظة على المسارات.
 
-Upload and replace these files:
-1. index.html
-2. trends.html
-3. trend.html
-4. stores.html
-5. store.html
-6. css/style.css
-7. js/app.js
+الملفات الأساسية التي تم تعديلها أو إضافتها:
+1. automation/trend_discovery.py
+2. trend_discovery.py
+3. config/trend-discovery.json
+4. config/external-trend-watchlist.json
+5. .github/workflows/update-products.yml
+6. review.html
+7. trend.html
+8. js/app.js
+9. app.js
+10. css/style.css
+11. README.md
+12. TREND-SOURCES-GUIDE.txt
+13. MANIFEST-v2.4.0.json
 
-Do not change:
-- GitHub Actions workflow
-- Secrets
-- config/
-- data/
-- generated product files
+لا تحذف ولا تغيّر:
+- data/source/
+- روابط وشبكات الأفلييت الحالية
+- Secrets الحالية
+- config/sources/
+- js/affiliate-links.js
+- الصور والصفحات القانونية
 
-No Action run is required.
+بعد الرفع:
+1. GitHub → Actions.
+2. افتح Update trends and affiliate products.
+3. اضغط Run workflow.
+4. انتظر العلامة الخضراء.
+5. افتح data/trend-discovery-report.json وتأكد من ظهور المصادر الجديدة.
+6. افتح review.html وراجع الأدلة قبل الموافقة.
 
-After upload:
-- Open the site in a private/incognito tab.
-- stores.html should show professional cards, not loose text.
-- store.html should show a compact branded store header and product cards.
-- Mobile filters should remain closed until the Filters button is pressed.
-- CSS and JS cache versions should show v2.3.1.
+لا يلزم إضافة Secret جديد لتشغيل GitHub وStack Overflow.
+YouTube اختياري، ويحتاج Secret باسم YOUTUBE_API_KEY فقط.
+
+ملاحظة مهمة:
+المحرك يجلب المصادر بالتوازي، ولذلك تعطل مصدر واحد أو تأخره لا يوقف معالجة بقية المصادر.

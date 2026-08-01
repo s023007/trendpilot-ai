@@ -1,0 +1,89 @@
+TrendPilot AI v2.4.0 — Multi-Source Trend Intelligence
+دليل الاستفادة من مواقع الترند الأخرى
+
+الفكرة الأساسية
+لم يعد النظام يعتبر تكرار الترند في عدة دول داخل Google Trends دليلاً على وجود عدة مواقع مستقلة.
+كل إشارة تحمل الآن sourceFamily، ويُحسب التحقق بحسب عائلة المصدر: Google Trends أو Product Hunt أو
+Hacker News أو GitHub أو Stack Exchange أو YouTube أو مصدر خارجي مُراجع يدويًا.
+
+التعديل المنفذ في خمس خطوات
+
+1) جمع الإشارات من مصادر متعددة
+- Google Trends: الولايات المتحدة، بريطانيا، الإمارات، عُمان، السعودية، كندا وأستراليا.
+- Product Hunt RSS.
+- Hacker News API.
+- GitHub Search API للمستودعات الصاعدة.
+- Stack Overflow عبر Stack Exchange API للأسئلة الساخنة.
+- YouTube Most Popular لفئة Science & Technology عند إضافة YOUTUBE_API_KEY.
+- ملف خارجي يدوي وآمن لمواقع لا توفر API عامًا مناسبًا.
+
+2) توحيد جميع الإشارات
+يحوّل المحرك كل مصدر إلى صيغة موحدة تشمل:
+العنوان، الوصف، الكلمات، الرابط، تاريخ الرصد، نوع المصدر، عائلة المصدر، وأرقام التفاعل المتاحة.
+
+3) منع التكرار الوهمي والتحقق المتقاطع
+- تعدد الدول داخل Google Trends يُحسب عائلة واحدة.
+- الترند القوي يمكنه المرور بإشارة قوية موثقة.
+- الترند الأضعف يحتاج أدلة من عائلتين مستقلتين على الأقل.
+
+4) التحقق التجاري قبل النشر
+بعد اكتشاف الإشارة يمر الترند على:
+- فلتر السلامة والموضوعات المحظورة.
+- التصنيف التجاري.
+- التأكد من وجود مسار أفلييت حقيقي.
+- مطابقة المنتجات.
+- حد أدنى لجودة أفضل مطابقة وعدد المنتجات والروابط الصالحة.
+
+5) عرض الأدلة والمراجعة
+- review.html يعرض مواقع الترند، أسباب قوة الإشارة، وعدد المنتجات والروابط.
+- زر Approve لا يعمل إلا عندما readyForApproval = true.
+- صفحة trend.html تعرض مصادر الترند المعتمدة للزائر.
+
+مواقع الترند التي لا نوصل إليها بالكشط الآلي
+TikTok Creative Center، Pinterest Trends، Exploding Topics وTrendHunter لا يتم كشط صفحاتها آليًا.
+للاستفادة منها بصورة آمنة أضف الإشارة التي تحققت منها بنفسك إلى:
+config/external-trend-watchlist.json
+
+مثال:
+{
+  "version": "1.0.0",
+  "signals": [
+    {
+      "id": "portable-projector-2026-08-01",
+      "title": "Portable projectors",
+      "summary": "Portable projectors are receiving increased attention.",
+      "tags": ["mini projector", "portable projector"],
+      "url": "https://explodingtopics.com/topic/portable-projector",
+      "source": "Exploding Topics",
+      "family": "exploding-topics",
+      "observedAt": "2026-08-01",
+      "verified": true,
+      "enabled": true
+    }
+  ]
+}
+
+مهم:
+- استخدم رابط صفحة الترند العامة الدقيقة، وليس الصفحة الرئيسية.
+- لا تضف كلمات مرور أو مفاتيح أو روابط لوحة تحكم خاصة.
+- إدخال الإشارة لا ينشرها مباشرة؛ جميع فلاتر الجودة والمطابقة والموافقة تبقى فعالة.
+
+تشغيل YouTube اختياريًا
+1. أنشئ مفتاح YouTube Data API v3 في Google Cloud.
+2. GitHub → Settings → Secrets and variables → Actions.
+3. أضف Repository secret باسم YOUTUBE_API_KEY.
+4. شغّل Update trends and affiliate products.
+
+بدون المفتاح سيظهر المصدر في التقرير بالحالة:
+skipped-missing-secret
+ولن يتعطل بقية النظام.
+
+ملف فحص المصادر
+بعد تشغيل Action افتح:
+data/trend-discovery-report.json
+
+راجع لكل مصدر:
+- status = processed
+- signals = عدد الإشارات
+- status = skipped-missing-secret لمصدر اختياري
+- status = error عند وجود مشكلة اتصال أو تنسيق

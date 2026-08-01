@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""TrendPilot AI v0.5.3 confirmed-route discovery and review queue.
+"""TrendPilot AI v0.8.0 multi-source discovery and review queue.
 
 New public signals are never published immediately. They first enter a review
 queue, receive product-match evidence, and can then be approved explicitly in
@@ -14,14 +14,16 @@ import email.utils
 import html
 import json
 import math
+import os
 import re
 import time
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
 from difflib import SequenceMatcher
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG_PATH = ROOT / "config" / "trend-discovery.json"
@@ -100,15 +102,20 @@ def copy_json(value: dict) -> dict:
     return json.loads(json.dumps(value))
 
 
-def http_get(url: str, timeout: int, accept: str = "*/*") -> bytes:
-    request = urllib.request.Request(
-        url,
-        headers={
-            "User-Agent": "TrendPilotAI-TrendDiscovery/0.5.3 (+https://s023007.github.io/trendpilot-ai/)",
-            "Accept": accept,
-            "Accept-Language": "en-GB,en;q=0.9",
-        },
-    )
+def http_get(
+    url: str,
+    timeout: int,
+    accept: str = "*/*",
+    extra_headers: Optional[dict[str, str]] = None,
+) -> bytes:
+    headers = {
+        "User-Agent": "TrendPilotAI-TrendDiscovery/0.8.0 (+https://s023007.github.io/trendpilot-ai/)",
+        "Accept": accept,
+        "Accept-Language": "en-GB,en;q=0.9",
+    }
+    if extra_headers:
+        headers.update({str(key): str(value) for key, value in extra_headers.items() if value})
+    request = urllib.request.Request(url, headers=headers)
     last_error: Optional[Exception] = None
     for attempt in range(3):
         try:
@@ -176,6 +183,7 @@ def parse_rss(payload: bytes, source: dict) -> list[dict]:
                 "publishedAt": parse_date(element_text(entry, ["pubdate", "published", "updated"])),
                 "traffic": element_text(entry, ["approx_traffic", "traffic"]),
                 "sourceId": source["id"],
+                "sourceFamily": source.get("family", source["id"]),
                 "sourceLabel": source["label"],
                 "sourceWeight": float(source.get("weight", 25)),
                 "sourceType": source.get("type", "rss"),
@@ -207,6 +215,7 @@ def fetch_hacker_news(source: dict, timeout: int) -> list[dict]:
             "points": points,
             "comments": int(item.get("descendants") or 0),
             "sourceId": source["id"],
+            "sourceFamily": source.get("family", source["id"]),
             "sourceLabel": source["label"],
             "sourceWeight": float(source.get("weight", 25)),
             "sourceType": "hacker_news",
@@ -219,6 +228,209 @@ def fetch_hacker_news(source: dict, timeout: int) -> list[dict]:
                 signals.append(item)
     return signals
 
+
+
+class MissingSourceSecret(RuntimeError):
+    """Raised when an optional source is enabled but its secret is absent."""
+
+
+def fetch_github_search(source: dict, timeout: int) -> list[dict]:
+    """Read rising public repositories from GitHub's official Search API."""
+    days_back = max(1, int(source.get("daysBack", 14)))
+    created_after = (now_utc() - timedelta(days=days_back)).date().isoformat()
+    minimum_stars = max(0, int(source.get("minimumStars", 25)))
+    query_parts = [clean_text(source.get("query"))]
+    query_parts.extend(
+        [
+            f"created:>={created_after}",
+            f"stars:>={minimum_stars}",
+            "archived:false",
+            "fork:false",
+        ]
+    )
+    params = {
+        "q": " ".join(part for part in query_parts if part),
+        "sort": source.get("sort", "stars"),
+        "order": source.get("order", "desc"),
+        "per_page": min(100, max(1, int(source.get("maxItems", 35)))),
+    }
+    url = f"{source['url']}?{urllib.parse.urlencode(params)}"
+    token = os.environ.get(clean_text(source.get("tokenEnv", "GITHUB_TOKEN")), "").strip()
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    payload = json.loads(http_get(url, timeout, "application/json", headers))
+    signals: list[dict] = []
+    for item in payload.get("items", [])[: int(source.get("maxItems", 35))]:
+        stars = int(item.get("stargazers_count") or 0)
+        if stars < minimum_stars:
+            continue
+        topics = [clean_text(value) for value in item.get("topics", []) if clean_text(value)]
+        language = clean_text(item.get("language"))
+        if language:
+            topics.append(language)
+        signals.append(
+            {
+                "title": clean_text(item.get("name") or item.get("full_name")),
+                "summary": clean_text(item.get("description")),
+                "tags": topics,
+                "url": clean_text(item.get("html_url")) or source["url"],
+                "publishedAt": parse_date(item.get("created_at") or item.get("pushed_at")),
+                "stars": stars,
+                "forks": int(item.get("forks_count") or 0),
+                "sourceId": source["id"],
+                "sourceFamily": source.get("family", "github"),
+                "sourceLabel": source["label"],
+                "sourceWeight": float(source.get("weight", 28)),
+                "sourceType": "github_search",
+            }
+        )
+    return signals
+
+
+def fetch_stackexchange(source: dict, timeout: int) -> list[dict]:
+    """Read hot public questions from the official Stack Exchange API."""
+    params = {
+        "site": source.get("site", "stackoverflow"),
+        "pagesize": min(100, max(1, int(source.get("maxItems", 40)))),
+        "order": source.get("order", "desc"),
+        "sort": source.get("sort", "hot"),
+        "filter": source.get("filter", "default"),
+    }
+    tagged = clean_text(source.get("tagged"))
+    if tagged:
+        params["tagged"] = tagged
+    url = f"{source['url']}?{urllib.parse.urlencode(params)}"
+    payload = json.loads(http_get(url, timeout, "application/json"))
+    minimum_score = int(source.get("minimumScore", 1))
+    signals: list[dict] = []
+    for item in payload.get("items", [])[: int(source.get("maxItems", 40))]:
+        score = int(item.get("score") or 0)
+        views = int(item.get("view_count") or 0)
+        if score < minimum_score and views < int(source.get("minimumViews", 500)):
+            continue
+        signals.append(
+            {
+                "title": clean_text(item.get("title")),
+                "summary": " ".join(clean_text(tag) for tag in item.get("tags", [])),
+                "tags": [clean_text(tag) for tag in item.get("tags", []) if clean_text(tag)],
+                "url": clean_text(item.get("link")) or source["url"],
+                "publishedAt": datetime.fromtimestamp(
+                    int(item.get("creation_date") or 0), timezone.utc
+                ),
+                "points": score,
+                "views": views,
+                "answers": int(item.get("answer_count") or 0),
+                "sourceId": source["id"],
+                "sourceFamily": source.get("family", "stackexchange"),
+                "sourceLabel": source["label"],
+                "sourceWeight": float(source.get("weight", 22)),
+                "sourceType": "stackexchange",
+            }
+        )
+    return signals
+
+
+def fetch_youtube_popular(source: dict, timeout: int) -> list[dict]:
+    """Read a regional most-popular chart from YouTube Data API v3."""
+    env_key = clean_text(source.get("secretEnv", "YOUTUBE_API_KEY"))
+    api_key = os.environ.get(env_key, "").strip()
+    if not api_key:
+        raise MissingSourceSecret(env_key)
+    params = {
+        "part": "snippet,statistics",
+        "chart": "mostPopular",
+        "maxResults": min(50, max(1, int(source.get("maxItems", 25)))),
+        "regionCode": source.get("regionCode", "US"),
+        "key": api_key,
+    }
+    category_id = clean_text(source.get("videoCategoryId"))
+    if category_id:
+        params["videoCategoryId"] = category_id
+    url = f"{source['url']}?{urllib.parse.urlencode(params)}"
+    payload = json.loads(http_get(url, timeout, "application/json"))
+    signals: list[dict] = []
+    for item in payload.get("items", [])[: int(source.get("maxItems", 25))]:
+        snippet = item.get("snippet", {})
+        stats = item.get("statistics", {})
+        video_id = clean_text(item.get("id"))
+        signals.append(
+            {
+                "title": clean_text(snippet.get("title")),
+                "summary": clean_text(snippet.get("description")),
+                "tags": [clean_text(tag) for tag in snippet.get("tags", []) if clean_text(tag)],
+                "url": f"https://www.youtube.com/watch?v={video_id}" if video_id else source["url"],
+                "publishedAt": parse_date(snippet.get("publishedAt")),
+                "views": int(stats.get("viewCount") or 0),
+                "likes": int(stats.get("likeCount") or 0),
+                "comments": int(stats.get("commentCount") or 0),
+                "sourceId": source["id"],
+                "sourceFamily": source.get("family", "youtube"),
+                "sourceLabel": source["label"],
+                "sourceWeight": float(source.get("weight", 30)),
+                "sourceType": "youtube_popular",
+            }
+        )
+    return signals
+
+
+def _allowed_source_url(url: str, allowed_domains: list[str]) -> bool:
+    try:
+        host = (urllib.parse.urlsplit(url).hostname or "").lower().strip(".")
+    except ValueError:
+        return False
+    if not host:
+        return False
+    for domain in allowed_domains:
+        domain = clean_text(domain).lower().strip(".")
+        if domain and (host == domain or host.endswith("." + domain)):
+            return True
+    return False
+
+
+def fetch_curated_watchlist(source: dict, timeout: int) -> list[dict]:
+    """Load manually verified signals from trend sites that offer no safe public API.
+
+    This deliberately avoids scraping TikTok Creative Center, Pinterest Trends,
+    Exploding Topics and Trend Hunter. A reviewer can place source-backed entries
+    in one local JSON file; the normal safety, taxonomy and product checks still run.
+    """
+    del timeout
+    relative = Path(clean_text(source.get("path", "config/external-trend-watchlist.json")))
+    path = (ROOT / relative).resolve()
+    if ROOT.resolve() not in path.parents:
+        raise ValueError("Curated watchlist path must stay inside the repository.")
+    payload = load_json(path, {"signals": []})
+    allowed_domains = [clean_text(x) for x in source.get("allowedDomains", [])]
+    signals: list[dict] = []
+    for index, item in enumerate(payload.get("signals", [])):
+        if not isinstance(item, dict) or not item.get("enabled", True):
+            continue
+        title = clean_text(item.get("title"))
+        url = clean_text(item.get("url"))
+        if not title or not url or not _allowed_source_url(url, allowed_domains):
+            continue
+        item_source = clean_text(item.get("source")) or "Curated trend source"
+        family = clean_text(item.get("family")) or urllib.parse.urlsplit(url).hostname or "curated"
+        signals.append(
+            {
+                "title": title,
+                "summary": clean_text(item.get("summary")),
+                "tags": [clean_text(tag) for tag in item.get("tags", []) if clean_text(tag)],
+                "url": url,
+                "publishedAt": parse_date(item.get("observedAt")) or now_utc(),
+                "verified": bool(item.get("verified", False)),
+                "sourceId": clean_text(item.get("id")) or f"curated-{index + 1}",
+                "sourceFamily": normalise(family).replace(" ", "-") or "curated",
+                "sourceLabel": item_source,
+                "sourceWeight": float(item.get("weight", source.get("weight", 32))),
+                "sourceType": "curated_watchlist",
+            }
+        )
+    return signals
 
 def traffic_value(value: object) -> int:
     raw = clean_text(value).upper().replace(",", "")
@@ -374,12 +586,19 @@ def software_category_match(
 ) -> Optional[dict]:
     """Classify commercial software signals without accepting generic news.
 
-    This fallback is limited to Product Hunt and Hacker News. It requires both
-    a software descriptor and a category-specific term, so generic words such
+    This fallback is limited to approved technology/community source types. It
+    requires both a software descriptor and a category-specific term, so generic words such
     as "AI", "app" or "platform" cannot create a candidate alone.
     """
     source_id = clean_text(signal.get("sourceId"))
-    if source_id not in {"product-hunt", "hacker-news"}:
+    source_type = clean_text(signal.get("sourceType"))
+    eligible_types = {
+        "github_search",
+        "stackexchange",
+        "youtube_popular",
+        "curated_watchlist",
+    }
+    if source_id not in {"product-hunt", "hacker-news"} and source_type not in eligible_types:
         return None
 
     title = normalise(signal.get("title"))
@@ -472,12 +691,27 @@ def signal_strength(signal: dict, match: dict, config: dict) -> tuple[bool, list
     reasons: list[str] = []
     traffic = traffic_value(signal.get("traffic"))
     points = int(signal.get("points") or 0)
+    stars = int(signal.get("stars") or 0)
+    views = int(signal.get("views") or 0)
+    likes = int(signal.get("likes") or 0)
     source_id = str(signal.get("sourceId") or "")
+    source_type = str(signal.get("sourceType") or "")
 
     if traffic >= int(evidence.get("strongGoogleTraffic", 5000)):
         reasons.append(f"search traffic {traffic}")
-    if points >= int(evidence.get("strongHackerNewsPoints", 80)):
+    if source_id == "hacker-news" and points >= int(evidence.get("strongHackerNewsPoints", 80)):
         reasons.append(f"Hacker News points {points}")
+    if source_type == "github_search" and stars >= int(evidence.get("strongGitHubStars", 250)):
+        reasons.append(f"GitHub stars {stars}")
+    if source_type == "stackexchange" and (
+        points >= int(evidence.get("strongStackExchangeScore", 18))
+        or views >= int(evidence.get("strongStackExchangeViews", 5000))
+    ):
+        reasons.append(f"Stack Exchange engagement {points} score / {views} views")
+    if source_type == "youtube_popular" and views >= int(evidence.get("strongYouTubeViews", 100000)):
+        reasons.append(f"YouTube views {views}")
+    if source_type == "curated_watchlist" and signal.get("verified"):
+        reasons.append("manually verified external trend source")
     if source_id == "product-hunt" and match.get("titleMatches"):
         reasons.append("precise Product Hunt title match")
     if (
@@ -492,10 +726,11 @@ def signal_strength(signal: dict, match: dict, config: dict) -> tuple[bool, list
         and points >= int(evidence.get("strongHackerNewsPoints", 80))
     ):
         reasons.append("high-engagement commercial software signal")
+    if likes >= int(evidence.get("strongYouTubeLikes", 5000)):
+        reasons.append(f"YouTube likes {likes}")
     if len(match.get("titleMatches", [])) >= 2:
         reasons.append("multiple precise title matches")
     return bool(reasons), reasons
-
 
 def commercial_score(signal: dict, match: dict, config: dict, current: datetime) -> dict:
     category = match["category"]
@@ -513,6 +748,17 @@ def commercial_score(signal: dict, match: dict, config: dict, current: datetime)
     points = int(signal.get("points") or 0)
     if points:
         score += min(14, math.log2(max(points, 2)) * 1.6)
+    stars = int(signal.get("stars") or 0)
+    if stars:
+        score += min(15, math.log10(max(stars, 10)) * 4.2)
+    views = int(signal.get("views") or 0)
+    if views:
+        score += min(14, math.log10(max(views, 10)) * 2.6)
+    likes = int(signal.get("likes") or 0)
+    if likes:
+        score += min(8, math.log10(max(likes, 10)) * 1.8)
+    if signal.get("verified"):
+        score += 5
 
     published = signal.get("publishedAt")
     age_hours = 24.0
@@ -527,7 +773,8 @@ def commercial_score(signal: dict, match: dict, config: dict, current: datetime)
         score += 5
     final = int(max(0, min(98, round(score))))
 
-    momentum = int(max(50, min(98, final + (4 if traffic >= 10000 else 0))))
+    momentum_boost = 4 if traffic >= 10000 or views >= 100000 or stars >= 500 else 0
+    momentum = int(max(50, min(98, final + momentum_boost)))
     buyer_intent = int(
         max(
             45,
@@ -597,8 +844,15 @@ def build_candidate(cluster: list[dict], current: datetime) -> dict:
         all_sources.append(
             {
                 "id": item["signal"].get("sourceId"),
+                "family": item["signal"].get("sourceFamily", item["signal"].get("sourceId")),
+                "type": item["signal"].get("sourceType"),
                 "label": item["signal"].get("sourceLabel"),
                 "url": item["signal"].get("url"),
+                "engagement": {
+                    key: item["signal"].get(key)
+                    for key in ("traffic", "points", "stars", "views", "likes", "comments")
+                    if item["signal"].get(key) not in (None, "", 0)
+                },
                 "observedAt": (
                     item["signal"]["publishedAt"].isoformat()
                     if isinstance(item["signal"].get("publishedAt"), datetime)
@@ -611,6 +865,9 @@ def build_candidate(cluster: list[dict], current: datetime) -> dict:
         all_product_terms.extend(item["match"]["productTerms"])
 
     distinct_sources = {str(item.get("id")) for item in all_sources if item.get("id")}
+    distinct_source_families = {
+        str(item.get("family")) for item in all_sources if item.get("family")
+    }
     product_terms = unique_strings(all_product_terms)
     matched_terms = unique_strings(all_matched_terms)
     source_label = clean_text(signal.get("sourceLabel"))
@@ -659,7 +916,8 @@ def build_candidate(cluster: list[dict], current: datetime) -> dict:
         "sourceLabel": source_label,
         "sourceUrl": clean_text(signal.get("url")),
         "sourceEvidence": all_sources,
-        "corroborationCount": len(distinct_sources),
+        "sourceSignalCount": len(distinct_sources),
+        "corroborationCount": len(distinct_source_families),
         "strongSignal": any(item["strong"] for item in cluster),
         "strengthReasons": unique_strings(strength_reasons),
         "observedAt": observed.strftime("%d %B %Y"),
@@ -735,12 +993,27 @@ def main() -> int:
 
     source_report: list[dict] = []
     raw_signals: list[dict] = []
-    for source in config.get("sources", []):
-        if not source.get("enabled", True):
-            continue
+    enabled_sources = [source for source in config.get("sources", []) if source.get("enabled", True)]
+
+    def load_source(source: dict) -> tuple[list[dict], dict]:
+        source_type = clean_text(source.get("type", "rss"))
+        base_report = {
+            "id": source.get("id"),
+            "family": source.get("family", source.get("id")),
+            "type": source_type,
+            "label": source.get("label", source.get("id", "Unknown source")),
+        }
         try:
-            if source.get("type") == "hacker_news":
+            if source_type == "hacker_news":
                 signals = fetch_hacker_news(source, timeout)
+            elif source_type == "github_search":
+                signals = fetch_github_search(source, timeout)
+            elif source_type == "stackexchange":
+                signals = fetch_stackexchange(source, timeout)
+            elif source_type == "youtube_popular":
+                signals = fetch_youtube_popular(source, timeout)
+            elif source_type == "curated_watchlist":
+                signals = fetch_curated_watchlist(source, timeout)
             else:
                 payload = http_get(
                     source["url"],
@@ -748,12 +1021,18 @@ def main() -> int:
                     "application/rss+xml,application/atom+xml,application/xml,text/xml,*/*",
                 )
                 signals = parse_rss(payload, source)
-            raw_signals.extend(signals)
-            source_report.append({"label": source["label"], "status": "processed", "signals": len(signals)})
+            return signals, {**base_report, "status": "processed", "signals": len(signals)}
+        except MissingSourceSecret as exc:
+            return [], {**base_report, "status": "skipped-missing-secret", "secret": str(exc)}
         except Exception as exc:
-            source_report.append(
-                {"label": source["label"], "status": "error", "errorType": type(exc).__name__}
-            )
+            return [], {**base_report, "status": "error", "errorType": type(exc).__name__}
+
+    if enabled_sources:
+        workers = min(max(1, int(config.get("sourceWorkers", 7))), len(enabled_sources))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+            for signals, report_item in executor.map(load_source, enabled_sources):
+                raw_signals.extend(signals)
+                source_report.append(report_item)
 
     counters = {
         "rawSignals": len(raw_signals),
@@ -860,9 +1139,19 @@ def main() -> int:
             for item in cluster
             if item["signal"].get("sourceId")
         }
+        distinct_families = {
+            str(item["signal"].get("sourceFamily") or item["signal"].get("sourceId"))
+            for item in cluster
+            if item["signal"].get("sourceFamily") or item["signal"].get("sourceId")
+        }
         has_strong = any(item["strong"] for item in cluster)
-        minimum_sources = int(config.get("evidenceRules", {}).get("minimumDistinctSources", 2))
-        if not has_strong and len(distinct_sources) < minimum_sources:
+        minimum_sources = int(
+            config.get("evidenceRules", {}).get(
+                "minimumDistinctSourceFamilies",
+                config.get("evidenceRules", {}).get("minimumDistinctSources", 2),
+            )
+        )
+        if not has_strong and len(distinct_families) < minimum_sources:
             counters["insufficientEvidence"] += len(cluster)
             for item in cluster:
                 rejections.append(
@@ -870,7 +1159,8 @@ def main() -> int:
                         item["signal"],
                         "insufficient-source-evidence",
                         {
-                            "distinctSources": len(distinct_sources),
+                            "distinctSignals": len(distinct_sources),
+                            "distinctSourceFamilies": len(distinct_families),
                             "strongSignal": has_strong,
                         },
                     )
@@ -942,13 +1232,13 @@ def main() -> int:
     counters["publishedApprovedTrends"] = len(published)
 
     output = {
-        "version": config.get("version", "0.5.3"),
+        "version": config.get("version", "0.8.0"),
         "generatedAt": current.isoformat(),
         "publicationMode": "manual-review",
         "trends": published,
     }
     review_output = {
-        "version": config.get("version", "0.5.3"),
+        "version": config.get("version", "0.8.0"),
         "generatedAt": current.isoformat(),
         "reviewQueue": pending,
         "instructions": (
@@ -957,7 +1247,7 @@ def main() -> int:
         ),
     }
     rejection_output = {
-        "version": config.get("version", "0.5.3"),
+        "version": config.get("version", "0.8.0"),
         "generatedAt": current.isoformat(),
         "samples": rejections[: int(config.get("maxRejectionSamples", 60))],
         "topUnclassifiedTerms": top_unclassified_terms(rejections),
@@ -967,7 +1257,7 @@ def main() -> int:
         ),
     }
     report = {
-        "version": config.get("version", "0.5.3"),
+        "version": config.get("version", "0.8.0"),
         "generatedAt": current.isoformat(),
         "publicationMode": "manual-review",
         "sources": source_report,
@@ -995,7 +1285,7 @@ def main() -> int:
         + json.dumps(
             {
                 "generatedAt": current.isoformat(),
-                "version": config.get("version", "0.5.3"),
+                "version": config.get("version", "0.8.0"),
                 "publicationMode": "manual-review",
             },
             ensure_ascii=False,

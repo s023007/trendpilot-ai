@@ -39,3 +39,13 @@ matches and three valid affiliate routes. Accessory-only, replacement-part and
 weak-title products are held or rejected through configurable rules that work
 across Admitad, CJ, Awin, Impact, PartnerStack, direct programmes and future
 CSV/XML sources.
+
+## v2.4.0 — Multi-Source Trend Intelligence
+
+Trend discovery now uses independent source families instead of treating multiple
+Google regions as multiple websites. The engine adds GitHub Search and Stack
+Exchange signals, optional YouTube most-popular data, and a safe curated watchlist
+for public trend pages that do not expose a suitable API. Sources are fetched in
+parallel, commercial and product evidence remains mandatory, and review.html now
+shows source evidence before approval. See TREND-SOURCES-GUIDE.txt.
+
