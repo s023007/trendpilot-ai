@@ -514,6 +514,27 @@
     document.getElementById("whyNow").textContent = trend.whyNow || trend.summary || "Demand and product availability are being tracked.";
     document.getElementById("monetisationNote").textContent = `${offers.length} precise product offer${offers.length === 1 ? "" : "s"} currently published.`;
 
+    const sourceEvidencePanel = document.getElementById("trendSourceEvidence");
+    if (sourceEvidencePanel) {
+      const evidence = Array.isArray(trend.sourceEvidence)
+        ? trend.sourceEvidence
+        : (trend.sourceLabel ? [{ label: trend.sourceLabel, url: trend.sourceUrl || "" }] : []);
+      const unique = [];
+      const seen = new Set();
+      evidence.forEach((item) => {
+        const label = String(item?.label || item?.family || item?.id || "Trend source").trim();
+        const key = label.toLowerCase();
+        if (!label || seen.has(key)) return;
+        seen.add(key);
+        unique.push({ label, url: validHttpUrl(item?.url) ? item.url : "" });
+      });
+      if (unique.length) {
+        sourceEvidencePanel.innerHTML = `<div class="trend-source-title">Evidence from ${Math.max(1, Number(trend.corroborationCount) || unique.length)} source famil${(Number(trend.corroborationCount) || unique.length) === 1 ? "y" : "ies"}</div><div class="trend-source-list">${unique.map((item) => item.url ? `<a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${escapeHtml(item.label)} ↗</a>` : `<span>${escapeHtml(item.label)}</span>`).join("")}</div>`;
+      } else {
+        sourceEvidencePanel.classList.add("hidden");
+      }
+    }
+
     const media = document.getElementById("trendHeroMedia");
     media.innerHTML = `${mediaMarkup(best, "hero")}<div class="hero-media-caption"><span>Best ranked offer</span><strong>${escapeHtml(best.name)}</strong><small>${escapeHtml(sourceLabel(best))}</small></div>`;
 
