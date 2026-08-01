@@ -16,7 +16,7 @@ concurrency:
 jobs:
   discover-and-match:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 75
 
     steps:
       - name: Check out repository
@@ -223,111 +223,136 @@ jobs:
           PY
 
 
-      - name: Download Joom GB XML feed privately
+      - name: Stream first 100000 Joom offers privately
         env:
           JOOM_GB_XML_URL: ${{ secrets.JOOM_GB_XML_URL }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p automation/cache
+          rm -f automation/cache/joom-gb.xml
 
           if [ -z "${JOOM_GB_XML_URL:-}" ]; then
             echo "JOOM_GB_XML_URL is missing."
             exit 1
           fi
 
-          TMP_FILE="$(mktemp)"
-          DEST_FILE="automation/cache/joom-gb.xml"
-
-          curl \
-            --fail \
-            --location \
-            --globoff \
-            --compressed \
-            --retry 3 \
-            --retry-delay 4 \
-            --connect-timeout 30 \
-            --max-time 900 \
-            --user-agent "Mozilla/5.0 TrendPilotAI/1.0" \
-            --output "$TMP_FILE" \
-            "$JOOM_GB_XML_URL"
-
-          python - "$TMP_FILE" "$DEST_FILE" <<'PY'
+          python - <<'PY'
           import gzip
-          import shutil
-          import sys
-          import zipfile
+          import os
+          import urllib.parse
+          import urllib.request
           import xml.etree.ElementTree as ET
           from pathlib import Path
 
-          src = Path(sys.argv[1])
-          dst = Path(sys.argv[2])
+          LIMIT = 100000
+          OUTPUT = Path("automation/cache/joom-gb.xml")
 
-          if src.stat().st_size < 1024:
-              raise SystemExit("Joom feed download is unexpectedly small.")
+          def safe_url(value: str) -> str:
+              value = value.strip()
+              for invisible in ("\u200b", "\u200c", "\u200d", "\ufeff"):
+                  value = value.replace(invisible, "")
 
-          with src.open("rb") as fh:
-              magic = fh.read(4)
+              parts = urllib.parse.urlsplit(value)
+              host = (parts.hostname or "").encode("idna").decode("ascii")
+              netloc = host
 
-          if magic[:2] == b"\x1f\x8b":
-              with gzip.open(src, "rb") as source, dst.open("wb") as target:
-                  shutil.copyfileobj(source, target, length=1024 * 1024)
+              if parts.port:
+                  netloc += f":{parts.port}"
 
-          elif magic[:2] == b"PK":
-              with zipfile.ZipFile(src) as zf:
-                  candidates = [
-                      info for info in zf.infolist()
-                      if not info.is_dir()
-                      and info.filename.lower().endswith((".xml", ".xml.gz"))
-                  ]
-                  if not candidates:
-                      raise SystemExit("Joom ZIP contains no XML feed.")
-                  chosen = max(candidates, key=lambda item: item.file_size)
-                  with zf.open(chosen) as source, dst.open("wb") as target:
-                      shutil.copyfileobj(source, target, length=1024 * 1024)
+              if parts.username:
+                  user = urllib.parse.quote(parts.username, safe="%")
+                  if parts.password:
+                      password = urllib.parse.quote(parts.password, safe="%")
+                      netloc = f"{user}:{password}@{netloc}"
+                  else:
+                      netloc = f"{user}@{netloc}"
 
-          else:
-              shutil.move(str(src), str(dst))
-
-          with dst.open("rb") as fh:
-              probe = fh.read(4096).lstrip().lower()
-
-          if probe.startswith(b"<!doctype html") or probe.startswith(b"<html"):
-              raise SystemExit(
-                  "Joom URL returned HTML instead of the XML feed. "
-                  "Regenerate the GB XML link in Admitad and update JOOM_GB_XML_URL."
+              return urllib.parse.urlunsplit(
+                  (
+                      parts.scheme,
+                      netloc,
+                      urllib.parse.quote(
+                          parts.path,
+                          safe="/%:@!$&'()*+,;=-._~",
+                      ),
+                      urllib.parse.quote(
+                          parts.query,
+                          safe="=&%/:?+,$;@-._~!()*'[]",
+                      ),
+                      "",
+                  )
               )
 
-          # Validate the discovered structure without loading the large file in memory.
-          seen_offer = False
-          fields = set()
-          for _, element in ET.iterparse(dst, events=("end",)):
-              tag = str(element.tag).rsplit("}", 1)[-1].lower()
-              if tag != "offer":
-                  continue
-              seen_offer = True
-              for child in list(element):
-                  fields.add(str(child.tag).rsplit("}", 1)[-1])
-              fields.update(
-                  str(key).rsplit("}", 1)[-1]
-                  for key in element.attrib
-              )
-              element.clear()
-              break
+          url = safe_url(os.environ["JOOM_GB_XML_URL"])
+          request = urllib.request.Request(
+              url,
+              headers={
+                  "User-Agent": "Mozilla/5.0 TrendPilotAI-JoomStream/1.0",
+                  "Accept": "application/xml,text/xml,text/plain,*/*",
+                  "Accept-Encoding": "gzip",
+              },
+          )
 
-          required = {
-              "id", "name", "url", "availability",
-              "categoryId", "currencyId", "picture", "price", "vendor"
-          }
+          count = 0
 
-          if not seen_offer or not required.issubset(fields):
-              raise SystemExit(
-                  "Joom XML structure does not match the successful probe. "
-                  f"Detected fields: {sorted(fields)}"
+          with urllib.request.urlopen(request, timeout=120) as response:
+              content_encoding = (
+                  response.headers.get("Content-Encoding", "").lower()
               )
 
-          print(f"Joom GB XML downloaded: {dst.stat().st_size:,} bytes")
-          print("Joom XML structure: verified <offer> records")
+              stream = (
+                  gzip.GzipFile(fileobj=response)
+                  if "gzip" in content_encoding
+                  else response
+              )
+
+              with OUTPUT.open("wb") as target:
+                  target.write(
+                      b'<?xml version="1.0" encoding="UTF-8"?>\n'
+                      b"<catalog><offers>\n"
+                  )
+
+                  try:
+                      for _, element in ET.iterparse(
+                          stream,
+                          events=("end",),
+                      ):
+                          tag = str(element.tag).rsplit("}", 1)[-1]
+
+                          if tag != "offer":
+                              element.clear()
+                              continue
+
+                          target.write(
+                              ET.tostring(
+                                  element,
+                                  encoding="utf-8",
+                              )
+                          )
+                          target.write(b"\n")
+                          count += 1
+                          element.clear()
+
+                          if count >= LIMIT:
+                              break
+                  except ET.ParseError as exc:
+                      if count == 0:
+                          raise SystemExit(
+                              f"Joom did not return a valid XML feed: {exc}"
+                          )
+
+                  target.write(b"</offers></catalog>\n")
+
+          if count == 0:
+              raise SystemExit("No Joom offers were found in the feed.")
+
+          print(f"Joom offers saved: {count:,}")
+          print(f"Trimmed Joom XML size: {OUTPUT.stat().st_size:,} bytes")
+          print(
+              "Stopped reading the remote feed after the configured "
+              "100,000 offers."
+          )
           PY
 
       - name: Raise private catalogue limit for Joom
