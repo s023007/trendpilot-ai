@@ -1,0 +1,19 @@
+{
+  "version": "2.3.1",
+  "rootCause": "Literal escaped newlines made the complete v2.3 CSS block invalid.",
+  "validated": {
+    "javascriptSyntax": true,
+    "cssParsing": true,
+    "literalEscapedNewlinesRemaining": 0,
+    "pagesCacheBusted": 5
+  },
+  "files": [
+    "index.html",
+    "trends.html",
+    "trend.html",
+    "stores.html",
+    "store.html",
+    "css/style.css",
+    "js/app.js"
+  ]
+}

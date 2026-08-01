@@ -1,21 +1,31 @@
-TrendPilot AI v2.3 — compact filters + Explore by Store
+TrendPilot AI — professional UI repair v2.3.1
 
-Upload/replace:
-- index.html
-- trends.html
-- trend.html
-- stores.html (new)
-- store.html (new)
-- js/app.js
-- css/style.css
+The problem was in css/style.css:
+the v2.3 store/filter CSS was saved with literal \n characters instead of real
+line breaks. Browsers ignored that entire block, so store cards appeared as raw,
+unstyled text.
 
-Do not change GitHub Actions, Secrets, config files, or generated data.
-No Action run is required; this is a public-interface update.
+Upload and replace these files:
+1. index.html
+2. trends.html
+3. trend.html
+4. stores.html
+5. store.html
+6. css/style.css
+7. js/app.js
 
-After upload, open the site in a private tab.
-Expected:
-1. On mobile, the trends page shows only a compact search + Filters button.
-2. Category choices open from the bottom and close after selection.
-3. The homepage has Best picks by source, Explore by Store and verified deals (when available).
-4. stores.html lists all active published sources.
-5. store.html?store=joom (or another slug) shows top picks, search, categories and Load more.
+Do not change:
+- GitHub Actions workflow
+- Secrets
+- config/
+- data/
+- generated product files
+
+No Action run is required.
+
+After upload:
+- Open the site in a private/incognito tab.
+- stores.html should show professional cards, not loose text.
+- store.html should show a compact branded store header and product cards.
+- Mobile filters should remain closed until the Filters button is pressed.
+- CSS and JS cache versions should show v2.3.1.
