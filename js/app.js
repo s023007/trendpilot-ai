@@ -1,4 +1,4 @@
-// TrendPilot AI v2.0.0 — bright product-first public experience
+// TrendPilot AI v2.2.0 — product-first experience with source visibility
 (() => {
   "use strict";
 
@@ -97,9 +97,29 @@
       || (Number(b.offerQuality) || 0) - (Number(a.offerQuality) || 0);
   });
 
+  // Keep ranking product-first, but create a separate homepage collection
+  // containing the strongest verified product from every published advertiser.
+  function bestOfferFromEachAdvertiser(offers) {
+    const selected = new Map();
+    offers.forEach((offer) => {
+      const label = cleanName(offer.advertiser || offer.network || "Verified source");
+      const key = label.toLowerCase();
+      if (!selected.has(key)) selected.set(key, offer);
+    });
+    return [...selected.values()];
+  }
+
+  const sourceShowcaseOffers = bestOfferFromEachAdvertiser(allOffers);
+
   function formatPrice(offer) {
-    const price = Number(offer.price);
-    if (!Number.isFinite(price) || price < 0) return "Check current price";
+    const rawPrice = offer.price;
+    if (rawPrice === null || rawPrice === undefined || String(rawPrice).trim() === "") {
+      return offer.direct ? "View plans" : "Check current price";
+    }
+    const price = Number(rawPrice);
+    if (!Number.isFinite(price) || price <= 0) {
+      return offer.direct ? "View plans" : "Check current price";
+    }
     return `${offer.currency || "USD"} ${price.toFixed(2)}`;
   }
 
@@ -227,6 +247,13 @@
 
     const offersGrid = document.getElementById("topOffersGrid");
     if (offersGrid) offersGrid.innerHTML = allOffers.slice(0, 8).map((offer, index) => offerCard(offer, index + 1)).join("");
+
+    const sourceGrid = document.getElementById("sourceOfferGrid");
+    if (sourceGrid) {
+      sourceGrid.innerHTML = sourceShowcaseOffers.length
+        ? sourceShowcaseOffers.map((offer, index) => offerCard(offer, index + 1)).join("")
+        : `<div class="safe-empty-card"><strong>No source has a published product yet</strong><span>A source appears here only after one exact product passes matching and link validation.</span></div>`;
+    }
   }
 
   function renderTrendsPage() {
