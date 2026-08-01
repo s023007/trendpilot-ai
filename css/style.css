@@ -2108,3 +2108,10 @@ body.drawer-open { overflow: hidden; }
     top: 74px;
   }
 }
+
+/* v2.4.0 — multi-source trend evidence */
+.trend-source-evidence{margin-top:1rem;padding-top:1rem;border-top:1px solid var(--line,#dde3ef)}
+.trend-source-title{font-size:.78rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted,#667085);margin-bottom:.65rem}
+.trend-source-list{display:flex;flex-wrap:wrap;gap:.5rem}
+.trend-source-list a,.trend-source-list span{display:inline-flex;align-items:center;max-width:100%;padding:.45rem .7rem;border:1px solid var(--line,#dde3ef);border-radius:999px;background:rgba(124,85,255,.06);color:inherit;text-decoration:none;font-size:.82rem;line-height:1.2}
+.trend-source-list a:hover{border-color:#7c55ff;transform:translateY(-1px)}
