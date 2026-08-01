@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7f9ff">
+  <meta id="metaDescription" name="description" content="Verified store products from TrendPilot AI.">
+  <title>Verified Store Products — TrendPilot AI</title>
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css?v=2.3.0">
+</head>
+<body class="bright-site page-store">
+<header class="site-header"><div class="container nav-wrap">
+  <a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="40" height="40"><span>TrendPilot <strong>AI</strong></span></a>
+  <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+  <nav class="main-nav" id="mainNav"><a href="index.html">Home</a><a href="trends.html">Verified trends</a><a href="stores.html">Explore stores</a><a href="index.html#topOffers">Best offers</a></nav>
+</div></header>
+<main id="storePage">
+  <section class="store-hero section">
+    <div class="container store-hero-grid">
+      <div class="store-avatar-large" id="storeAvatar">TP</div>
+      <div class="store-hero-copy">
+        <a class="back-link-v2" href="stores.html">← Explore stores</a>
+        <span class="kicker">Verified source collection</span>
+        <h1 id="storeName">Store</h1>
+        <p id="storeDescription"></p>
+        <div class="store-hero-stats"><div><strong id="storePublishedCount">0</strong><span>published products</span></div><div><strong id="storeCategoryCount">0</strong><span>active categories</span></div><div><strong>100%</strong><span>precise destinations</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section-tight">
+    <div class="container">
+      <div class="section-heading-v2"><div><span class="kicker">Top picks</span><h2>Strongest verified products from <span id="storeTopName">this source</span></h2></div><p>Ranked by match quality and offer quality, not by catalogue size.</p></div>
+      <div class="offer-grid" id="storeTopGrid"></div>
+    </div>
+  </section>
+
+  <section class="section section-soft">
+    <div class="container">
+      <div class="section-heading-v2"><div><span class="kicker">Browse the collection</span><h2>Find the product that fits your intent</h2></div><p>Use a keyword, category or useful price view. More products appear in groups of twelve.</p></div>
+      <div class="store-browse-toolbar">
+        <label class="search-box-v2"><span>⌕</span><input id="storeSearch" type="search" placeholder="Search this store…" autocomplete="off"></label>
+        <label class="store-sort-label"><span>View</span><select id="storeSort"><option value="featured">Featured</option><option value="best-value">Best value</option><option value="deals">Deals only</option><option value="under-25">Under 25</option><option value="all">All verified</option></select></label>
+        <button class="filter-toggle-v3" id="storeFilterToggle" type="button" aria-controls="storeFilterDrawer" aria-expanded="false"><span>Categories</span><strong id="storeActiveFilter">All</strong></button>
+        <div class="filter-backdrop-v3" id="storeFilterBackdrop"></div>
+        <aside class="filter-drawer-v3 store-filter-drawer" id="storeFilterDrawer" aria-hidden="true">
+          <div class="filter-drawer-head"><div><span class="mini-label">Store categories</span><h2>Filter products</h2></div><button id="storeFilterClose" type="button" aria-label="Close filters">×</button></div>
+          <div class="filter-buttons-v2" id="storeFilters"></div>
+        </aside>
+      </div>
+      <div class="browse-result-line"><span id="storeResultCount">0 products</span><small>Only currently published verified matches</small></div>
+      <div class="offer-grid" id="storeProductGrid"></div>
+      <div class="empty-state-v2 hidden" id="storeEmpty"><div>⌕</div><h2>No matching product</h2><p>Try another keyword, category or view.</p></div>
+      <div class="centre-action"><button class="button button-outline hidden" id="storeLoadMore" type="button">Load 12 more</button></div>
+    </div>
+  </section>
+</main>
+<footer class="site-footer site-footer-v2"><div class="container footer-bottom"><span>© <span id="currentYear"></span> TrendPilot AI.</span><a href="stores.html">Explore another store</a></div></footer>
+<script src="js/data.js"></script><script src="js/trends-data.js"></script><script src="js/discovered-trends.js"></script><script src="js/affiliate-links.js"></script><script src="js/matched-products.js"></script><script src="js/app.js?v=2.3.0"></script>
+</body>
+</html>

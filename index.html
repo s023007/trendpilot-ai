@@ -11,7 +11,7 @@
   <meta property="og:type" content="website">
   <title>TrendPilot AI — Verified Trend Products</title>
   <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=2.0.0">
+  <link rel="stylesheet" href="css/style.css?v=2.3.0">
 </head>
 <body class="bright-site page-home">
 <header class="site-header" id="top">
@@ -24,6 +24,7 @@
     <nav class="main-nav" id="mainNav" aria-label="Primary navigation">
       <a href="index.html">Home</a>
       <a href="trends.html">Verified trends</a>
+      <a href="stores.html">Explore stores</a>
       <a href="#topOffers">Best offers</a>
       <a href="#howItWorks">How it works</a>
       <a href="affiliate-programs.html">Affiliate programmes</a>
@@ -79,10 +80,31 @@
   <section class="section section-soft" id="publishedSources">
     <div class="container">
       <div class="section-heading-v2 reveal">
-        <div><span class="kicker">Published source coverage</span><h2>Best verified product from every active source</h2></div>
-        <p>Joom, Geekbuying and other stores appear here when at least one exact product passes matching and destination validation. A large imported feed alone does not make products public.</p>
+        <div><span class="kicker">Best picks by source</span><h2>One strong verified pick from every active source</h2></div>
+        <p>Explore source coverage without changing the product-first ranking used inside every trend.</p>
       </div>
-      <div class="offer-grid" id="sourceOfferGrid"></div>
+      <div class="offer-grid source-offer-carousel" id="sourceOfferGrid"></div>
+    </div>
+  </section>
+
+  <section class="section" id="exploreStores">
+    <div class="container">
+      <div class="section-heading-v2 reveal">
+        <div><span class="kicker">Explore by store</span><h2>Browse verified products from a source you trust</h2></div>
+        <p>Each store card shows only products already published by TrendPilot, with its strongest categories and top picks.</p>
+      </div>
+      <div class="store-directory-grid" id="storeDirectoryGrid"></div>
+      <div class="centre-action"><a class="button button-outline" href="stores.html">View all stores</a></div>
+    </div>
+  </section>
+
+  <section class="section section-soft hidden" id="bestDealsSection">
+    <div class="container">
+      <div class="section-heading-v2 reveal">
+        <div><span class="kicker">Verified discounts</span><h2>Best deals in the current published catalogue</h2></div>
+        <p>Shown only when a current price is lower than a supplied old price or a real discount is available.</p>
+      </div>
+      <div class="offer-grid" id="bestDealsGrid"></div>
     </div>
   </section>
 
@@ -103,7 +125,7 @@
 <footer class="site-footer site-footer-v2">
   <div class="container footer-grid">
     <div class="footer-brand"><a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="36" height="36"><span>TrendPilot <strong>AI</strong></span></a><p>Useful trend intelligence connected to precise product destinations.</p></div>
-    <div class="footer-links"><div><strong>Explore</strong><a href="trends.html">Verified trends</a><a href="#topOffers">Best offers</a><a href="affiliate-programs.html">Affiliate programmes</a></div><div><strong>Legal</strong><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div></div>
+    <div class="footer-links"><div><strong>Explore</strong><a href="trends.html">Verified trends</a><a href="stores.html">Explore stores</a><a href="#topOffers">Best offers</a><a href="affiliate-programs.html">Affiliate programmes</a></div><div><strong>Legal</strong><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div></div>
   </div>
   <div class="container footer-bottom"><span>© <span id="currentYear"></span> TrendPilot AI.</span><span>Verified product data refreshed by GitHub Actions.</span></div>
 </footer>
@@ -114,6 +136,6 @@
 <script src="js/networks-data.js"></script>
 <script src="js/affiliate-links.js"></script>
 <script src="js/matched-products.js"></script>
-<script src="js/app.js?v=2.2.0"></script>
+<script src="js/app.js?v=2.3.0"></script>
 </body>
 </html>

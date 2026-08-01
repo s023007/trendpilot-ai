@@ -1,31 +1,21 @@
-TrendPilot AI — source visibility fix v2.2
+TrendPilot AI v2.3 — compact filters + Explore by Store
 
-Upload and replace these four files using the same paths:
+Upload/replace:
+- index.html
+- trends.html
+- trend.html
+- stores.html (new)
+- store.html (new)
+- js/app.js
+- css/style.css
 
-1. index.html
-2. trends.html
-3. trend.html
-4. js/app.js
+Do not change GitHub Actions, Secrets, config files, or generated data.
+No Action run is required; this is a public-interface update.
 
-Do not change:
-- GitHub Actions workflow
-- any Secret
-- config/
-- data/
-- js/matched-products.js
-
-Changes:
-- Adds a homepage section showing the strongest published product from every advertiser.
-- Joom and Geekbuying are no longer visually buried by many cards from a larger source.
-- Product-first ranking inside every trend remains unchanged.
-- Unknown prices no longer show as USD 0.00.
-- Browser cache version is updated to v2.2.0.
-
-After upload:
-1. Open the website in a private tab or refresh it strongly.
-2. No GitHub Action run is required for this visual-only update.
-3. The new “Published source coverage” section shows one card for every advertiser
-   that currently has at least one published verified offer.
-
-A source with thousands of imported products will remain absent when none of its
-products has passed trend matching, approval and exact-link validation. This is intentional.
+After upload, open the site in a private tab.
+Expected:
+1. On mobile, the trends page shows only a compact search + Filters button.
+2. Category choices open from the bottom and close after selection.
+3. The homepage has Best picks by source, Explore by Store and verified deals (when available).
+4. stores.html lists all active published sources.
+5. store.html?store=joom (or another slug) shows top picks, search, categories and Load more.

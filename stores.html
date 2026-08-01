@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f7f9ff">
+  <meta name="description" content="Explore verified products grouped by store, without changing TrendPilot's product-first ranking.">
+  <title>Explore Verified Stores — TrendPilot AI</title>
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="css/style.css?v=2.3.0">
+</head>
+<body class="bright-site page-stores">
+<header class="site-header"><div class="container nav-wrap">
+  <a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="40" height="40"><span>TrendPilot <strong>AI</strong></span></a>
+  <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+  <nav class="main-nav" id="mainNav"><a href="index.html">Home</a><a href="trends.html">Verified trends</a><a href="stores.html">Explore stores</a><a href="index.html#topOffers">Best offers</a></nav>
+</div></header>
+<main>
+  <section class="subpage-hero-v2 section">
+    <div class="container subpage-hero-grid">
+      <div><span class="kicker">Explore by store</span><h1>Choose a source, then browse only its verified products.</h1><p>Imported catalogue size does not decide visibility. These pages contain only products already matched to a useful trend and approved for a precise destination.</p></div>
+      <div class="verified-seal"><strong id="verifiedStoreCount">0</strong><span>active sources</span><small>published products only</small></div>
+    </div>
+  </section>
+  <section class="section section-tight">
+    <div class="container">
+      <div class="store-directory-grid store-directory-page" id="storeDirectoryPageGrid"></div>
+      <div class="empty-state-v2 hidden" id="storeDirectoryEmpty"><div>◎</div><h2>No published store yet</h2><p>A store appears after at least one exact product passes all checks.</p></div>
+    </div>
+  </section>
+</main>
+<footer class="site-footer site-footer-v2"><div class="container footer-bottom"><span>© <span id="currentYear"></span> TrendPilot AI.</span><a href="trends.html">Browse verified trends</a></div></footer>
+<script src="js/data.js"></script><script src="js/trends-data.js"></script><script src="js/discovered-trends.js"></script><script src="js/affiliate-links.js"></script><script src="js/matched-products.js"></script><script src="js/app.js?v=2.3.0"></script>
+</body>
+</html>

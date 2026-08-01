@@ -1,0 +1,22 @@
+{
+  "version": "2.3.0",
+  "purpose": "Compact mobile filters and verified store browsing",
+  "files": [
+    "index.html",
+    "trends.html",
+    "trend.html",
+    "stores.html",
+    "store.html",
+    "css/style.css",
+    "js/app.js",
+    "UPLOAD-STEPS.txt"
+  ],
+  "features": [
+    "Mobile category filters open as a bottom sheet and close after selection",
+    "Best picks by source uses a horizontal mobile carousel",
+    "Explore by Store cards show published counts, categories and top products",
+    "Dedicated stores.html directory",
+    "Dedicated store.html page with search, category filters, useful views and load more",
+    "Verified deals section appears only when genuine discount data exists"
+  ]
+}
