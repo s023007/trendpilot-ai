@@ -1,6 +1,6 @@
 {
   "version": "0.8.0",
-  "generatedAt": "2026-08-03T06:01:13+00:00",
+  "generatedAt": "2026-08-02T05:45:09+00:00",
   "publicationMode": "manual-review",
   "sources": [
     {
@@ -89,7 +89,7 @@
       "type": "stackexchange",
       "label": "Stack Overflow — hot questions",
       "status": "processed",
-      "signals": 4
+      "signals": 5
     },
     {
       "id": "youtube-tech-us",
@@ -109,16 +109,16 @@
     }
   ],
   "counters": {
-    "rawSignals": 194,
-    "blockedSignals": 9,
-    "nonCommercialSignals": 171,
+    "rawSignals": 195,
+    "blockedSignals": 4,
+    "nonCommercialSignals": 179,
     "softwareCommercialSignals": 12,
     "ambiguousSignals": 0,
-    "lowScoreSignals": 1,
-    "insufficientEvidence": 1,
+    "lowScoreSignals": 0,
+    "insufficientEvidence": 0,
     "unmonetisableSignals": 12,
     "noConfirmedAffiliateRoute": 12,
-    "projectOnlyWithoutAffiliateRoute": 6,
+    "projectOnlyWithoutAffiliateRoute": 5,
     "purgedStaleCandidates": 0,
     "reviewCandidates": 3,
     "readyForApproval": 2,

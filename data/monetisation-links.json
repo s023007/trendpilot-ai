@@ -1,0 +1,17 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-08-03",
+  "rules": {
+    "exactProductDestinationRequired": true,
+    "programmeCapabilityDoesNotProveLinkMode": true,
+    "artificialClicksForbidden": true,
+    "pendingProgrammesPublic": false
+  },
+  "programmes": [
+    {"programme":"AliExpress WW","status":"active","modelsAvailable":["CPC","CPA"],"currentRouteSource":"matched product feeds","linkModeVerified":false},
+    {"programme":"Joom Many GEOs","status":"active","modelsAvailable":["CPC","CPA"],"currentRouteSource":"matched product feeds","linkModeVerified":false},
+    {"programme":"Geekbuying WW","status":"active","modelsAvailable":["CPC","CPA"],"currentRouteSource":"matched product feeds","linkModeVerified":false},
+    {"programme":"Alibaba WW","status":"active","modelsAvailable":["CPC","CPA"],"currentRouteSource":"matched exact product feeds","linkModeVerified":false},
+    {"programme":"Wondershare WW","status":"active","modelsAvailable":["CPA"],"currentRouteSource":"official fallback until deeplink insertion","linkModeVerified":false}
+  ]
+}
