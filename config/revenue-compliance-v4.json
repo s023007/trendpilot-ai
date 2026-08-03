@@ -1,0 +1,22 @@
+{
+  "version": "4.0.0",
+  "updatedAt": "2026-08-03",
+  "principles": [
+    "editorial_order_excludes_commission",
+    "visitor_initiated_clicks_only",
+    "exact_product_or_official_plan_destination",
+    "no_hidden_or_misleading_links",
+    "sponsored_nofollow_noopener"
+  ],
+  "trackedEvent": "affiliate_outbound_click",
+  "fields": [
+    "page_path",
+    "advertiser",
+    "product_name",
+    "placement",
+    "revenue_model",
+    "link_state",
+    "destination_host"
+  ],
+  "notes": "Set ga4Id in js/site-config.js to enable GA4 measurement. CPC and CPA remain internal metadata and do not alter ranking."
+}

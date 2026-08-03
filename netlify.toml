@@ -7,28 +7,24 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-
-[[headers]]
-  for = "/css/*"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-
-[[headers]]
-  for = "/images/*"
-  [headers.values]
-    Cache-Control = "public, max-age=604800"
+    X-Frame-Options = "SAMEORIGIN"
 
 [[redirects]]
-  from = "/affiliate-programs.html"
-  to = "/affiliate-disclosure.html"
+  from = "/comparisons"
+  to = "/compare/"
   status = 301
 
 [[redirects]]
-  from = "/verified-trends"
-  to = "/trends.html"
+  from = "/electronics"
+  to = "/products/"
   status = 301
 
 [[redirects]]
-  from = "/*"
-  to = "/404.html"
-  status = 404
+  from = "/business"
+  to = "/sourcing/"
+  status = 301
+
+[[redirects]]
+  from = "/how-we-review"
+  to = "/editorial-methodology.html"
+  status = 301
