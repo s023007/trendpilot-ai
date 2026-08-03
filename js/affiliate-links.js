@@ -1,39 +1,42 @@
 window.TRENDPILOT_LINKS = {
-  "writesonic": {
+  "filmora": {
     "affiliateUrl": "",
-    "productUrl": "https://writesonic.com/",
-    "applicationUrl": "https://writesonic.com/affiliate"
+    "productUrl": "https://filmora.wondershare.com/",
+    "pricingUrl": "https://filmora.wondershare.com/shop/buy/buy-video-editor.html",
+    "applicationUrl": "https://www.admitad.com/"
   },
-  "elevenlabs": {
-    "affiliateUrl": "https://try.elevenlabs.io/p89acd4lpacm",
-    "productUrl": "https://elevenlabs.io/",
-    "applicationUrl": "https://elevenlabs.io/affiliates"
-  },
-  "scalenut": {
+  "pdfelement": {
     "affiliateUrl": "",
-    "productUrl": "https://www.scalenut.com/",
-    "applicationUrl": "https://www.scalenut.com/affiliate"
+    "productUrl": "https://pdf.wondershare.com/",
+    "applicationUrl": "https://www.admitad.com/"
   },
-  "synthesia": {
+  "recoverit": {
     "affiliateUrl": "",
-    "productUrl": "https://www.synthesia.io/",
-    "applicationUrl": "https://www.synthesia.io/partners/affiliates"
+    "productUrl": "https://recoverit.wondershare.com/",
+    "applicationUrl": "https://www.admitad.com/"
   },
-  "invideo": {
+  "drfone": {
     "affiliateUrl": "",
-    "productUrl": "https://invideo.io/",
-    "applicationUrl": "https://help.invideo.io/en/articles/9673802-is-there-a-referral-program-or-affiliate-rewards"
+    "productUrl": "https://drfone.wondershare.com/",
+    "applicationUrl": "https://www.admitad.com/"
   },
-  "pictory": {
+  "uniconverter": {
     "affiliateUrl": "",
-    "productUrl": "https://pictory.ai/",
-    "applicationUrl": "https://partners.pictory.ai/signup/40690"
+    "productUrl": "https://videoconverter.wondershare.com/",
+    "applicationUrl": "https://www.admitad.com/"
   },
-  "descript": {
+  "edrawmax": {
     "affiliateUrl": "",
-    "productUrl": "https://www.descript.com/",
-    "applicationUrl": "https://www.descript.com/affiliate"
-  }
+    "productUrl": "https://www.edrawsoft.com/edraw-max/",
+    "applicationUrl": "https://www.admitad.com/"
+  },
+  "writesonic": {"affiliateUrl":"","productUrl":"https://writesonic.com/","applicationUrl":"https://writesonic.com/affiliate"},
+  "elevenlabs": {"affiliateUrl":"https://try.elevenlabs.io/p89acd4lpacm","productUrl":"https://elevenlabs.io/","applicationUrl":"https://elevenlabs.io/affiliates"},
+  "scalenut": {"affiliateUrl":"","productUrl":"https://www.scalenut.com/","applicationUrl":"https://www.scalenut.com/affiliate"},
+  "synthesia": {"affiliateUrl":"","productUrl":"https://www.synthesia.io/","applicationUrl":"https://www.synthesia.io/partners/affiliates"},
+  "invideo": {"affiliateUrl":"","productUrl":"https://invideo.io/","applicationUrl":"https://help.invideo.io/en/articles/9673802-is-there-a-referral-program-or-affiliate-rewards"},
+  "pictory": {"affiliateUrl":"","productUrl":"https://pictory.ai/","applicationUrl":"https://partners.pictory.ai/signup/40690"},
+  "descript": {"affiliateUrl":"","productUrl":"https://www.descript.com/","applicationUrl":"https://www.descript.com/affiliate"}
 };
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -41,6 +44,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const row = window.TRENDPILOT_LINKS[a.dataset.affiliateKey];
     if (!row) return;
     a.href = row.affiliateUrl || row.productUrl;
+    a.target = "_blank";
+    a.rel = "sponsored nofollow noopener";
+    if (!row.affiliateUrl) a.dataset.linkState = "official-fallback";
+  });
+  document.querySelectorAll("[data-pricing-key]").forEach((a) => {
+    const row = window.TRENDPILOT_LINKS[a.dataset.pricingKey];
+    if (!row) return;
+    a.href = row.affiliateUrl || row.pricingUrl || row.productUrl;
     a.target = "_blank";
     a.rel = "sponsored nofollow noopener";
   });
