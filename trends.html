@@ -1,42 +1,43 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f7f9ff">
-  <meta name="description" content="Browse only verified trends that currently have precise, reachable product offers.">
-  <title>Verified Trends — TrendPilot AI</title>
-  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=2.4.0">
-</head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="#f7f9ff" name="theme-color"/>
+<meta content="Browse only verified trends that currently have precise, reachable product offers." name="description"/>
+<title>Verified Trends — TrendPilot AI</title>
+<link href="images/favicon.svg" rel="icon" type="image/svg+xml"/>
+<link href="css/style.css?v=3.0.0" rel="stylesheet"/>
+<link href="https://trendpilot-ai.netlify.app/trends.html" rel="canonical"/></head>
 <body class="bright-site page-trends">
 <header class="site-header"><div class="container nav-wrap">
-  <a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="40" height="40"><span>TrendPilot <strong>AI</strong></span></a>
-  <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
-  <nav class="main-nav" id="mainNav"><a href="index.html">Home</a><a href="trends.html">Verified trends</a><a href="stores.html">Explore stores</a><a href="index.html#topOffers">Best offers</a><a href="affiliate-programs.html">Affiliate programmes</a></nav>
+<a class="brand" href="index.html"><img alt="" height="40" src="images/logo.svg" width="40"/><span>TrendPilot <strong>AI</strong></span></a>
+<button aria-expanded="false" aria-label="Open navigation" class="menu-button" id="menuButton" type="button"><span></span><span></span><span></span></button>
+<nav aria-label="Primary navigation" class="main-nav" id="mainNav"><a href="index.html">Home</a><a href="products/index.html">Products</a><a href="compare/index.html">Comparisons</a><a href="software/index.html">Software</a><a href="sourcing/index.html">Business sourcing</a><a href="trends.html">Research radar</a></nav>
 </div></header>
 <main>
-  <section class="subpage-hero-v2 section">
-    <div class="container subpage-hero-grid">
-      <div><span class="kicker">Verified product trends</span><h1>Only trends with a useful next click.</h1><p>Research-only signals stay out of this public list. Every visible trend has at least one product that can be opened directly.</p></div>
-      <div class="verified-seal"><strong id="verifiedTrendCount">0</strong><span>live verified trends</span><small>updated automatically</small></div>
-    </div>
-  </section>
-  <section class="section section-tight">
-    <div class="container">
-      <div class="filter-panel-v3">
-        <label class="search-box-v2"><span>⌕</span><input id="trendSearch" type="search" placeholder="Search verified trends or products…" autocomplete="off"></label>
-        <button class="filter-toggle-v3" id="trendFilterToggle" type="button" aria-controls="trendFilterDrawer" aria-expanded="false"><span>Filters</span><strong id="trendActiveFilter">All</strong></button>
-        <div class="filter-backdrop-v3" id="trendFilterBackdrop"></div>
-        <aside class="filter-drawer-v3" id="trendFilterDrawer" aria-hidden="true">
-          <div class="filter-drawer-head"><div><span class="mini-label">Browse categories</span><h2>Filter trends</h2></div><button id="trendFilterClose" type="button" aria-label="Close filters">×</button></div>
-          <div class="filter-buttons-v2" id="trendFilters"></div>
-        </aside>
-      </div>
-      <div class="verified-trend-grid verified-trend-grid-all" id="trendGrid"></div>
-      <div class="empty-state-v2 hidden" id="trendEmpty"><div>⌕</div><h2>No verified result found</h2><p>Try another keyword or category.</p></div>
-    </div>
-  </section>
+<section class="subpage-hero-v2 section">
+<div class="container subpage-hero-grid">
+<div><span class="kicker">Verified product trends</span><h1>Only trends with a useful next click.</h1><p>Research-only signals stay out of this public list. Every visible trend has at least one product that can be opened directly.</p></div>
+<div class="verified-seal"><strong id="verifiedTrendCount">0</strong><span>live verified trends</span><small>updated automatically</small></div>
+</div>
+</section>
+<section class="section section-tight">
+<div class="container">
+<div class="filter-panel-v3">
+<label class="search-box-v2"><span>⌕</span><input autocomplete="off" id="trendSearch" placeholder="Search verified trends or products…" type="search"/></label>
+<button aria-controls="trendFilterDrawer" aria-expanded="false" class="filter-toggle-v3" id="trendFilterToggle" type="button"><span>Filters</span><strong id="trendActiveFilter">All</strong></button>
+<div class="filter-backdrop-v3" id="trendFilterBackdrop"></div>
+<aside aria-hidden="true" class="filter-drawer-v3" id="trendFilterDrawer">
+<div class="filter-drawer-head"><div><span class="mini-label">Browse categories</span><h2>Filter trends</h2></div><button aria-label="Close filters" id="trendFilterClose" type="button">×</button></div>
+<div class="filter-buttons-v2" id="trendFilters"></div>
+</aside>
+</div>
+<div class="verified-trend-grid verified-trend-grid-all" id="trendGrid"></div>
+<div class="empty-state-v2 hidden" id="trendEmpty"><div>⌕</div><h2>No verified result found</h2><p>Try another keyword or category.</p></div>
+</div>
+</section>
 </main>
 <footer class="site-footer site-footer-v2"><div class="container footer-bottom"><span>© <span id="currentYear"></span> TrendPilot AI.</span><span><a href="stores.html">Explore stores</a> · <a href="index.html">Return home</a></span></div></footer>
 <script src="js/data.js"></script><script src="js/trends-data.js"></script><script src="js/discovered-trends.js"></script><script src="js/affiliate-links.js"></script><script src="js/matched-products.js"></script><script src="js/app.js?v=2.4.0"></script>
