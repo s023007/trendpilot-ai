@@ -1,0 +1,182 @@
+name: Install TrendPilot V7 Buyer-First Site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install-v7:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify and install V7 package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ZIP_FILE="trendpilot-v7-buyer-first-package.zip"
+          MANIFEST_FILE="$RUNNER_TEMP/trendpilot-v7-html-manifest.txt"
+
+          if [ ! -f "$ZIP_FILE" ]; then
+            echo "::error::The file $ZIP_FILE is missing from the repository root."
+            find . -maxdepth 1 -type f -printf '%f\n' | sort
+            exit 1
+          fi
+
+          unzip -tq "$ZIP_FILE"
+          TEMP_DIR="$(mktemp -d)"
+          unzip -q "$ZIP_FILE" -d "$TEMP_DIR"
+
+          CONTENT_DIR="$TEMP_DIR"
+          TOP_COUNT="$(find "$TEMP_DIR" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')"
+          TOP_ITEM="$(find "$TEMP_DIR" -mindepth 1 -maxdepth 1 -print -quit)"
+          if [ "$TOP_COUNT" = "1" ] && [ -d "$TOP_ITEM" ]; then
+            CONTENT_DIR="$TOP_ITEM"
+          fi
+
+          (
+            cd "$CONTENT_DIR"
+            find . -type f -name '*.html' -print | sed 's#^./##' | sort
+          ) > "$MANIFEST_FILE"
+
+          test -s "$MANIFEST_FILE"
+          test -f "$CONTENT_DIR/index.html"
+          test -f "$CONTENT_DIR/find/index.html"
+          test -f "$CONTENT_DIR/css/style-v7.css"
+          test -f "$CONTENT_DIR/js/site-v7.js"
+          test -f "$CONTENT_DIR/js/search-index.js"
+          test -f "$CONTENT_DIR/netlify.toml"
+
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/workflows/' \
+            --exclude="$ZIP_FILE" \
+            "$CONTENT_DIR/" ./
+
+          # Remove old store-versus-store pages from the public site.
+          rm -rf marketplaces compare/joom-vs-aliexpress compare/geekbuying-vs-aliexpress
+
+      - name: Validate buyer pages and links
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/site-v7.js
+
+          python - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          import json, os
+
+          root = Path('.')
+          manifest = Path(os.environ['RUNNER_TEMP']) / 'trendpilot-v7-html-manifest.txt'
+          pages = [root / line.strip() for line in manifest.read_text(encoding='utf-8').splitlines() if line.strip()]
+
+          forbidden_visible = [
+              'Buyer feeling first',
+              'Human tone',
+              'SEO-friendly structure',
+              'Trust and CPC kept separate',
+              'Why this page feels different',
+              'Made for human readers',
+              'Guide basis',
+              'Research and published evidence',
+              'Affiliate links disclosed',
+              'active programmes',
+          ]
+
+          class Parser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.links=[]
+                  self.text=[]
+                  self.skip=0
+              def handle_starttag(self, tag, attrs):
+                  if tag in ('script','style'):
+                      self.skip += 1
+                  if tag == 'a':
+                      href=dict(attrs).get('href')
+                      if href: self.links.append(href)
+              def handle_endtag(self, tag):
+                  if tag in ('script','style') and self.skip:
+                      self.skip -= 1
+              def handle_data(self, data):
+                  if not self.skip: self.text.append(data)
+
+          errors=[]
+          for page in pages:
+              if not page.exists():
+                  errors.append(f'{page}: missing after installation')
+                  continue
+              text=page.read_text(encoding='utf-8',errors='replace')
+              if '<main' not in text: errors.append(f'{page}: missing <main>')
+              if 'style-v7.css' not in text: errors.append(f'{page}: V7 stylesheet missing')
+              if 'site-v7.js' not in text: errors.append(f'{page}: V7 script missing')
+              if 'data-menu-backdrop' not in text: errors.append(f'{page}: menu backdrop missing')
+
+              parser=Parser(); parser.feed(text)
+              visible=' '.join(parser.text).lower()
+              if page.name != 'affiliate-disclosure.html':
+                  for phrase in forbidden_visible:
+                      if phrase.lower() in visible:
+                          errors.append(f'{page}: internal wording remains: {phrase}')
+
+              for href in parser.links:
+                  if not href.startswith('/') or href.startswith('//'):
+                      continue
+                  path=urlsplit(href).path
+                  if not path: continue
+                  target=root/path.lstrip('/')
+                  if path.endswith('/'):
+                      target=target/'index.html'
+                  if not target.exists():
+                      errors.append(f'{page}: broken internal link {href}')
+
+              for marker in ('application/ld+json',):
+                  pass
+
+          required=[
+              root/'find/index.html',
+              root/'compare/filmora-vs-capcut/index.html',
+              root/'products/wireless-carplay-adapters/index.html',
+              root/'software/filmora-review/index.html',
+              root/'sourcing/find-verified-alibaba-suppliers/index.html',
+          ]
+          for file in required:
+              if not file.exists(): errors.append(f'{file}: required buyer page missing')
+
+          if (root/'marketplaces').exists(): errors.append('marketplaces/: old shopper section was not removed')
+          if (root/'compare/joom-vs-aliexpress').exists(): errors.append('old Joom store comparison remains')
+          if (root/'compare/geekbuying-vs-aliexpress').exists(): errors.append('old Geekbuying store comparison remains')
+
+          if errors:
+              print('\n'.join(errors))
+              raise SystemExit(1)
+          print(f'Validated {len(pages)} V7 pages successfully.')
+          PY
+
+      - name: Commit installed V7 site
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f trendpilot-v7-buyer-first-package.zip
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit. V7 is already installed."
+            exit 0
+          fi
+
+          git commit -m "Install TrendPilot V7 buyer-first product finder"
+          git push origin HEAD:main
