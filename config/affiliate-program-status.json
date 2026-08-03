@@ -1,0 +1,119 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-08-03",
+  "programs": [
+    {
+      "id": "aliexpress",
+      "name": "AliExpress WW",
+      "advertiser": "AliExpress",
+      "status": "active",
+      "models": [
+        "CPC",
+        "CPA"
+      ],
+      "public": true,
+      "sourceType": "product-feed",
+      "notes": "Active Admitad programme. Exact product routes are supplied through connected feeds; CPC/CPA mode must be verified per generated link."
+    },
+    {
+      "id": "joom",
+      "name": "Joom Many GEOs",
+      "advertiser": "Joom",
+      "status": "active",
+      "models": [
+        "CPC",
+        "CPA"
+      ],
+      "public": true,
+      "sourceType": "product-feed",
+      "notes": "Active Admitad programme. Current GB feed is connected."
+    },
+    {
+      "id": "geekbuying",
+      "name": "Geekbuying WW",
+      "advertiser": "Geekbuying",
+      "status": "active",
+      "models": [
+        "CPC",
+        "CPA"
+      ],
+      "public": true,
+      "sourceType": "product-feed",
+      "notes": "Active Admitad programme with a connected product feed."
+    },
+    {
+      "id": "alibaba",
+      "name": "Alibaba WW",
+      "advertiser": "Alibaba",
+      "status": "active",
+      "models": [
+        "CPC",
+        "CPA"
+      ],
+      "public": true,
+      "sourceType": "product-feed",
+      "notes": "Active Admitad B2B programme. Only product-detail deeplinks are publishable."
+    },
+    {
+      "id": "wondershare",
+      "name": "Wondershare WW",
+      "advertiser": "Wondershare",
+      "status": "active",
+      "models": [
+        "CPA"
+      ],
+      "public": true,
+      "sourceType": "editorial-deeplink",
+      "notes": "Accepted programme. Add the generated Wondershare deeplinks in js/affiliate-links.js when available."
+    },
+    {
+      "id": "udemy",
+      "name": "Udemy WW",
+      "advertiser": "Udemy",
+      "status": "pending",
+      "models": [
+        "CPC",
+        "CPA"
+      ],
+      "public": false,
+      "sourceType": "pending",
+      "notes": "Hidden until advertiser approval."
+    },
+    {
+      "id": "airalo",
+      "name": "Airalo WW",
+      "advertiser": "Airalo",
+      "status": "pending",
+      "models": [
+        "CPA"
+      ],
+      "public": false,
+      "sourceType": "pending",
+      "notes": "Hidden until advertiser approval."
+    },
+    {
+      "id": "jetpac",
+      "name": "Jetpac WW",
+      "advertiser": "Jetpac",
+      "status": "pending",
+      "models": [
+        "CPA"
+      ],
+      "public": false,
+      "sourceType": "pending",
+      "notes": "Hidden until advertiser approval."
+    },
+    {
+      "id": "global-yo",
+      "name": "Global YO WW",
+      "advertiser": "Global YO",
+      "status": "pending",
+      "models": [
+        "CPA"
+      ],
+      "public": false,
+      "sourceType": "pending",
+      "notes": "Hidden until advertiser approval."
+    }
+  ]
+}

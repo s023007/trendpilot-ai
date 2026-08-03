@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-08-03",
+  "sections": [
+    {
+      "id": "esim",
+      "public": false,
+      "activationRule": "At least two approved providers with verified affiliate links and current plan data",
+      "pendingProviders": ["Airalo", "Jetpac", "Global YO"],
+      "plannedPages": ["eSIM hub", "destination pages", "provider comparisons", "compatibility and activation guides"],
+      "decisionFields": ["destination", "trip length", "data allowance", "unlimited data policy", "hotspot", "calls", "network", "refund policy", "price"]
+    },
+    {
+      "id": "learning",
+      "public": false,
+      "activationRule": "Udemy or another suitable course programme becomes active and route type is verified",
+      "pendingProviders": ["Udemy"],
+      "plannedClusters": ["Excel", "Power BI", "data analysis", "Python", "AI", "mathematics", "creator skills"]
+    },
+    {
+      "id": "rare-used-finds",
+      "public": false,
+      "activationRule": "Suitable used-market affiliate source plus automated daily availability and sold-listing handling",
+      "candidateSources": ["eBay Partner Network", "Reverb", "Etsy or another approved vintage marketplace"],
+      "plannedCategories": ["rare camera gear", "retro gaming", "discontinued electronics", "professional tools", "audio and music equipment"],
+      "requiredFields": ["condition", "rarity", "market price", "seller trust", "original accessories", "repairability", "shipping", "returns", "similar live listings"]
+    },
+    {
+      "id": "regional-and-wholesale-opportunities",
+      "public": false,
+      "activationRule": "A researched page opportunity scores at least 80/100 and exact Alibaba product routes are available",
+      "plannedTopics": ["regional stock", "ready-to-ship", "low MOQ", "samples", "custom packaging", "landed cost", "verified suppliers", "Trade Assurance"]
+    }
+  ]
+}
