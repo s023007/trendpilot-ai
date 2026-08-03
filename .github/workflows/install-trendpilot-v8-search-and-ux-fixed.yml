@@ -1,0 +1,132 @@
+name: Install TrendPilot V8 Search and UX FIXED
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v8-installer-fixed
+  cancel-in-progress: false
+
+jobs:
+  install-v8-fixed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify fixed package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP_FILE="trendpilot-v8-search-and-ux-package-fixed.zip"
+          if [ ! -f "$ZIP_FILE" ]; then
+            echo "::error::Missing $ZIP_FILE from the repository root."
+            find . -maxdepth 1 -type f -printf '%f\n' | sort
+            exit 1
+          fi
+          unzip -t "$ZIP_FILE" >/dev/null
+
+      - name: Install V8 website files
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP_FILE="trendpilot-v8-search-and-ux-package-fixed.zip"
+          TEMP_DIR="$(mktemp -d)"
+          unzip -q "$ZIP_FILE" -d "$TEMP_DIR"
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/workflows/' \
+            --exclude="$ZIP_FILE" \
+            "$TEMP_DIR/" ./
+          python automation/install_v8_search_ux.py
+
+      - name: Build starter buyer catalogue
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/build_search_catalog.py --allow-fallback
+
+      - name: Audit buyer pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/audit_buyer_pages.py
+
+      - name: Validate V8 installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            automation/build_search_catalog.py \
+            automation/audit_buyer_pages.py \
+            automation/install_v8_search_ux.py
+          node --check js/site-v8.js
+          test -s css/style-v8.css
+          test -s data/search-catalog/manifest.json
+          grep -q 'style-v8.css' index.html
+          grep -q 'site-v8.js' index.html
+          grep -q 'style-v8.css' find/index.html
+          grep -q 'site-v8.js' find/index.html
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          manifest = json.loads(
+              (root / 'data/search-catalog/manifest.json').read_text(encoding='utf-8')
+          )
+          if manifest.get('productCount', 0) < 1:
+              raise SystemExit('The starter search catalogue is empty.')
+          if not manifest.get('groups'):
+              raise SystemExit('The search catalogue has no category groups.')
+
+          forbidden = {'commission', 'commissionRate', 'sourceId', 'feedUrl', 'secret'}
+          for path in (root / 'data/search-catalog').glob('*.json'):
+              payload = json.loads(path.read_text(encoding='utf-8'))
+              stack = [payload]
+              while stack:
+                  value = stack.pop()
+                  if isinstance(value, dict):
+                      bad = forbidden.intersection(value)
+                      if bad:
+                          raise SystemExit(
+                              f'Private/internal keys in {path}: {sorted(bad)}'
+                          )
+                      stack.extend(value.values())
+                  elif isinstance(value, list):
+                      stack.extend(value)
+          print('V8 validation passed:', manifest['productCount'], 'starter products')
+          PY
+
+      - name: Commit V8 website files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f trendpilot-v8-search-and-ux-package-fixed.zip
+          git config user.name "trendpilot-v8-installer"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          # The installer deliberately does not modify .github/workflows files.
+          # GitHub blocks a workflow token from pushing workflow-file changes.
+          if git diff --cached --name-only | grep -q '^\.github/workflows/'; then
+            echo "::error::A workflow file was unexpectedly staged."
+            git diff --cached --name-only
+            exit 1
+          fi
+
+          if git diff --cached --quiet; then
+            echo "V8 website files are already installed; nothing to commit."
+            exit 0
+          fi
+
+          git commit -m "feat: install V8 buyer search and mobile UX"
+          git push origin HEAD:main
