@@ -25,6 +25,24 @@
   status = 301
 
 [[redirects]]
+  from = "/marketplaces/*"
+  to = "/find/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/joom-vs-aliexpress/*"
+  to = "/find/?q=electronics"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/compare/geekbuying-vs-aliexpress/*"
+  to = "/find/?q=electronics"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/how-we-review"
   to = "/editorial-methodology.html"
   status = 301
