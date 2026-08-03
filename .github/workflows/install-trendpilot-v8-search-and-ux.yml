@@ -1,0 +1,103 @@
+name: Install TrendPilot V8 Search and UX
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v8-installer
+  cancel-in-progress: false
+
+jobs:
+  install-v8:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify package
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f trendpilot-v8-search-and-ux-package.zip
+          unzip -t trendpilot-v8-search-and-ux-package.zip >/dev/null
+
+      - name: Install V8 files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/trendpilot-v8
+          mkdir -p /tmp/trendpilot-v8
+          unzip -q trendpilot-v8-search-and-ux-package.zip -d /tmp/trendpilot-v8
+          rsync -a /tmp/trendpilot-v8/ ./
+          python automation/install_v8_search_ux.py
+
+      - name: Build starter buyer catalogue
+        run: python automation/build_search_catalog.py --allow-fallback
+
+      - name: Audit buyer pages
+        run: python automation/audit_buyer_pages.py
+
+      - name: Validate V8 installation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            automation/build_search_catalog.py \
+            automation/audit_buyer_pages.py \
+            automation/install_v8_search_ux.py
+          node --check js/site-v8.js
+          test -s css/style-v8.css
+          test -s data/search-catalog/manifest.json
+          grep -q 'style-v8.css' index.html
+          grep -q 'site-v8.js' index.html
+          grep -q 'style-v8.css' find/index.html
+          grep -q 'site-v8.js' find/index.html
+          grep -q 'automation/build_search_catalog.py' .github/workflows/update-products.yml
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('.')
+          manifest = json.loads((root / 'data/search-catalog/manifest.json').read_text())
+          if manifest.get('productCount', 0) < 1:
+              raise SystemExit('The starter search catalogue is empty.')
+          if not manifest.get('groups'):
+              raise SystemExit('The search catalogue has no category groups.')
+
+          forbidden = {'commission', 'commissionRate', 'sourceId', 'feedUrl', 'secret'}
+          for path in (root / 'data/search-catalog').glob('*.json'):
+              payload = json.loads(path.read_text())
+              stack = [payload]
+              while stack:
+                  value = stack.pop()
+                  if isinstance(value, dict):
+                      bad = forbidden.intersection(value)
+                      if bad:
+                          raise SystemExit(f'Private/internal keys in {path}: {sorted(bad)}')
+                      stack.extend(value.values())
+                  elif isinstance(value, list):
+                      stack.extend(value)
+          print('V8 validation passed:', manifest['productCount'], 'starter products')
+          PY
+
+      - name: Commit V8
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f trendpilot-v8-search-and-ux-package.zip
+          git config user.name "trendpilot-v8-installer"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "V8 is already installed; nothing to commit."
+            exit 0
+          fi
+          git commit -m "feat: install V8 buyer search and mobile UX"
+          git push origin main
