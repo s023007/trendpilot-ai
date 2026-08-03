@@ -1,0 +1,68 @@
+name: Install TrendPilot V5 From ZIP Fixed
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install-v5:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Extract and install V5 package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ZIP_FILE="trendpilot-v5-package-fixed.zip"
+
+          if [ ! -f "$ZIP_FILE" ]; then
+            echo "::error::The file $ZIP_FILE is missing from the repository root."
+            exit 1
+          fi
+
+          TEMP_DIR="$(mktemp -d)"
+          unzip -q "$ZIP_FILE" -d "$TEMP_DIR"
+
+          CONTENT_DIR="$TEMP_DIR"
+          TOP_COUNT="$(find "$TEMP_DIR" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')"
+          TOP_ITEM="$(find "$TEMP_DIR" -mindepth 1 -maxdepth 1 -print -quit)"
+
+          if [ "$TOP_COUNT" = "1" ] && [ -d "$TOP_ITEM" ]; then
+            CONTENT_DIR="$TOP_ITEM"
+          fi
+
+          rsync -a \
+            --exclude='.git/' \
+            --exclude='.github/workflows/' \
+            --exclude='trendpilot-v5-package-fixed.zip' \
+            "$CONTENT_DIR/" ./
+
+          rm -f "$ZIP_FILE"
+
+          test -f index.html
+          test -f css/style-v4.css
+
+      - name: Commit installed site
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Install TrendPilot V5 human-centered site"
+          git push origin HEAD:main
