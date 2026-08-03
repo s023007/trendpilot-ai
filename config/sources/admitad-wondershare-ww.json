@@ -1,0 +1,83 @@
+{
+  "id": "admitad-wondershare-ww",
+  "enabled": true,
+  "adapter": "csv",
+  "network": "Admitad",
+  "advertiser": "Wondershare",
+  "programme": "Wondershare WW",
+  "location": {
+    "type": "secret_map",
+    "environmentVariable": "AFFILIATE_SOURCE_URLS_JSON",
+    "secretKey": "admitad-wondershare-ww"
+  },
+  "rowLimit": 1000,
+  "delimiter": ";",
+  "encoding": "utf-8-sig",
+  "defaultCurrency": "USD",
+  "countries": [
+    "GLOBAL"
+  ],
+  "fieldMap": {
+    "id": [
+      "id"
+    ],
+    "productId": [
+      "id",
+      "offer_id"
+    ],
+    "name": [
+      "name"
+    ],
+    "description": [
+      "description"
+    ],
+    "affiliateUrl": [
+      "url"
+    ],
+    "productUrl": [],
+    "category": [
+      "category_name",
+      "categoryId"
+    ],
+    "brand": [
+      "vendor"
+    ],
+    "advertiser": [
+      "vendor"
+    ],
+    "currency": [
+      "currencyId",
+      "currrency"
+    ],
+    "imageUrl": [
+      "picture"
+    ],
+    "oldPrice": [],
+    "price": [
+      "price"
+    ],
+    "commissionRate": [],
+    "commissionValue": [],
+    "commissionType": [],
+    "discountPercent": [],
+    "availability": [
+      "available"
+    ],
+    "updatedAt": [
+      "modified_time"
+    ],
+    "merchantId": [],
+    "param": [],
+    "tags": [
+      "category_name",
+      "categoryId",
+      "type"
+    ]
+  },
+  "paramFields": {},
+  "rules": {
+    "contentTraffic": "check-programme-terms",
+    "brandBidding": "check-programme-terms"
+  },
+  "itemTags": []
+}
