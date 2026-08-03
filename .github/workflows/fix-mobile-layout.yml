@@ -1,0 +1,148 @@
+name: Fix TrendPilot mobile layout
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mobile-fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply responsive mobile patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f css/style.css
+
+          cat > "$RUNNER_TEMP/mobile-fit.css.b64" <<'MOBILE_FIT_PAYLOAD'
+          LyogPT09IFRyZW5kUGlsb3QgbW9iaWxlIGZpdCBwYXRjaCB2My4wLjEg4oCUIFNUQVJUID09PSAqLwpodG1sIHsKICBtYXgtd2lk
+          dGg6IDEwMCU7CiAgb3ZlcmZsb3cteDogaGlkZGVuOwogIG92ZXJmbG93LXg6IGNsaXA7Cn0KCmJvZHksCm1haW4sCmhlYWRlciwK
+          Zm9vdGVyLApzZWN0aW9uLAphcnRpY2xlLAouY29udGFpbmVyLAoubmF2LXdyYXAsCi5hcnRpY2xlLWhlcm8tZ3JpZCwKLmFydGlj
+          bGUtbGF5b3V0LWdyaWQsCi5hcnRpY2xlLWNvbnRlbnQsCi5hcnRpY2xlLXNpZGViYXIsCi5jb21wYXJpc29uLXRhYmxlLAouZWRp
+          dG9yaWFsLXByb2R1Y3QtZ3JpZCwKLmVkaXRvcmlhbC1wcm9kdWN0LWNhcmQgewogIG1pbi13aWR0aDogMDsKICBtYXgtd2lkdGg6
+          IDEwMCU7Cn0KCmltZywKdmlkZW8sCnN2ZywKY2FudmFzLAppZnJhbWUgewogIGRpc3BsYXk6IGJsb2NrOwogIG1heC13aWR0aDog
+          MTAwJTsKfQoKLmFydGljbGUtY29udGVudCwKLmFydGljbGUtY29udGVudCBwLAouYXJ0aWNsZS1jb250ZW50IGxpLAouYXJ0aWNs
+          ZS1jb250ZW50IGgxLAouYXJ0aWNsZS1jb250ZW50IGgyLAouYXJ0aWNsZS1jb250ZW50IGgzLAouZWRpdG9yaWFsLXByb2R1Y3Qt
+          Ym9keSwKLmVkaXRvcmlhbC1wcm9kdWN0LWJvZHkgaDMgewogIG92ZXJmbG93LXdyYXA6IGFueXdoZXJlOwogIHdvcmQtYnJlYWs6
+          IG5vcm1hbDsKfQoKLmFydGljbGUtbGF5b3V0LWdyaWQgPiAqLAouYXJ0aWNsZS1oZXJvLWdyaWQgPiAqLAouZWRpdG9yaWFsLXBy
+          b2R1Y3QtY2FyZCA+ICosCi5jb21wYXJpc29uLXJvdyA+ICogewogIG1pbi13aWR0aDogMDsKfQoKQG1lZGlhIChtYXgtd2lkdGg6
+          IDc2MHB4KSB7CiAgLmNvbnRhaW5lciB7CiAgICB3aWR0aDogbWluKGNhbGMoMTAwJSAtIDI4cHgpLCB2YXIoLS1jb250YWluZXIp
+          KTsKICB9CgogIC5zaXRlLWhlYWRlciB7CiAgICBsZWZ0OiAwOwogICAgcmlnaHQ6IDA7CiAgICB3aWR0aDogMTAwJTsKICB9Cgog
+          IC5uYXYtd3JhcCB7CiAgICB3aWR0aDogMTAwJTsKICAgIGdhcDogMTRweDsKICB9CgogIC5icmFuZCB7CiAgICBtaW4td2lkdGg6
+          IDA7CiAgfQoKICAuYXJ0aWNsZS1oZXJvIHsKICAgIHBhZGRpbmc6IDM0cHggMCAyNHB4OwogIH0KCiAgLmFydGljbGUtaGVybyBo
+          MSB7CiAgICBtYXgtd2lkdGg6IDEwMCU7CiAgICBtYXJnaW46IDEwcHggMCAxNnB4OwogICAgZm9udC1zaXplOiBjbGFtcCgzNHB4
+          LCAxMC44dncsIDQ2cHgpOwogICAgbGluZS1oZWlnaHQ6IDEuMDM7CiAgICBsZXR0ZXItc3BhY2luZzogLTAuMDQ1ZW07CiAgfQoK
+          ICAuYXJ0aWNsZS1oZXJvIHAgewogICAgbWF4LXdpZHRoOiAxMDAlOwogICAgZm9udC1zaXplOiAxNnB4OwogICAgbGluZS1oZWln
+          aHQ6IDEuNjI7CiAgfQoKICAuYXJ0aWNsZS1tZXRhIHsKICAgIGdhcDogN3B4OwogICAgbWFyZ2luLXRvcDogMThweDsKICB9Cgog
+          IC5hcnRpY2xlLW1ldGEgc3BhbiB7CiAgICBwYWRkaW5nOiA3cHggOXB4OwogICAgZm9udC1zaXplOiAxMHB4OwogIH0KCiAgLmFy
+          dGljbGUtdmVyZGljdCB7CiAgICBwYWRkaW5nOiAxOXB4OwogICAgYm9yZGVyLXJhZGl1czogMjBweDsKICB9CgogIC5hcnRpY2xl
+          LWxheW91dC5zZWN0aW9uIHsKICAgIHBhZGRpbmctdG9wOiAxOHB4OwogICAgcGFkZGluZy1ib3R0b206IDYwcHg7CiAgfQoKICAu
+          YXJ0aWNsZS1sYXlvdXQtZ3JpZCB7CiAgICB3aWR0aDogMTAwJTsKICAgIGdhcDogMjhweDsKICB9CgogIC5hcnRpY2xlLWNvbnRl
+          bnQgewogICAgd2lkdGg6IDEwMCU7CiAgICBmb250LXNpemU6IDE2cHg7CiAgICBsaW5lLWhlaWdodDogMS43MjsKICB9CgogIC5h
+          cnRpY2xlLWNvbnRlbnQgaDIgewogICAgbWFyZ2luOiAzOHB4IDAgMTRweDsKICAgIGZvbnQtc2l6ZTogMjhweDsKICAgIGxpbmUt
+          aGVpZ2h0OiAxLjEzOwogIH0KCiAgLmFydGljbGUtY29udGVudCBoMyB7CiAgICBmb250LXNpemU6IDIwcHg7CiAgICBsaW5lLWhl
+          aWdodDogMS4yNDsKICB9CgogIC5hcnRpY2xlLWxlYWQgewogICAgcGFkZGluZzogMThweDsKICAgIGJvcmRlci1sZWZ0LXdpZHRo
+          OiA0cHg7CiAgICBib3JkZXItcmFkaXVzOiAwIDE2cHggMTZweCAwOwogIH0KCiAgLmFydGljbGUtbGVhZCBwIHsKICAgIGZvbnQt
+          c2l6ZTogMTZweDsKICAgIGxpbmUtaGVpZ2h0OiAxLjY2OwogIH0KCiAgLyogVHVybiB3aWRlIGNvbXBhcmlzb24gdGFibGVzIGlu
+          dG8gYSBwaG9uZS1mcmllbmRseSB0d28tY29sdW1uIGxheW91dC4gKi8KICAuY29tcGFyaXNvbi10YWJsZSB7CiAgICB3aWR0aDog
+          MTAwJTsKICAgIG92ZXJmbG93OiB2aXNpYmxlOwogICAgYm9yZGVyLXJhZGl1czogMTdweDsKICB9CgogIC5jb21wYXJpc29uLXJv
+          dyB7CiAgICBtaW4td2lkdGg6IDAgIWltcG9ydGFudDsKICAgIGdyaWQtdGVtcGxhdGUtY29sdW1uczogbWlubWF4KDAsIDFmcikg
+          bWlubWF4KDAsIDFmcik7CiAgICBnYXA6IDA7CiAgICBwYWRkaW5nOiAwOwogIH0KCiAgLmNvbXBhcmlzb24tcm93ID4gKiB7CiAg
+          ICBwYWRkaW5nOiAxMnB4IDExcHg7CiAgICBsaW5lLWhlaWdodDogMS40NTsKICB9CgogIC5jb21wYXJpc29uLXJvdyA+IHNwYW4g
+          ewogICAgZ3JpZC1jb2x1bW46IDEgLyAtMTsKICAgIGJvcmRlci1ib3R0b206IDFweCBzb2xpZCB2YXIoLS1saW5lKTsKICAgIGNv
+          bG9yOiAjNGY1ODZkOwogICAgYmFja2dyb3VuZDogI2YzZjVmYjsKICAgIGZvbnQtc2l6ZTogMTJweDsKICB9CgogIC5jb21wYXJp
+          c29uLXJvdyA+IHN0cm9uZyB7CiAgICBmb250LXNpemU6IDEycHg7CiAgfQoKICAuY29tcGFyaXNvbi1yb3cgPiBzdHJvbmcgKyBz
+          dHJvbmcgewogICAgYm9yZGVyLWxlZnQ6IDFweCBzb2xpZCB2YXIoLS1saW5lKTsKICB9CgogIC5jb21wYXJpc29uLWhlYWQgPiBz
+          cGFuIHsKICAgIGNvbG9yOiByZ2JhKDI1NSwyNTUsMjU1LC44NCk7CiAgICBiYWNrZ3JvdW5kOiB0cmFuc3BhcmVudDsKICB9Cgog
+          IC5jb21wYXJpc29uLWhlYWQgPiBzdHJvbmcgewogICAgY29sb3I6ICNmZmY7CiAgICBmb250LXNpemU6IDEzcHg7CiAgfQoKICAv
+          KiBDb21wYWN0IHByb2R1Y3QgY2FyZHM6IHRodW1ibmFpbCBsZWZ0LCBkZWNpc2lvbiBpbmZvcm1hdGlvbiByaWdodC4gKi8KICAu
+          ZWRpdG9yaWFsLXByb2R1Y3QtZ3JpZCB7CiAgICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6IDFmciAhaW1wb3J0YW50OwogICAgZ2Fw
+          OiAxNHB4OwogICAgd2lkdGg6IDEwMCU7CiAgfQoKICAuZWRpdG9yaWFsLXByb2R1Y3QtY2FyZCB7CiAgICBkaXNwbGF5OiBncmlk
+          OwogICAgZ3JpZC10ZW1wbGF0ZS1jb2x1bW5zOiAxMjJweCBtaW5tYXgoMCwgMWZyKTsKICAgIGFsaWduLWl0ZW1zOiBzdHJldGNo
+          OwogICAgd2lkdGg6IDEwMCU7CiAgICBvdmVyZmxvdzogaGlkZGVuOwogICAgYm9yZGVyLXJhZGl1czogMThweDsKICB9CgogIC5l
+          ZGl0b3JpYWwtcHJvZHVjdC1tZWRpYSB7CiAgICB3aWR0aDogMTAwJTsKICAgIGhlaWdodDogMTAwJTsKICAgIG1pbi1oZWlnaHQ6
+          IDE1OHB4OwogICAgYXNwZWN0LXJhdGlvOiBhdXRvOwogICAgYm9yZGVyLXJpZ2h0OiAxcHggc29saWQgdmFyKC0tbGluZSk7CiAg
+          ICBiYWNrZ3JvdW5kOiAjZjdmOGZjOwogIH0KCiAgLmVkaXRvcmlhbC1wcm9kdWN0LW1lZGlhIGltZyB7CiAgICB3aWR0aDogMTAw
+          JTsKICAgIGhlaWdodDogMTAwJTsKICAgIHBhZGRpbmc6IDhweDsKICAgIG9iamVjdC1maXQ6IGNvbnRhaW47CiAgICBiYWNrZ3Jv
+          dW5kOiAjZmZmOwogIH0KCiAgLmVkaXRvcmlhbC1wcm9kdWN0LW1lZGlhID4gYiB7CiAgICB0b3A6IDhweDsKICAgIGxlZnQ6IDhw
+          eDsKICAgIHBhZGRpbmc6IDRweCA3cHg7CiAgICBib3JkZXItcmFkaXVzOiA4cHg7CiAgICBmb250LXNpemU6IDlweDsKICB9Cgog
+          IC5lZGl0b3JpYWwtcHJvZHVjdC1ib2R5IHsKICAgIGRpc3BsYXk6IGZsZXg7CiAgICBtaW4td2lkdGg6IDA7CiAgICBmbGV4LWRp
+          cmVjdGlvbjogY29sdW1uOwogICAgcGFkZGluZzogMTJweCAxMnB4IDEycHggMTNweDsKICB9CgogIC5lZGl0b3JpYWwtcHJvZHVj
+          dC1zb3VyY2UgewogICAgZGlzcGxheTogZ3JpZDsKICAgIGdyaWQtdGVtcGxhdGUtY29sdW1uczogbWlubWF4KDAsIDFmcikgYXV0
+          bzsKICAgIGFsaWduLWl0ZW1zOiBjZW50ZXI7CiAgICBnYXA6IDZweDsKICAgIGZvbnQtc2l6ZTogOXB4OwogIH0KCiAgLmVkaXRv
+          cmlhbC1wcm9kdWN0LXNvdXJjZSBzcGFuIHsKICAgIG92ZXJmbG93OiBoaWRkZW47CiAgICB0ZXh0LW92ZXJmbG93OiBlbGxpcHNp
+          czsKICAgIHdoaXRlLXNwYWNlOiBub3dyYXA7CiAgfQoKICAuZWRpdG9yaWFsLXByb2R1Y3Qtc291cmNlIGVtIHsKICAgIHdoaXRl
+          LXNwYWNlOiBub3dyYXA7CiAgfQoKICAuZWRpdG9yaWFsLXByb2R1Y3QtYm9keSBoMyB7CiAgICBtaW4taGVpZ2h0OiAwOwogICAg
+          bWFyZ2luOiA4cHggMCAxMHB4OwogICAgZm9udC1zaXplOiAxM3B4OwogICAgbGluZS1oZWlnaHQ6IDEuMzg7CiAgICAtd2Via2l0
+          LWxpbmUtY2xhbXA6IDM7CiAgfQoKICAuZWRpdG9yaWFsLXByb2R1Y3QtbWV0YSB7CiAgICBhbGlnbi1pdGVtczogZmxleC1zdGFy
+          dDsKICAgIGZsZXgtd3JhcDogd3JhcDsKICAgIGdhcDogNXB4IDhweDsKICAgIG1hcmdpbi10b3A6IGF1dG87CiAgICBtYXJnaW4t
+          Ym90dG9tOiAxMHB4OwogICAgZm9udC1zaXplOiAxMHB4OwogIH0KCiAgLmVkaXRvcmlhbC1wcm9kdWN0LW1ldGEgc3Ryb25nIHsK
+          ICAgIG1heC13aWR0aDogMTAwJTsKICB9CgogIC5lZGl0b3JpYWwtcHJvZHVjdC1ib2R5IC5idXR0b24gewogICAgd2lkdGg6IDEw
+          MCU7CiAgICBtaW4taGVpZ2h0OiAzOHB4OwogICAgcGFkZGluZzogOHB4IDlweDsKICAgIGJvcmRlci1yYWRpdXM6IDExcHg7CiAg
+          ICBmb250LXNpemU6IDEwcHg7CiAgICBsaW5lLWhlaWdodDogMS4yOwogIH0KCiAgLmNoZWNrbGlzdC1ncmlkIGFydGljbGUsCiAg
+          LmNob2ljZS1ncmlkIGFydGljbGUsCiAgLmRlY2lzaW9uLXRhYmxlID4gZGl2LAogIC5yYXRpbmctcGFuZWwgPiBkaXYgewogICAg
+          cGFkZGluZzogMTdweDsKICB9CgogIC5hcnRpY2xlLXNpZGViYXIgewogICAgZ3JpZC10ZW1wbGF0ZS1jb2x1bW5zOiAxZnI7CiAg
+          fQp9CgpAbWVkaWEgKG1heC13aWR0aDogMzgwcHgpIHsKICAuY29udGFpbmVyIHsKICAgIHdpZHRoOiBtaW4oY2FsYygxMDAlIC0g
+          MjBweCksIHZhcigtLWNvbnRhaW5lcikpOwogIH0KCiAgLmFydGljbGUtaGVybyBoMSB7CiAgICBmb250LXNpemU6IDMzcHg7CiAg
+          fQoKICAuZWRpdG9yaWFsLXByb2R1Y3QtY2FyZCB7CiAgICBncmlkLXRlbXBsYXRlLWNvbHVtbnM6IDEwOHB4IG1pbm1heCgwLCAx
+          ZnIpOwogIH0KCiAgLmVkaXRvcmlhbC1wcm9kdWN0LW1lZGlhIHsKICAgIG1pbi1oZWlnaHQ6IDE1MHB4OwogIH0KCiAgLmVkaXRv
+          cmlhbC1wcm9kdWN0LXNvdXJjZSBlbSB7CiAgICBkaXNwbGF5OiBub25lOwogIH0KCiAgLmNvbXBhcmlzb24tcm93ID4gKiB7CiAg
+          ICBwYWRkaW5nOiAxMHB4IDlweDsKICB9Cn0KLyogPT09IFRyZW5kUGlsb3QgbW9iaWxlIGZpdCBwYXRjaCB2My4wLjEg4oCUIEVO
+          RCA9PT0gKi8K
+          MOBILE_FIT_PAYLOAD
+
+          base64 --decode "$RUNNER_TEMP/mobile-fit.css.b64" > "$RUNNER_TEMP/mobile-fit.css"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          css_path = Path("css/style.css")
+          css = css_path.read_text(encoding="utf-8")
+          patch = Path(__import__("os").environ["RUNNER_TEMP"], "mobile-fit.css").read_text(encoding="utf-8")
+
+          start = "/* === TrendPilot mobile fit patch v3.0.1 — START === */"
+          end = "/* === TrendPilot mobile fit patch v3.0.1 — END === */"
+          pattern = re.compile(re.escape(start) + r".*?" + re.escape(end) + r"\s*", re.S)
+
+          css = pattern.sub("", css).rstrip() + "\n\n" + patch.strip() + "\n"
+          css_path.write_text(css, encoding="utf-8")
+
+          for html_path in Path(".").rglob("*.html"):
+              text = html_path.read_text(encoding="utf-8")
+              updated = re.sub(
+                  r'((?:\.\./)*)css/style\.css(?:\?v=[^"\']*)?',
+                  r'\1css/style.css?v=3.0.1',
+                  text
+              )
+              if updated != text:
+                  html_path.write_text(updated, encoding="utf-8")
+          PY
+
+          grep -q "TrendPilot mobile fit patch v3.0.1" css/style.css
+          grep -q "style.css?v=3.0.1" products/wireless-carplay-adapters/index.html
+          grep -q "style.css?v=3.0.1" compare/joom-vs-aliexpress/index.html
+
+      - name: Commit responsive fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "The mobile patch is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: improve mobile product cards and comparison pages"
+          git push origin HEAD:main
