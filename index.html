@@ -1,141 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#f7f9ff">
-  <meta name="description" content="Discover verified trending products with direct, tested product links and transparent affiliate matching.">
-  <meta property="og:title" content="TrendPilot AI — Verified Trend Products">
-  <meta property="og:description" content="Only useful trends with reachable product offers. Bright, visual and ranked product-first.">
-  <meta property="og:image" content="images/og-cover.svg">
-  <meta property="og:type" content="website">
-  <title>TrendPilot AI — Verified Trend Products</title>
-  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="css/style.css?v=2.4.0">
-</head>
-<body class="bright-site page-home">
-<header class="site-header" id="top">
-  <div class="container nav-wrap">
-    <a class="brand" href="index.html" aria-label="TrendPilot AI home">
-      <img src="images/logo.svg" alt="" width="40" height="40">
-      <span>TrendPilot <strong>AI</strong></span>
-    </a>
-    <button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
-    <nav class="main-nav" id="mainNav" aria-label="Primary navigation">
-      <a href="index.html">Home</a>
-      <a href="trends.html">Verified trends</a>
-      <a href="stores.html">Explore stores</a>
-      <a href="#topOffers">Best offers</a>
-      <a href="#howItWorks">How it works</a>
-      <a href="affiliate-programs.html">Affiliate programmes</a>
-    </nav>
-  </div>
-</header>
-
-<main>
-  <section class="hero-v2 section">
-    <div class="container hero-v2-grid">
-      <div class="hero-copy-v2 reveal">
-        <div class="hero-badge"><span></span> Product-first trend discovery</div>
-        <h1>See what is trending — then open the exact product.</h1>
-        <p>TrendPilot publishes only trends that have a useful, reachable product offer. No blank buttons, no random store pages and no unrelated products.</p>
-        <div class="hero-actions">
-          <a class="button button-primary" href="trends.html">Explore verified trends</a>
-          <a class="button button-soft" href="#topOffers">See best products</a>
-        </div>
-        <div class="hero-proof">
-          <span><i>✓</i> Exact product links</span>
-          <span><i>✓</i> Relevance checked</span>
-          <span><i>✓</i> Ranked by quality</span>
-        </div>
-      </div>
-      <div class="hero-product-gallery reveal" id="heroProductGallery" aria-label="Featured verified products">
-        <div class="gallery-loading"><span></span><span></span><span></span></div>
-      </div>
-    </div>
-    <div class="container"><div class="stat-ribbon" id="liveStats"></div></div>
-  </section>
-
-  <section class="section section-soft" id="verifiedTrends">
-    <div class="container">
-      <div class="section-heading-v2 reveal">
-        <div><span class="kicker">Verified trend radar</span><h2>Trends with products people can actually reach</h2></div>
-        <p>Every card below has at least one published product offer that passed the current matching and destination checks.</p>
-      </div>
-      <div class="verified-trend-grid" id="homeTrendGrid"></div>
-      <div class="centre-action"><a class="button button-outline" href="trends.html">View all verified trends</a></div>
-    </div>
-  </section>
-
-  <section class="section" id="topOffers">
-    <div class="container">
-      <div class="section-heading-v2 reveal">
-        <div><span class="kicker">Best matched offers</span><h2>Product cards ranked before the network name</h2></div>
-        <p>Relevance, data quality and commercial fit decide the order. The affiliate network does not receive automatic preference.</p>
-      </div>
-      <div class="offer-grid" id="topOffersGrid"></div>
-    </div>
-  </section>
-
-  <section class="section section-soft" id="publishedSources">
-    <div class="container">
-      <div class="section-heading-v2 reveal">
-        <div><span class="kicker">Best picks by source</span><h2>One strong verified pick from every active source</h2></div>
-        <p>Explore source coverage without changing the product-first ranking used inside every trend.</p>
-      </div>
-      <div class="offer-grid source-offer-carousel" id="sourceOfferGrid"></div>
-    </div>
-  </section>
-
-  <section class="section" id="exploreStores">
-    <div class="container">
-      <div class="section-heading-v2 reveal">
-        <div><span class="kicker">Explore by store</span><h2>Browse verified products from a source you trust</h2></div>
-        <p>Each store card shows only products already published by TrendPilot, with its strongest categories and top picks.</p>
-      </div>
-      <div class="store-directory-grid" id="storeDirectoryGrid"></div>
-      <div class="centre-action"><a class="button button-outline" href="stores.html">View all stores</a></div>
-    </div>
-  </section>
-
-  <section class="section section-soft hidden" id="bestDealsSection">
-    <div class="container">
-      <div class="section-heading-v2 reveal">
-        <div><span class="kicker">Verified discounts</span><h2>Best deals in the current published catalogue</h2></div>
-        <p>Shown only when a current price is lower than a supplied old price or a real discount is available.</p>
-      </div>
-      <div class="offer-grid" id="bestDealsGrid"></div>
-    </div>
-  </section>
-
-  <section class="section section-soft" id="howItWorks">
-    <div class="container">
-      <div class="section-heading-v2 reveal"><div><span class="kicker">A cleaner visitor journey</span><h2>Three checks before anything appears</h2></div></div>
-      <div class="trust-grid">
-        <article class="trust-card reveal"><span>01</span><div class="trust-icon">◎</div><h3>Trend relevance</h3><p>The product must be the product named by the trend, not merely share a broad word such as “wireless”.</p></article>
-        <article class="trust-card reveal"><span>02</span><div class="trust-icon">↗</div><h3>Reachable destination</h3><p>The button must lead to a specific product page. Homepages, categories and search-result pages are rejected.</p></article>
-        <article class="trust-card reveal"><span>03</span><div class="trust-icon">★</div><h3>Useful ranking</h3><p>The strongest product is shown first using match quality, offer quality, price fit and available product data.</p></article>
-      </div>
-    </div>
-  </section>
-
-  <section class="disclosure disclosure-v2"><div class="container"><p><strong>Affiliate disclosure:</strong> TrendPilot AI may receive a commission from selected links at no additional cost to visitors. Catalogue prices and availability can change at the store.</p></div></section>
-</main>
-
-<footer class="site-footer site-footer-v2">
-  <div class="container footer-grid">
-    <div class="footer-brand"><a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="36" height="36"><span>TrendPilot <strong>AI</strong></span></a><p>Useful trend intelligence connected to precise product destinations.</p></div>
-    <div class="footer-links"><div><strong>Explore</strong><a href="trends.html">Verified trends</a><a href="stores.html">Explore stores</a><a href="#topOffers">Best offers</a><a href="affiliate-programs.html">Affiliate programmes</a></div><div><strong>Legal</strong><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a></div></div>
-  </div>
-  <div class="container footer-bottom"><span>© <span id="currentYear"></span> TrendPilot AI.</span><span>Verified product data refreshed by GitHub Actions.</span></div>
-</footer>
-
-<script src="js/data.js"></script>
-<script src="js/trends-data.js"></script>
-<script src="js/discovered-trends.js"></script>
-<script src="js/networks-data.js"></script>
-<script src="js/affiliate-links.js"></script>
-<script src="js/matched-products.js"></script>
-<script src="js/app.js?v=2.4.0"></script>
-</body>
-</html>
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7f9ff">
+<meta name="description" content="Compare marketplaces, software and business-sourcing choices through research-led pages and verified product routes."><link rel="canonical" href="https://trendpilot-ai.netlify.app/"><meta property="og:title" content="TrendPilot AI — Research-led product and software comparisons"><meta property="og:description" content="Compare marketplaces, software and business-sourcing choices through research-led pages and verified product routes."><meta property="og:image" content="https://trendpilot-ai.netlify.app/images/og-cover.svg"><meta property="og:type" content="article"><title>TrendPilot AI — Research-led product and software comparisons</title><link rel="icon" href="images/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="css/style.css?v=3.0.0"></head><body class="bright-site"><header class="site-header"><div class="container nav-wrap">
+<a class="brand" href="index.html" aria-label="TrendPilot AI home"><img src="images/logo.svg" alt="" width="40" height="40"><span>TrendPilot <strong>AI</strong></span></a>
+<button class="menu-button" id="menuButton" type="button" aria-label="Open navigation" aria-expanded="false"><span></span><span></span><span></span></button>
+<nav class="main-nav" id="mainNav" aria-label="Primary navigation"><a class="active" href="index.html">Home</a><a class="" href="products/index.html">Products</a><a class="" href="compare/index.html">Comparisons</a><a class="" href="software/index.html">Software</a><a class="" href="sourcing/index.html">Business sourcing</a><a class="" href="trends.html">Research radar</a></nav>
+</div></header><main>
+<section class="editorial-home-hero section"><div class="container editorial-home-grid"><div><div class="hero-badge"><span></span> Research before recommendation</div><h1>One page should be enough to make the buying decision.</h1><p>TrendPilot studies high-traffic competitors, official policies and live affiliate catalogues, then builds focused pages that explain trade-offs instead of flooding you with products.</p><div class="hero-actions"><a class="button button-primary" href="compare/index.html">Start with comparisons</a><a class="button button-soft" href="products/index.html">Browse verified products</a></div><div class="hero-proof"><span><i>✓</i> Exact product destinations</span><span><i>✓</i> Pros and cons</span><span><i>✓</i> Research records</span></div></div><div class="decision-board"><div class="decision-board-head"><span>Decision paths</span><strong>Choose the question, not the store</strong></div><a href="products/wireless-carplay-adapters/index.html"><b>01</b><div><strong>Which wireless CarPlay adapter fits my car?</strong><span>Compatibility-first buying guide + verified offers</span></div><i>→</i></a><a href="compare/filmora-vs-capcut/index.html"><b>02</b><div><strong>Filmora or CapCut for my workflow?</strong><span>Desktop depth vs social-first speed</span></div><i>→</i></a><a href="sourcing/alibaba-vs-aliexpress/index.html"><b>03</b><div><strong>Alibaba or AliExpress for my business?</strong><span>MOQ, samples, customization and landed cost</span></div><i>→</i></a></div></div><div class="container"><div class="stat-ribbon editorial-stats"><div><strong data-active-program-count>0</strong><span>active programmes</span></div><div><strong>3</strong><span>revenue models tracked</span></div><div><strong>100%</strong><span>exact-link rule</span></div><div><strong>0</strong><span>pending partners shown</span></div></div></div></section>
+<section class="section section-soft"><div class="container"><div class="section-heading-v2"><div><span class="kicker">Start here</span><h2>Deep pages built around real buying decisions</h2></div><p>We publish fewer pages and make each one defensible, updatable and useful enough to replace several browser tabs.</p></div><div class="editorial-card-grid">
+<a class="editorial-card" href="compare/joom-vs-aliexpress/index.html"><span>Marketplace comparison</span><h3>Joom vs AliExpress</h3><p>Compare selection, support, returns and how to judge the actual listing.</p><b>Read comparison →</b></a>
+<a class="editorial-card" href="compare/geekbuying-vs-aliexpress/index.html"><span>Tech shopping</span><h3>Geekbuying vs AliExpress</h3><p>Specialist electronics retailer versus broad multi-seller marketplace.</p><b>Read comparison →</b></a>
+<a class="editorial-card" href="software/filmora-review/index.html"><span>Creator software</span><h3>Filmora review</h3><p>Features, plan traps, strengths, limitations and the users it actually fits.</p><b>Read review →</b></a>
+<a class="editorial-card" href="sourcing/how-to-find-verified-suppliers/index.html"><span>Business sourcing</span><h3>Find verified Alibaba suppliers</h3><p>A practical verification workflow that goes beyond the badge.</p><b>Open guide →</b></a>
+</div></div></section>
+<section class="section"><div class="container"><div class="section-heading-v2"><div><span class="kicker">Live catalogue</span><h2>Verified offers from active programmes only</h2></div><p>These are live exact-product routes from the current catalogue. They are not automatically editorial winners.</p></div><div class="editorial-product-grid" data-editorial-products data-limit="8"></div><div class="centre-action"><a class="button button-outline" href="stores.html">Browse all verified store offers</a></div></div></section>
+<section class="section section-soft"><div class="container"><div class="section-heading-v2"><div><span class="kicker">Active publishing scope</span><h2>Only confirmed programmes are public</h2></div><p>Pending advertisers are held outside navigation, search pages and the sitemap until approval and working links are confirmed.</p></div><div class="active-program-list" data-active-program-list></div></div></section>
+<section class="section"><div class="container"><div class="trust-grid"><article class="trust-card"><span>01</span><div class="trust-icon">⌕</div><h3>Search record</h3><p>Every major page receives a keyword, competitor, evidence and update record stored with the site.</p></article><article class="trust-card"><span>02</span><div class="trust-icon">≠</div><h3>Real trade-offs</h3><p>We state who should not buy an option, not just why someone might buy it.</p></article><article class="trust-card"><span>03</span><div class="trust-icon">↗</div><h3>Precise destination</h3><p>Catalogue links must resolve to a specific product detail page before publication.</p></article></div></div></section>
+<section class="disclosure disclosure-v2"><div class="container"><p><strong>Affiliate disclosure:</strong> TrendPilot AI may earn from qualifying clicks or purchases. Editorial ranking does not use commission as a scoring factor.</p></div></section>
+</main><footer class="site-footer site-footer-v2"><div class="container footer-grid">
+<div class="footer-brand"><a class="brand" href="index.html"><img src="images/logo.svg" alt="" width="36" height="36"><span>TrendPilot <strong>AI</strong></span></a><p>Research-led comparisons, precise product routes and transparent affiliate disclosure.</p></div>
+<div class="footer-links"><div><strong>Explore</strong><a href="products/index.html">Products</a><a href="compare/index.html">Comparisons</a><a href="software/index.html">Software</a><a href="sourcing/index.html">Business sourcing</a></div><div><strong>Trust</strong><a href="about.html">About</a><a href="editorial-methodology.html">Editorial methodology</a><a href="how-we-test.html">How we test</a><a href="affiliate-disclosure.html">Affiliate disclosure</a><a href="contact.html">Contact</a></div><div><strong>Legal</strong><a href="privacy.html">Privacy</a><a href="terms.html">Terms</a><a href="corrections.html">Corrections</a></div></div>
+</div><div class="container footer-bottom"><span>© <span id="currentYear"></span> TrendPilot AI.</span><span>Prices and availability can change. Last editorial system update: 3 August 2026.</span></div></footer><script src="js/program-status.js"></script><script src="js/affiliate-links.js"></script><script src="js/matched-products.js"></script><script src="js/editorial-products.js"></script><script src="js/app.js?v=3.0.0"></script></body></html>

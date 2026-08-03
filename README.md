@@ -49,3 +49,12 @@ for public trend pages that do not expose a suitable API. Sources are fetched in
 parallel, commercial and product evidence remains mandatory, and review.html now
 shows source evidence before approval. See TREND-SOURCES-GUIDE.txt.
 
+
+
+## v3.0.0 — Research-led decision architecture
+
+The public homepage now leads with editorial comparisons and buying guides while preserving the multi-network discovery and exact-product-link pipeline. Active programme status is stored in `config/affiliate-program-status.json`; pending programmes remain outside the public sitemap. Research records live in `research/`, and the first public guides cover wireless CarPlay adapters, marketplace comparisons, Filmora, beginner video editors and Alibaba sourcing.
+
+Before publishing a Wondershare affiliate link, paste the generated Admitad deeplink into `js/affiliate-links.js`. Until then the button safely falls back to the official Wondershare product page. CPC/CPA support is recorded at programme level, but a feed link is not labelled CPC until its generated link mode is independently verified.
+
+See `IMPLEMENTATION-REPORT.md` for the complete v3.0 scope, manual launch actions and retained future sections. See `research/README.md` for the mandatory page research workflow.

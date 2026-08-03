@@ -1,3 +1,10 @@
 User-agent: *
 Allow: /
-Sitemap: https://s023007.github.io/trendpilot-ai/sitemap.xml
+Disallow: /review.html
+Disallow: /tool.html
+Disallow: /networks.html
+Disallow: /config/
+Disallow: /data/
+Disallow: /research/
+
+Sitemap: https://trendpilot-ai.netlify.app/sitemap.xml
