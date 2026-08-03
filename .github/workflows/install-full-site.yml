@@ -1,0 +1,48 @@
+name: Install complete TrendPilot site
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Replace repository files from full package
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f trendpilot-ai-v3-full-clean.zip
+          mkdir -p "$RUNNER_TEMP/trendpilot-full"
+          unzip -q trendpilot-ai-v3-full-clean.zip -d "$RUNNER_TEMP/trendpilot-full"
+          rsync -a --delete             --exclude='.git/'             --exclude='trendpilot-ai-v3-full-clean.zip'             --exclude='.github/workflows/install-full-site.yml'             "$RUNNER_TEMP/trendpilot-full/" ./
+          rm -f trendpilot-ai-v3-full-clean.zip
+
+          test -f products/index.html
+          test -f compare/index.html
+          test -f software/index.html
+          test -f sourcing/index.html
+          test -f config/sources/admitad-wondershare-ww.json
+
+      - name: Commit complete site
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes were needed."
+            exit 0
+          fi
+
+          git commit -m "fix: install complete TrendPilot v3 site"
+          git push origin HEAD:main
