@@ -1,0 +1,73 @@
+name: Install TrendPilot V11 Global Commerce
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  install-v11:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Locate and unpack V11 package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP_FILE="$(find . -maxdepth 1 -type f -name 'trendpilot-v11-global-commerce*.zip' | head -n 1)"
+          if [ -z "${ZIP_FILE}" ]; then
+            echo "Upload trendpilot-v11-global-commerce.zip to the repository root first."
+            exit 1
+          fi
+          rm -rf /tmp/trendpilot-v11
+          mkdir -p /tmp/trendpilot-v11
+          unzip -q "${ZIP_FILE}" -d /tmp/trendpilot-v11
+          cp -R /tmp/trendpilot-v11/. .
+
+      - name: Install V11 site experience
+        run: python automation/install_v11_global.py
+
+      - name: Validate generated files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile automation/build_search_catalog.py automation/install_v11_global.py
+          node --check js/site-v11.js
+          test -s index.html
+          test -s find/index.html
+          test -s css/style-v11.css
+          test -s js/site-v11.js
+
+      - name: Commit V11
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Install TrendPilot V11 global commerce experience"
+            git push
+          fi
+
+      - name: Queue full product catalogue refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh workflow run update-products.yml --ref "${GITHUB_REF_NAME}" || \
+          echo "V11 installed. Run Update trends and affiliate products manually if dispatch is unavailable."
