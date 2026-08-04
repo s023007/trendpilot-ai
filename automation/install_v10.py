@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Install TrendPilot V10 commerce, coupon and mobile UX assets."""
+
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+STYLE_TAG = '<link rel="stylesheet" href="/css/style-v10.css?v=10.0.0">'
+COUPON_TAG = '<script defer src="/js/coupons-data.js?v=10.0.0"></script>'
+SCRIPT_TAG = '<script defer src="/js/site-v10.js?v=10.0.0"></script>'
+
+STYLE_RE = re.compile(r'\s*<link[^>]+href=["\']/css/style-v10\.css(?:\?[^"\']*)?["\'][^>]*>\s*', re.I)
+COUPON_RE = re.compile(r'\s*<script[^>]+src=["\']/js/coupons-data\.js(?:\?[^"\']*)?["\'][^>]*>\s*</script>\s*', re.I)
+SCRIPT_RE = re.compile(r'\s*<script[^>]+src=["\']/js/site-v10\.js(?:\?[^"\']*)?["\'][^>]*>\s*</script>\s*', re.I)
+
+DEALS_HTML = '''<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1,viewport-fit=cover" name="viewport"/>
+<meta content="#081934" name="theme-color"/>
+<meta content="index,follow,max-image-preview:large" name="robots"/>
+<title>Current Coupons and Deals — TrendPilot AI</title>
+<meta content="Search current coupons, promo codes and automatic deals from merchants included in TrendPilot comparisons." name="description"/>
+<link href="https://trendpilot-ai.netlify.app/deals/" rel="canonical"/>
+<meta content="TrendPilot AI" property="og:site_name"/>
+<meta content="website" property="og:type"/>
+<meta content="Current Coupons and Deals — TrendPilot AI" property="og:title"/>
+<meta content="Find current savings and use them with the relevant merchant or product comparison." property="og:description"/>
+<meta content="https://trendpilot-ai.netlify.app/deals/" property="og:url"/>
+<link href="/images/favicon-v4.svg" rel="icon" type="image/svg+xml"/>
+<link href="/manifest.webmanifest" rel="manifest"/>
+<link href="/css/style-v8.css?v=8.0.0" rel="stylesheet"/>
+<link href="/css/style-v9.css?v=9.0.0" rel="stylesheet"/>
+<link rel="stylesheet" href="/css/style-v10.css?v=10.0.0"/>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Current Coupons and Deals","url":"https://trendpilot-ai.netlify.app/deals/","description":"Current coupons and automatic deals matched to TrendPilot merchants."}</script>
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<div class="utility-bar"><div class="shell"><span>Compare products. Check current savings. Buy with less guesswork.</span><span><a href="/find/">Find a product</a></span></div></div>
+<header class="site-header" data-site-header=""><div class="shell nav-shell"><a aria-label="TrendPilot AI home" class="brand" href="/"><img alt="" height="44" src="/images/logo-v4.svg" width="44"/><span>TrendPilot <strong>AI</strong></span></a><nav aria-label="Primary navigation" class="primary-nav" data-primary-nav="" id="primary-nav"><div class="mobile-menu-head"><a class="brand" href="/"><img alt="" height="40" src="/images/logo-v4.svg" width="40"/><span>TrendPilot <strong>AI</strong></span></a><button aria-label="Close menu" class="menu-close" data-menu-close="" type="button">×</button></div><a href="/find/">Find a product</a><a href="/compare/">Comparisons</a><a href="/software/">Software</a><a href="/products/">Electronics</a><a aria-current="page" class="active" href="/deals/">Deals</a><a href="/sourcing/">For business</a><a class="nav-action" href="/find/">Search products</a><div class="mobile-nav-trust"><a href="/about.html">About</a><a href="/editorial-methodology.html">How we review</a><a href="/contact.html">Contact</a><a href="/affiliate-disclosure.html">How links work</a></div></nav><button aria-controls="primary-nav" aria-expanded="false" aria-label="Open menu" class="menu-button" data-menu-button="" type="button"><span></span><span></span><span></span></button></div><button aria-label="Close menu" class="nav-backdrop" data-menu-backdrop="" type="button"></button></header>
+<main id="main">
+<section class="page-hero"><div class="shell page-hero-grid"><div><span class="kicker">Current savings</span><h1>Find the deal that belongs with the product.</h1><p>Search current promo codes and automatic offers by merchant. Open the product comparison first when you still need help choosing.</p><a class="button button-secondary" href="/find/">Find and compare products</a></div><div class="page-hero-art"><img alt="Current product savings" src="/images/scene-sourcing.svg" onerror="this.src='/images/logo-v4.svg'"/></div></div></section>
+<section class="section section-soft"><div class="shell v10-deals-shell"><div class="section-head"><div><span class="kicker">Live from connected programmes</span><h2>Coupons and automatic deals</h2></div><p>Country, minimum-order and product restrictions may apply. Confirm the final saving before payment.</p></div><div class="v10-deals-toolbar"><label><span class="sr-only">Search deals</span><input type="search" data-v10-deal-search placeholder="Search a merchant, product or discount"/></label><label><span class="sr-only">Filter by merchant</span><select data-v10-deal-merchant><option value="">All merchants</option></select></label></div><span class="v10-deal-status" data-v10-deal-status>Loading current savings…</span><div class="v10-deal-grid" data-v10-deals></div></div></section>
+</main>
+<div aria-live="polite" class="compare-drawer" data-compare-drawer=""><div class="compare-drawer-head"><div><span>Selected products</span><strong data-compare-count="">0 of 3</strong></div><button data-compare-clear="" type="button">Clear</button></div><div class="compare-selected" data-compare-selected=""></div><button class="button button-brand button-wide" data-compare-open="" disabled="" type="button">Compare selected products</button></div><dialog class="compare-dialog" data-compare-dialog=""><button aria-label="Close comparison" class="dialog-close" data-compare-close="" type="button">×</button><div data-compare-table=""></div></dialog>
+<footer class="site-footer"><div class="shell footer-grid"><div class="footer-brand"><a class="brand" href="/"><img alt="" height="42" src="/images/logo-v4.svg" width="42"/><span>TrendPilot <strong>AI</strong></span></a><p>Product pictures, practical comparisons and current savings for people who want to buy with confidence.</p></div><div><h2>Shop smarter</h2><a href="/find/">Find a product</a><a href="/compare/">Comparisons</a><a href="/deals/">Deals</a><a href="/software/">Software</a><a href="/products/">Electronics</a></div><div><h2>About TrendPilot</h2><a href="/about.html">About</a><a href="/editorial-methodology.html">How we review</a><a href="/how-we-test.html">How we test</a><a href="/contact.html">Contact</a></div><div><h2>Policies</h2><a href="/affiliate-disclosure.html">How links work</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/corrections.html">Corrections</a></div></div><div class="shell footer-bottom"><span>© <span data-year=""></span> TrendPilot AI.</span><span>Prices, stock, codes and seller terms can change. Recheck them before paying.</span></div></footer>
+<script src="/js/site-config.js?v=7.0.0"></script><script src="/js/search-index.js?v=7.0.0"></script><script defer src="/js/site-v8.js?v=8.0.0"></script><script defer src="/js/program-status.js"></script><script defer src="/js/matched-products.js"></script><script defer src="/js/affiliate-links.js"></script><script defer src="/js/site-v9.js?v=9.0.0"></script><script defer src="/js/coupons-data.js?v=10.0.0"></script><script defer src="/js/site-v10.js?v=10.0.0"></script>
+</body></html>
+'''
+
+
+def add_deals_links(text: str) -> str:
+    if 'href="/deals/"' not in text:
+        text = re.sub(
+            r'(<a class="nav-action"[^>]*>)',
+            '<a href="/deals/">Deals</a>\\1',
+            text,
+            count=1,
+            flags=re.I,
+        )
+    if '<h2>Shop smarter</h2>' in text and '<h2>Shop smarter</h2><a href="/deals/">' not in text:
+        text = text.replace(
+            '<h2>Shop smarter</h2>',
+            '<h2>Shop smarter</h2><a href="/deals/">Deals</a>',
+            1,
+        )
+    return text
+
+
+def inject(path: Path) -> bool:
+    original = path.read_text(encoding="utf-8")
+    text = STYLE_RE.sub("\n", original)
+    text = COUPON_RE.sub("\n", text)
+    text = SCRIPT_RE.sub("\n", text)
+    text = add_deals_links(text)
+
+    if re.search(r"</head>", text, flags=re.I):
+        text = re.sub(r"</head>", f"\n  {STYLE_TAG}\n</head>", text, count=1, flags=re.I)
+    else:
+        text = STYLE_TAG + "\n" + text
+
+    scripts = f"\n  {COUPON_TAG}\n  {SCRIPT_TAG}\n"
+    if re.search(r"</body>", text, flags=re.I):
+        text = re.sub(r"</body>", scripts + "</body>", text, count=1, flags=re.I)
+    else:
+        text += "\n" + scripts
+
+    if text != original:
+        path.write_text(text, encoding="utf-8")
+        return True
+    return False
+
+
+def update_sitemap() -> bool:
+    path = ROOT / "sitemap.xml"
+    if not path.exists():
+        return False
+    original = path.read_text(encoding="utf-8")
+    if "https://trendpilot-ai.netlify.app/deals/" in original:
+        return False
+    row = "  <url><loc>https://trendpilot-ai.netlify.app/deals/</loc><changefreq>daily</changefreq><priority>0.8</priority></url>\n"
+    text = original.replace("</urlset>", row + "</urlset>")
+    path.write_text(text, encoding="utf-8")
+    return True
+
+
+def main() -> None:
+    (ROOT / "deals").mkdir(parents=True, exist_ok=True)
+    (ROOT / "deals" / "index.html").write_text(DEALS_HTML, encoding="utf-8")
+
+    changed = 0
+    scanned = 0
+    for path in ROOT.rglob("*.html"):
+        rel = path.relative_to(ROOT)
+        if any(part.startswith(".") for part in rel.parts) or "node_modules" in path.parts:
+            continue
+        scanned += 1
+        changed += int(inject(path))
+
+    sitemap_changed = update_sitemap()
+    print(
+        f"TrendPilot V10 installation complete: scanned={scanned}, "
+        f"changed={changed}, deals_page=ready, sitemap_changed={sitemap_changed}"
+    )
+    if scanned == 0:
+        raise SystemExit("No HTML pages were found.")
+
+
+if __name__ == "__main__":
+    main()
