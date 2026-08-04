@@ -1,0 +1,35 @@
+TrendPilot AI V11 Technical Audit — Resolved in V12
+===================================================
+
+Reviewed V11 package files:
+- automation/build_search_catalog.py
+- automation/install_v11_global.py
+- css/style-v11.css
+- js/site-v11.js
+- V11-RELEASE-NOTES.txt
+- install-trendpilot-v11-global.yml
+
+Confirmed root causes:
+- Clothing broad route mixed apparel with footwear, bags and jewelry.
+- Audience filter accepted unknown/all products; girl/boy precedence was wrong.
+- Apparel comparison family was too broad for same-type decisions.
+- Product grouping relied too heavily on mixed description/category keywords.
+- Compare view lacked delivery, rating, material, shipping and condition evidence.
+- Mobile drawer/layout rules could leave a partial page or visible close control.
+- Legacy reinjection could duplicate managed JavaScript dependencies.
+- Private review.html was treated like a public page and indexed by the sitemap.
+- Global editorial string replacement could alter legal/commission wording.
+- V11 had no dedicated carefully-selected rare used inventory experience.
+
+V12 resolution:
+- Strict clothing route and exact audience filters.
+- Fine-grained apparel taxonomy and same-family compare lock.
+- Weighted/priority classifier with wholesale/software/enclosure safeguards.
+- Evidence-aware cards and comparison rows.
+- Full-width mobile CSS and closed-by-default full-screen navigation.
+- Idempotent legacy script cleanup and refreshed shared chrome.
+- Private review page repair + noindex + sitemap exclusion.
+- Legal/editorial text is no longer rewritten.
+- Rare used scoring and dedicated page.
+- Automated validator tests classifier samples, generated pages, duplication,
+  private-page rules, mobile safeguards and V12 manifest fields.

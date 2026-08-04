@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Build TrendPilot's buyer-facing search catalogue.
 
-V11 keeps the existing private feed workflow, but improves three things that
-matter to shoppers:
+V12 keeps the existing private feed workflow while making buyer intent strict:
 
-* broad searches such as "clothing" or "electronics" route to useful groups;
-* apparel, accessories, home and electronics are classified more completely;
-* every public record carries a stable comparison type, audience and subtype.
+* clothing searches contain clothing, not shoes, accessories or unrelated products;
+* audience and product-family classification support precise same-type comparison;
+* optional delivery, rating, condition and rarity evidence is preserved when feeds provide it;
+* a coverage report exposes catalogue gaps without publishing private feed details.
 
 Private feed URLs, commissions and credentials never enter the public output.
 """
@@ -30,14 +30,14 @@ PROGRAM_STATUS_PATH = ROOT / "config" / "affiliate-program-status.json"
 OUT_DIR = ROOT / "data" / "search-catalog"
 MANIFEST_PATH = OUT_DIR / "manifest.json"
 
-MAX_TOTAL = 44_000
+MAX_TOTAL = 50_000
 MAX_TOKEN_ROUTES = 30_000
 MAX_DESCRIPTION = 210
 DEFAULT_GROUP_LIMIT = 2_600
 GROUP_LIMITS = {
-    "apparel": 4_800,
-    "footwear": 3_400,
-    "bags-accessories": 3_200,
+    "apparel": 8_000,
+    "footwear": 4_000,
+    "bags-accessories": 3_500,
     "jewelry-watches": 2_800,
     "phones-tablets": 3_200,
     "computers": 3_200,
@@ -45,7 +45,7 @@ GROUP_LIMITS = {
     "beauty-care": 3_000,
 }
 
-# Men, women and kids are intentionally not stop words in V11. They are useful
+# Men, women and kids are intentionally not stop words in V12. They are useful
 # buyer filters and were previously discarded.
 STOP_WORDS = {
     "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in",
@@ -66,7 +66,7 @@ GROUPS: dict[str, dict] = {
         "label": "Clothing & apparel",
         "aliases": ["clothing", "clothes", "apparel", "fashion", "dress", "shirt", "t-shirt", "jacket", "coat", "hoodie", "jeans", "trousers", "pants", "skirt", "shorts", "activewear", "swimwear", "underwear", "lingerie", "kids clothing", "women clothing", "men clothing"],
         "patterns": [
-            r"\bclothing\b", r"\bclothes\b", r"\bapparel\b", r"\bfashion\b",
+            r"\bclothing\b", r"\bclothes\b", r"\bapparel\b",
             r"\bdress(es)?\b", r"\bshirt(s)?\b", r"\bt[- ]?shirt(s)?\b",
             r"\bblouse(s)?\b", r"\btop(s)?\b", r"\btunic(s)?\b",
             r"\bjacket(s)?\b", r"\bcoat(s)?\b", r"\bhoodie(s)?\b",
@@ -99,7 +99,7 @@ GROUPS: dict[str, dict] = {
     "baby-kids": {
         "label": "Baby & kids",
         "aliases": ["baby", "babies", "kids", "children", "toddler", "stroller", "baby care"],
-        "patterns": [r"\bbaby\b", r"\binfant\b", r"\btoddler\b", r"\bstroller\b", r"\bpushchair\b", r"\bfeeding bottle\b", r"\bbaby carrier\b", r"\bchildren'?s\b", r"\bkids'?\b"],
+        "patterns": [r"\bstroller\b", r"\bpushchair\b", r"\bfeeding bottle\b", r"\bbaby carrier\b", r"\bdiaper(s)?\b", r"\bnapp(y|ies)\b", r"\bcrib\b", r"\bcot\b", r"\bhigh chair\b", r"\bbaby monitor\b"],
     },
     "pet-supplies": {
         "label": "Pet supplies",
@@ -148,8 +148,8 @@ GROUPS: dict[str, dict] = {
     },
     "tools": {
         "label": "Tools & workshop",
-        "aliases": ["tool", "tools", "drill", "saw", "power tool", "workshop", "repair tools", "hand tools"],
-        "patterns": [r"\bpower tool\b", r"\bdrill\b", r"\bsaw\b", r"\bworkshop\b", r"\btool(s)?\b", r"\bwrench\b", r"\bscrewdriver\b", r"\bplier(s)?\b", r"\bcrimp(ing)?\b", r"\bsocket set\b"],
+        "aliases": ["tool", "tools", "drill", "saw", "power tool", "workshop", "repair tools", "hand tools", "test equipment", "oscilloscope", "multimeter", "measurement instrument", "laboratory equipment"],
+        "patterns": [r"\bpower tool\b", r"\bdrill\b", r"\bsaw\b", r"\bworkshop\b", r"\btool(s)?\b", r"\bwrench\b", r"\bscrewdriver\b", r"\bplier(s)?\b", r"\bcrimp(ing)?\b", r"\bsocket set\b", r"\btest equipment\b", r"\boscilloscope\b", r"\bmultimeter\b", r"\bmeasurement instrument\b", r"\blaboratory equipment\b", r"\belectronic test(er|ing)?\b"],
     },
     "office-school": {
         "label": "Office, school & stationery",
@@ -174,7 +174,7 @@ GROUPS: dict[str, dict] = {
     "software": {
         "label": "Software & digital tools",
         "aliases": ["software", "video editor", "filmora", "capcut", "pdf editor", "voice ai", "creator software"],
-        "patterns": [r"\bvideo editor\b", r"\bfilmora\b", r"\bcapcut\b", r"\bpdf editor\b", r"\bsoftware\b", r"\bvoice ai\b"],
+        "patterns": [r"\bvideo editor\b", r"\bfilmora\b", r"\bcapcut\b", r"\bpdf editor\b", r"\bsoftware\b", r"\bvoice ai\b", r"\bannual plan\b", r"\blifetime plan\b", r"\bsubscription\b", r"\blicen[cs]e key\b", r"\bdigital download\b", r"\btoolkit for (windows|mac)\b"],
     },
     "business-sourcing": {
         "label": "Business sourcing",
@@ -197,26 +197,44 @@ FAMILY_RULES: list[tuple[str, list[str]]] = [
     ("wireless-carplay-adapter", ["wireless carplay", "carplay adapter", "carplay dongle"]),
     ("car-head-unit", ["head unit", "car radio", "multimedia player", "android auto radio", "car stereo"]),
     ("pet-feeder", ["pet feeder", "automatic feeder", "food dispenser", "feeding bowl", "cat feeder", "dog feeder"]),
+    ("pet-litter-box", ["litter box", "cat toilet", "self cleaning litter"]),
     ("pet-water-fountain", ["pet fountain", "water fountain", "water dispenser", "cat fountain", "dog fountain"]),
     ("pet-grooming", ["pet grooming", "grooming brush", "pet clipper", "deshedding"]),
     ("pet-toy", ["pet toy", "dog toy", "cat toy", "chew toy"]),
-    ("sneakers", ["sneaker", "trainer", "running shoe", "sports shoe"]),
+    ("running-shoes", ["running shoe", "jogging shoe", "marathon shoe", "trail running shoe"]),
+    ("sneakers", ["sneaker", "trainer", "sports shoe", "casual shoe"]),
     ("boots", ["boot", "ankle boot", "snow boot", "work boot"]),
-    ("sandals", ["sandal", "slipper", "flip flop", "slides"]),
-    ("formal-shoes", ["loafer", "formal shoe", "dress shoe", "oxford shoe", "heel"]),
-    ("dresses", ["dress", "gown"]),
-    ("tops-shirts", ["t-shirt", "t shirt", "shirt", "blouse", "top", "tunic"]),
-    ("outerwear", ["jacket", "coat", "blazer", "cardigan", "hoodie"]),
-    ("knitwear", ["sweater", "knitwear", "pullover"]),
-    ("jeans-trousers", ["jeans", "denim pants", "trousers", "pants"]),
-    ("skirts-shorts", ["skirt", "shorts"]),
-    ("activewear", ["activewear", "sportswear", "tracksuit", "leggings", "yoga pants"]),
-    ("swimwear", ["swimwear", "swimsuit", "bikini", "swim shorts"]),
-    ("underwear-lingerie", ["underwear", "lingerie", "bra", "panties", "boxers"]),
-    ("sleepwear", ["pajama", "pyjama", "sleepwear", "nightdress"]),
+    ("sandals", ["sandal", "flip flop", "slides"]),
+    ("slippers", ["slipper", "house shoe"]),
+    ("formal-shoes", ["loafer", "formal shoe", "dress shoe", "oxford shoe", "derby shoe", "heel"]),
+    ("t-shirts", ["t-shirt", "t shirt", "tee shirt", "graphic tee"]),
+    ("polo-shirts", ["polo shirt", "polo tee"]),
+    ("dress-shirts", ["dress shirt", "formal shirt", "business shirt"]),
+    ("casual-shirts", ["casual shirt", "button shirt", "button-down shirt", "long sleeve shirt", "short sleeve shirt"]),
+    ("tops-blouses", ["blouse", "crop top", "tank top", "camisole", "tunic"]),
+    ("hoodies-sweatshirts", ["hoodie", "sweatshirt"]),
+    ("jackets", ["jacket", "bomber jacket", "denim jacket", "windbreaker"]),
+    ("coats", ["coat", "overcoat", "trench coat", "parka"]),
+    ("blazers", ["blazer"]),
+    ("sweaters-knitwear", ["sweater", "knitwear", "pullover", "cardigan"]),
+    ("jeans", ["jeans", "denim jeans"]),
+    ("trousers", ["trousers", "dress pants", "chino", "cargo pants", "pants"]),
+    ("shorts", ["shorts", "bermuda shorts"]),
+    ("skirts", ["skirt"]),
+    ("dresses", ["dress", "gown", "abaya"]),
+    ("suits", ["two piece suit", "three piece suit", "business suit", "suit set"]),
+    ("activewear", ["activewear", "sportswear", "tracksuit", "leggings", "yoga pants", "gym wear"]),
+    ("swimwear", ["swimwear", "swimsuit", "bikini", "swim shorts", "swimming trunks"]),
+    ("mens-underwear", ["boxers", "boxer briefs", "mens underwear", "men underwear"]),
+    ("womens-underwear", ["lingerie", "bra", "panties", "womens underwear", "women underwear"]),
+    ("underwear", ["underwear", "briefs"]),
+    ("sleepwear", ["pajama", "pyjama", "sleepwear", "nightdress", "nightgown"]),
+    ("socks", ["socks", "ankle socks", "crew socks"]),
     ("bags", ["handbag", "shoulder bag", "tote bag", "backpack", "wallet"]),
     ("watches", ["smart watch", "smartwatch", "wristwatch", "watch"]),
     ("eyewear", ["eyeglasses", "glasses", "sunglasses", "frames"]),
+    ("phone-cases", ["phone case", "iphone case", "mobile case", "case for iphone", "case for samsung", "silicone case for iphone"]),
+    ("power-banks", ["power bank", "portable battery charger"]),
     ("earbuds", ["earbud", "tws", "in-ear headphone", "earphone"]),
     ("headphones", ["headphone", "headset", "over-ear"]),
     ("speakers", ["bluetooth speaker", "portable speaker", "soundbar"]),
@@ -231,12 +249,13 @@ FAMILY_RULES: list[tuple[str, list[str]]] = [
     ("thermal-printer", ["thermal printer", "label printer", "receipt printer"]),
     ("3d-filament", ["filament", "pla", "petg", "abs filament"]),
     ("video-editor", ["video editor", "filmora", "capcut", "video editing"]),
+    ("phone-utility-software", ["dr.fone", "mobiletrans", "phone transfer", "phone recovery"]),
 ]
 
 AUDIENCE_RULES: list[tuple[str, list[str]]] = [
-    ("women", ["women", "woman", "female", "ladies", "girl"]),
-    ("men", ["men", "man", "male", "gentlemen", "boy"]),
-    ("kids", ["kids", "kid", "children", "child", "toddler", "baby", "infant"]),
+    ("kids", ["kids", "kid", "children", "child", "toddler", "baby", "infant", "girls", "girl", "boys", "boy"]),
+    ("women", ["women", "woman", "female", "ladies", "womens"]),
+    ("men", ["men", "man", "male", "gentlemen", "mens"]),
     ("unisex", ["unisex"]),
 ]
 
@@ -358,23 +377,67 @@ def read_fallback_matches() -> list[dict]:
                 "network": row.get("network"),
                 "available": True,
                 "qualityScore": row.get("offerQuality") or row.get("qualityScore") or row.get("matchScore") or 70,
+                "rating": row.get("rating") or row.get("productRating") or row.get("starRating"),
+                "reviewCount": row.get("reviewCount", row.get("reviews", row.get("ratingCount"))),
+                "soldCount": row.get("soldCount", row.get("orders", row.get("salesCount"))),
+                "delivery": row.get("delivery") or row.get("deliveryText") or row.get("shippingTime"),
+                "shippingPrice": row.get("shippingPrice", row.get("shippingCost", row.get("deliveryPrice"))),
+                "condition": row.get("condition") or row.get("itemCondition"),
+                "material": row.get("material") or row.get("fabric") or row.get("materials"),
                 "offerType": "product",
             })
     return output
 
 
 def group_for(offer: dict) -> str:
-    hay = normalise(" ".join([
-        clean_text(offer.get("name")), clean_text(offer.get("description")),
-        clean_text(offer.get("category")), clean_text(offer.get("brand")),
-        " ".join(clean_text(item) for item in offer.get("tags", []) or []),
-    ]))
-    for group in GROUPS:
+    name = normalise(offer.get("name"))
+    category = normalise(offer.get("category"))
+    tags = normalise(" ".join(clean_text(item) for item in offer.get("tags", []) or []))
+    description = normalise(offer.get("description"))
+    primary = " ".join(part for part in (name, category, tags) if part)
+
+    # Wholesale/private-label offers are a different buyer decision from retail products.
+    sourcing_terms = ("private label", "wholesale", "manufacturer", "factory", "supplier", "custom logo", "bulk order", "reseller opportunity", "moq")
+    if any(has_phrase(primary, term) for term in sourcing_terms):
+        return "business-sourcing"
+
+    software_terms = ("software", "annual plan", "lifetime plan", "subscription", "license key", "licence key", "digital download", "toolkit for windows", "toolkit for mac", "filmora", "dr fone", "mobiletrans")
+    hardware_terms = ("laptop", "smartphone", "tablet", "phone case", "charger", "monitor", "keyboard", "mouse", "projector")
+    if any(has_phrase(primary, term) for term in software_terms) and not any(has_phrase(name, term) for term in hardware_terms):
+        return "software"
+
+    scores: dict[str, float] = {}
+    title_required = {"apparel", "footwear", "bags-accessories", "jewelry-watches", "baby-kids", "pet-supplies", "software", "business-sourcing"}
+    for group, patterns in COMPILED_PATTERNS.items():
         if group == "other":
             continue
-        if any(pattern.search(hay) for pattern in COMPILED_PATTERNS[group]):
-            return group
-    return "other"
+        primary_hits = sum(1 for pattern in patterns if pattern.search(primary))
+        secondary_hits = sum(1 for pattern in patterns if pattern.search(description))
+        if group in title_required and primary_hits == 0:
+            continue
+        score = primary_hits * 12 + min(secondary_hits, 3)
+        label = normalise(GROUPS[group]["label"])
+        if label and label in category:
+            score += 6
+        if group == "projectors-tv" and any(term in primary for term in ("projector box", "electronics box", "meter panel", "enclosure")):
+            score -= 20
+        if group == "apparel" and not any(pattern.search(name + " " + category) for pattern in COMPILED_PATTERNS[group]):
+            score -= 20
+        if score > 0:
+            scores[group] = score
+
+    if not scores:
+        return "other"
+
+    # Children’s clothing remains apparel, with audience=kids; baby equipment stays baby-kids.
+    if "apparel" in scores and "baby-kids" in scores:
+        baby_equipment = ("stroller", "pushchair", "feeding bottle", "baby carrier", "diaper", "nappy", "crib", "cot", "high chair")
+        if not any(has_phrase(primary, term) for term in baby_equipment):
+            scores["apparel"] += 30
+
+    priority = ["business-sourcing", "software", "pet-supplies", "footwear", "apparel", "phones-tablets", "computers", "audio", "cameras", "projectors-tv", "smart-home", "automotive", "printing-3d", "sports-outdoors", "home-kitchen", "tools", "beauty-care", "bags-accessories", "jewelry-watches", "baby-kids", "office-school", "toys-games"]
+    return max(scores, key=lambda group: (scores[group], -priority.index(group) if group in priority else -999))
+
 
 
 def family_for(offer: dict, group: str) -> str:
@@ -384,6 +447,12 @@ def family_for(offer: dict, group: str) -> str:
     ]))
     for family, phrases in FAMILY_RULES:
         if any(has_phrase(hay, phrase) for phrase in phrases):
+            if family == "underwear":
+                audience = audience_for(offer)
+                if audience == "men":
+                    return "mens-underwear"
+                if audience == "women":
+                    return "womens-underwear"
             return family
     meaningful = tokens(f"{offer.get('brand', '')} {offer.get('name', '')}")[:3]
     if meaningful:
@@ -392,14 +461,25 @@ def family_for(offer: dict, group: str) -> str:
 
 
 def audience_for(offer: dict) -> str:
-    hay = normalise(" ".join([
-        clean_text(offer.get("name")), clean_text(offer.get("description")),
-        clean_text(offer.get("category")),
+    primary = normalise(" ".join([
+        clean_text(offer.get("name")), clean_text(offer.get("category")),
     ]))
-    hits = [audience for audience, phrases in AUDIENCE_RULES if any(has_phrase(hay, phrase) for phrase in phrases)]
-    if "women" in hits and "men" in hits:
+    description = normalise(clean_text(offer.get("description")))
+    hay = f"{primary} {description}"
+    kids_terms = AUDIENCE_RULES[0][1]
+    if any(has_phrase(primary, phrase) for phrase in kids_terms):
+        return "kids"
+    women = any(has_phrase(hay, phrase) for phrase in dict(AUDIENCE_RULES)["women"])
+    men = any(has_phrase(hay, phrase) for phrase in dict(AUDIENCE_RULES)["men"])
+    unisex = any(has_phrase(hay, phrase) for phrase in dict(AUDIENCE_RULES)["unisex"])
+    if unisex or (women and men):
         return "unisex"
-    return hits[0] if hits else "all"
+    if women:
+        return "women"
+    if men:
+        return "men"
+    return "all"
+
 
 
 def stable_id(offer: dict) -> str:
@@ -413,6 +493,65 @@ def number(value: object) -> float | None:
     except (TypeError, ValueError):
         return None
     return result if math.isfinite(result) else None
+
+
+def first_value(offer: dict, *keys: str) -> object:
+    for key in keys:
+        value = offer.get(key)
+        if value not in (None, "", [], {}):
+            return value
+    return None
+
+
+def integer(value: object) -> int | None:
+    try:
+        return int(float(str(value).replace(",", "").strip()))
+    except (TypeError, ValueError):
+        return None
+
+
+def condition_for(offer: dict) -> str:
+    raw = normalise(first_value(offer, "condition", "productCondition", "itemCondition", "state"))
+    title = normalise(offer.get("name"))
+    text = f"{raw} {title}"
+    if any(has_phrase(text, term) for term in ("refurbished", "renewed", "remanufactured")):
+        return "refurbished"
+    if any(has_phrase(text, term) for term in ("pre owned", "pre-owned", "used", "second hand", "second-hand")):
+        return "used"
+    if any(has_phrase(text, term) for term in ("open box", "open-box")):
+        return "open-box"
+    return "new" if "new" in raw else ""
+
+
+def rarity_for(offer: dict, condition: str) -> tuple[int, list[str]]:
+    text = normalise(" ".join([clean_text(offer.get("name")), clean_text(offer.get("description")), clean_text(offer.get("category"))]))
+    signals = []
+    mapping = {
+        "rare": "rare", "hard to find": "hard-to-find", "discontinued": "discontinued",
+        "vintage": "vintage", "collectible": "collectible", "limited edition": "limited-edition",
+        "obsolete": "obsolete", "replacement part": "replacement-part", "industrial": "specialist-tool",
+        "antique": "antique", "surplus": "surplus",
+    }
+    for phrase, label in mapping.items():
+        if has_phrase(text, phrase):
+            signals.append(label)
+    score = len(signals) * 2 + (2 if condition in {"used", "refurbished", "open-box"} else 0)
+    return score, signals
+
+
+def delivery_text_for(offer: dict) -> str:
+    direct = clean_text(first_value(offer, "deliveryText", "delivery", "shippingTime", "deliveryTime", "estimatedDelivery"))
+    if direct:
+        return direct[:80]
+    low = integer(first_value(offer, "deliveryMinDays", "minDeliveryDays", "shippingMinDays"))
+    high = integer(first_value(offer, "deliveryMaxDays", "maxDeliveryDays", "shippingMaxDays"))
+    if low is not None and high is not None:
+        return f"{low}-{high} days"
+    if high is not None:
+        return f"Up to {high} days"
+    if low is not None:
+        return f"From {low} days"
+    return ""
 
 
 def public_record(offer: dict, group: str) -> dict:
@@ -449,6 +588,31 @@ def public_record(offer: dict, group: str) -> dict:
         record["brand"] = brand
     if description:
         record["description"] = description[:MAX_DESCRIPTION]
+    rating = number(first_value(offer, "rating", "productRating", "starRating", "reviewRating"))
+    if rating is not None and 0 < rating <= 5:
+        record["rating"] = round(rating, 2)
+    reviews = integer(first_value(offer, "reviewCount", "reviews", "ratingCount", "feedbackCount"))
+    if reviews is not None and reviews >= 0:
+        record["reviews"] = reviews
+    sold = integer(first_value(offer, "soldCount", "orders", "salesCount"))
+    if sold is not None and sold >= 0:
+        record["sold"] = sold
+    delivery = delivery_text_for(offer)
+    if delivery:
+        record["delivery"] = delivery
+    shipping = number(first_value(offer, "shippingPrice", "shippingCost", "deliveryPrice"))
+    if shipping is not None and shipping >= 0:
+        record["shippingPrice"] = round(shipping, 2)
+    condition = condition_for(offer)
+    if condition:
+        record["condition"] = condition
+    rare_score, rarity_signals = rarity_for(offer, condition)
+    if rare_score:
+        record["rareScore"] = rare_score
+        record["raritySignals"] = rarity_signals
+    material = clean_text(first_value(offer, "material", "fabric", "materials"))
+    if material:
+        record["material"] = material[:80]
     return record
 
 
@@ -576,7 +740,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
     for group, records in selected_by_group.items():
         filename = f"{group}.json"
         payload = {
-            "version": "11.0.0",
+            "version": "12.0.0",
             "generatedAt": generated_at,
             "group": group,
             "label": GROUPS[group]["label"],
@@ -601,8 +765,31 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
 
     featured = balanced_public_records(featured, 30)
     token_routes = compact_token_routes(selected_by_group)
+    all_records = [record for records in selected_by_group.values() for record in records]
+    rare_used = sorted(
+        [record for record in all_records if record.get("rareScore", 0) >= 4 and record.get("condition") in {"used", "refurbished", "open-box"}],
+        key=lambda item: (item.get("rareScore", 0), item.get("quality", 0)),
+        reverse=True,
+    )[:120]
+    coverage = {
+        "version": "12.0.0",
+        "generatedAt": generated_at,
+        "total": len(all_records),
+        "byGroup": dict(Counter(record.get("group", "other") for record in all_records)),
+        "byAudience": dict(Counter(record.get("audience", "all") for record in all_records)),
+        "topFamilies": dict(Counter(record.get("family", "unknown") for record in all_records).most_common(80)),
+        "missing": {
+            "image": sum(1 for record in all_records if not record.get("image")),
+            "price": sum(1 for record in all_records if not record.get("price")),
+            "rating": sum(1 for record in all_records if not record.get("rating")),
+            "delivery": sum(1 for record in all_records if not record.get("delivery")),
+            "audience": sum(1 for record in all_records if record.get("audience") == "all" and record.get("group") in {"apparel", "footwear"}),
+        },
+        "rareUsedCount": len(rare_used),
+    }
+    (OUT_DIR / "coverage-report.json").write_text(json.dumps(coverage, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
     manifest = {
-        "version": "11.0.0",
+        "version": "12.0.0",
         "generatedAt": generated_at,
         "sourceMode": source_mode,
         "productCount": sum(len(records) for records in selected_by_group.values()),
@@ -610,15 +797,19 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
         "groups": group_rows,
         "tokenRoutes": token_routes,
         "featured": featured,
+        "rareUsed": rare_used,
+        "coverageReport": "/data/search-catalog/coverage-report.json",
         "topAdvertisers": dict(advertiser_counts.most_common(16)),
         "topFamilies": dict(family_counts.most_common(24)),
         "searchRules": {
             "strictTextMatch": True,
             "maxGroupsPerQuery": 6,
             "initialResults": 24,
-            "maxResults": 72,
+            "maxResults": 90,
             "comparisonLimit": 3,
             "broadCategoryRouting": True,
+            "strictAudienceFilters": True,
+            "sameFamilyComparison": True,
         },
         "rejected": dict(rejected),
     }
