@@ -1,0 +1,28 @@
+TrendPilot V11 — Global Commerce Experience
+============================================
+
+Buyer-facing changes
+--------------------
+1. Rebuilt the homepage around a direct product search, not a collection of links.
+2. Rebuilt the product finder with category, audience, seller, price, coupon and sort filters.
+3. Added broad-category routing: clothing opens apparel, footwear, bags and fashion accessories;
+   electronics opens phones, computers, audio, cameras, TV/projectors and smart-home products.
+4. Expanded the feed taxonomy for dresses, tops, outerwear, knitwear, jeans, skirts, activewear,
+   swimwear, underwear, sleepwear, shoes, bags, watches, eyewear, beauty, home and electronics.
+5. Preserved women, men and kids as useful search and filter signals.
+6. Increased the public search catalogue ceiling from 28,000 to 44,000 products and increased
+   apparel/footwear/accessory capacity.
+7. Added a short, dynamic buying guide to every result set instead of relying on a long article.
+8. Added same-type comparison logic with a mobile-safe shortlist and full-screen mobile comparison.
+9. Improved image handling: tiny, broken, placeholder and extreme-ratio images are replaced by a
+   branded fallback instead of leaving blank space.
+10. Matched current coupons beside relevant products and kept the searchable deals page.
+11. Rebuilt the Electronics, Software, Business Sourcing and Comparisons hubs as useful decision hubs.
+12. Added a unified global header/footer and upgraded older editorial pages with cleaner typography,
+    a table of contents, reading progress and buyer-facing wording.
+13. Rebuilt the sitemap and kept the existing feed and coupon automations connected.
+
+Installation
+------------
+Upload this ZIP to the repository root. Upload install-trendpilot-v11-global.yml to
+.github/workflows/, run it once, and wait for the automatically queued Update Products workflow.
