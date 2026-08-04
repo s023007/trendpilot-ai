@@ -1,0 +1,119 @@
+name: Update Admitad Coupons API
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 2 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-admitad-coupons-api
+  cancel-in-progress: true
+
+jobs:
+  update-coupons:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install or refresh coupon API engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE="trendpilot-admitad-coupons-api-v2.zip"
+
+          if [ -f "$PACKAGE" ]; then
+            unzip -t "$PACKAGE" >/dev/null
+            TEMP_DIR="$(mktemp -d)"
+            unzip -q "$PACKAGE" -d "$TEMP_DIR"
+            mkdir -p automation config
+            cp "$TEMP_DIR/automation/admitad_coupon_api.py" automation/admitad_coupon_api.py
+            cp "$TEMP_DIR/config/coupon-api.json" config/coupon-api.json
+            rm -rf "$TEMP_DIR"
+          fi
+
+          test -s automation/admitad_coupon_api.py || {
+            echo "::error::Missing automation/admitad_coupon_api.py and no installation ZIP was found."
+            exit 1
+          }
+          test -s config/coupon-api.json || {
+            echo "::error::Missing config/coupon-api.json."
+            exit 1
+          }
+
+      - name: Validate engine locally
+        run: |
+          python -m py_compile automation/admitad_coupon_api.py
+          python automation/admitad_coupon_api.py --self-test
+
+      - name: Fetch active coupons from Admitad
+        env:
+          ADMITAD_CLIENT_ID: ${{ secrets.ADMITAD_CLIENT_ID }}
+          ADMITAD_CLIENT_SECRET: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+          ADMITAD_WEBSITE_NAME: TrendPilot AI
+        run: python automation/admitad_coupon_api.py
+
+      - name: Validate generated coupon data
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          coupons_path = Path("data/coupons.json")
+          report_path = Path("data/coupon-report.json")
+          js_path = Path("js/coupons-data.js")
+          for path in (coupons_path, report_path, js_path):
+              if not path.exists() or path.stat().st_size == 0:
+                  raise SystemExit(f"Missing or empty generated file: {path}")
+
+          coupons = json.loads(coupons_path.read_text(encoding="utf-8"))
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          if coupons.get("version") != 2 or report.get("version") != 2:
+              raise SystemExit("Unexpected coupon data version.")
+          if report.get("api", {}).get("raw_records", 0) < 0:
+              raise SystemExit("Invalid API report.")
+
+          print("Ad space:", report.get("ad_space", {}).get("name"))
+          print("Raw records:", report.get("api", {}).get("raw_records", 0))
+          print("Active coupons:", coupons.get("count", 0))
+          print("Coupons with codes:", coupons.get("with_codes", 0))
+          PY
+
+      - name: Commit coupon engine and outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f trendpilot-admitad-coupons-api-v2.zip
+
+          git config user.name "trendpilot-coupon-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            automation/admitad_coupon_api.py \
+            config/coupon-api.json \
+            data/coupons.json \
+            data/coupon-report.json \
+            js/coupons-data.js
+          git add -u trendpilot-admitad-coupons-api-v2.zip 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No coupon changes to commit."
+            exit 0
+          fi
+
+          git commit -m "feat: update coupons from Admitad API"
+          git push origin HEAD:main
