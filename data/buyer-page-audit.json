@@ -1,19 +1,19 @@
 {
   "version": "8.0.0",
-  "generatedAt": "2026-08-05T06:33:47+00:00",
-  "pageCount": 34,
+  "generatedAt": "2026-08-05T07:56:31+00:00",
+  "pageCount": 35,
   "buyerPageCount": 13,
   "issueCounts": {
     "missingMain": 1,
-    "v8CssMissing": 18,
-    "v8JsMissing": 18,
-    "weakDescription": 3,
+    "v8CssMissing": 19,
+    "v8JsMissing": 19,
+    "weakDescription": 4,
     "missingTitle": 1,
     "emptyVisualContainers": 1
   },
   "severityCounts": {
     "error": 2,
-    "warning": 40
+    "warning": 43
   },
   "pages": [
     {
@@ -244,6 +244,30 @@
       "images": 5,
       "externalImages": 0,
       "issues": []
+    },
+    {
+      "path": "product/index.html",
+      "buyerPage": false,
+      "readableCharacters": 969,
+      "images": 2,
+      "externalImages": 0,
+      "issues": [
+        {
+          "code": "weakDescription",
+          "severity": "warning",
+          "detail": "Meta description is missing or too short."
+        },
+        {
+          "code": "v8CssMissing",
+          "severity": "warning",
+          "detail": "V8 stylesheet is not linked."
+        },
+        {
+          "code": "v8JsMissing",
+          "severity": "warning",
+          "detail": "V8 script is not linked."
+        }
+      ]
     },
     {
       "path": "products/index.html",
