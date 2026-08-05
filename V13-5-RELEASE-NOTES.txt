@@ -1,0 +1,60 @@
+TrendPilot AI V13.5 — Product Decision Pages
+============================================
+
+Purpose
+-------
+Turn product cards into a useful decision step before the visitor opens the seller. Product images and titles now lead to an internal TrendPilot detail page, while outbound seller clicks remain explicit and intentional.
+
+Implemented
+-----------
+1. Internal product detail route
+   - Product image and product title open /product/?id=...
+   - Direct shared links can find the product through a generated product-ID index.
+   - Product data remains feed-driven; no seller URLs or feed credentials are exposed beyond normal affiliate destinations.
+
+2. Quick View
+   - A user-triggered Quick View opens above the results.
+   - It shows image, price, product type, data-confidence score and the most important buyer checks.
+   - It never redirects automatically.
+
+3. Decision page
+   - Current price, seller, grouped offer count and last catalogue refresh.
+   - “Best for” explanation based on the product family, not invented product testing.
+   - Evidence available, buyer checks and why the item matched the search.
+   - Seller-offer comparison with price, shipping, total and delivery.
+   - Specifications preserved from feeds when available.
+   - Same-type alternatives and one-click comparison with the best available alternative.
+
+4. Honest buyer checks
+   - Missing shipping or delivery.
+   - Missing rating evidence.
+   - Seller-supplied crossed-out price is not called verified history.
+   - Clothing size/material checks.
+   - Electronics compatibility/warranty checks.
+   - Software platform/licence/renewal checks.
+   - Supplier MOQ/sample/lead-time checks.
+   - Game platform/age checks.
+
+5. Video support
+   - Preserves YouTube, Vimeo and direct MP4/WebM product video fields when a feed provides them.
+   - Video is never autoplayed.
+   - The page labels it as video supplied by the product data unless stronger source evidence exists.
+
+6. Clean affiliate clicks
+   - External actions use a clear “Check price” label.
+   - Affiliate links use rel="nofollow sponsored noopener".
+   - No automatic redirect and no hidden click target.
+   - Local event tracking plus dataLayer/gtag support for product views, Quick View and outbound clicks.
+
+7. Catalogue enrichment
+   - Product-ID lookup index for fast direct product loading.
+   - Additional images, specifications, video URL/source and common identifiers are preserved where available.
+   - Adds video-game family and fields such as platform, edition, region, age rating, multiplayer and storage when feeds provide them.
+
+Not invented
+------------
+TrendPilot does not claim first-hand testing, verified long-term price history, warranty, compatibility, delivery or product quality when those fields are missing. The page displays the missing evidence as a buyer check.
+
+After installation
+------------------
+Run the normal Update trends and affiliate products workflow. This rebuilds the V13.5 product index from all secret feeds and preserves future CJ product fields when the ingestion pipeline supplies them.

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build TrendPilot V13.4 decision catalogue with canonical taxonomy and strict intent shards.
+"""Build TrendPilot V13.5 decision catalogue with product-detail evidence and strict intent shards.
 
-V13.4 keeps private feeds private while producing exact-match, paginated decision shards:
+V13.5 keeps private feeds private while producing exact-match shards and decision-ready product records:
 
 * clothing searches contain clothing, not shoes, accessories or unrelated products;
 * audience and product-family classification support precise same-type comparison;
@@ -31,12 +31,13 @@ PROGRAM_STATUS_PATH = ROOT / "config" / "affiliate-program-status.json"
 OUT_DIR = ROOT / "data" / "search-catalog"
 MANIFEST_PATH = OUT_DIR / "manifest.json"
 SHARD_DIR = OUT_DIR / "shards"
+PRODUCT_INDEX_DIR = OUT_DIR / "product-index"
 
 MAX_TOTAL = 120_000
 SHARD_SIZE = 240
 MIN_EXACT_TITLE_SCORE = 1
 MAX_TOKEN_ROUTES = 30_000
-MAX_DESCRIPTION = 210
+MAX_DESCRIPTION = 520
 DEFAULT_GROUP_LIMIT = 8_000
 GROUP_LIMITS = {
     "apparel": 40_000,
@@ -490,6 +491,7 @@ GROUP_FAMILY_RULES: dict[str, list[tuple[str, list[str]]]] = {
         ("remote-control-toys", ["remote control car", "rc car", "rc drone", "remote control toy"]),
         ("educational-toys", ["educational toy", "stem toy", "science kit", "learning toy"]),
         ("outdoor-toys", ["outdoor toy", "scooter for kids", "play tent", "water toy"]),
+        ("video-games", ["video game", "ps5 game", "ps4 game", "playstation game", "xbox game", "nintendo switch game", "switch game", "pc game", "game key", "digital game"]),
         ("gaming-accessories", ["game controller", "gaming accessory", "gaming steering wheel", "controller"]),
         ("game-consoles", ["game console", "handheld console", "retro console"]),
     ],
@@ -587,7 +589,7 @@ for _rules in GROUP_FAMILY_RULES.values():
 OTHER_FAMILIES = {group: f"other-{group}" for group in GROUPS if group != "other"}
 OTHER_FAMILIES["other"] = "other"
 
-# V13.4.1: every emitted fallback family must have a stable public label.
+# V13.5.0: every emitted fallback family must have a stable public label.
 # The V13.4 validator correctly rejected an unlabelled top-level ``other``
 # family when a feed contained a product outside the known departments.
 for _group_id, _other_family in OTHER_FAMILIES.items():
@@ -726,6 +728,12 @@ def read_fallback_matches() -> list[dict]:
                 "shippingPrice": row.get("shippingPrice", row.get("shippingCost", row.get("deliveryPrice"))),
                 "condition": row.get("condition") or row.get("itemCondition"),
                 "material": row.get("material") or row.get("fabric") or row.get("materials"),
+                "images": row.get("images") or row.get("additionalImages"),
+                "videoUrl": row.get("videoUrl") or row.get("video"),
+                "videoSource": row.get("videoSource"),
+                "specifications": row.get("specs") or row.get("specifications"),
+                "warranty": row.get("warranty"),
+                "returnPolicy": row.get("returnPolicy"),
                 "offerType": "product",
             })
     return output
@@ -778,6 +786,12 @@ def read_existing_catalog() -> list[dict]:
             "shippingPrice": row.get("shippingPrice"),
             "condition": row.get("condition"),
             "material": row.get("material"),
+            "images": row.get("images"),
+            "videoUrl": row.get("videoUrl"),
+            "videoSource": row.get("videoSource"),
+            "specifications": row.get("specs"),
+            "warranty": row.get("warranty"),
+            "returnPolicy": row.get("returnPolicy"),
             "gender": row.get("audience"),
             "available": True,
             "offerType": "product",
@@ -989,6 +1003,115 @@ def first_value(offer: dict, *keys: str) -> object:
     return None
 
 
+def _iter_media_values(value: object) -> Iterable[object]:
+    if isinstance(value, (list, tuple, set)):
+        yield from value
+    elif isinstance(value, dict):
+        for key in ("url", "src", "image", "imageUrl", "video", "videoUrl"):
+            if value.get(key):
+                yield value.get(key)
+        for nested_key in ("items", "images", "videos", "gallery"):
+            nested = value.get(nested_key)
+            if nested:
+                yield from _iter_media_values(nested)
+    elif value not in (None, ""):
+        yield value
+
+
+def extract_images(offer: dict, primary: str = "") -> list[str]:
+    candidates: list[object] = [primary]
+    for key in ("images", "additionalImages", "additional_images", "gallery", "imageGallery", "mediaGallery", "productImages"):
+        candidates.extend(_iter_media_values(offer.get(key)))
+    output: list[str] = []
+    seen: set[str] = set()
+    for candidate in candidates:
+        url = clean_text(candidate)
+        if not valid_image_url(url) or url in seen:
+            continue
+        seen.add(url)
+        output.append(url)
+        if len(output) >= 8:
+            break
+    return output
+
+
+def extract_video(offer: dict) -> tuple[str, str]:
+    for key in ("videoUrl", "video_url", "productVideo", "product_video", "demoVideo", "demo_video", "youtubeUrl", "youtube_url", "video", "mediaUrl"):
+        for candidate in _iter_media_values(offer.get(key)):
+            url = clean_text(candidate)
+            if not valid_public_url(url):
+                continue
+            host = (urlparse(url).hostname or "").lower()
+            path = urlparse(url).path.lower()
+            if any(domain in host for domain in ("youtube.com", "youtu.be", "vimeo.com")) or path.endswith((".mp4", ".webm", ".mov")):
+                return url, clean_text(first_value(offer, "videoSource", "video_source", "mediaSource")) or "Product data"
+    return "", ""
+
+
+def _spec_pair(key: object, value: object) -> tuple[str, str] | None:
+    label = clean_text(key).strip(":")[:48]
+    if isinstance(value, (dict, list, tuple, set)):
+        return None
+    text = clean_text(value)[:180]
+    if not label or not text or label.lower() in {"description", "title", "name", "image", "url"}:
+        return None
+    return label, text
+
+
+def extract_specs(offer: dict) -> dict[str, str]:
+    specs: dict[str, str] = {}
+    containers = [offer.get(key) for key in ("specifications", "specs", "attributes", "productAttributes", "technicalDetails", "details") if offer.get(key)]
+    for container in containers:
+        if isinstance(container, dict):
+            for key, value in container.items():
+                pair = _spec_pair(key, value)
+                if pair and pair[0] not in specs:
+                    specs[pair[0]] = pair[1]
+        elif isinstance(container, list):
+            for item in container:
+                if isinstance(item, dict):
+                    key = first_value(item, "name", "label", "key", "attribute", "title")
+                    value = first_value(item, "value", "text", "description", "content")
+                    pair = _spec_pair(key, value)
+                    if pair and pair[0] not in specs:
+                        specs[pair[0]] = pair[1]
+    direct = {
+        "Model": ("model", "modelNumber", "model_number"),
+        "SKU": ("sku", "productSku"),
+        "MPN": ("mpn", "manufacturerPartNumber"),
+        "GTIN": ("gtin", "ean", "upc", "isbn"),
+        "Colour": ("color", "colour"),
+        "Size": ("size", "sizes"),
+        "Platform": ("platform", "supportedPlatform"),
+        "Edition": ("edition", "gameEdition", "productEdition"),
+        "Region": ("region", "regionCode", "gameRegion"),
+        "Age rating": ("ageRating", "contentRating", "pegi", "esrb"),
+        "Multiplayer": ("multiplayer", "players", "playerCount"),
+        "Online required": ("onlineRequired", "internetRequired"),
+        "Storage required": ("storageRequired", "installSize", "downloadSize"),
+        "In-game purchases": ("inGamePurchases", "microtransactions"),
+        "Compatibility": ("compatibility", "compatibleWith", "supportedDevices"),
+        "Voltage": ("voltage", "inputVoltage"),
+        "Warranty": ("warranty", "warrantyText"),
+        "Return policy": ("returnPolicy", "returns", "returnWindow"),
+        "Licence": ("licenseType", "licenceType", "subscriptionType"),
+        "MOQ": ("moq", "minimumOrderQuantity"),
+        "Production time": ("productionTime", "leadTime"),
+    }
+    for label, keys in direct.items():
+        value = first_value(offer, *keys)
+        pair = _spec_pair(label, value)
+        if pair and label not in specs:
+            specs[label] = pair[1]
+    feature_value = first_value(offer, "features", "highlights", "bulletPoints", "bullets")
+    if isinstance(feature_value, list):
+        for index, item in enumerate(feature_value[:6], start=1):
+            text = clean_text(item)[:180]
+            if text:
+                specs.setdefault(f"Feature {index}", text)
+    return dict(list(specs.items())[:22])
+
+
 def integer(value: object) -> int | None:
     try:
         return int(float(str(value).replace(",", "").strip()))
@@ -1062,8 +1185,15 @@ def public_record(offer: dict, group: str) -> dict:
         "audience": audience_for(offer),
         "quality": round(max(0, min(100, quality)), 1),
     }
-    if valid_image_url(image):
-        record["image"] = image
+    images = extract_images(offer, image)
+    if images:
+        record["image"] = images[0]
+        if len(images) > 1:
+            record["images"] = images
+    video_url, video_source = extract_video(offer)
+    if video_url:
+        record["videoUrl"] = video_url
+        record["videoSource"] = video_source
     if price is not None and price > 0:
         record["price"] = round(price, 2)
         record["currency"] = clean_text(offer.get("currency")) or "USD"
@@ -1100,6 +1230,9 @@ def public_record(offer: dict, group: str) -> dict:
     material = clean_text(first_value(offer, "material", "fabric", "materials"))
     if material:
         record["material"] = material[:80]
+    specs = extract_specs(offer)
+    if specs:
+        record["specs"] = specs
     return record
 
 
@@ -1216,6 +1349,23 @@ def cluster_public_records(records: list[dict]) -> list[dict]:
             for field in ("price", "oldPrice", "currency", "shippingPrice", "delivery", "advertiser", "url"):
                 if cheapest.get(field) not in (None, ""):
                     base[field] = cheapest[field]
+        merged_images = []
+        merged_specs = dict(base.get("specs") or {})
+        for row in rows:
+            for image_url in ([row.get("image")] + list(row.get("images") or [])):
+                if image_url and image_url not in merged_images:
+                    merged_images.append(image_url)
+            if not base.get("videoUrl") and row.get("videoUrl"):
+                base["videoUrl"] = row.get("videoUrl")
+                base["videoSource"] = row.get("videoSource")
+            for label, value in (row.get("specs") or {}).items():
+                merged_specs.setdefault(label, value)
+        if merged_images:
+            base["image"] = merged_images[0]
+            if len(merged_images) > 1:
+                base["images"] = merged_images[:8]
+        if merged_specs:
+            base["specs"] = dict(list(merged_specs.items())[:22])
         base["offers"] = offers
         base["offerCount"] = len(offers)
         base["storeCount"] = len({normalise(offer.get("advertiser")) for offer in offers if offer.get("advertiser")})
@@ -1319,6 +1469,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
 
     generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     segment_rows = []
+    product_index: dict[str, dict[str, list[object]]] = defaultdict(dict)
     group_counts = Counter()
     family_counts = Counter()
     audience_counts = Counter()
@@ -1336,7 +1487,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
             page_records = segment_records[offset:offset + SHARD_SIZE]
             relative = f"/data/search-catalog/shards/{group}/{safe_family}/{safe_audience}/{page_number:03d}.json"
             payload = {
-                "version": "13.4.1",
+                "version": "13.5.0",
                 "generatedAt": generated_at,
                 "segment": key,
                 "page": page_number,
@@ -1344,6 +1495,10 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
                 "total": len(segment_records),
                 "products": page_records,
             }
+            for local_index, product in enumerate(page_records):
+                product_id = clean_text(product.get("id"))
+                if product_id:
+                    product_index[product_id[:2]][product_id] = [relative, local_index]
             (target_dir / f"{page_number:03d}.json").write_text(
                 json.dumps(payload, ensure_ascii=False, separators=(",", ":")) + "\n",
                 encoding="utf-8",
@@ -1357,6 +1512,13 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
         family_counts[family] += len(segment_records)
         audience_counts[audience] += len(segment_records)
         advertiser_counts.update(record.get("advertiser", "Unknown") for record in segment_records)
+
+    PRODUCT_INDEX_DIR.mkdir(parents=True, exist_ok=True)
+    for prefix, products_for_prefix in sorted(product_index.items()):
+        (PRODUCT_INDEX_DIR / f"{prefix}.json").write_text(
+            json.dumps({"version": "13.5.0", "generatedAt": generated_at, "products": products_for_prefix}, ensure_ascii=False, separators=(",", ":")) + "\n",
+            encoding="utf-8",
+        )
 
     group_rows = []
     for group, count in group_counts.most_common():
@@ -1441,7 +1603,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
         }
 
     coverage = {
-        "version": "13.4.1", "generatedAt": generated_at, "sourceMode": source_mode,
+        "version": "13.5.0", "generatedAt": generated_at, "sourceMode": source_mode,
         "sourceOffers": len(offers), "dedupedOffers": len(deduped),
         "acceptedBeforeClustering": len(raw_records), "uniqueProducts": len(records),
         "segments": len(segment_rows), "byGroup": dict(group_counts),
@@ -1466,9 +1628,11 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
     )
 
     manifest = {
-        "version": "13.4.1", "generatedAt": generated_at, "sourceMode": source_mode,
+        "version": "13.5.0", "generatedAt": generated_at, "sourceMode": source_mode,
         "productCount": len(records), "offerCount": len(raw_records), "sourceOfferCount": len(offers),
         "groups": group_rows, "segments": segment_rows,
+        "productIndexBase": "/data/search-catalog/product-index",
+        "productIndexFiles": len(product_index),
         "familyTaxonomy": FAMILY_TAXONOMY,
         "familyLabels": CANONICAL_FAMILY_LABELS,
         "familyAliases": FAMILY_ALIASES,
@@ -1486,6 +1650,8 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
             "separateExactAndAlternatives": True, "variantClustering": True,
             "canonicalFamiliesOnly": True, "queryCorrection": True, "virtualFamilyExpansion": True,
             "allDepartmentsCanonical": True, "scopeCoverageReport": True, "fallbackFamilyLabelGuard": True,
+            "internalProductDetails": True, "quickView": True, "qualifiedOutboundClicks": True,
+            "productIndex": True, "dataConfidence": True, "buyerChecks": True,
         },
         "rejected": dict(rejected),
     }
@@ -1512,7 +1678,7 @@ def main() -> int:
     if not offers:
         raise SystemExit("No product source exists. Run source_ingestion.py first or use --allow-fallback with published data.")
     manifest = build_catalog(offers, source_mode)
-    print(f"TrendPilot V13.4.1 decision catalogue: {manifest['productCount']:,} unique products / {manifest['offerCount']:,} offers")
+    print(f"TrendPilot V13.5.0 decision catalogue: {manifest['productCount']:,} unique products / {manifest['offerCount']:,} offers")
     print(f"Exact segments: {len(manifest['segments']):,}")
     print(f"Search token routes: {len(manifest['tokenRoutes']):,}")
     print(f"Source mode: {manifest['sourceMode']}")

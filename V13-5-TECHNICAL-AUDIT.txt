@@ -1,0 +1,43 @@
+TrendPilot V13.5 Technical Audit
+================================
+
+Architecture
+------------
+- Static product shell: /product/index.html
+- Dynamic ID lookup: /data/search-catalog/product-index/<first-two-id-chars>.json
+- Product record source: the exact catalogue shard that already powers search
+- No private feed URL, credential or commission field is written to the public catalogue
+
+Validation performed
+--------------------
+- Python compilation of the catalogue builder and installer
+- Node syntax check of site-v13-5.js
+- Browser-function tests for confidence scoring, buyer checks and video URL handling
+- Builder tests for images, YouTube video and structured specifications
+- Full mock-repository install
+- Product index mapping verified against a generated catalogue shard
+- Repeated installation verified as idempotent
+- Old site-v13-4 script references rejected by validation
+- All managed HTML pages required to include V13.5 CSS and JavaScript
+
+Affiliate safety
+----------------
+- Image/title links are internal
+- Seller links are explicit outbound actions
+- No automatic navigation
+- rel="nofollow sponsored noopener" on affiliate destinations
+- Affiliate disclosure shown on the full detail page and Quick View
+
+Data honesty
+------------
+- “Seller markdown” remains separate from future verified price history
+- Missing information is displayed as missing
+- Video is not called official unless that source is independently known
+- Data-confidence score measures completeness, not product quality
+
+Known limits
+------------
+- The current page is a shared dynamic product shell rather than one committed HTML file per product.
+- Video/specification coverage depends on fields retained by each feed and the ingestion pipeline.
+- Local event history is not a replacement for configured GA4 or server-side analytics.
+- Automated email price alerts still require account and notification infrastructure.

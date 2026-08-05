@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+"use strict";
+const assert = require("node:assert/strict");
+global.document = {readyState:"loading", addEventListener(){}, querySelector(){return null;}, querySelectorAll(){return [];}, createElement(){return {setAttribute(){}, appendChild(){}, remove(){}, style:{}}}, head:{appendChild(){}}, body:{matches(){return false}, classList:{add(){},remove(){}}}};
+global.window = {dispatchEvent(){}};
+global.CustomEvent = function(name, options){this.type=name;this.detail=options?.detail;};
+global.localStorage = {getItem(){return null;}, setItem(){}};
+global.location = {pathname:"/", search:"", origin:"https://example.test"};
+global.URLSearchParams = URLSearchParams;
+require("../js/site-v13-5.js");
+const t = global.__TREND_PILOT_SEARCH_TEST__;
+assert.ok(t, "test API missing");
+assert.equal(t.normalizeQuery("makup").query, "makeup");
+assert.equal(t.inferAudience("men's T-shirt"), "men");
+const complete = t.confidenceFor({image:"https://x.test/a.jpg",price:10,description:"desc",specs:{Model:"X"},delivery:"3 days",shippingPrice:0,rating:4.5,reviews:20,brand:"Brand",offerCount:1,url:"https://seller.test"});
+assert.equal(complete.score, 100);
+const limited = t.confidenceFor({image:"",price:0,description:"",specs:{},shippingPrice:null,offerCount:1,url:"https://seller.test"});
+assert.ok(limited.score < 50);
+const checks = t.buyerChecks({group:"apparel",family:"t-shirts",audience:"all",name:"Basic T-shirt",description:"",specs:{},price:10,oldPrice:20,shippingPrice:null,delivery:"",rating:0,reviews:0,material:""});
+assert.ok(checks.some(x=>/size chart/i.test(x)));
+assert.ok(checks.some(x=>/crossed-out price/i.test(x)));
+assert.equal(t.videoInfo("https://youtu.be/abcdefghijk").type, "embed");
+assert.equal(t.videoInfo("https://cdn.example.com/demo.mp4").type, "video");
+console.log("TrendPilot V13.5 product decision browser tests passed");
