@@ -1,0 +1,83 @@
+TrendPilot AI V13 — Shopping Decision Engine
+=============================================
+
+Purpose
+-------
+V13 changes TrendPilot from a repeated category-search website into a decision engine.
+The buyer journey is now: find the exact product family, inspect the evidence, compare
+compatible products, check savings, and save products for later.
+
+Main changes
+------------
+1. Exact catalogue segments
+   - Products are indexed by category, exact family and audience.
+   - Example: apparel | t-shirts | men.
+   - Result pages are split into 240-product shards and load progressively.
+   - The previous 90-result ceiling has been removed.
+
+2. Strict intent handling
+   - T-shirt synonyms include T-shirt, tshirt, tee, crew-neck tee, short-sleeve tee,
+     cotton tee and graphic tee.
+   - Audience is determined from explicit fields, title and category—not marketing copy.
+   - Description text cannot force an exact product family.
+   - Exercise bikes, phone cases, pet products and children's garments cannot fill a
+     men's T-shirt result set.
+
+3. Exact matches and alternatives are separate
+   - Exact family/audience results are the default.
+   - Related alternatives use a separate tab and are never mixed silently.
+
+4. Variant clustering and merchant evidence
+   - Obvious size/colour variants are grouped under one product record.
+   - Product cards can show number of offers/stores, rating, delivery, shipping and total
+     supplied cost where the feeds provide those fields.
+
+5. New homepage
+   - One main search box.
+   - Five decision actions: Find, Compare, Verify a saving, Watch a price, Rare Finds.
+   - Distinct tools instead of repeated category search pages.
+   - Compact live-product, savings and rare-find previews.
+
+6. Distinct page functions
+   - Find: exact product discovery and progressive catalogue loading.
+   - Compare: a saved same-family comparison table.
+   - Price Watch: local product watch list and target price storage.
+   - Savings Center: product-linked seller markdown evidence first; coupon center second.
+   - Electronics Lab: compatibility/use intake.
+   - Software Finder: workflow, platform and licence intake.
+   - Business Sourcing: MOQ, sample and customisation intake.
+   - Rare Finds Radar: scarce used/refurbished/open-box products only.
+   - Buying Guides: short decision checks, not repeated category introductions.
+
+7. Mobile redesign
+   - Global horizontal overflow safeguards.
+   - Compact two-column product cards on small phones.
+   - One-line product action button.
+   - Responsive filters, compare table and watch list.
+
+8. Feed coverage reporting
+   - Source offers, accepted offers and clustered unique products.
+   - Counts by group, family, audience and advertiser.
+   - Missing image, price, rating, reviews, delivery, shipping, material and audience.
+   - Exact example counts for men's/women's/kids' T-shirts and men's shorts.
+   - Rejection reasons by advertiser.
+
+9. Update workflow integration
+   - The installer patches update-products.yml so the V13 decision catalogue is rebuilt
+     after feed ingestion and before product changes are committed.
+
+Honest limitations in this release
+----------------------------------
+- Seller old-price fields are labelled as seller markdown evidence, not verified 90-day
+  price history. Verified historical grading requires collecting snapshots over time.
+- Price Watch and targets are stored on the current device. Email/push alerts require a
+  future account and notification service.
+- Shipping, material, rating and delivery remain "not supplied" when feeds do not provide
+  them. V13 does not invent missing evidence.
+
+
+V13.1 INSTALL HOTFIX
+- The installer no longer edits .github/workflows/update-products.yml from inside GitHub Actions.
+- Future feed refreshes are connected through automation/build_search_catalog.py instead.
+- This avoids GitHub rejecting the Commit V13 push while preserving automatic V13 catalogue rebuilds.
+- The feed-refresh queue is advisory: an inability to queue it will not roll back a successful installation.

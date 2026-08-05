@@ -1,0 +1,42 @@
+TrendPilot V13 Technical Audit
+==============================
+
+Search architecture
+- Static exact-segment catalogue: group | family | audience.
+- 240 records per JSON shard.
+- Progressive loading without a fixed maximum result count.
+- Token-to-segment routing for non-category/model searches.
+- Exact and related result sets are rendered separately.
+
+Taxonomy safeguards
+- Exact family classification uses title/category/product type first.
+- Description cannot independently assign a precise family.
+- Audience uses explicit fields/title/category only.
+- "men" cannot match "women" through substring logic.
+- Fixture validation covers men's T-shirts, kids' T-shirts, men's shorts,
+  an exercise bike and an iPhone case.
+
+Catalogue quality
+- Canonical offer deduplication occurs before classification.
+- Variant clustering occurs after public record normalization.
+- Up to 16 merchant offers are retained per clustered product.
+- Coverage reporting includes advertiser-level source/acceptance/rejection counts.
+
+Deployment safeguards
+- Installer requires a V13 manifest with at least one product.
+- Existing V11/V12 public catalogue can be migrated immediately if the private feed cache
+  is unavailable during installation.
+- Full feed refresh uses the private cache and replaces the migrated catalogue.
+- update-products.yml is patched to run build_decision_catalog.py with shell failure mode.
+- Validation checks the manifest, pages, mobile CSS and JavaScript syntax.
+
+Privacy
+- Feed URLs, credentials and commission details remain private.
+- Public JSON contains only buyer-facing product and offer evidence.
+
+
+V13.1 HOTFIX AUDIT
+- Confirmed original run failed at Commit V13.
+- Removed installer-side workflow mutation.
+- Added idempotent catalogue refresh hook to the existing Python builder.
+- Added validation that the refresh hook is installed.

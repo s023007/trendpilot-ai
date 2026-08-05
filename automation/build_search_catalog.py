@@ -839,5 +839,32 @@ def main() -> int:
     return 0
 
 
+
+# TREND_PILOT_V13_REFRESH_HOOK
+# Run after the existing buyer catalogue builder, so the final public output
+# always uses the V13 exact family/audience shards without editing workflows.
+if __name__ == "__main__":
+    import atexit as _tp_v13_atexit
+    import subprocess as _tp_v13_subprocess
+    import sys as _tp_v13_sys
+    from pathlib import Path as _TpV13Path
+
+    def _tp_v13_rebuild_exact_catalogue() -> None:
+        _tp_v13_root = _TpV13Path(__file__).resolve().parents[1]
+        _tp_v13_builder = _tp_v13_root / "automation" / "build_decision_catalog.py"
+        if not _tp_v13_builder.exists():
+            raise RuntimeError("TrendPilot V13 catalogue builder is missing")
+        _tp_v13_command = [_tp_v13_sys.executable, str(_tp_v13_builder)]
+        if "--allow-fallback" in _tp_v13_sys.argv:
+            _tp_v13_command.append("--allow-fallback")
+        _tp_v13_subprocess.run(
+            _tp_v13_command,
+            cwd=_tp_v13_root,
+            check=True,
+        )
+
+    _tp_v13_atexit.register(_tp_v13_rebuild_exact_catalogue)
+# TREND_PILOT_V13_REFRESH_HOOK_END
+
 if __name__ == "__main__":
     raise SystemExit(main())
