@@ -1,24 +1,19 @@
 {
-  "version": "13.6.0",
-  "feature": "Tickets & Experiences",
+  "version": "13.7.0",
+  "feature": "Tickets booking-first UX",
   "installed": true,
   "ticomboTrackingReady": false,
-  "initialCompetition": "Men's Nations League",
-  "providerArchitecture": [
-    "feed",
-    "api",
-    "deeplink",
-    "manual"
+  "consumerJourney": [
+    "find event",
+    "choose priority",
+    "check live listing"
   ],
-  "htmlPatchStats": {
-    "html_scanned": 38,
-    "html_changed": 34,
-    "nav_links_added": 34,
-    "footer_links_added": 34
-  },
-  "sitemapUpdated": true,
-  "trustPagesUpdated": {
-    "affiliate_disclosure": true,
-    "editorial_methodology": true
-  }
+  "liveCategories": [
+    "football",
+    "formula 1",
+    "music",
+    "theatre"
+  ],
+  "homePromoUpdated": true,
+  "sitemapUpdated": false
 }
