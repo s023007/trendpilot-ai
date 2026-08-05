@@ -1,0 +1,50 @@
+TrendPilot AI V13.2 — Calm Search & Mobile Reliability
+=====================================================
+
+Purpose
+-------
+This update fixes the visible mobile defects reported after V13 and redesigns the interface around a calmer marketplace-style experience inspired by the useful interaction patterns seen in Envato and Alpha Academy, without copying their branding.
+
+Search and catalogue fixes
+--------------------------
+1. Result totals now count actual exact matches found, not every product inside a candidate catalogue segment.
+2. Generic searches automatically continue checking relevant catalogue pages until 24 exact matches are found or all candidates are exhausted.
+3. “School” can now show “1 exact match” when only one item truly matches instead of displaying a misleading 35.
+4. Exact T-shirt searches load the full relevant product-family pages progressively and keep unrelated products out.
+5. The Show More button reveals loaded matches first, then checks additional catalogue pages only when needed.
+6. Search categories are separate from the typed query: All, Clothing, Electronics, Home, School & office, Sports, Beauty, Kids, Software and Business.
+7. A curated search-suggestion panel appears when the search field is focused.
+
+Mobile menu and navigation
+--------------------------
+1. The menu is now a solid, full-height, viewport-level panel with its own scrolling area.
+2. The hero/page underneath is darkened by a separate backdrop and can no longer visually mix with menu links.
+3. Menu links are grouped into Decide and Explore sections.
+4. A mobile bottom navigation bar adds Home, Search, Deals and Compare.
+5. Compare counters are shared between the header and bottom bar.
+
+Deals and coupons
+-----------------
+1. Product-linked savings remain the first section.
+2. Coupons default to worldwide/unspecified English records.
+3. Oman and All countries are available as filters.
+4. All languages can be enabled deliberately instead of flooding the page by default.
+5. Long titles and descriptions wrap and are clamped so cards cannot extend beyond the screen.
+6. Country/language badges and a Show all coupons control were added.
+
+Visual redesign
+---------------
+1. Replaced the heavy dark/white repetition with a calm cream, soft green, pale blue and white system.
+2. Reduced oversized headings and excessive section heights.
+3. Simplified the homepage to four primary decisions, current products, specialist tools, savings and transparency.
+4. Rebuilt the search bar with an integrated category selector and suggestion menu.
+5. Added a Netlify-compatible email signup section above the footer.
+6. Made product cards more compact and balanced on narrow phones.
+
+Files
+-----
+- automation/install_v13_2_calm_search.py
+- automation/build_decision_catalog.py
+- automation/validate_v13_2.py
+- css/style-v13-2.css
+- js/site-v13-2.js

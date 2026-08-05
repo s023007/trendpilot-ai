@@ -1,0 +1,30 @@
+TrendPilot AI V13.2 Technical Audit
+===================================
+
+Confirmed root causes
+---------------------
+- The mobile menu was position:fixed inside a sticky header using backdrop-filter. On mobile browsers this could establish an unexpected containing/stacking context, making the white panel end early while links continued over the page.
+- The displayed “catalogue options” total summed every product in routed segments. It was a candidate-pool total, not an exact-result total.
+- Generic searches loaded only the first page of each routed segment and did not keep scanning when fewer than 24 exact title matches were found.
+- Coupon records were rendered directly from multilingual feeds with no default locale/country filter and insufficient wrapping constraints.
+- Large heading clamps and repeated pure-white sections produced poor visual rhythm on mobile.
+
+Implemented safeguards
+----------------------
+- Mobile menu: height:100dvh, solid white background, independent scrolling, no mobile header backdrop-filter, dedicated z-index/backdrop.
+- Search: ensureMinimumExact(), candidatePagesExhausted(), scannedCandidateCount() and actual exact-match labels.
+- Misleading totalPotential() was removed.
+- Coupon text uses overflow-wrap:anywhere plus line clamping.
+- Coupon defaults: English + Worldwide/unspecified; optional Oman/All-country filters.
+- Responsive search row and bottom navigation tested through static validation.
+- Installer is idempotent for managed headers, newsletters, footers, bottom navigation and V13/V13.2 asset tags.
+
+Validation completed
+--------------------
+- Python compilation: passed.
+- JavaScript syntax check with Node: passed.
+- Installer executed twice on a synthetic catalogue fixture: passed.
+- Catalogue build: 57 fixture products / 6 exact segments: passed.
+- V13.2 static validation: passed.
+- No fixed 90-result ceiling.
+- No misleading segment-total function in the final JavaScript.
