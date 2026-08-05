@@ -1,0 +1,80 @@
+name: Install TrendPilot V13.6 Tickets Hub
+
+on:
+  workflow_dispatch:
+    inputs:
+      ticombo_deeplink:
+        description: "Paste the full Admitad 'Copy deeplink' for Ticombo (one-time setup; optional if already installed)"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: install-trendpilot-v13-6-tickets
+  cancel-in-progress: false
+
+jobs:
+  install-v13-6:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Verify uploaded package
+        run: |
+          test -f trendpilot-v13-6-tickets-hub.zip
+          unzip -t trendpilot-v13-6-tickets-hub.zip
+
+      - name: Extract installer
+        run: |
+          rm -rf .trendpilot-v13-6
+          mkdir -p .trendpilot-v13-6
+          unzip -q trendpilot-v13-6-tickets-hub.zip -d .trendpilot-v13-6
+
+      - name: Install Tickets & Experiences
+        env:
+          TICOMBO_DEEPLINK: ${{ inputs.ticombo_deeplink }}
+        run: |
+          python .trendpilot-v13-6/install.py \
+            --repo . \
+            --package-root .trendpilot-v13-6 \
+            --ticombo-deeplink "$TICOMBO_DEEPLINK"
+
+      - name: Validate JavaScript
+        run: |
+          node --check js/tickets-v13-6.js
+          node --check data/tickets-config.js
+
+      - name: Validate installed pages
+        run: |
+          test -f tickets/index.html
+          test -f tickets/mens-nations-league/index.html
+          test -f tickets/provider/ticombo/index.html
+          grep -q "Tickets & experiences" tickets/index.html
+          grep -q "data-ticket-outbound" tickets/mens-nations-league/index.html
+          grep -q "Ticombo" tickets/provider/ticombo/index.html
+          grep -q "tickets-integration-status" <(find data -maxdepth 1 -type f -printf '%f\n')
+
+      - name: Remove temporary installer files
+        run: rm -rf .trendpilot-v13-6
+
+      - name: Commit installation
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .
+          if git diff --cached --quiet; then
+            echo "No changes to commit. Tickets Hub is already installed."
+          else
+            git commit -m "Install TrendPilot V13.6 Tickets Hub"
+            git push
+          fi
