@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Add Admitad verification meta tag
+      - name: Locate homepage and add Admitad verification
         shell: bash
         run: |
           python - <<'PY'
@@ -28,63 +28,71 @@ jobs:
           import re
 
           verification_tag = '<meta name="verify-admitad" content="179d0dbedc" />'
-          candidates = [
+
+          preferred = [
               Path("index.html"),
               Path("public/index.html"),
               Path("src/index.html"),
           ]
 
-          homepage = next((path for path in candidates if path.is_file()), None)
+          homepage = next((p for p in preferred if p.is_file()), None)
+
+          if homepage is None:
+              ignored = {".git", "node_modules", "dist", "build"}
+              matches = []
+              for path in Path(".").rglob("index.html"):
+                  if not any(part in ignored for part in path.parts):
+                      matches.append(path)
+              homepage = matches[0] if matches else None
+
           if homepage is None:
               raise SystemExit(
-                  "Homepage index.html was not found in the repository root, public/, or src/."
+                  "Could not find the source homepage index.html. "
+                  "Expected index.html, public/index.html, or src/index.html."
               )
 
           html = homepage.read_text(encoding="utf-8")
 
-          existing_pattern = re.compile(
+          existing = re.compile(
               r'<meta\s+name=["\']verify-admitad["\'][^>]*>',
-              flags=re.IGNORECASE,
+              re.IGNORECASE,
           )
 
-          if existing_pattern.search(html):
-              updated = existing_pattern.sub(verification_tag, html, count=1)
+          if existing.search(html):
+              updated = existing.sub(verification_tag, html, count=1)
               action = "updated"
           else:
-              head_pattern = re.compile(r"<head\b[^>]*>", flags=re.IGNORECASE)
-              match = head_pattern.search(html)
-              if not match:
-                  raise SystemExit(f"No <head> tag was found in {homepage}")
-
-              updated = (
-                  html[: match.end()]
-                  + "\n  "
-                  + verification_tag
-                  + html[match.end() :]
-              )
+              head = re.search(r"<head\b[^>]*>", html, re.IGNORECASE)
+              if not head:
+                  raise SystemExit(f"No <head> tag found in {homepage}")
+              updated = html[:head.end()] + "\n  " + verification_tag + html[head.end():]
               action = "added"
 
           homepage.write_text(updated, encoding="utf-8")
-          print(f"Admitad verification meta tag {action} in {homepage}")
+          Path(".admitad-homepage-path").write_text(str(homepage), encoding="utf-8")
+          print(f"Admitad verification tag {action} in {homepage}")
           PY
 
       - name: Validate verification tag
         shell: bash
         run: |
-          grep -R -n -F '<meta name="verify-admitad" content="179d0dbedc" />' \
-            index.html public/index.html src/index.html 2>/dev/null | head -1
+          HOMEPAGE="$(cat .admitad-homepage-path)"
+          echo "Checking: $HOMEPAGE"
+          grep -n -F '<meta name="verify-admitad" content="179d0dbedc" />' "$HOMEPAGE"
 
-      - name: Commit verification
+      - name: Commit and push verification
         shell: bash
         run: |
+          HOMEPAGE="$(cat .admitad-homepage-path)"
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git add index.html public/index.html src/index.html 2>/dev/null || true
+          git add "$HOMEPAGE"
 
           if git diff --cached --quiet; then
-            echo "No changes to commit. Admitad verification is already installed."
+            echo "Verification tag is already installed. Nothing to commit."
           else
             git commit -m "Verify TrendPilot Choice ownership in Admitad"
-            git push
+            git push origin HEAD:main
           fi
