@@ -1,25 +1,25 @@
 {
   "version": "8.0.0",
-  "generatedAt": "2026-08-04T17:31:56+00:00",
-  "pageCount": 32,
+  "generatedAt": "2026-08-05T00:45:51+00:00",
+  "pageCount": 34,
   "buyerPageCount": 13,
   "issueCounts": {
     "missingMain": 1,
-    "v8CssMissing": 16,
-    "v8JsMissing": 16,
+    "v8CssMissing": 18,
+    "v8JsMissing": 18,
     "weakDescription": 3,
     "missingTitle": 1,
     "emptyVisualContainers": 1
   },
   "severityCounts": {
     "error": 2,
-    "warning": 36
+    "warning": 40
   },
   "pages": [
     {
       "path": "404.html",
       "buyerPage": false,
-      "readableCharacters": 1437,
+      "readableCharacters": 1452,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -27,7 +27,7 @@
     {
       "path": "about.html",
       "buyerPage": false,
-      "readableCharacters": 2366,
+      "readableCharacters": 2381,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -35,7 +35,7 @@
     {
       "path": "affiliate-disclosure.html",
       "buyerPage": false,
-      "readableCharacters": 2428,
+      "readableCharacters": 2443,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -43,7 +43,7 @@
     {
       "path": "affiliate-programs.html",
       "buyerPage": false,
-      "readableCharacters": 679,
+      "readableCharacters": 694,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -67,7 +67,7 @@
     {
       "path": "compare/filmora-vs-capcut/index.html",
       "buyerPage": true,
-      "readableCharacters": 5350,
+      "readableCharacters": 5365,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -75,7 +75,7 @@
     {
       "path": "compare/index.html",
       "buyerPage": true,
-      "readableCharacters": 1953,
+      "readableCharacters": 867,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -94,7 +94,7 @@
     {
       "path": "contact.html",
       "buyerPage": false,
-      "readableCharacters": 1725,
+      "readableCharacters": 1740,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -102,7 +102,7 @@
     {
       "path": "corrections.html",
       "buyerPage": false,
-      "readableCharacters": 1940,
+      "readableCharacters": 1955,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -110,7 +110,7 @@
     {
       "path": "deals/index.html",
       "buyerPage": false,
-      "readableCharacters": 1023,
+      "readableCharacters": 1231,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -129,7 +129,7 @@
     {
       "path": "editorial-methodology.html",
       "buyerPage": false,
-      "readableCharacters": 2895,
+      "readableCharacters": 2910,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -137,7 +137,26 @@
     {
       "path": "find/index.html",
       "buyerPage": true,
-      "readableCharacters": 1717,
+      "readableCharacters": 1471,
+      "images": 2,
+      "externalImages": 0,
+      "issues": [
+        {
+          "code": "v8CssMissing",
+          "severity": "warning",
+          "detail": "V8 stylesheet is not linked."
+        },
+        {
+          "code": "v8JsMissing",
+          "severity": "warning",
+          "detail": "V8 script is not linked."
+        }
+      ]
+    },
+    {
+      "path": "guides/index.html",
+      "buyerPage": false,
+      "readableCharacters": 1448,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -156,7 +175,7 @@
     {
       "path": "how-we-test.html",
       "buyerPage": false,
-      "readableCharacters": 2302,
+      "readableCharacters": 2317,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -164,7 +183,7 @@
     {
       "path": "index.html",
       "buyerPage": true,
-      "readableCharacters": 3955,
+      "readableCharacters": 3441,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -183,8 +202,27 @@
     {
       "path": "networks.html",
       "buyerPage": false,
-      "readableCharacters": 1928,
+      "readableCharacters": 1943,
       "images": 4,
+      "externalImages": 0,
+      "issues": [
+        {
+          "code": "v8CssMissing",
+          "severity": "warning",
+          "detail": "V8 stylesheet is not linked."
+        },
+        {
+          "code": "v8JsMissing",
+          "severity": "warning",
+          "detail": "V8 script is not linked."
+        }
+      ]
+    },
+    {
+      "path": "price-watch/index.html",
+      "buyerPage": false,
+      "readableCharacters": 866,
+      "images": 2,
       "externalImages": 0,
       "issues": [
         {
@@ -202,7 +240,7 @@
     {
       "path": "privacy.html",
       "buyerPage": false,
-      "readableCharacters": 2283,
+      "readableCharacters": 2298,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -210,7 +248,7 @@
     {
       "path": "products/index.html",
       "buyerPage": true,
-      "readableCharacters": 1862,
+      "readableCharacters": 1309,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -229,7 +267,7 @@
     {
       "path": "products/wireless-carplay-adapters/index.html",
       "buyerPage": true,
-      "readableCharacters": 5909,
+      "readableCharacters": 5924,
       "images": 6,
       "externalImages": 0,
       "issues": []
@@ -237,7 +275,7 @@
     {
       "path": "rare-used/index.html",
       "buyerPage": false,
-      "readableCharacters": 1488,
+      "readableCharacters": 1224,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -275,7 +313,7 @@
     {
       "path": "software/best-video-editor-for-beginners/index.html",
       "buyerPage": true,
-      "readableCharacters": 5159,
+      "readableCharacters": 5174,
       "images": 6,
       "externalImages": 0,
       "issues": []
@@ -283,7 +321,7 @@
     {
       "path": "software/filmora-review/index.html",
       "buyerPage": true,
-      "readableCharacters": 5653,
+      "readableCharacters": 5668,
       "images": 6,
       "externalImages": 1,
       "issues": []
@@ -291,7 +329,7 @@
     {
       "path": "software/index.html",
       "buyerPage": true,
-      "readableCharacters": 1919,
+      "readableCharacters": 1335,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -310,7 +348,7 @@
     {
       "path": "sourcing/alibaba-vs-aliexpress/index.html",
       "buyerPage": true,
-      "readableCharacters": 5331,
+      "readableCharacters": 5346,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -318,7 +356,7 @@
     {
       "path": "sourcing/find-verified-alibaba-suppliers/index.html",
       "buyerPage": true,
-      "readableCharacters": 6808,
+      "readableCharacters": 6823,
       "images": 7,
       "externalImages": 2,
       "issues": []
@@ -326,7 +364,7 @@
     {
       "path": "sourcing/how-to-find-verified-suppliers/index.html",
       "buyerPage": true,
-      "readableCharacters": 5215,
+      "readableCharacters": 5230,
       "images": 4,
       "externalImages": 0,
       "issues": []
@@ -334,7 +372,7 @@
     {
       "path": "sourcing/index.html",
       "buyerPage": true,
-      "readableCharacters": 1923,
+      "readableCharacters": 1260,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -353,7 +391,7 @@
     {
       "path": "store.html",
       "buyerPage": false,
-      "readableCharacters": 1400,
+      "readableCharacters": 1415,
       "images": 3,
       "externalImages": 0,
       "issues": [
@@ -377,7 +415,7 @@
     {
       "path": "stores.html",
       "buyerPage": false,
-      "readableCharacters": 1142,
+      "readableCharacters": 1157,
       "images": 3,
       "externalImages": 0,
       "issues": [
@@ -396,7 +434,7 @@
     {
       "path": "terms.html",
       "buyerPage": false,
-      "readableCharacters": 2281,
+      "readableCharacters": 2296,
       "images": 5,
       "externalImages": 0,
       "issues": []
@@ -404,7 +442,7 @@
     {
       "path": "tool.html",
       "buyerPage": false,
-      "readableCharacters": 1739,
+      "readableCharacters": 1754,
       "images": 4,
       "externalImages": 0,
       "issues": [
@@ -433,7 +471,7 @@
     {
       "path": "trend.html",
       "buyerPage": false,
-      "readableCharacters": 1115,
+      "readableCharacters": 1130,
       "images": 3,
       "externalImages": 0,
       "issues": [
@@ -462,7 +500,7 @@
     {
       "path": "trends.html",
       "buyerPage": false,
-      "readableCharacters": 1113,
+      "readableCharacters": 1128,
       "images": 3,
       "externalImages": 0,
       "issues": [
