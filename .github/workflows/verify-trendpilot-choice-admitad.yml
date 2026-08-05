@@ -1,0 +1,90 @@
+name: Verify TrendPilot Choice in Admitad
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: verify-trendpilot-choice-admitad
+  cancel-in-progress: false
+
+jobs:
+  verify-admitad:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Add Admitad verification meta tag
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          verification_tag = '<meta name="verify-admitad" content="179d0dbedc" />'
+          candidates = [
+              Path("index.html"),
+              Path("public/index.html"),
+              Path("src/index.html"),
+          ]
+
+          homepage = next((path for path in candidates if path.is_file()), None)
+          if homepage is None:
+              raise SystemExit(
+                  "Homepage index.html was not found in the repository root, public/, or src/."
+              )
+
+          html = homepage.read_text(encoding="utf-8")
+
+          existing_pattern = re.compile(
+              r'<meta\s+name=["\']verify-admitad["\'][^>]*>',
+              flags=re.IGNORECASE,
+          )
+
+          if existing_pattern.search(html):
+              updated = existing_pattern.sub(verification_tag, html, count=1)
+              action = "updated"
+          else:
+              head_pattern = re.compile(r"<head\b[^>]*>", flags=re.IGNORECASE)
+              match = head_pattern.search(html)
+              if not match:
+                  raise SystemExit(f"No <head> tag was found in {homepage}")
+
+              updated = (
+                  html[: match.end()]
+                  + "\n  "
+                  + verification_tag
+                  + html[match.end() :]
+              )
+              action = "added"
+
+          homepage.write_text(updated, encoding="utf-8")
+          print(f"Admitad verification meta tag {action} in {homepage}")
+          PY
+
+      - name: Validate verification tag
+        shell: bash
+        run: |
+          grep -R -n -F '<meta name="verify-admitad" content="179d0dbedc" />' \
+            index.html public/index.html src/index.html 2>/dev/null | head -1
+
+      - name: Commit verification
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add index.html public/index.html src/index.html 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit. Admitad verification is already installed."
+          else
+            git commit -m "Verify TrendPilot Choice ownership in Admitad"
+            git push
+          fi
