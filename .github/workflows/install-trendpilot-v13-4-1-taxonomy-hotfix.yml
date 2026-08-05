@@ -1,0 +1,120 @@
+name: Install TrendPilot V13.4.1 Taxonomy Hotfix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  install-v13-4-1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Locate and unpack V13.4.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          ZIP_FILE="trendpilot-v13-4-1-taxonomy-hotfix.zip"
+          if [ ! -f "$ZIP_FILE" ]; then
+            echo "Upload $ZIP_FILE to the repository root first."
+            exit 1
+          fi
+          rm -rf "$RUNNER_TEMP/trendpilot-v13-4-1"
+          mkdir -p "$RUNNER_TEMP/trendpilot-v13-4-1"
+          unzip -q "$ZIP_FILE" -d "$RUNNER_TEMP/trendpilot-v13-4-1"
+          cp -a "$RUNNER_TEMP/trendpilot-v13-4-1"/. .
+          rm -f "$ZIP_FILE" \
+            trendpilot-v13-4-universal-taxonomy.zip \
+            trendpilot-v13-3-search-intelligence.zip \
+            trendpilot-v13-2-calm-search-fix.zip \
+            trendpilot-v13-decision-engine.zip \
+            trendpilot-v13-decision-engine-hotfix.zip
+
+      - name: Install taxonomy hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/install_v13_4_1_taxonomy_hotfix.py
+
+      - name: Compile files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile \
+            automation/build_decision_catalog.py \
+            automation/install_v13_4_1_taxonomy_hotfix.py \
+            automation/validate_v13_4_1.py \
+            automation/test_v13_4_taxonomy.py \
+            automation/build_search_catalog.py
+          node --check js/site-v13-4.js
+
+      - name: Test universal taxonomy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/test_v13_4_taxonomy.py
+
+      - name: Test browser search
+        shell: bash
+        run: |
+          set -euo pipefail
+          node automation/test_v13_4_search.js
+
+      - name: Validate V13.4.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          python automation/validate_v13_4_1.py
+          if ! git diff --quiet -- .github/workflows; then
+            echo "The installer must not edit workflow files from inside GitHub Actions."
+            git diff -- .github/workflows
+            exit 1
+          fi
+
+      - name: Commit V13.4.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "Install TrendPilot V13.4.1 taxonomy hotfix"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:"${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Push failed after three attempts."
+              exit 1
+            fi
+            git fetch origin "${GITHUB_REF_NAME}"
+            git rebase "origin/${GITHUB_REF_NAME}"
+          done
+
+      - name: Queue full feed refresh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -u
+          if gh workflow run update-products.yml --ref "${GITHUB_REF_NAME}"; then
+            echo "Full feed refresh queued. Secret feed URLs will be reclassified with V13.4.1."
+          else
+            echo "::warning::V13.4.1 was installed, but the feed refresh was not queued automatically. Run update-products.yml manually."
+          fi
