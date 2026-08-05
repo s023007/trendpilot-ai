@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build TrendPilot V13 decision catalogue with strict intent shards.
+"""Build TrendPilot V13.4 decision catalogue with canonical taxonomy and strict intent shards.
 
-V13 keeps private feeds private while producing exact-match, paginated decision shards:
+V13.4 keeps private feeds private while producing exact-match, paginated decision shards:
 
 * clothing searches contain clothing, not shoes, accessories or unrelated products;
 * audience and product-family classification support precise same-type comparison;
@@ -46,7 +46,7 @@ GROUP_LIMITS = {
     "phones-tablets": 10_000,
     "computers": 10_000,
     "home-kitchen": 10_000,
-    "beauty-care": 8_000,
+    "beauty-care": 14_000,
 }
 
 # Men, women and kids are intentionally not stop words in V13. They are useful
@@ -97,8 +97,19 @@ GROUPS: dict[str, dict] = {
     },
     "beauty-care": {
         "label": "Beauty & personal care",
-        "aliases": ["beauty", "skin care", "skincare", "hair care", "makeup", "personal care", "nail", "grooming"],
-        "patterns": [r"\bbeauty\b", r"\bskin ?care\b", r"\bmake ?up\b", r"\bcosmetic(s)?\b", r"\bhair dryer\b", r"\bhair care\b", r"\bhair clipper\b", r"\bshaver\b", r"\bpersonal care\b", r"\bnail(s)?\b", r"\bmanicure\b", r"\bmassage(r)?\b"],
+        "aliases": ["beauty", "makeup", "make-up", "cosmetics", "skin care", "skincare", "hair care", "fragrance", "perfume", "nail care", "grooming", "personal care"],
+        "patterns": [
+            r"\bbeauty\b", r"\bmake[- ]?up\b", r"\bcosmetic(s)?\b",
+            r"\blip ?stick(s)?\b", r"\blip ?gloss(es)?\b", r"\blip ?tint(s)?\b", r"\blip ?liner(s)?\b",
+            r"\bmascara(s)?\b", r"\beye ?shadow(s)?\b", r"\beye ?liner(s)?\b", r"\beyebrow(s)?\b", r"\bbrow (pencil|gel|powder|pomade)\b",
+            r"\bfoundation(s)?\b", r"\bconcealer(s)?\b", r"\bblush(es)?\b", r"\bbronzer(s)?\b", r"\bhighlighter(s)?\b", r"\bcontour(ing)?\b", r"\bface powder\b", r"\bmakeup primer\b",
+            r"\bmakeup brush(es)?\b", r"\bcosmetic brush(es)?\b", r"\bmakeup sponge(s)?\b", r"\bbeauty blender(s)?\b", r"\beyelash curler(s)?\b",
+            r"\bskin ?care\b", r"\bmoisturi[sz]er(s)?\b", r"\bface serum(s)?\b", r"\bfacial cleanser(s)?\b", r"\bsunscreen(s)?\b", r"\btoner(s)?\b",
+            r"\bshampoo(s)?\b", r"\bconditioner(s)?\b", r"\bhair (care|mask|serum|oil|dryer|clipper)\b",
+            r"\bperfume(s)?\b", r"\bfragrance(s)?\b", r"\beau de parfum\b", r"\bcologne(s)?\b",
+            r"\bnail polish(es)?\b", r"\bgel polish(es)?\b", r"\bmanicure\b", r"\bnail art\b", r"\bnail lamp\b",
+            r"\bshaver(s)?\b", r"\btrimmer(s)?\b", r"\bepilator(s)?\b", r"\bhair removal\b", r"\bpersonal care\b"
+        ],
     },
     "baby-kids": {
         "label": "Baby & kids",
@@ -234,7 +245,7 @@ FAMILY_RULES: list[tuple[str, list[str]]] = [
     ("underwear", ["underwear", "briefs"]),
     ("sleepwear", ["pajama", "pyjama", "sleepwear", "nightdress", "nightgown"]),
     ("socks", ["socks", "ankle socks", "crew socks"]),
-    ("bags", ["handbag", "shoulder bag", "tote bag", "backpack", "wallet"]),
+    ("bags", ["handbag", "shoulder bag", "tote bag", "backpack", "wallet", "makeup bag", "cosmetic bag", "toiletry bag"]),
     ("watches", ["smart watch", "smartwatch", "wristwatch", "watch"]),
     ("eyewear", ["eyeglasses", "glasses", "sunglasses", "frames"]),
     ("phone-cases", ["phone case", "iphone case", "mobile case", "case for iphone", "case for samsung", "silicone case for iphone"]),
@@ -255,6 +266,333 @@ FAMILY_RULES: list[tuple[str, list[str]]] = [
     ("video-editor", ["video editor", "filmora", "capcut", "video editing"]),
     ("phone-utility-software", ["dr.fone", "mobiletrans", "phone transfer", "phone recovery"]),
 ]
+
+
+# Canonical V13.4 families.  These are deliberately finite so supplier title
+# fragments can never become public filter values.
+BEAUTY_FAMILY_RULES: list[tuple[str, list[str]]] = [
+    ("makeup-tools", ["makeup brush", "cosmetic brush", "brush set", "makeup sponge", "beauty blender", "powder puff", "eyelash curler", "makeup applicator"]),
+    ("brow-makeup", ["eyebrow pencil", "brow pencil", "brow gel", "brow powder", "brow pomade", "eyebrow pen"]),
+    ("lip-makeup", ["lipstick", "lip stick", "lip gloss", "lip tint", "lip liner", "liquid lip", "lip stain"]),
+    ("eye-makeup", ["mascara", "eyeshadow", "eye shadow", "eyeliner", "eye liner", "false eyelashes", "false lashes", "lash extension", "eye palette"]),
+    ("face-makeup", ["foundation", "concealer", "blush", "bronzer", "highlighter", "contour", "face powder", "setting powder", "pressed powder", "loose powder", "makeup primer", "bb cream", "cc cream"]),
+    ("makeup-sets", ["makeup set", "cosmetic set", "makeup kit", "makeup palette", "cosmetic palette"]),
+    ("hair-care", ["hair care", "shampoo", "conditioner", "hair oil", "hair mask", "hair serum", "hair treatment"]),
+    ("skin-care", ["skin care", "skincare", "moisturizer", "moisturiser", "face serum", "facial serum", "skin serum", "facial cleanser", "face cleanser", "face cream", "sunscreen", "sun cream", "toner", "acne treatment", "face mask", "sheet mask", "eye cream"]),
+    ("hair-styling-tools", ["hair dryer", "hair straightener", "hair curler", "curling iron", "hair clipper", "hot air brush"]),
+    ("fragrance", ["perfume", "fragrance", "eau de parfum", "eau de toilette", "cologne", "body mist"]),
+    ("nail-care", ["nail polish", "gel polish", "manicure", "pedicure", "nail art", "nail lamp", "nail drill", "artificial nails", "press on nails"]),
+    ("grooming", ["electric shaver", "shaver", "trimmer", "beard trimmer", "epilator", "hair removal", "razor"]),
+    ("personal-care", ["personal care", "deodorant", "oral care", "electric toothbrush", "body lotion", "body wash"]),
+    ("other-makeup", ["makeup", "make up", "make-up", "cosmetic", "cosmetics"]),
+]
+
+APPAREL_FAMILY_RULES: list[tuple[str, list[str]]] = [
+    ("dress-shirts", ["dress shirt", "formal shirt", "business shirt", "office shirt", "collared shirt"]),
+    ("casual-shirts", ["casual shirt", "button up shirt", "button-up shirt", "button down shirt", "button-down shirt", "long sleeve shirt", "short sleeve shirt"]),
+    ("polo-shirts", ["polo shirt", "polo tee"]),
+    ("t-shirts", ["t-shirt", "t shirt", "tshirt", "tee shirt", "tee", "graphic tee", "cotton tee", "crew neck tee", "crewneck tee", "short sleeve tee", "jersey tee"]),
+    ("tops-blouses", ["blouse", "crop top", "tank top", "camisole", "tunic"]),
+    ("hoodies-sweatshirts", ["hoodie", "sweatshirt"]),
+    ("jackets", ["jacket", "bomber jacket", "denim jacket", "windbreaker"]),
+    ("coats", ["coat", "overcoat", "trench coat", "parka"]),
+    ("blazers", ["blazer"]),
+    ("sweaters-knitwear", ["sweater", "knitwear", "pullover", "cardigan"]),
+    ("jeans", ["jeans", "denim jeans"]),
+    ("trousers", ["trousers", "dress pants", "chino", "cargo pants", "pants"]),
+    ("shorts", ["shorts", "bermuda shorts"]),
+    ("skirts", ["skirt"]),
+    ("dresses", ["dress", "gown", "abaya"]),
+    ("suits", ["two piece suit", "three piece suit", "business suit", "suit set"]),
+    ("activewear", ["activewear", "sportswear", "tracksuit", "leggings", "yoga pants", "gym wear"]),
+    ("swimwear", ["swimwear", "swimsuit", "bikini", "swim shorts", "swimming trunks"]),
+    ("mens-underwear", ["boxers", "boxer briefs", "mens underwear", "men underwear"]),
+    ("womens-underwear", ["lingerie", "bra", "panties", "womens underwear", "women underwear"]),
+    ("underwear", ["underwear", "briefs"]),
+    ("sleepwear", ["pajama", "pyjama", "sleepwear", "nightdress", "nightgown"]),
+    ("socks", ["socks", "ankle socks", "crew socks"]),
+]
+
+
+# V13.4 canonical family rules for every searchable department.  A product can
+# only expose one of these finite values in filters; supplier title fragments
+# never become public product types.
+GROUP_FAMILY_RULES: dict[str, list[tuple[str, list[str]]]] = {
+    "apparel": APPAREL_FAMILY_RULES,
+    "beauty-care": BEAUTY_FAMILY_RULES,
+    "footwear": [
+        ("running-shoes", ["running shoe", "jogging shoe", "trail running shoe", "marathon shoe"]),
+        ("sneakers", ["sneaker", "trainer", "casual shoe", "fashion shoe"]),
+        ("sports-shoes", ["football boot", "soccer boot", "basketball shoe", "tennis shoe", "court shoe"]),
+        ("work-safety-shoes", ["safety shoe", "work boot", "steel toe", "protective footwear"]),
+        ("formal-shoes", ["formal shoe", "dress shoe", "oxford shoe", "derby shoe", "loafer", "high heel", "pump shoe"]),
+        ("boots", ["ankle boot", "snow boot", "hiking boot", "boot"]),
+        ("sandals", ["sandal", "flip flop", "slides"]),
+        ("slippers", ["slipper", "house shoe"]),
+        ("kids-shoes", ["kids shoe", "children shoe", "boys shoe", "girls shoe", "baby shoe"]),
+    ],
+    "bags-accessories": [
+        ("backpacks", ["backpack", "rucksack", "school bag"]),
+        ("handbags", ["handbag", "shoulder bag", "tote bag", "crossbody bag", "clutch bag"]),
+        ("wallets-cardholders", ["wallet", "card holder", "cardholder", "coin purse"]),
+        ("luggage", ["suitcase", "luggage", "travel bag", "duffel bag"]),
+        ("belts", ["belt", "waist belt"]),
+        ("hats-caps", ["baseball cap", "cap", "hat", "beanie"]),
+        ("scarves-gloves", ["scarf", "shawl", "glove", "mittens"]),
+        ("makeup-bags", ["makeup bag", "cosmetic bag", "toiletry bag", "beauty case"]),
+        ("travel-organizers", ["packing cube", "travel organizer", "passport holder", "luggage organizer"]),
+    ],
+    "jewelry-watches": [
+        ("smartwatches", ["smart watch", "smartwatch", "fitness watch"]),
+        ("watches", ["wristwatch", "mechanical watch", "quartz watch", "watch"]),
+        ("necklaces", ["necklace", "pendant", "chain necklace"]),
+        ("bracelets", ["bracelet", "bangle"]),
+        ("rings", ["ring", "wedding band"]),
+        ("earrings", ["earring", "stud earrings", "hoop earrings"]),
+        ("eyewear", ["sunglasses", "eyeglasses", "glasses", "spectacle frame", "optical frame"]),
+    ],
+    "baby-kids": [
+        ("strollers", ["stroller", "pushchair", "pram"]),
+        ("baby-carriers", ["baby carrier", "baby sling", "hip seat"]),
+        ("baby-feeding", ["feeding bottle", "baby bottle", "breast pump", "baby feeding", "sippy cup"]),
+        ("diapers-changing", ["diaper", "nappy", "changing mat", "diaper bag"]),
+        ("nursery-sleep", ["crib", "cot", "bassinet", "baby bed", "nursery bedding"]),
+        ("baby-monitors", ["baby monitor", "video baby monitor"]),
+        ("baby-care", ["baby care", "baby bath", "baby grooming", "bottle warmer", "sterilizer"]),
+        ("high-chairs", ["high chair", "feeding chair", "booster seat"]),
+    ],
+    "pet-supplies": [
+        ("pet-feeder", ["pet feeder", "automatic feeder", "cat feeder", "dog feeder", "food dispenser"]),
+        ("pet-litter-box", ["litter box", "cat toilet", "self cleaning litter"]),
+        ("pet-water-fountain", ["pet fountain", "cat fountain", "dog fountain", "water dispenser"]),
+        ("pet-grooming", ["pet grooming", "grooming brush", "pet clipper", "deshedding"]),
+        ("pet-toy", ["pet toy", "dog toy", "cat toy", "chew toy"]),
+        ("pet-beds", ["pet bed", "dog bed", "cat bed", "pet mat"]),
+        ("pet-carriers", ["pet carrier", "cat carrier", "dog carrier", "pet backpack"]),
+        ("collars-leashes", ["pet collar", "dog collar", "cat collar", "leash", "harness"]),
+        ("aquarium-supplies", ["aquarium", "fish tank", "aquarium filter", "aquarium light"]),
+    ],
+    "phones-tablets": [
+        ("phone-cases", ["phone case", "iphone case", "mobile case", "protective case"]),
+        ("screen-protectors", ["screen protector", "tempered glass", "phone film"]),
+        ("phone-chargers-cables", ["phone charger", "usb c charger", "lightning cable", "charging cable", "wall charger"]),
+        ("power-banks", ["power bank", "portable battery charger", "portable charger"]),
+        ("phone-mounts-stands", ["phone holder", "phone mount", "phone stand", "car phone mount"]),
+        ("stylus-pens", ["stylus", "tablet pen", "digital pen"]),
+        ("tablets", ["tablet", "ipad", "android tablet"]),
+        ("smartphones", ["smartphone", "mobile phone", "iphone", "android phone"]),
+    ],
+    "computers": [
+        ("laptops", ["laptop", "notebook computer", "chromebook"]),
+        ("desktops", ["desktop computer", "gaming pc", "all in one pc"]),
+        ("mini-pcs", ["mini pc", "micro pc"]),
+        ("monitors", ["computer monitor", "gaming monitor", "portable monitor"]),
+        ("keyboards", ["keyboard", "mechanical keyboard"]),
+        ("mice", ["computer mouse", "gaming mouse", "wireless mouse"]),
+        ("storage-drives", ["ssd", "hard drive", "external drive", "nvme", "usb flash drive"]),
+        ("memory-ram", ["ram memory", "ddr4", "ddr5", "memory module"]),
+        ("graphics-cards", ["graphics card", "gpu", "video card"]),
+        ("motherboards", ["motherboard", "mainboard"]),
+        ("webcams", ["webcam", "web camera"]),
+        ("docks-hubs", ["usb hub", "docking station", "laptop dock"]),
+        ("networking", ["wifi router", "wireless router", "network switch", "wifi adapter", "mesh wifi"]),
+    ],
+    "audio": [
+        ("earbuds", ["earbud", "tws", "in ear headphone", "earphone"]),
+        ("headphones", ["headphone", "headset", "over ear", "on ear"]),
+        ("speakers", ["bluetooth speaker", "portable speaker", "smart speaker"]),
+        ("soundbars", ["soundbar", "tv speaker bar"]),
+        ("microphones", ["microphone", "wireless mic", "lavalier mic", "usb microphone"]),
+        ("audio-interfaces", ["audio interface", "sound card", "mixer console", "audio mixer"]),
+    ],
+    "cameras": [
+        ("digital-cameras", ["digital camera", "mirrorless camera", "dslr camera"]),
+        ("action-cameras", ["action camera", "sports camera", "body camera"]),
+        ("camera-lenses", ["camera lens", "zoom lens", "prime lens"]),
+        ("tripods", ["tripod", "monopod"]),
+        ("gimbals-stabilizers", ["gimbal", "camera stabilizer"]),
+        ("photo-lighting", ["ring light", "photo light", "studio light", "softbox"]),
+        ("camera-bags", ["camera bag", "lens bag", "camera backpack"]),
+    ],
+    "projectors-tv": [
+        ("portable-projector", ["portable projector", "mini projector"]),
+        ("home-projectors", ["home projector", "cinema projector", "4k projector"]),
+        ("televisions", ["smart tv", "television", "led tv", "oled tv"]),
+        ("streaming-devices", ["streaming box", "tv box", "media player", "streaming stick"]),
+        ("projector-screens", ["projector screen", "projection screen"]),
+        ("tv-accessories", ["tv mount", "tv bracket", "remote control for tv", "tv antenna"]),
+    ],
+    "smart-home": [
+        ("security-camera", ["security camera", "ip camera", "cctv", "indoor camera", "outdoor camera"]),
+        ("robot-vacuum", ["robot vacuum", "robotic vacuum"]),
+        ("smart-lighting", ["smart light", "smart bulb", "led strip", "light strip"]),
+        ("smart-plugs", ["smart plug", "wifi socket", "smart outlet"]),
+        ("video-doorbells", ["video doorbell", "smart doorbell"]),
+        ("smart-locks", ["smart lock", "fingerprint door lock", "keyless lock", "wifi door lock", "smart wifi door lock", "door lock"]),
+        ("smart-sensors", ["motion sensor", "door sensor", "temperature sensor", "water leak sensor"]),
+        ("smart-home-hubs", ["smart home hub", "zigbee hub", "matter hub", "home automation hub"]),
+    ],
+    "automotive": [
+        ("wireless-carplay-adapter", ["wireless carplay", "carplay adapter", "carplay dongle"]),
+        ("car-head-unit", ["head unit", "car radio", "android auto radio", "car stereo", "multimedia player"]),
+        ("dash-cams", ["dash cam", "dashboard camera", "car dvr"]),
+        ("car-chargers", ["car charger", "vehicle charger"]),
+        ("car-diagnostics", ["obd2", "obd scanner", "car diagnostic", "code reader"]),
+        ("car-audio", ["car speaker", "car amplifier", "subwoofer for car"]),
+        ("car-mounts", ["car phone mount", "dashboard holder", "windshield holder"]),
+        ("car-care", ["car vacuum", "car wash", "car cleaning", "polisher", "tire inflator"]),
+    ],
+    "home-kitchen": [
+        ("cookware", ["cookware", "frying pan", "cooking pot", "bakeware"]),
+        ("kitchen-appliances", ["air fryer", "blender", "mixer", "food processor", "electric kettle", "toaster"]),
+        ("coffee-tea", ["coffee maker", "espresso machine", "coffee grinder", "tea maker"]),
+        ("food-storage", ["food container", "lunch box", "vacuum sealer", "kitchen storage"]),
+        ("furniture", ["sofa", "chair", "table", "desk", "cabinet", "shelf", "furniture"]),
+        ("bedding", ["bed sheet", "duvet", "pillow", "blanket", "mattress", "bedding"]),
+        ("curtains-window", ["curtain", "blind", "window shade"]),
+        ("home-decor", ["home decor", "wall art", "vase", "decorative lamp", "clock"]),
+        ("cleaning", ["cleaning tool", "mop", "vacuum cleaner", "steam cleaner", "cleaning brush"]),
+        ("home-lighting", ["ceiling light", "table lamp", "floor lamp", "wall light"]),
+        ("bathroom", ["bathroom accessory", "shower head", "towel rack", "bath mat"]),
+        ("home-organization", ["storage box", "organizer", "closet storage", "shoe rack"]),
+    ],
+    "tools": [
+        ("drills", ["electric drill", "cordless drill", "impact drill"]),
+        ("saws", ["circular saw", "jigsaw", "chain saw", "reciprocating saw", "hand saw"]),
+        ("hand-tools", ["screwdriver", "wrench", "plier", "socket set", "hammer", "hand tool"]),
+        ("measuring-tools", ["laser measure", "caliper", "level tool", "measuring tape", "distance meter"]),
+        ("multimeters", ["multimeter", "clamp meter", "voltage tester"]),
+        ("oscilloscopes", ["oscilloscope", "signal generator", "logic analyzer"]),
+        ("soldering", ["soldering iron", "soldering station", "hot air station"]),
+        ("power-tools", ["angle grinder", "rotary tool", "impact wrench", "power tool"]),
+        ("tool-storage", ["tool box", "tool bag", "tool cabinet"]),
+        ("safety-equipment", ["safety helmet", "safety glasses", "work gloves", "hearing protection"]),
+        ("lab-equipment", ["laboratory equipment", "microscope", "bench power supply", "test equipment"]),
+    ],
+    "office-school": [
+        ("pens-pencils", ["pen", "pencil", "marker", "highlighter pen", "crayon"]),
+        ("notebooks-paper", ["notebook", "exercise book", "writing pad", "paper", "sticky note"]),
+        ("school-bags", ["school bag", "school backpack", "student backpack", "pencil case"]),
+        ("art-supplies", ["art supplies", "paint brush", "watercolor", "acrylic paint", "sketchbook"]),
+        ("calculators", ["calculator", "scientific calculator", "graphing calculator"]),
+        ("desk-organizers", ["desk organizer", "pen holder", "document tray"]),
+        ("printer-supplies", ["printer paper", "ink cartridge", "toner cartridge", "label roll"]),
+        ("office-furniture", ["office chair", "office desk", "filing cabinet"]),
+        ("filing-labels", ["file folder", "binder", "filing", "label sticker", "laminating pouch"]),
+        ("presentation-supplies", ["whiteboard", "presentation board", "projector pointer", "flip chart"]),
+        ("learning-aids", ["learning toy", "flash card", "educational chart", "math manipulative"]),
+    ],
+    "toys-games": [
+        ("building-toys", ["building blocks", "construction toy", "brick set"]),
+        ("dolls-figures", ["doll", "action figure", "collectible figure"]),
+        ("puzzles", ["jigsaw puzzle", "puzzle", "brain teaser"]),
+        ("board-games", ["board game", "card game", "chess set"]),
+        ("remote-control-toys", ["remote control car", "rc car", "rc drone", "remote control toy"]),
+        ("educational-toys", ["educational toy", "stem toy", "science kit", "learning toy"]),
+        ("outdoor-toys", ["outdoor toy", "scooter for kids", "play tent", "water toy"]),
+        ("gaming-accessories", ["game controller", "gaming accessory", "gaming steering wheel", "controller"]),
+        ("game-consoles", ["game console", "handheld console", "retro console"]),
+    ],
+    "sports-outdoors": [
+        ("fitness-equipment", ["exercise bike", "treadmill", "dumbbell", "resistance band", "fitness equipment", "home gym"]),
+        ("yoga-pilates", ["yoga mat", "yoga block", "pilates", "yoga equipment"]),
+        ("cycling", ["bicycle", "cycling helmet", "bike light", "bike accessory", "cycling"]),
+        ("camping", ["camping tent", "sleeping bag", "camping stove", "camping chair"]),
+        ("hiking", ["hiking pole", "hiking backpack", "trekking", "hiking gear"]),
+        ("fishing", ["fishing rod", "fishing reel", "fishing lure", "fishing tackle"]),
+        ("team-sports", ["football", "soccer ball", "basketball", "volleyball", "team sport"]),
+        ("racket-sports", ["tennis racket", "badminton racket", "padel racket", "table tennis"]),
+        ("water-sports", ["swimming goggles", "snorkel", "paddle board", "kayak accessory"]),
+        ("running-gear", ["running belt", "hydration vest", "running accessory", "sports watch"]),
+        ("sports-protection", ["knee pad", "elbow pad", "sports helmet", "protective gear"]),
+    ],
+    "printing-3d": [
+        ("3d-filament", ["3d filament", "pla filament", "petg filament", "abs filament", "resin for 3d printer", "pla", "petg filament"]),
+        ("thermal-printer", ["thermal printer", "label printer", "receipt printer"]),
+        ("3d-printers", ["3d printer", "resin printer"]),
+        ("office-printers", ["inkjet printer", "laser printer", "office printer"]),
+        ("printer-ink-toner", ["ink cartridge", "toner cartridge", "printer ink"]),
+        ("labels-paper", ["thermal label", "label roll", "photo paper", "printer paper"]),
+        ("printer-parts", ["printer head", "3d printer part", "extruder", "nozzle for 3d printer"]),
+    ],
+    "software": [
+        ("video-editor", ["video editor", "video editing", "filmora", "capcut"]),
+        ("photo-design-software", ["photo editor", "graphic design software", "image editor", "design tool"]),
+        ("pdf-tools", ["pdf editor", "pdf converter", "pdf software"]),
+        ("office-productivity", ["office software", "spreadsheet software", "word processor", "productivity suite"]),
+        ("antivirus-security", ["antivirus", "internet security", "malware protection", "security software"]),
+        ("backup-recovery", ["backup software", "data recovery", "file recovery", "disk recovery"]),
+        ("phone-utility-software", ["dr fone", "dr.fone", "mobiletrans", "phone transfer", "phone recovery"]),
+        ("ai-tools", ["ai software", "artificial intelligence tool", "ai assistant", "generative ai"]),
+        ("business-software", ["crm software", "accounting software", "project management software", "erp software"]),
+        ("education-software", ["education software", "learning software", "language learning", "online course platform"]),
+        ("developer-tools", ["developer tool", "code editor", "ide software", "web development software"]),
+        ("vpn", ["vpn", "virtual private network"]),
+        ("cloud-storage", ["cloud storage", "online backup", "file sync"]),
+    ],
+    "business-sourcing": [
+        ("private-label", ["private label", "white label", "custom brand"]),
+        ("wholesale-products", ["wholesale", "bulk order", "reseller opportunity"]),
+        ("custom-logo", ["custom logo", "logo printing", "customized product"]),
+        ("packaging", ["custom packaging", "packaging box", "product packaging"]),
+        ("manufacturing-equipment", ["manufacturing machine", "production line", "industrial machine"]),
+        ("samples-prototyping", ["product sample", "prototype", "sample order"]),
+        ("raw-materials", ["raw material", "fabric roll", "industrial material", "component supplier"]),
+        ("shipping-logistics", ["freight service", "shipping service", "logistics service", "cargo service"]),
+        ("supplier-services", ["supplier service", "sourcing agent", "inspection service", "factory audit"]),
+    ],
+}
+
+# Every generated family alias is published in the manifest so the browser can
+# understand future product phrases without hard-coding a second taxonomy.
+FAMILY_ALIASES: dict[str, str] = {}
+for _group, _rules in GROUP_FAMILY_RULES.items():
+    for _family, _phrases in _rules:
+        for _phrase in _phrases:
+            FAMILY_ALIASES[normalise(_phrase) if 'normalise' in globals() else _phrase.lower()] = _family
+
+
+FAMILY_TAXONOMY: dict[str, dict] = {
+    "makeup": {
+        "label": "Makeup (all)",
+        "members": ["face-makeup", "eye-makeup", "lip-makeup", "brow-makeup", "makeup-tools", "makeup-sets", "other-makeup"],
+    },
+    "beauty": {
+        "label": "Beauty & personal care (all)",
+        "members": ["face-makeup", "eye-makeup", "lip-makeup", "brow-makeup", "makeup-tools", "makeup-sets", "other-makeup", "skin-care", "hair-care", "hair-styling-tools", "fragrance", "nail-care", "grooming", "personal-care", "other-beauty-care"],
+    },
+    "clothing-all": {"label": "Clothing (all)", "members": [family for family, _ in APPAREL_FAMILY_RULES]},
+    "electronics-all": {"label": "Electronics (all)", "members": [family for group in ("phones-tablets", "computers", "audio", "cameras", "projectors-tv", "smart-home", "automotive") for family, _ in GROUP_FAMILY_RULES[group]]},
+    "school-office-all": {"label": "School & office (all)", "members": [family for family, _ in GROUP_FAMILY_RULES["office-school"]]},
+    "sports-all": {"label": "Sports & outdoors (all)", "members": [family for family, _ in GROUP_FAMILY_RULES["sports-outdoors"]]},
+    "kids-all": {"label": "Baby, kids & toys (all)", "members": [family for group in ("baby-kids", "toys-games") for family, _ in GROUP_FAMILY_RULES[group]]},
+    "software-all": {"label": "Software (all)", "members": [family for family, _ in GROUP_FAMILY_RULES["software"]]},
+    "business-all": {"label": "Business sourcing (all)", "members": [family for family, _ in GROUP_FAMILY_RULES["business-sourcing"]]},
+}
+
+CANONICAL_FAMILY_LABELS: dict[str, str] = {
+    "face-makeup": "Face makeup", "eye-makeup": "Eye makeup", "lip-makeup": "Lip makeup",
+    "brow-makeup": "Brow makeup", "makeup-tools": "Makeup tools", "makeup-sets": "Makeup sets",
+    "other-makeup": "Other makeup", "skin-care": "Skin care", "hair-care": "Hair care",
+    "hair-styling-tools": "Hair styling tools", "fragrance": "Fragrance", "nail-care": "Nail care",
+    "grooming": "Grooming", "personal-care": "Personal care", "other-beauty-care": "Other beauty products",
+}
+
+# Human labels for all canonical families. Explicit labels above win; the rest
+# use clean title casing and remain stable across feed refreshes.
+for _rules in GROUP_FAMILY_RULES.values():
+    for _family, _phrases in _rules:
+        CANONICAL_FAMILY_LABELS.setdefault(_family, _family.replace("-", " ").title())
+
+OTHER_FAMILIES = {group: f"other-{group}" for group in GROUPS if group != "other"}
+OTHER_FAMILIES["other"] = "other"
+
+# V13.4.1: every emitted fallback family must have a stable public label.
+# The V13.4 validator correctly rejected an unlabelled top-level ``other``
+# family when a feed contained a product outside the known departments.
+for _group_id, _other_family in OTHER_FAMILIES.items():
+    _label = "Other products" if _other_family == "other" else f"Other {GROUPS[_group_id]['label'].lower()} products"
+    CANONICAL_FAMILY_LABELS.setdefault(_other_family, _label)
 
 AUDIENCE_RULES: list[tuple[str, list[str]]] = [
     ("kids", ["kids", "kid", "children", "child", "toddler", "baby", "infant", "girls", "girl", "boys", "boy"]),
@@ -396,10 +734,11 @@ def read_fallback_matches() -> list[dict]:
 
 
 def read_existing_catalog() -> list[dict]:
-    """Rehydrate public V11/V12 catalogue files when the private cache is unavailable.
+    """Rehydrate the current public catalogue when the private cache is absent.
 
-    This makes an installation immediately usable. The next feed refresh will replace
-    these records with a full private-cache build.
+    V13+ stores products in segment shards. Reading those shards lets a search
+    taxonomy hotfix reclassify the full live catalogue immediately, without
+    waiting for a network feed download and without exposing feed URLs.
     """
     manifest_path = OUT_DIR / "manifest.json"
     if not manifest_path.exists():
@@ -408,7 +747,61 @@ def read_existing_catalog() -> list[dict]:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return []
-    rows: list[dict] = []
+
+    public_rows: list[dict] = []
+    seen: set[str] = set()
+
+    def append_row(row: dict, fallback_category: str = "") -> None:
+        if not isinstance(row, dict):
+            return
+        identity = clean_text(row.get("id") or row.get("url") or row.get("name"))
+        if not identity or identity in seen:
+            return
+        seen.add(identity)
+        public_rows.append({
+            "offerKey": row.get("id") or row.get("url"),
+            "canonicalKey": row.get("clusterKey") or row.get("id"),
+            "name": row.get("name"),
+            "description": row.get("description"),
+            "category": row.get("category") or fallback_category,
+            "brand": row.get("brand"),
+            "affiliateUrl": row.get("url"),
+            "imageUrl": row.get("image"),
+            "price": row.get("price"),
+            "oldPrice": row.get("oldPrice"),
+            "currency": row.get("currency"),
+            "advertiser": row.get("advertiser"),
+            "qualityScore": row.get("quality"),
+            "rating": row.get("rating"),
+            "reviewCount": row.get("reviews"),
+            "delivery": row.get("delivery"),
+            "shippingPrice": row.get("shippingPrice"),
+            "condition": row.get("condition"),
+            "material": row.get("material"),
+            "gender": row.get("audience"),
+            "available": True,
+            "offerType": "product",
+        })
+
+    segments = manifest.get("segments", [])
+    if isinstance(segments, list) and segments:
+        for segment in segments:
+            if not isinstance(segment, dict):
+                continue
+            fallback = clean_text(segment.get("family") or segment.get("group"))
+            for file_value in segment.get("files", []) or []:
+                local = ROOT / clean_text(file_value).lstrip("/")
+                if not local.exists():
+                    continue
+                try:
+                    payload = json.loads(local.read_text(encoding="utf-8"))
+                except (OSError, json.JSONDecodeError):
+                    continue
+                for row in payload.get("products", []) or []:
+                    append_row(row, fallback)
+        return public_rows
+
+    # V11/V12 group-file migration path.
     for group in manifest.get("groups", []):
         file_value = clean_text(group.get("file"))
         if not file_value:
@@ -420,33 +813,10 @@ def read_existing_catalog() -> list[dict]:
             payload = json.loads(local.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        for row in payload.get("products", []):
-            if not isinstance(row, dict):
-                continue
-            rows.append({
-                "offerKey": row.get("id") or row.get("url"),
-                "canonicalKey": row.get("clusterKey") or row.get("id"),
-                "name": row.get("name"),
-                "description": row.get("description"),
-                "category": row.get("category") or group.get("label"),
-                "brand": row.get("brand"),
-                "affiliateUrl": row.get("url"),
-                "imageUrl": row.get("image"),
-                "price": row.get("price"),
-                "oldPrice": row.get("oldPrice"),
-                "currency": row.get("currency"),
-                "advertiser": row.get("advertiser"),
-                "qualityScore": row.get("quality"),
-                "rating": row.get("rating"),
-                "reviewCount": row.get("reviews"),
-                "delivery": row.get("delivery"),
-                "shippingPrice": row.get("shippingPrice"),
-                "condition": row.get("condition"),
-                "material": row.get("material"),
-                "available": True,
-                "offerType": "product",
-            })
-    return rows
+        for row in payload.get("products", []) or []:
+            append_row(row, clean_text(group.get("label")))
+    return public_rows
+
 
 def group_for(offer: dict) -> str:
     name = normalise(offer.get("name"))
@@ -455,7 +825,6 @@ def group_for(offer: dict) -> str:
     description = normalise(offer.get("description"))
     primary = " ".join(part for part in (name, category, tags) if part)
 
-    # Wholesale/private-label offers are a different buyer decision from retail products.
     sourcing_terms = ("private label", "wholesale", "manufacturer", "factory", "supplier", "custom logo", "bulk order", "reseller opportunity", "moq")
     if any(has_phrase(primary, term) for term in sourcing_terms):
         return "business-sourcing"
@@ -464,6 +833,37 @@ def group_for(offer: dict) -> str:
     hardware_terms = ("laptop", "smartphone", "tablet", "phone case", "charger", "monitor", "keyboard", "mouse", "projector")
     if any(has_phrase(primary, term) for term in software_terms) and not any(has_phrase(name, term) for term in hardware_terms):
         return "software"
+
+    # Conflict guards: specific purpose beats a generic accessory word.
+    # These routes keep school bags, camera bags, pet carriers and baby bags in
+    # the department buyers expect, while ordinary handbags remain fashion.
+    if any(has_phrase(primary, term) for term in ("school bag", "school backpack", "student backpack", "pencil case", "scientific calculator", "graphing calculator")):
+        return "office-school"
+    if any(has_phrase(primary, term) for term in ("camera bag", "camera backpack", "lens bag")):
+        return "cameras"
+    if any(has_phrase(primary, term) for term in ("pet carrier", "cat carrier", "dog carrier", "pet backpack", "pet bed", "dog bed", "cat bed")):
+        return "pet-supplies"
+    if any(has_phrase(primary, term) for term in ("diaper bag", "baby carrier", "baby monitor", "baby bottle")):
+        return "baby-kids"
+    if any(has_phrase(primary, term) for term in ("smartwatch", "smart watch", "wristwatch", "mechanical watch", "quartz watch")):
+        return "jewelry-watches"
+    if any(has_phrase(primary, term) for term in ("smart lock", "wifi door lock", "fingerprint door lock", "keyless lock")):
+        return "smart-home"
+
+    # Conflict guards: a lipstick print T-shirt is clothing; a cosmetic bag is
+    # a bag. Beauty words cannot steal a clearly named physical product family.
+    apparel_terms = ("t-shirt", "t shirt", "tshirt", "tee shirt", "shirt", "hoodie", "jacket", "trousers", "pants", "shorts", "skirt", "blouse", "sweater", "coat", "jeans")
+    bag_terms = ("makeup bag", "cosmetic bag", "toiletry bag", "handbag", "backpack", "wallet", "tote bag")
+    footwear_terms = ("shoe", "sneaker", "trainer", "boot", "sandal", "slipper")
+    beauty_terms = tuple(phrase for _, phrases in BEAUTY_FAMILY_RULES for phrase in phrases) + ("beauty",)
+    if any(has_phrase(primary, term) for term in apparel_terms):
+        return "apparel"
+    if any(has_phrase(primary, term) for term in bag_terms):
+        return "bags-accessories"
+    if any(has_phrase(primary, term) for term in footwear_terms):
+        return "footwear"
+    if any(has_phrase(primary, term) for term in beauty_terms):
+        return "beauty-care"
 
     scores: dict[str, float] = {}
     title_required = {"apparel", "footwear", "bags-accessories", "jewelry-watches", "baby-kids", "pet-supplies", "software", "business-sourcing"}
@@ -487,28 +887,30 @@ def group_for(offer: dict) -> str:
 
     if not scores:
         return "other"
-
-    # Children’s clothing remains apparel, with audience=kids; baby equipment stays baby-kids.
     if "apparel" in scores and "baby-kids" in scores:
         baby_equipment = ("stroller", "pushchair", "feeding bottle", "baby carrier", "diaper", "nappy", "crib", "cot", "high chair")
         if not any(has_phrase(primary, term) for term in baby_equipment):
             scores["apparel"] += 30
 
-    priority = ["business-sourcing", "software", "pet-supplies", "footwear", "apparel", "phones-tablets", "computers", "audio", "cameras", "projectors-tv", "smart-home", "automotive", "printing-3d", "sports-outdoors", "home-kitchen", "tools", "beauty-care", "bags-accessories", "jewelry-watches", "baby-kids", "office-school", "toys-games"]
+    priority = ["business-sourcing", "software", "pet-supplies", "footwear", "apparel", "beauty-care", "phones-tablets", "computers", "audio", "cameras", "projectors-tv", "smart-home", "automotive", "printing-3d", "sports-outdoors", "home-kitchen", "tools", "bags-accessories", "jewelry-watches", "baby-kids", "office-school", "toys-games"]
     return max(scores, key=lambda group: (scores[group], -priority.index(group) if group in priority else -999))
 
 
 
 def family_for(offer: dict, group: str) -> str:
-    """Classify from title/category first; description cannot force an exact family."""
+    """Return a finite canonical family from title/category evidence.
+
+    Supplier phrases never become filter values. Description can only support a
+    family when the primary fields already name a generic item in that group.
+    """
     primary = normalise(" ".join([
         clean_text(offer.get("name")), clean_text(offer.get("category")),
         clean_text(offer.get("productType")), clean_text(offer.get("subcategory")),
     ]))
-    secondary = normalise(" ".join([
-        clean_text(offer.get("description")), clean_text(offer.get("brand")),
-    ]))
-    for family, phrases in FAMILY_RULES:
+    secondary = normalise(" ".join([clean_text(offer.get("description")), clean_text(offer.get("brand"))]))
+
+    rules = GROUP_FAMILY_RULES.get(group, FAMILY_RULES)
+    for family, phrases in rules:
         if any(has_phrase(primary, phrase) for phrase in phrases):
             if family == "underwear":
                 audience = audience_for(offer)
@@ -518,26 +920,17 @@ def family_for(offer: dict, group: str) -> str:
                     return "womens-underwear"
             return family
 
-    # Secondary text may only resolve a family when the title/category already
-    # contains a generic product word from the same group. This prevents a word
-    # buried in marketing copy from changing the product type.
     generic_primary = {
-        "apparel": ("clothing", "apparel", "garment", "wear", "shirt", "top", "bottom"),
-        "footwear": ("shoe", "footwear"),
-        "phones-tablets": ("phone", "tablet", "mobile"),
-        "computers": ("computer", "pc", "device"),
-        "audio": ("audio", "sound"),
-        "pet-supplies": ("pet", "dog", "cat"),
+        group_id: tuple(meta.get("aliases", [])) + (normalise(meta.get("label", "")), "product", "item")
+        for group_id, meta in GROUPS.items()
+        if group_id != "other"
     }
     if any(has_phrase(primary, term) for term in generic_primary.get(group, ())):
-        for family, phrases in FAMILY_RULES:
+        for family, phrases in rules:
             if any(has_phrase(secondary, phrase) for phrase in phrases):
                 return family
 
-    meaningful = tokens(f"{offer.get('brand', '')} {offer.get('name', '')}")[:4]
-    if meaningful:
-        return f"{group}:{'-'.join(meaningful)}"
-    return group
+    return OTHER_FAMILIES.get(group, "other")
 
 
 def audience_for(offer: dict) -> str:
@@ -943,7 +1336,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
             page_records = segment_records[offset:offset + SHARD_SIZE]
             relative = f"/data/search-catalog/shards/{group}/{safe_family}/{safe_audience}/{page_number:03d}.json"
             payload = {
-                "version": "13.0.0",
+                "version": "13.4.1",
                 "generatedAt": generated_at,
                 "segment": key,
                 "page": page_number,
@@ -1004,14 +1397,55 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
         "womensTshirts": sum(1 for r in records if r.get("group") == "apparel" and r.get("family") == "t-shirts" and r.get("audience") == "women"),
         "kidsTshirts": sum(1 for r in records if r.get("group") == "apparel" and r.get("family") == "t-shirts" and r.get("audience") == "kids"),
         "mensShorts": sum(1 for r in records if r.get("group") == "apparel" and r.get("family") == "shorts" and r.get("audience") == "men"),
+        "makeupAll": sum(1 for r in records if r.get("family") in FAMILY_TAXONOMY["makeup"]["members"]),
+        "laptops": family_counts.get("laptops", 0),
+        "schoolSupplies": sum(group_counts.get(g, 0) for g in ("office-school",)),
+        "sports": group_counts.get("sports-outdoors", 0),
+        "software": group_counts.get("software", 0),
+        "business": group_counts.get("business-sourcing", 0),
     }
 
+    scope_groups = {
+        "clothing": ("apparel", "footwear", "bags-accessories", "jewelry-watches"),
+        "electronics": ("phones-tablets", "computers", "audio", "cameras", "projectors-tv", "smart-home", "automotive"),
+        "home": ("home-kitchen", "tools", "smart-home"),
+        "school": ("office-school",),
+        "sports": ("sports-outdoors",),
+        "beauty": ("beauty-care",),
+        "kids": ("baby-kids", "toys-games", "apparel", "footwear", "bags-accessories", "office-school"),
+        "software": ("software",),
+        "business": ("business-sourcing",),
+        "pets": ("pet-supplies",),
+        "automotive": ("automotive",),
+        "tools": ("tools",),
+        "toys": ("toys-games",),
+        "bags": ("bags-accessories",),
+        "jewelry": ("jewelry-watches",),
+        "audio": ("audio",),
+        "cameras": ("cameras",),
+        "phones": ("phones-tablets",),
+        "computers": ("computers",),
+        "smart-home": ("smart-home",),
+        "printing": ("printing-3d",),
+    }
+    search_coverage = {}
+    for scope, scope_group_ids in scope_groups.items():
+        scope_records = [r for r in records if r.get("group") in scope_group_ids]
+        scope_family_counts = Counter(r.get("family", "other") for r in scope_records)
+        search_coverage[scope] = {
+            "uniqueProducts": len(scope_records),
+            "families": dict(scope_family_counts.most_common(80)),
+            "advertisers": sorted({r.get("advertiser", "Unknown") for r in scope_records}),
+            "missingImage": sum(1 for r in scope_records if not r.get("image")),
+            "missingPrice": sum(1 for r in scope_records if not r.get("price")),
+        }
+
     coverage = {
-        "version": "13.0.0", "generatedAt": generated_at, "sourceMode": source_mode,
+        "version": "13.4.1", "generatedAt": generated_at, "sourceMode": source_mode,
         "sourceOffers": len(offers), "dedupedOffers": len(deduped),
         "acceptedBeforeClustering": len(raw_records), "uniqueProducts": len(records),
         "segments": len(segment_rows), "byGroup": dict(group_counts),
-        "byAudience": dict(audience_counts), "topFamilies": dict(family_counts.most_common(120)),
+        "byAudience": dict(audience_counts), "topFamilies": dict(family_counts.most_common(200)),
         "exactExamples": exact_examples,
         "missing": {
             "image": sum(1 for r in records if not r.get("image")),
@@ -1024,6 +1458,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
             "audience": sum(1 for r in records if r.get("audience") == "all" and r.get("group") in {"apparel", "footwear"}),
         },
         "byAdvertiser": coverage_by_advertiser,
+        "searchCoverage": search_coverage,
         "rejected": dict(rejected), "rareUsedCount": len(rare_used), "dealCandidateCount": len(deal_candidates),
     }
     (OUT_DIR / "coverage-report.json").write_text(
@@ -1031,9 +1466,13 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
     )
 
     manifest = {
-        "version": "13.0.0", "generatedAt": generated_at, "sourceMode": source_mode,
+        "version": "13.4.1", "generatedAt": generated_at, "sourceMode": source_mode,
         "productCount": len(records), "offerCount": len(raw_records), "sourceOfferCount": len(offers),
         "groups": group_rows, "segments": segment_rows,
+        "familyTaxonomy": FAMILY_TAXONOMY,
+        "familyLabels": CANONICAL_FAMILY_LABELS,
+        "familyAliases": FAMILY_ALIASES,
+        "scopeGroups": {scope: list(groups) for scope, groups in scope_groups.items()},
         "tokenRoutes": segment_token_routes(segments),
         "featured": featured, "rareUsed": rare_used, "dealCandidates": deal_candidates,
         "coverageReport": "/data/search-catalog/coverage-report.json",
@@ -1045,6 +1484,8 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
             "pageSize": SHARD_SIZE, "initialResults": 24, "maxResults": None,
             "comparisonLimit": 3, "sameFamilyComparison": True,
             "separateExactAndAlternatives": True, "variantClustering": True,
+            "canonicalFamiliesOnly": True, "queryCorrection": True, "virtualFamilyExpansion": True,
+            "allDepartmentsCanonical": True, "scopeCoverageReport": True, "fallbackFamilyLabelGuard": True,
         },
         "rejected": dict(rejected),
     }
@@ -1052,7 +1493,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
         json.dumps(manifest, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8"
     )
     if not records:
-        raise RuntimeError("V13 catalogue build produced zero products.")
+        raise RuntimeError("V13.4 catalogue build produced zero products.")
     return manifest
 
 
@@ -1071,7 +1512,7 @@ def main() -> int:
     if not offers:
         raise SystemExit("No product source exists. Run source_ingestion.py first or use --allow-fallback with published data.")
     manifest = build_catalog(offers, source_mode)
-    print(f"TrendPilot V13 decision catalogue: {manifest['productCount']:,} unique products / {manifest['offerCount']:,} offers")
+    print(f"TrendPilot V13.4.1 decision catalogue: {manifest['productCount']:,} unique products / {manifest['offerCount']:,} offers")
     print(f"Exact segments: {len(manifest['segments']):,}")
     print(f"Search token routes: {len(manifest['tokenRoutes']):,}")
     print(f"Source mode: {manifest['sourceMode']}")

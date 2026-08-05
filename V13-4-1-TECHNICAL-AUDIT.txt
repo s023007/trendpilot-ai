@@ -1,0 +1,31 @@
+TrendPilot AI V13.4.1 — Technical Audit
+========================================
+
+Observed GitHub failure
+-----------------------
+Workflow run 30979057878 failed specifically in the “Validate V13.4” step. The installer and catalogue build had already completed in the temporary runner, but no commit was pushed because validation exited with code 1.
+
+Reproduced defect
+-----------------
+A synthetic unknown product was classified as:
+- department: other
+- family: other
+
+V13.4 omitted `other` from `familyLabels`, causing:
+Canonical family labels missing: ['other']
+
+Correction
+----------
+V13.4.1 creates stable labels for all fallback families before the manifest is written. The validator now explicitly checks `familyLabels.other == "Other products"`.
+
+Regression coverage
+-------------------
+- Python syntax compilation
+- JavaScript syntax validation
+- 36 representative taxonomy products across all departments
+- cross-department contamination guards
+- unknown-product fallback-family test
+- browser spelling, scope-routing and strict-match tests
+- full mock installation with an unknown product
+- manifest, coverage report, page runtime and scope validation
+- installer does not edit workflow files

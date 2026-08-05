@@ -1,0 +1,26 @@
+TrendPilot V13.4 — Prioritised Future Roadmap
+=============================================
+
+Do next after V13.4 feed refresh
+1. Review data/search-catalog/coverage-report.json.
+2. Identify scopes with low unique-product counts, few advertisers or missing prices/images.
+3. Record the most common zero-result searches.
+4. Add aliases or family rules first; add a provider only when the report proves a data gap.
+
+High-value next features
+1. Oman-first delivery and coupon eligibility.
+2. OMR currency display with transparent conversion time.
+3. Product detail pages that merge offers from multiple sellers.
+4. Total delivered cost and delivery-time comparison.
+5. Search-based price watch and back-in-stock watch.
+6. Real price history and verified-deal score.
+7. Arabic and English search aliases.
+8. Provider-gap dashboard by category and merchant.
+9. Search suggestions based on live searches, not hard-coded examples.
+10. Product-quality confidence score showing missing evidence.
+
+Provider strategy
+- Awin: retail brands, fashion, beauty, home and specialist stores when coverage is weak.
+- CJ: established retailers and software brands when advertiser access is approved.
+- eBay: rare, used, refurbished, discontinued products and replacement parts.
+- Do not add a provider merely to increase raw count; prioritise unique products, usable images, accurate prices, shipping and stable affiliate links.

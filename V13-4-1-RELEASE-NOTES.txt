@@ -1,0 +1,21 @@
+TrendPilot AI V13.4.1 — Universal Taxonomy Installation Hotfix
+================================================================
+
+Purpose
+-------
+This is a focused installation hotfix for V13.4. The universal taxonomy, 21 public search scopes, 218 canonical product families, spelling corrections and current calm design are unchanged.
+
+Root cause fixed
+----------------
+The V13.4 catalogue builder correctly placed products that did not match any known department into the top-level family `other`. The validator then correctly required every emitted family to have a public label, but `other` was the only fallback family without one. A real feed contains at least one such unclassified product, so the installation reached the Validate V13.4 step and stopped with exit code 1 before committing.
+
+V13.4.1 fixes this by:
+- assigning the stable label “Other products” to the top-level fallback family;
+- assigning stable labels to every department-specific fallback family;
+- adding a regression test with an unknown feed product;
+- requiring the fallback-label guard in the generated manifest;
+- preserving the existing full-feed refresh hook and all GitHub Secrets.
+
+No visual redesign
+------------------
+No page layout, colour, navigation, product card or mobile design is changed. The update only allows the complete universal taxonomy to pass validation and deploy.
