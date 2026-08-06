@@ -5,7 +5,9 @@
   "adapter": "json",
   "advertiser": "CJ joined advertisers",
   "programme": "CJ GraphQL Product Feed API",
-  "countries": ["GLOBAL"],
+  "countries": [
+    "GLOBAL"
+  ],
   "location": {
     "type": "local_file",
     "path": "automation/cache/cj-products.json"
@@ -14,21 +16,66 @@
   "rowLimit": 20000,
   "defaultCurrency": "USD",
   "fieldMap": {
-    "productId": ["productId", "sku", "catalogId"],
-    "name": ["name", "title"],
-    "description": ["description"],
-    "category": ["category", "vertical"],
-    "brand": ["brand"],
-    "affiliateUrl": ["affiliateUrl"],
-    "productUrl": ["productUrl"],
-    "imageUrl": ["imageUrl"],
-    "price": ["price"],
-    "oldPrice": ["oldPrice"],
-    "currency": ["currency"],
-    "availability": ["availability"],
-    "advertiser": ["advertiser"],
-    "merchantId": ["advertiserId"],
-    "updatedAt": ["updatedAt"]
+    "productId": [
+      "productId",
+      "sku",
+      "catalogId"
+    ],
+    "name": [
+      "name",
+      "title"
+    ],
+    "description": [
+      "description"
+    ],
+    "category": [
+      "category",
+      "vertical"
+    ],
+    "brand": [
+      "brand"
+    ],
+    "affiliateUrl": [
+      "affiliateUrl"
+    ],
+    "productUrl": [
+      "productUrl"
+    ],
+    "imageUrl": [
+      "imageUrl"
+    ],
+    "price": [
+      "price"
+    ],
+    "oldPrice": [
+      "oldPrice"
+    ],
+    "currency": [
+      "currency"
+    ],
+    "availability": [
+      "availability"
+    ],
+    "advertiser": [
+      "advertiser",
+      "advertiserName",
+      "seller",
+      "merchantName"
+    ],
+    "merchantId": [
+      "advertiserId"
+    ],
+    "updatedAt": [
+      "updatedAt"
+    ],
+    "network": [
+      "network",
+      "sourceNetwork"
+    ],
+    "source": [
+      "source",
+      "sourceId"
+    ]
   },
   "rules": {
     "exactProductOnly": true,

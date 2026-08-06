@@ -26,6 +26,7 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 CACHE_PATH = ROOT / "automation" / "cache" / "offers.jsonl"
+CJ_CACHE_PATH = ROOT / "automation" / "cache" / "cj-products.json"
 FALLBACK_PATH = ROOT / "data" / "matched-products.json"
 PROGRAM_STATUS_PATH = ROOT / "config" / "affiliate-program-status.json"
 OUT_DIR = ROOT / "data" / "search-catalog"
@@ -686,6 +687,97 @@ def read_private_cache() -> list[dict]:
                 rows.append(row)
     return rows
 
+
+
+def read_cj_cache_offers() -> list[dict]:
+    """Read normalized CJ API products from the committed local cache."""
+    if not CJ_CACHE_PATH.exists():
+        return []
+    try:
+        payload = json.loads(CJ_CACHE_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    products = payload.get("products", []) if isinstance(payload, dict) else []
+    output: list[dict] = []
+    for row in products:
+        if not isinstance(row, dict):
+            continue
+        advertiser = clean_text(
+            row.get("advertiser")
+            or row.get("advertiserName")
+            or row.get("seller")
+            or row.get("merchantName")
+            or "CJ advertiser"
+        )
+        url = clean_text(row.get("affiliateUrl") or row.get("url"))
+        name = clean_text(row.get("name") or row.get("title"))
+        if not name or not valid_public_url(url):
+            continue
+        product_id = clean_text(
+            row.get("productId")
+            or row.get("sku")
+            or row.get("catalogId")
+            or row.get("id")
+            or url
+        )
+        output.append({
+            "offerKey": f"cj:{advertiser}:{product_id}",
+            "canonicalKey": clean_text(row.get("canonicalKey") or product_id),
+            "productId": product_id,
+            "name": name,
+            "description": row.get("description"),
+            "category": row.get("category") or row.get("vertical"),
+            "brand": row.get("brand"),
+            "affiliateUrl": url,
+            "productUrl": row.get("productUrl"),
+            "imageUrl": row.get("imageUrl") or row.get("image"),
+            "price": row.get("price"),
+            "oldPrice": row.get("oldPrice"),
+            "currency": row.get("currency") or "USD",
+            "availability": row.get("availability", True),
+            "available": row.get("available", True),
+            "advertiser": advertiser,
+            "network": "CJ",
+            "sourceNetwork": "CJ",
+            "source": "cj-api-products",
+            "sourceId": "cj-api-products",
+            "merchantId": row.get("merchantId") or row.get("advertiserId"),
+            "qualityScore": row.get("qualityScore") or 76,
+            "rating": row.get("rating"),
+            "reviewCount": row.get("reviewCount") or row.get("reviews"),
+            "delivery": row.get("delivery"),
+            "shippingPrice": row.get("shippingPrice"),
+            "condition": row.get("condition"),
+            "material": row.get("material"),
+            "images": row.get("images"),
+            "videoUrl": row.get("videoUrl"),
+            "videoSource": row.get("videoSource"),
+            "specifications": row.get("specifications") or row.get("specs"),
+            "updatedAt": row.get("updatedAt"),
+            "offerType": "product",
+        })
+    return output
+
+
+def merge_cj_offers(rows: list[dict]) -> list[dict]:
+    """Prefer normalized CJ rows, then add non-duplicate rows from all sources."""
+    combined: list[dict] = []
+    seen: set[str] = set()
+    for row in [*read_cj_cache_offers(), *rows]:
+        if not isinstance(row, dict):
+            continue
+        identity = clean_text(
+            row.get("productId")
+            or row.get("canonicalKey")
+            or row.get("offerKey")
+            or row.get("affiliateUrl")
+            or row.get("url")
+        ).lower()
+        if not identity or identity in seen:
+            continue
+        seen.add(identity)
+        combined.append(row)
+    return combined
 
 def read_fallback_matches() -> list[dict]:
     if not FALLBACK_PATH.exists():
@@ -1404,6 +1496,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
     for offer in offers:
         advertiser_name = clean_text(offer.get("advertiser") or offer.get("network") or "Unknown")
         advertiser = normalise(advertiser_name)
+        network = normalise(offer.get("network") or offer.get("sourceNetwork") or offer.get("source"))
         source_by_advertiser[advertiser_name] += 1
         reason = ""
         if offer.get("offerType", "product") != "product":
@@ -1415,7 +1508,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
             url = clean_text(offer.get("affiliateUrl") or offer.get("url") or offer.get("productUrl"))
             if not name or not valid_public_url(url):
                 reason = "missingCoreFields"
-            elif active and advertiser not in active:
+            elif active and advertiser not in active and network != "cj":
                 reason = "inactiveAdvertiser"
         if reason:
             rejected[reason] += 1
@@ -1640,6 +1733,7 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
         "tokenRoutes": segment_token_routes(segments),
         "featured": featured, "rareUsed": rare_used, "dealCandidates": deal_candidates,
         "coverageReport": "/data/search-catalog/coverage-report.json",
+        "advertisers": sorted(advertiser_counts),
         "topAdvertisers": dict(advertiser_counts.most_common(24)),
         "topFamilies": dict(family_counts.most_common(40)),
         "searchRules": {
@@ -1675,6 +1769,7 @@ def main() -> int:
         if not offers:
             offers = read_existing_catalog()
             source_mode = "existing-catalog-migration"
+    offers = merge_cj_offers(offers)
     if not offers:
         raise SystemExit("No product source exists. Run source_ingestion.py first or use --allow-fallback with published data.")
     manifest = build_catalog(offers, source_mode)

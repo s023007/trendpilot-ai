@@ -376,7 +376,7 @@
     if(group){const current=group.value; group.innerHTML='<option value="">All categories</option>'+uniq(rows.map(p=>p.group)).sort().map(v=>`<option value="${esc(v)}">${esc(GROUP_LABELS[v]||v)}</option>`).join(""); group.value=state.plan.groups.length===1?state.plan.groups[0]:current;}
     if(family){const current=family.value; const g=group?.value; const vals=uniq(rows.filter(p=>!g||p.group===g).map(p=>p.family)).sort(); family.innerHTML='<option value="">All specific types</option>'+vals.map(v=>`<option value="${esc(v)}">${esc(FAMILY_LABELS[v]||v.split(":").pop().replace(/-/g," "))}</option>`).join(""); family.value=state.plan.family||current;}
     if(audience&&state.plan.audience)audience.value=state.plan.audience;
-    if(merchant){const current=merchant.value; merchant.innerHTML='<option value="">All sellers</option>'+uniq(rows.map(p=>p.advertiser)).sort().map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join(""); merchant.value=current;}
+    if(merchant){const current=merchant.value;const manifestSellers=[...(state.manifest?.advertisers||[]),...Object.keys(state.manifest?.topAdvertisers||{})];const sellers=uniq([...manifestSellers,...rows.map(p=>p.advertiser)]).filter(Boolean).sort();merchant.innerHTML='<option value="">All sellers</option>'+sellers.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");merchant.value=sellers.includes(current)?current:"";}
     updateFilterCount();
   }
   function updateFilterCount(){const f=filters(); const n=Object.entries(f).filter(([k,v])=>k!=="sort"&&Boolean(v)).length; const node=$('[data-tp-active-filter-count]'); if(node){node.textContent=n;node.hidden=!n;}}
