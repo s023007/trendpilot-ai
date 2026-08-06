@@ -1,0 +1,217 @@
+name: Sync TrendPilot CJ API Products V13.8.3
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Runs before the main product update workflow.
+    - cron: "10 2 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-cj-api-sync
+  cancel-in-progress: false
+
+jobs:
+  repair-and-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Validate CJ secrets
+        env:
+          CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+          CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CJ_PERSONAL_ACCESS_TOKEN:-}" || {
+            echo "::error::CJ_PERSONAL_ACCESS_TOKEN is missing."
+            exit 1
+          }
+          test -n "${CJ_WEBSITE_ID:-}" || {
+            echo "::error::CJ_WEBSITE_ID is missing."
+            exit 1
+          }
+          echo "CJ secrets are present."
+
+      - name: Run corrected CJ installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet pyyaml
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import yaml
+
+          installer = Path(
+              ".github/workflows/install-trendpilot-v13-8-cj-api.yml"
+          )
+          if not installer.exists():
+              raise SystemExit(f"Missing installer: {installer}")
+
+          data = yaml.safe_load(installer.read_text(encoding="utf-8"))
+          steps = data["jobs"]["install-cj-api"]["steps"]
+
+          install_run = next(
+              step["run"]
+              for step in steps
+              if step.get("name") == "Install CJ API ingestion bridge"
+          )
+
+          start_marker = 'cj_step = """'
+          start = install_run.find(start_marker)
+          if start < 0:
+              raise SystemExit("Could not find the unsafe cj_step block.")
+
+          end = install_run.find('"""', start + len(start_marker))
+          if end < 0:
+              raise SystemExit("Could not find the end of the cj_step block.")
+          end += 3
+
+          safe_block = """cj_token_expression = "$" + "{{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}"
+          cj_website_expression = "$" + "{{ secrets.CJ_WEBSITE_ID }}"
+          cj_step = (
+              "      - name: Fetch CJ joined products through API\\n"
+              "        env:\\n"
+              f"          CJ_PERSONAL_ACCESS_TOKEN: {cj_token_expression}\\n"
+              f"          CJ_WEBSITE_ID: {cj_website_expression}\\n"
+              '          CJ_MAX_PRODUCTS: "12000"\\n'
+              "        run: python automation/cj_api_fetch.py\\n"
+              "\\n"
+          )"""
+
+          corrected_run = install_run[:start] + safe_block + install_run[end:]
+
+          script = Path("/tmp/trendpilot-cj-installer.sh")
+          script.write_text(corrected_run + "\n", encoding="utf-8")
+          subprocess.run(["bash", str(script)], check=True)
+          print("Corrected CJ installer completed.")
+          PY
+
+      - name: Keep the existing main update workflow unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The previous run reached the commit step but GitHub rejected the
+          # push because it attempted to modify another workflow file.
+          # This sync workflow stores CJ's clean product cache instead, which
+          # source_ingestion.py already discovers automatically.
+          git restore -- .github/workflows/update-products.yml
+          git diff --exit-code -- .github/workflows/update-products.yml
+
+      - name: Run private CJ API smoke test
+        env:
+          CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+          CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+          CJ_MAX_PRODUCTS: "12000"
+        run: python automation/cj_api_fetch.py
+
+      - name: Confirm safe CJ report
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/cj-api-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("data/cj-api-report.json")
+          report = json.loads(path.read_text(encoding="utf-8"))
+
+          print("CJ status:", report.get("status"))
+          print(
+              "CJ products:",
+              report.get("productSearch", {}).get("recordsAccepted", 0),
+          )
+          print(
+              "CJ joined links:",
+              report.get("linkSearch", {}).get("recordsReturned", 0),
+          )
+
+          raw = path.read_text(encoding="utf-8")
+          forbidden = (
+              "CJ_PERSONAL_ACCESS_TOKEN",
+              "Authorization: Bearer",
+          )
+          if any(value in raw for value in forbidden):
+              raise SystemExit("Unsafe secret text detected in the public report.")
+          PY
+
+      - name: Compact and validate the CJ product cache
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f automation/cache/cj-products.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("automation/cache/cj-products.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          products = payload.get("products", [])
+          if not isinstance(products, list):
+              raise SystemExit("CJ cache does not contain a products list.")
+
+          # Keep the file compact so it remains practical inside the repository.
+          path.write_text(
+              json.dumps(
+                  {"products": products},
+                  ensure_ascii=False,
+                  separators=(",", ":"),
+              ) + "\n",
+              encoding="utf-8",
+          )
+
+          size = path.stat().st_size
+          print(f"CJ cache products: {len(products):,}")
+          print(f"CJ cache size: {size:,} bytes")
+          if size > 95 * 1024 * 1024:
+              raise SystemExit(
+                  "CJ cache exceeds GitHub's practical single-file limit."
+              )
+          PY
+
+      - name: Commit CJ API products without modifying workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "trendpilot-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            automation/cj_api_fetch.py \
+            config/sources/cj-api-products.json \
+            data/cj-api-report.json
+
+          # The cache directory is intentionally ignored by the old feed
+          # workflow, so force-add only the clean CJ cache generated here.
+          git add -f automation/cache/cj-products.json
+
+          echo "Files prepared for the CJ commit:"
+          git status --short
+
+          if git diff --cached --quiet; then
+            echo "CJ API products are already synchronized."
+            exit 0
+          fi
+
+          git commit -m "feat: synchronize CJ API product catalogue"
+
+          # Protect against a normal non-fast-forward push if another workflow
+          # completed after checkout.
+          git pull --rebase origin main
+          git push origin HEAD:main
