@@ -1,0 +1,197 @@
+name: Install TrendPilot V13.8.2 CJ API Validation Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-cj-api-install
+  cancel-in-progress: false
+
+jobs:
+  repair-and-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Validate CJ secrets
+        env:
+          CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+          CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${CJ_PERSONAL_ACCESS_TOKEN:-}" || {
+            echo "::error::CJ_PERSONAL_ACCESS_TOKEN is missing."
+            exit 1
+          }
+          test -n "${CJ_WEBSITE_ID:-}" || {
+            echo "::error::CJ_WEBSITE_ID is missing."
+            exit 1
+          }
+          echo "CJ secrets are present."
+
+      - name: Run corrected CJ installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check --quiet pyyaml
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+          import yaml
+
+          installer = Path(
+              ".github/workflows/install-trendpilot-v13-8-cj-api.yml"
+          )
+          if not installer.exists():
+              raise SystemExit(f"Missing installer: {installer}")
+
+          data = yaml.safe_load(installer.read_text(encoding="utf-8"))
+          steps = data["jobs"]["install-cj-api"]["steps"]
+
+          install_run = next(
+              step["run"]
+              for step in steps
+              if step.get("name") == "Install CJ API ingestion bridge"
+          )
+
+          start_marker = 'cj_step = """'
+          start = install_run.find(start_marker)
+          if start < 0:
+              raise SystemExit("Could not find the unsafe cj_step block.")
+
+          end = install_run.find('"""', start + len(start_marker))
+          if end < 0:
+              raise SystemExit("Could not find the end of the cj_step block.")
+          end += 3
+
+          safe_block = """cj_token_expression = "$" + "{{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}"
+          cj_website_expression = "$" + "{{ secrets.CJ_WEBSITE_ID }}"
+          cj_step = (
+              "      - name: Fetch CJ joined products through API\\n"
+              "        env:\\n"
+              f"          CJ_PERSONAL_ACCESS_TOKEN: {cj_token_expression}\\n"
+              f"          CJ_WEBSITE_ID: {cj_website_expression}\\n"
+              '          CJ_MAX_PRODUCTS: "12000"\\n'
+              "        run: python automation/cj_api_fetch.py\\n"
+              "\\n"
+          )"""
+
+          corrected_run = install_run[:start] + safe_block + install_run[end:]
+
+          script = Path("/tmp/trendpilot-cj-installer.sh")
+          script.write_text(corrected_run + "\n", encoding="utf-8")
+          subprocess.run(["bash", str(script)], check=True)
+          print("Corrected CJ installer completed.")
+          PY
+
+      - name: Validate generated workflow and prevent secret leakage
+        env:
+          CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          import yaml
+
+          target = Path(".github/workflows/update-products.yml")
+          text = target.read_text(encoding="utf-8")
+          token = os.environ["CJ_PERSONAL_ACCESS_TOKEN"]
+
+          if token and token in text:
+              raise SystemExit(
+                  "The real CJ token was written into update-products.yml."
+              )
+
+          expected_token_expression = (
+              "$" + "{{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}"
+          )
+          expected_website_expression = (
+              "$" + "{{ secrets.CJ_WEBSITE_ID }}"
+          )
+          required = (
+              expected_token_expression,
+              expected_website_expression,
+              "Fetch CJ joined products through API",
+              "data/cj-api-report.json",
+          )
+          missing = [item for item in required if item not in text]
+          if missing:
+              raise SystemExit(f"Generated CJ integration is incomplete: {missing}")
+
+          yaml.safe_load(text)
+          print("Generated update-products.yml is valid and contains no real token.")
+          PY
+
+      - name: Run private CJ API smoke test
+        env:
+          CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+          CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+          CJ_MAX_PRODUCTS: "12000"
+        run: python automation/cj_api_fetch.py
+
+      - name: Confirm safe CJ report
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/cj-api-report.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("data/cj-api-report.json")
+          report = json.loads(path.read_text(encoding="utf-8"))
+
+          print("CJ status:", report.get("status"))
+          print(
+              "CJ products:",
+              report.get("productSearch", {}).get("recordsAccepted", 0),
+          )
+          print(
+              "CJ joined links:",
+              report.get("linkSearch", {}).get("recordsReturned", 0),
+          )
+
+          raw = path.read_text(encoding="utf-8")
+          forbidden = (
+              "CJ_PERSONAL_ACCESS_TOKEN",
+              "Authorization: Bearer",
+          )
+          if any(value in raw for value in forbidden):
+              raise SystemExit("Unsafe secret text detected in the public report.")
+          PY
+
+      - name: Commit CJ API integration
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "trendpilot-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            automation/cj_api_fetch.py \
+            config/sources/cj-api-products.json \
+            .github/workflows/update-products.yml \
+            data/cj-api-report.json
+
+          if git diff --cached --quiet; then
+            echo "CJ API integration is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: install CJ API bridge without exposing secrets"
+          git push
