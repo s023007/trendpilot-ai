@@ -159,7 +159,36 @@
 
   function readStore(key, fallback = []) { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; } }
   function writeStore(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
-  function normalizeProduct(p) {
+  
+const tpCjJoinedSellers = new Set((window.TRENDPILOT_CJ_JOINED_SELLERS || []).map(v => String(v || "").trim().toLowerCase()));
+const tpCjKnownSellers = new Set((window.TRENDPILOT_CJ_KNOWN_SELLERS || []).map(v => String(v || "").trim().toLowerCase()));
+function tpCjSellerName(p) {
+  return String((p && (p.advertiser || p.seller || p.merchant)) || "").trim();
+}
+function tpIsCjProduct(p) {
+  const seller = tpCjSellerName(p).toLowerCase();
+  const context = [
+    p && p.network, p && p.provider, p && p.source, p && p.sourceId,
+    p && p.programme, p && p.program, p && p.platform
+  ].map(v => String(v || "")).join(" ").toLowerCase();
+  return /(^|[^a-z])cj([^a-z]|$)/.test(context)
+    || context.includes("commission junction")
+    || tpCjKnownSellers.has(seller);
+}
+function tpHasRealProductEvidence(p) {
+  const title = String((p && (p.name || p.title || p.productName)) || "").trim();
+  const url = String((p && (p.url || p.affiliateUrl || p.productUrl || p.buyUrl)) || "").trim();
+  const image = String((p && (p.image || p.imageUrl || p.imageLink)) || "").trim();
+  const price = Number(p && (p.price || p.salePrice || p.currentPrice) || 0);
+  return Boolean(title && /^https?:\/\//i.test(url) && /^https?:\/\//i.test(image) && price > 0);
+}
+function tpPublicSellerAllowed(p) {
+  if (!tpIsCjProduct(p)) return true;
+  const seller = tpCjSellerName(p).toLowerCase();
+  return tpCjJoinedSellers.has(seller) && tpHasRealProductEvidence(p);
+}
+
+function normalizeProduct(p) {
     const x = {...p};
     x.id = clean(x.id || x.clusterKey || x.url || x.name);
     x.clusterKey = clean(x.clusterKey || x.id);
@@ -691,7 +720,7 @@
   }
   function filterProducts(rows) {
     const f=filters(); const selectedFamilies=familyMembers(f.family,state.manifest); const relatedRows=rows===state.alternatives;
-    let out=rows.filter(p=>{
+    let out=rows.filter(p=>{if(!tpPublicSellerAllowed(p))return false;
       if(f.group&&p.group!==f.group&&!(relatedRows&&state.plan?.family==="makeup"&&p.group==="bags-accessories"))return false;
       if(selectedFamilies.length&&!relatedRows&&!selectedFamilies.includes(p.family))return false; if(f.audience&&p.audience!==f.audience)return false;
       if(f.merchant&&p.advertiser!==f.merchant)return false; if(f.coupon&&!couponFor(p))return false; if(f.rare&&!(p.rareScore>=4&&["used","refurbished","open-box"].includes(p.condition)))return false;
@@ -711,7 +740,7 @@
     const sort=$('[data-filter-sort]');if(sort)sort.value="smart";
   }
   function populateFilters() {
-    const rows=state.products;
+    const rows=state.products.filter(tpPublicSellerAllowed);
     const group=$('[data-filter-group]'), family=$('[data-filter-family]'), audience=$('[data-filter-audience]'), merchant=$('[data-filter-merchant]');
     if(group){const current=group.value; group.innerHTML='<option value="">All categories</option>'+uniq(rows.map(p=>p.group)).sort().map(v=>`<option value="${esc(v)}">${esc(GROUP_LABELS[v]||v)}</option>`).join(""); group.value=current|| (state.plan.groups.length===1?state.plan.groups[0]:"");}
     if(family){const current=family.value; const g=group?.value; const vals=uniq(rows.filter(p=>!g||p.group===g).map(p=>p.family)).filter(v=>!v.includes(":")).sort(); const parent=state.plan.family&&state.plan.families?.length>1&&(!g||state.plan.groups.includes(g))?`<option value="${esc(state.plan.family)}">${esc(familyLabelValue(state.plan.family))}</option>`:""; family.innerHTML='<option value="">All specific types</option>'+parent+vals.map(v=>`<option value="${esc(v)}">${esc(familyLabelValue(v))}</option>`).join(""); family.value=current||state.plan.family||"";}

@@ -1,0 +1,36 @@
+{
+  "version": "13.8.7",
+  "generatedAt": "2026-08-06T08:00:06.267165+00:00",
+  "status": "joined-only-active",
+  "api": {
+    "attempted": true,
+    "websiteIdMasked": "***5394",
+    "pages": 7,
+    "records": 603,
+    "error": ""
+  },
+  "localEvidenceFiles": [
+    "data/cj-link-catalog.json",
+    "data/source-ingestion-report.json"
+  ],
+  "joinedSellerCount": 7,
+  "joinedSellers": [
+    "Diecast",
+    "FragranceShop.com",
+    "Karaca EU",
+    "MFI Medical",
+    "NordVPN",
+    "PandaHall",
+    "Trip.com (Global)"
+  ],
+  "knownCjSellerCount": 8,
+  "catalog": {},
+  "siteJavaScriptFilesPatched": 2,
+  "htmlFilesChanged": 38,
+  "rules": [
+    "CJ advertiser must have explicit joined relationship evidence.",
+    "CJ record must contain a real product title, affiliate URL, image and positive price.",
+    "Blocked or sensitive sellers are removed.",
+    "Non-CJ networks remain unchanged."
+  ]
+}
