@@ -1,0 +1,213 @@
+name: Install TrendPilot V13.8.13 CJ Dropdown Surgical Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v13-8-13-cj-dropdown-surgical-fix
+  cancel-in-progress: false
+
+jobs:
+  install-cj-dropdown-fix:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Replace only the seller dropdown block
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          VERSION = "13.8.13"
+          script_path = Path("js/site-v13-5.js")
+
+          if not script_path.exists():
+              raise SystemExit("js/site-v13-5.js was not found.")
+
+          text = script_path.read_text(encoding="utf-8")
+
+          function_start = text.find("function populateFilters()")
+          if function_start < 0:
+              raise SystemExit("function populateFilters() was not found.")
+
+          function_end = text.find("function updateFilterCount()", function_start)
+          if function_end < 0:
+              raise SystemExit("function updateFilterCount() was not found after populateFilters().")
+
+          block = text[function_start:function_end]
+
+          # The current safe product list already exists and must remain unchanged.
+          if "tpPublicSellerAllowed" not in block:
+              raise SystemExit(
+                  "The existing tpPublicSellerAllowed protection was not found; "
+                  "no change was made."
+              )
+
+          merchant_start = block.find("if(merchant){")
+          if merchant_start < 0:
+              merchant_start = block.find("if (merchant) {")
+          if merchant_start < 0:
+              raise SystemExit("The merchant dropdown start was not found.")
+
+          # Merchant is the final filter block immediately before updateFilterCount().
+          merchant_end = block.find("updateFilterCount();", merchant_start)
+          if merchant_end < 0:
+              raise SystemExit("updateFilterCount() was not found after the merchant block.")
+
+          old_merchant = block[merchant_start:merchant_end]
+
+          # Idempotent success when this exact fix has already been applied.
+          if (
+              "TP_CJ_DROPDOWN_13_8_13" in old_merchant
+              and "rows.map(p=>p.advertiser)" in old_merchant
+              and "manifestSellers" not in old_merchant
+          ):
+              print("V13.8.13 is already installed.")
+          else:
+              new_merchant = r'''// TP_CJ_DROPDOWN_13_8_13
+              if(merchant){
+                const current=merchant.value;
+                const sellers=uniq(rows.map(p=>p.advertiser)).filter(Boolean).sort();
+                merchant.innerHTML='<option value="">All sellers</option>'+sellers.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
+                merchant.value=sellers.includes(current)?current:"";
+              }
+
+              '''
+
+              updated_block = (
+                  block[:merchant_start]
+                  + new_merchant
+                  + block[merchant_end:]
+              )
+
+              if "manifestSellers" in updated_block:
+                  raise SystemExit("manifestSellers still exists inside populateFilters().")
+
+              if "const rows=state.products.filter(tpPublicSellerAllowed);" not in updated_block.replace("\n", "").replace("  ", ""):
+                  # Formatting can vary, so verify with a whitespace-tolerant expression too.
+                  if not re.search(
+                      r"const\s+rows\s*=\s*state\.products\.filter\(\s*tpPublicSellerAllowed\s*\)\s*;",
+                      updated_block,
+                  ):
+                      raise SystemExit("The protected rows statement changed unexpectedly.")
+
+              text = text[:function_start] + updated_block + text[function_end:]
+              script_path.write_text(text, encoding="utf-8")
+              print("Replaced the manifest-based seller list with actual protected product sellers.")
+
+          # Cache-bust only existing references to this JavaScript file.
+          changed_html = 0
+          for path in Path(".").rglob("*.html"):
+              if ".git" in path.parts:
+                  continue
+
+              html = path.read_text(encoding="utf-8")
+              updated = re.sub(
+                  r'((?:src)=["\'](?:/|\.\./|\./)?js/site-v13-5\.js)'
+                  r'(?:\?[^"\']*)?(["\'])',
+                  rf'\1?v={VERSION}\2',
+                  html,
+                  flags=re.IGNORECASE,
+              )
+
+              if updated != html:
+                  path.write_text(updated, encoding="utf-8")
+                  changed_html += 1
+
+          print(f"Cache-busted {changed_html} HTML file(s).")
+          PY
+
+      - name: Validate the surgical change
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path("js/site-v13-5.js").read_text(encoding="utf-8")
+
+          start = text.find("function populateFilters()")
+          end = text.find("function updateFilterCount()", start)
+          assert start >= 0 and end > start
+
+          block = text[start:end]
+
+          assert "TP_CJ_DROPDOWN_13_8_13" in block
+          assert "tpPublicSellerAllowed" in block
+          assert "const sellers=uniq(rows.map(p=>p.advertiser)).filter(Boolean).sort();" in block
+          assert "merchant.value=sellers.includes(current)?current:\"\";" in block
+          assert "manifestSellers" not in block
+          assert "state.manifest?.advertisers" not in block
+          assert "state.manifest?.topAdvertisers" not in block
+
+          # Product loading and matching code must still exist.
+          protected = [
+              "function mergeProducts(",
+              "function renderFinder()",
+              "async function performSearch(",
+              "await ensureMinimumExact(24)"
+          ]
+          for token in protected:
+              assert token in text, token
+
+          print("V13.8.13 validation passed.")
+          PY
+
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add js/site-v13-5.js
+          git add '*.html' 2>/dev/null || true
+          git add '*/index.html' 2>/dev/null || true
+          git add '*/*/index.html' 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit; V13.8.13 is already present."
+            exit 0
+          fi
+
+          git commit -m "fix: show only sellers backed by protected product records"
+
+          for attempt in 1 2 3; do
+            git fetch origin main
+
+            if git rebase origin/main; then
+              if git push origin HEAD:main; then
+                exit 0
+              fi
+            else
+              git rebase --abort || true
+            fi
+
+            echo "Push attempt ${attempt} failed; retrying."
+            sleep $((attempt * 4))
+          done
+
+          echo "Unable to push after three attempts."
+          exit 1
