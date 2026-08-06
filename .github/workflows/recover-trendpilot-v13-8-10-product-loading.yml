@@ -1,0 +1,230 @@
+name: Recover TrendPilot V13.8.10 Product Loading
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v13-8-10-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover-site:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out full repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Revert the two CJ guard code commits
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mapfile -t BAD_COMMITS < <(
+            git log -80 --format='%H%x09%s' |
+            awk -F '\t' '
+              $2 == "fix: patch CJ seller dropdown with exact seven guard" {print $1}
+              $2 == "fix: restrict CJ to seven confirmed active advertisers" {print $1}
+            '
+          )
+
+          if [ "${#BAD_COMMITS[@]}" -eq 0 ]; then
+            echo "No generated CJ guard commits were found. Continuing with cache recovery."
+          else
+            echo "Reverting generated CJ guard commits, newest first:"
+            printf '%s\n' "${BAD_COMMITS[@]}"
+
+            for sha in "${BAD_COMMITS[@]}"; do
+              if git merge-base --is-ancestor "$sha" HEAD; then
+                git revert --no-edit "$sha"
+              else
+                echo "Skipping $sha because it is not an ancestor of the current branch."
+              fi
+            done
+          fi
+
+      - name: Remove incomplete CJ guard remnants
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          for filename in ("js/site-v13-5.js", "js/site-v13-4.js"):
+              path = Path(filename)
+              if not path.exists():
+                  continue
+
+              text = path.read_text(encoding="utf-8")
+              original = text
+
+              # Remove only blocks carrying the exact markers added by V13.8.8/13.8.9.
+              text = re.sub(
+                  r"\n?\s*// TP_CJ_EXACT_GUARD_START[\s\S]*?"
+                  r"// TP_CJ_EXACT_GUARD_END\s*\n?",
+                  "\n",
+                  text,
+              )
+              text = re.sub(
+                  r"\n?\s*// TP_CJ_BROWSER_CACHE_CLEANUP[\s\S]*?"
+                  r"(?=\n\s*(?:function|const|let|var|async function)\b)",
+                  "\n",
+                  text,
+                  count=1,
+              )
+
+              # Undo direct filter insertions only when their helper no longer exists.
+              if "function tpCjPublicAllowed" not in text:
+                  text = text.replace(".filter(tpCjPublicAllowed)", "")
+                  text = text.replace(
+                      "if(!tpCjPublicAllowed(p))return false;",
+                      "",
+                  )
+                  text = text.replace(
+                      "if(!tpCjPublicAllowed(p)){content.innerHTML="
+                      "'<div class=\"tp-empty\"><h3>Product unavailable</h3></div>';return;}",
+                      "",
+                  )
+                  text = text.replace(
+                      "if(!product || !tpCjPublicAllowed(product)){",
+                      "if(!product){",
+                  )
+                  text = text.replace(
+                      "if (product?.id && tpCjPublicAllowed(product)) {",
+                      "if (product?.id) {",
+                  )
+                  text = text.replace(
+                      "if (direct && tpCjPublicAllowed(direct)) {",
+                      "if (direct) {",
+                  )
+
+              if text != original:
+                  path.write_text(text, encoding="utf-8")
+                  print(f"Cleaned incomplete guard remnants from {filename}")
+          PY
+
+      - name: Validate JavaScript before deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s js/site-v13-5.js
+          node --check js/site-v13-5.js
+
+          if [ -f js/site-v13-4.js ]; then
+            node --check js/site-v13-4.js
+          fi
+
+          if grep -q "TP_CJ_EXACT_GUARD_START" js/site-v13-5.js; then
+            echo "The incomplete CJ guard is still present."
+            exit 1
+          fi
+
+          echo "JavaScript syntax is valid and the incomplete guard was removed."
+
+      - name: Force browsers to load the recovered script
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          changed = 0
+
+          for path in Path(".").rglob("*.html"):
+              if ".git" in path.parts:
+                  continue
+
+              text = path.read_text(encoding="utf-8")
+              original = text
+
+              text = re.sub(
+                  r'((?:src)=["\'](?:/|\.\./|\./)?js/site-v13-5\.js)'
+                  r'(?:\?[^"\']*)?(["\'])',
+                  r'\1?v=13.8.10-recovery\2',
+                  text,
+                  flags=re.IGNORECASE,
+              )
+
+              text = re.sub(
+                  r'((?:src)=["\'](?:/|\.\./|\./)?js/site-v13-4\.js)'
+                  r'(?:\?[^"\']*)?(["\'])',
+                  r'\1?v=13.8.10-recovery\2',
+                  text,
+                  flags=re.IGNORECASE,
+              )
+
+              if text != original:
+                  path.write_text(text, encoding="utf-8")
+                  changed += 1
+
+          print(f"Updated cache version in {changed} HTML files.")
+          PY
+
+      - name: Record recovery status
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p data
+
+          cat > data/v13-8-10-recovery.json <<'JSON'
+          {
+            "version": "13.8.10",
+            "status": "product-loading-recovery",
+            "purpose": [
+              "Restore the product search and result rendering path.",
+              "Remove the incomplete V13.8.8 and V13.8.9 browser guard.",
+              "Force browsers and Netlify to request the recovered JavaScript."
+            ],
+            "cjStatus": "Temporarily restored to the last working behaviour. CJ joined-seller filtering will be rebuilt separately after the catalogue is stable."
+          }
+          JSON
+
+      - name: Commit and push recovery
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No recovery changes were required."
+            exit 0
+          fi
+
+          git commit -m "fix: restore product loading after CJ guard"
+
+          for attempt in 1 2 3; do
+            git fetch origin main
+
+            if git rebase origin/main; then
+              if git push origin HEAD:main; then
+                exit 0
+              fi
+            else
+              git rebase --abort || true
+            fi
+
+            echo "Push attempt ${attempt} failed; retrying."
+            sleep $((attempt * 4))
+          done
+
+          echo "Unable to push the recovery after three attempts."
+          exit 1
