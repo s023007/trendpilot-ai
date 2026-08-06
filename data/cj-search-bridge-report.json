@@ -1,11 +1,26 @@
 {
-  "version": "13.8.16",
-  "productsFetched": 5,
-  "searchEligibleProducts": 5,
+  "version": "13.8.17",
+  "productsFetched": 402,
+  "searchEligibleProducts": 405,
   "searchEligibleSellers": [
+    "Diecast",
+    "FragranceShop.com",
+    "Karaca EU",
+    "NordVPN",
     "PandaHall"
   ],
   "sellerRule": "Joined CJ seller plus real title, URL, image and positive price.",
   "searchFile": "data/cj-products.json",
-  "catalogShardsChanged": false
+  "catalogShardsChanged": false,
+  "productSurfaces": [
+    "find"
+  ],
+  "serviceSurfaces": [
+    "software",
+    "tickets"
+  ],
+  "categoryGroupsAdded": [
+    "health-medical",
+    "arts-crafts"
+  ]
 }

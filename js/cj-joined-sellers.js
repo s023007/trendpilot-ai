@@ -1,2 +1,2 @@
-window.TRENDPILOT_CJ_JOINED_SELLERS=["Diecast","FragranceShop.com","Karaca EU","MFI Medical","NordVPN","PandaHall","Trip.com (Global)"];
-window.TRENDPILOT_CJ_KNOWN_SELLERS=["cj joined advertisers","diecast","fragranceshop.com","karaca eu","mfi medical","nordvpn","pandahall","trip.com (global)"];
+window.TRENDPILOT_CJ_JOINED_SELLERS=["Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall"];
+window.TRENDPILOT_CJ_KNOWN_SELLERS=["diecast","diecast models wholesale","diecastmodelswholesale.com","fragrance shop","fragranceshop.com","karaca","karaca eu","karaca europe","mfi","mfi medical","mfimedical","nord vpn","nordvpn","panda hall","pandahall","the fragrance shop","trip.com","trip.com (global)","trip.com global","tripcom"];

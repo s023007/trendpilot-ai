@@ -46,7 +46,9 @@
     "computers":"Computers","audio":"Audio","cameras":"Cameras","projectors-tv":"TV & projectors","smart-home":"Smart home",
     "automotive":"Car electronics","home-kitchen":"Home & kitchen","tools":"Tools","office-school":"Office & school",
     "toys-games":"Toys & games","sports-outdoors":"Sports & outdoors","printing-3d":"Printing & 3D","software":"Software",
-    "business-sourcing":"Business sourcing","other":"More products"
+    "business-sourcing":"Business sourcing","other":"More products",
+    "health-medical":"Health & medical equipment",
+    "arts-crafts":"Arts, crafts & jewelry making"
   };
   const SCOPE_GROUPS = {
     "": [], "all": [],
@@ -58,7 +60,9 @@
     "tools": ["tools"], "toys": ["toys-games"], "bags": ["bags-accessories"],
     "jewelry": ["jewelry-watches"], "audio": ["audio"], "cameras": ["cameras"],
     "phones": ["phones-tablets"], "computers": ["computers"], "smart-home": ["smart-home"],
-    "printing": ["printing-3d"]
+    "printing": ["printing-3d"],
+    "medical":["health-medical"],
+    "crafts":["arts-crafts"]
   };
 
   const FAMILY_LABELS = {
@@ -77,7 +81,32 @@
     "makeup":"Makeup (all)","face-makeup":"Face makeup","eye-makeup":"Eye makeup","lip-makeup":"Lip makeup",
     "brow-makeup":"Brow makeup","makeup-tools":"Makeup tools","makeup-sets":"Makeup sets","other-makeup":"Other makeup",
     "skin-care":"Skin care","hair-care":"Hair care","hair-styling-tools":"Hair styling tools","fragrance":"Fragrance",
-    "nail-care":"Nail care","grooming":"Grooming","personal-care":"Personal care","other-beauty-care":"Other beauty products"
+    "nail-care":"Nail care","grooming":"Grooming","personal-care":"Personal care","other-beauty-care":"Other beauty products",
+    "model-cars-collectibles":"Model cars & collectibles",
+    "home-kitchen":"Kitchen, dining & home",
+    "cookware":"Cookware",
+    "dinnerware":"Dinnerware & tableware",
+    "cutlery":"Cutlery & flatware",
+    "kitchen-appliances":"Kitchen appliances",
+    "coffee-tea-machines":"Coffee & tea machines",
+    "home-textiles":"Home textiles",
+    "home-accessories":"Home accessories",
+    "medical-equipment":"Medical equipment",
+    "diagnostic-equipment":"Diagnostic equipment",
+    "patient-monitoring":"Patient monitoring",
+    "exam-room-equipment":"Exam-room equipment",
+    "hospital-furniture":"Hospital furniture",
+    "emergency-equipment":"Emergency equipment",
+    "medical-supplies":"Medical supplies",
+    "rehabilitation-equipment":"Rehabilitation equipment",
+    "craft-supplies":"Craft supplies",
+    "beads":"Beads",
+    "jewelry-findings":"Jewelry findings",
+    "jewelry-making-tools":"Jewelry-making tools",
+    "cords-chains-wires":"Cords, chains & wires",
+    "storage-organization":"Storage & organization",
+    "finished-jewelry":"Finished jewelry",
+    "sewing-diy":"Sewing & DIY"
   };
 
   const GROUP_ROUTES = [
@@ -96,7 +125,9 @@
     ["sports-outdoors", /\b(sports?|fitness|gym|camping|cycling|outdoors?|yoga|hiking)\b/i],
     ["beauty-care", /\b(beauty|make[- ]?up|cosmetics?|lipsticks?|lip gloss|mascara|eyeshadow|eyeliner|foundation|concealer|blush|skincare|skin care|hair care|perfume|fragrance|nail polish|personal care)\b/i],
     ["software", /\b(software|video editor|pdf editor|license|subscription|filmora|dr\.fone|mobiletrans)\b/i],
-    ["business-sourcing", /\b(supplier|manufacturer|wholesale|private label|custom logo|bulk order|factory)\b/i]
+    ["business-sourcing", /\b(supplier|manufacturer|wholesale|private label|custom logo|bulk order|factory)\b/i],
+    ["health-medical", /\b(medical equipment|medical supplies|clinical equipment|diagnostic equipment|patient monitoring|hospital equipment)\b/i],
+    ["arts-crafts", /\b(arts? and crafts?|craft supplies|jewelry making|beads?|jewelry findings|diy crafts?)\b/i]
   ];
   const FAMILY_ROUTES = [
     ["wireless-carplay-adapter", /\b(wireless carplay|carplay adapter|carplay dongle)\b/i],
@@ -142,7 +173,17 @@
     ["smart-lighting", /\b(smart lights?|led strips?|light strips?|smart bulbs?)\b/i],
     ["thermal-printer", /\b(thermal printers?|label printers?|receipt printers?)\b/i],
     ["video-editor", /\b(video editors?|video editing|filmora|capcut)\b/i],
-    ["phone-utility-software", /\b(dr\.fone|mobiletrans|phone transfer|phone recovery)\b/i]
+    ["phone-utility-software", /\b(dr\.fone|mobiletrans|phone transfer|phone recovery)\b/i],
+    ["model-cars-collectibles", /\b(diecast|model cars?|scale models?|collectible cars?)\b/i],
+    ["medical-equipment", /\b(medical equipment|clinical equipment|hospital equipment)\b/i],
+    ["diagnostic-equipment", /\b(diagnostic equipment|otoscope|ophthalmoscope|stethoscope|ultrasound|ecg|ekg)\b/i],
+    ["patient-monitoring", /\b(patient monitor|vital signs|pulse oximeter|spo2|blood pressure monitor)\b/i],
+    ["craft-supplies", /\b(craft supplies|arts? and crafts?|diy supplies)\b/i],
+    ["beads", /\b(beads?|gemstone beads?|glass beads?)\b/i],
+    ["jewelry-findings", /\b(jewelry findings|clasps?|jump rings?|earring hooks?)\b/i],
+    ["jewelry-making-tools", /\b(jewelry making tools?|beading tools?|pliers)\b/i],
+    ["cookware", /\b(cookware|pots? and pans?|frying pans?|casseroles?)\b/i],
+    ["dinnerware", /\b(dinnerware|dinner sets?|tableware|plates? and bowls?)\b/i]
   ];
 
   const AUDIENCE_LABELS = {men:"Men", women:"Women", kids:"Kids", unisex:"Unisex", all:"Audience not stated"};
@@ -240,14 +281,13 @@ function normalizeProduct(p) {
     }
   }
 
-
   // TP_CJ_SEARCH_BRIDGE_START
   let tpCjProductsPromise = null;
   async function loadCjProducts() {
     if (tpCjProductsPromise) return tpCjProductsPromise;
     tpCjProductsPromise = (async () => {
       try {
-        const r = await fetch(`/data/cj-products.json?v=13.8.16-${Date.now()}`, {cache:"no-store"});
+        const r = await fetch(`/data/cj-products.json?v=13.8.17-${Date.now()}`, {cache:"no-store"});
         if (!r.ok) throw new Error(`CJ products ${r.status}`);
         const data = await r.json();
         return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct);
@@ -331,7 +371,7 @@ function normalizeProduct(p) {
       "beauty-care":["beauty","cosmetic","cosmetics","makeup","care"],
       "baby-kids":["baby","kids","children"], "toys-games":["toy","toys","game","games"],
       "software":["software","app","apps","digital"], "business-sourcing":["business","sourcing","supplier","wholesale"],
-      "pet-supplies":["pet","pets","supplies"], "printing-3d":["printing","printer","printers","3d"]
+      "pet-supplies":["pet","pets","supplies"], "health-medical":["medical","health","clinical","equipment","supplies"], "arts-crafts":["art","arts","craft","crafts","bead","beads","supplies"], "printing-3d":["printing","printer","printers","3d"]
     };
     groups.forEach(g=>(groupGeneric[g]||[]).forEach(x=>generic.add(x)));
     if(family) familyMembers(family,state.manifest).forEach(x=>x.split("-").forEach(t=>generic.add(t)));

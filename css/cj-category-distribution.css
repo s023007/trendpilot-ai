@@ -1,0 +1,18 @@
+.tp-cj-directory-section{padding:64px 0;background:#f4f7f8;border-top:1px solid #dde5e8;border-bottom:1px solid #dde5e8}
+.tp-cj-directory-section.tp-cj-white{background:#fff}
+.tp-cj-directory-head{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:24px}
+.tp-cj-directory-head h1,.tp-cj-directory-head h2{margin:6px 0 8px;font-size:clamp(1.8rem,4vw,2.8rem);line-height:1.08}
+.tp-cj-directory-head p{margin:0;max-width:760px;color:#637079;line-height:1.65}
+.tp-cj-directory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.tp-cj-card{display:flex;flex-direction:column;min-height:100%;padding:22px;border:1px solid #dce3e6;border-radius:24px;background:#fff;box-shadow:0 14px 38px rgba(20,36,43,.06)}
+.tp-cj-card-top{display:flex;align-items:center;gap:13px}.tp-cj-icon{display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;border-radius:15px;background:#eaf1ff;color:#244fbd;font-weight:950;font-size:.83rem}
+.tp-cj-card small{display:block;color:#177b61;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.tp-cj-card h3{margin:4px 0 0;font-size:1.22rem}.tp-cj-card p{color:#647078;line-height:1.58}
+.tp-cj-tags{display:flex;flex-wrap:wrap;gap:7px;margin:2px 0 14px}.tp-cj-tags span{padding:6px 9px;border-radius:999px;background:#eef3f5;color:#42535c;font-size:.76rem;font-weight:800}
+.tp-cj-status{margin-top:auto;padding-top:8px;font-size:.84rem;color:#52616a}.tp-cj-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.tp-cj-action{display:inline-flex;align-items:center;justify-content:center;padding:11px 14px;border-radius:13px;text-decoration:none;font-weight:850;border:1px solid #ccd7dc;color:#1f3742;background:#fff}
+.tp-cj-action-primary{background:#2e57df;border-color:#2e57df;color:#fff}.tp-cj-offers{display:flex;flex-wrap:wrap;gap:7px;margin-top:14px}
+.tp-cj-offers a{font-size:.78rem;text-decoration:none;padding:7px 9px;border-radius:10px;background:#edf8f4;color:#106f57;font-weight:800}
+.tp-cj-disclosure{margin-top:20px;padding:15px 17px;border-radius:15px;background:#fff5df;color:#66501e;line-height:1.55}
+.tp-cj-empty{grid-column:1/-1;padding:22px;border:1px dashed #c8d3d8;border-radius:18px;color:#65737b;background:#fff}
+@media(max-width:900px){.tp-cj-directory-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.tp-cj-directory-section{padding:46px 0}.tp-cj-directory-grid{grid-template-columns:1fr}.tp-cj-directory-head{display:block}}
