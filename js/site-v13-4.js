@@ -8,103 +8,6 @@
   const lower = (v) => clean(v).toLowerCase();
   const esc = (v) => clean(v).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#039;",'"':"&quot;"}[c]));
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
-
-  // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "13.8.9";
-  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203"]);
-  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
-  const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
-  const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
-  const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
-
-  function tpCjSellerKey(value) {
-    return lower(value).replace(/[^a-z0-9]+/g, "");
-  }
-
-  function tpCjValue(p, keys) {
-    for (const key of keys) {
-      const value = p && p[key];
-      if (value !== undefined && value !== null && String(value).trim() !== "") return value;
-    }
-    return "";
-  }
-
-  function tpCjId(p) {
-    return String(tpCjValue(p, ["advertiserId","advertiser_id","advertiser-id","advertiserCid","advertiser_cid","cid"]) || "").replace(/\D+/g, "");
-  }
-
-  function tpCjSeller(p) {
-    return clean(tpCjValue(p, ["advertiser","advertiserName","advertiser_name","advertiser-name","seller","sellerName","seller_name","merchant","merchantName","merchant_name"]));
-  }
-
-  function tpCjUrl(p) {
-    return clean(tpCjValue(p, ["affiliateUrl","affiliate_url","buyUrl","buy_url","productUrl","product_url","clickUrl","click_url","url","destination","destinationUrl","destination_url"]));
-  }
-
-  function tpCjImage(p) {
-    return clean(tpCjValue(p, ["image","imageUrl","image_url","imageLink","image_link","thumbnail","thumbnailUrl"]));
-  }
-
-  function tpCjTitle(p) {
-    return clean(tpCjValue(p, ["title","name","productName","product_name"]));
-  }
-
-  function tpCjTrackingUrl(value) {
-    if (!validUrl(value)) return false;
-    try {
-      return TP_CJ_TRACKING_HOST_RE.test(new URL(value).hostname.toLowerCase());
-    } catch {
-      return false;
-    }
-  }
-
-  function tpIsCjItem(p) {
-    const seller = tpCjSellerKey(tpCjSeller(p));
-    const context = lower([
-      p && p.network, p && p.networkName, p && p.provider,
-      p && p.source, p && p.sourceId, p && p.programme,
-      p && p.program, p && p.platform, p && p.affiliateNetwork
-    ].map(value => clean(value)).join(" "));
-    return Boolean(
-      TP_CJ_KNOWN_NAMES.has(seller)
-      || TP_CJ_APPROVED_IDS.has(tpCjId(p))
-      || context.includes("commission junction")
-      || /(^|[^a-z])cj([^a-z]|$)/i.test(context)
-      || tpCjTrackingUrl(tpCjUrl(p))
-    );
-  }
-
-  function tpCjSpecificEvidence(p) {
-    const title = tpCjTitle(p);
-    const seller = tpCjSeller(p);
-    const titleKey = tpCjSellerKey(title);
-    const sellerKey = tpCjSellerKey(seller);
-    const url = tpCjUrl(p);
-    const image = tpCjImage(p);
-    if (!title || !validUrl(url) || !validUrl(image)) return false;
-    if (TP_CJ_GENERIC_TITLES.has(titleKey)) return false;
-    if (titleKey && sellerKey && titleKey === sellerKey) return false;
-    return true;
-  }
-
-  function tpCjApproved(p) {
-    const id = tpCjId(p);
-    const seller = tpCjSellerKey(tpCjSeller(p));
-    return TP_CJ_APPROVED_IDS.has(id) || TP_CJ_APPROVED_NAMES.has(seller);
-  }
-
-  function tpCjPublicAllowed(p) {
-    if (!p || !tpIsCjItem(p)) return Boolean(p);
-    return tpCjApproved(p) && tpCjSpecificEvidence(p);
-  }
-
-  function tpCjOfferAllowed(offer, parent) {
-    const row = Object.assign({}, parent || {}, offer || {});
-    if (!tpIsCjItem(row)) return true;
-    return tpCjApproved(row) && validUrl(tpCjUrl(row));
-  }
-  // TP_CJ_EXACT_GUARD_END
-
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];
   const debounce = (fn, wait = 120) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; };
   const fmt = new Intl.NumberFormat(undefined, {maximumFractionDigits: 0});
@@ -254,21 +157,35 @@
 
   function readStore(key, fallback = []) { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; } }
   function writeStore(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
+  
+const tpCjJoinedSellers = new Set((window.TRENDPILOT_CJ_JOINED_SELLERS || []).map(v => String(v || "").trim().toLowerCase()));
+const tpCjKnownSellers = new Set((window.TRENDPILOT_CJ_KNOWN_SELLERS || []).map(v => String(v || "").trim().toLowerCase()));
+function tpCjSellerName(p) {
+  return String((p && (p.advertiser || p.seller || p.merchant)) || "").trim();
+}
+function tpIsCjProduct(p) {
+  const seller = tpCjSellerName(p).toLowerCase();
+  const context = [
+    p && p.network, p && p.provider, p && p.source, p && p.sourceId,
+    p && p.programme, p && p.program, p && p.platform
+  ].map(v => String(v || "")).join(" ").toLowerCase();
+  return /(^|[^a-z])cj([^a-z]|$)/.test(context)
+    || context.includes("commission junction")
+    || tpCjKnownSellers.has(seller);
+}
+function tpHasRealProductEvidence(p) {
+  const title = String((p && (p.name || p.title || p.productName)) || "").trim();
+  const url = String((p && (p.url || p.affiliateUrl || p.productUrl || p.buyUrl)) || "").trim();
+  const image = String((p && (p.image || p.imageUrl || p.imageLink)) || "").trim();
+  const price = Number(p && (p.price || p.salePrice || p.currentPrice) || 0);
+  return Boolean(title && /^https?:\/\//i.test(url) && /^https?:\/\//i.test(image) && price > 0);
+}
+function tpPublicSellerAllowed(p) {
+  if (!tpIsCjProduct(p)) return true;
+  const seller = tpCjSellerName(p).toLowerCase();
+  return tpCjJoinedSellers.has(seller) && tpHasRealProductEvidence(p);
+}
 
-  // TP_CJ_BROWSER_CACHE_CLEANUP
-  try {
-    const guardKey="trendpilot-cj-guard-version";
-    if(localStorage.getItem(guardKey)!==TP_CJ_GUARD_VERSION){
-      const cleanArray=(key)=>writeStore(key,readStore(key,[]).map(normalizeProduct).filter(tpCjPublicAllowed));
-      cleanArray(savedStore);
-      cleanArray(compareStore);
-      const cache=readStore(productCacheStore,{});
-      const safe={};
-      Object.entries(cache).forEach(([id,row])=>{const p=normalizeProduct(row);if(tpCjPublicAllowed(p))safe[id]=row;});
-      writeStore(productCacheStore,safe);
-      localStorage.setItem(guardKey,TP_CJ_GUARD_VERSION);
-    }
-  } catch {}
 function normalizeProduct(p) {
     const x = {...p};
     x.id = clean(x.id || x.clusterKey || x.url || x.name);
@@ -302,7 +219,7 @@ function normalizeProduct(p) {
       return m;
     } catch (e) {
       console.error("TrendPilot V13 catalogue unavailable", e);
-      const rows = Object.values(window.TRENDPILOT_MATCHED_PRODUCTS || {}).flat().filter(Boolean).map(normalizeProduct).filter(tpCjPublicAllowed);
+      const rows = Object.values(window.TRENDPILOT_MATCHED_PRODUCTS || {}).flat().filter(Boolean).map(normalizeProduct);
       state.manifest = {version:"fallback", productCount:rows.length, segments:[], featured:rows.slice(0,24), rareUsed:[], dealCandidates:[], tokenRoutes:{}, groups:[]};
       state.products = rows;
       return state.manifest;
@@ -426,7 +343,7 @@ function normalizeProduct(p) {
       const file = meta.files?.[page - 1]; if (!file) return [];
       const r = await fetch(`${file}?v=${encodeURIComponent(state.manifest.generatedAt || 13)}`, {cache:"force-cache"});
       if (!r.ok) throw new Error(`${r.status}`);
-      const data = await r.json(); return (data.products || []).map(normalizeProduct).filter(tpCjPublicAllowed);
+      const data = await r.json(); return (data.products || []).map(normalizeProduct);
     } catch (e) { console.warn("Segment page unavailable", key, page, e); return []; }
   }
   async function loadInitialSegments() {
@@ -514,10 +431,9 @@ function normalizeProduct(p) {
     return n;
   }
   function mergeProducts(rows) {
-    rows = (rows || []).filter(tpCjPublicAllowed);
-    const map = new Map(state.products.filter(tpCjPublicAllowed).map(p => [p.clusterKey || p.id,p]));
+    const map = new Map(state.products.map(p => [p.clusterKey || p.id,p]));
     rows.forEach(p => { const key=p.clusterKey||p.id; if (!map.has(key) || score(p,state.plan)>score(map.get(key),state.plan)) map.set(key,p); });
-    state.products = [...map.values()].filter(tpCjPublicAllowed);
+    state.products = [...map.values()];
     state.exact = state.products.filter(p => strictProductMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
     state.alternatives = state.products.filter(p => relatedMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
   }
@@ -578,7 +494,7 @@ function normalizeProduct(p) {
   }
   function filterProducts(rows) {
     const f=filters(); const selectedFamilies=familyMembers(f.family,state.manifest); const relatedRows=rows===state.alternatives;
-    let out=rows.filter(p=>{if(!tpCjPublicAllowed(p))return false;if(!tpPublicSellerAllowed(p))return false;
+    let out=rows.filter(p=>{if(!tpPublicSellerAllowed(p))return false;
       if(f.group&&p.group!==f.group&&!(relatedRows&&state.plan?.family==="makeup"&&p.group==="bags-accessories"))return false;
       if(selectedFamilies.length&&!relatedRows&&!selectedFamilies.includes(p.family))return false; if(f.audience&&p.audience!==f.audience)return false;
       if(f.merchant&&p.advertiser!==f.merchant)return false; if(f.coupon&&!couponFor(p))return false; if(f.rare&&!(p.rareScore>=4&&["used","refurbished","open-box"].includes(p.condition)))return false;
@@ -598,7 +514,7 @@ function normalizeProduct(p) {
     const sort=$('[data-filter-sort]');if(sort)sort.value="smart";
   }
   function populateFilters() {
-    const rows=state.products.filter(tpCjPublicAllowed);
+    const rows=state.products.filter(tpPublicSellerAllowed);
     const group=$('[data-filter-group]'), family=$('[data-filter-family]'), audience=$('[data-filter-audience]'), merchant=$('[data-filter-merchant]');
     if(group){const current=group.value; group.innerHTML='<option value="">All categories</option>'+uniq(rows.map(p=>p.group)).sort().map(v=>`<option value="${esc(v)}">${esc(GROUP_LABELS[v]||v)}</option>`).join(""); group.value=current|| (state.plan.groups.length===1?state.plan.groups[0]:"");}
     if(family){const current=family.value; const g=group?.value; const vals=uniq(rows.filter(p=>!g||p.group===g).map(p=>p.family)).filter(v=>!v.includes(":")).sort(); const parent=state.plan.family&&state.plan.families?.length>1&&(!g||state.plan.groups.includes(g))?`<option value="${esc(state.plan.family)}">${esc(familyLabelValue(state.plan.family))}</option>`:""; family.innerHTML='<option value="">All specific types</option>'+parent+vals.map(v=>`<option value="${esc(v)}">${esc(familyLabelValue(v))}</option>`).join(""); family.value=current||state.plan.family||"";}
@@ -688,7 +604,7 @@ function normalizeProduct(p) {
     ["Material",p.material||"Not provided"],["Audience",AUDIENCE_LABELS[p.audience]||p.audience],["Offers",`${p.offerCount||1} from ${p.storeCount||1} store(s)`],["Condition",p.condition||"Not stated"]
   ];}
   function renderStoredCompare(){
-    const host=$('[data-tp-compare-page]');if(!host)return; const rows=readStore(compareStore,[]).map(normalizeProduct).filter(tpCjPublicAllowed);
+    const host=$('[data-tp-compare-page]');if(!host)return; const rows=readStore(compareStore,[]).map(normalizeProduct);
     if(!rows.length){host.innerHTML=`<div class="tp-empty tp-empty-large"><h2>Your comparison is empty.</h2><p>Find products, then add two or three options of the same exact type.</p><a class="tp-btn tp-btn-primary" href="/find/">Find products</a></div>`;return;}
     const labels=comparisonRows(rows[0]).map(r=>r[0]);
     host.innerHTML=`<div class="tp-compare-products">${rows.map(p=>`<article>${imageMarkup(p)}<h2>${esc(p.name)}</h2><strong>${money(p.price,currency(p))}</strong><button data-remove-compare="${esc(p.id)}" type="button">Remove</button></article>`).join("")}</div><div class="tp-compare-table">${labels.map((label,i)=>`<div class="tp-compare-row"><b>${esc(label)}</b>${rows.map(p=>`<span>${esc(comparisonRows(p)[i][1])}</span>`).join("")}</div>`).join("")}</div><div class="tp-decision-summary"><span>TrendPilot decision view</span><h2>${esc(decisionText(rows))}</h2><p>Recommendation uses only the supplied feed evidence. Missing fields remain visible instead of being guessed.</p></div>`; bindImages(host);
@@ -701,7 +617,7 @@ function normalizeProduct(p) {
   }
 
   function renderSaved(){
-    const host=$('[data-tp-saved-page]');if(!host)return; const rows=readStore(savedStore,[]).map(normalizeProduct).filter(tpCjPublicAllowed),targets=readStore(targetStore,{});
+    const host=$('[data-tp-saved-page]');if(!host)return; const rows=readStore(savedStore,[]).map(normalizeProduct),targets=readStore(targetStore,{});
     if(!rows.length){host.innerHTML=`<div class="tp-empty tp-empty-large"><h2>No products are being watched.</h2><p>Save a product from search results to build your personal watch list.</p><a class="tp-btn tp-btn-primary" href="/find/">Find products</a></div>`;return;}
     host.innerHTML=`<div class="tp-watch-grid">${rows.map(p=>`<article class="tp-watch-card" data-product-id="${esc(p.id)}"><div class="tp-watch-image">${imageMarkup(p)}</div><div><span>${esc(familyLabel(p))}</span><h2>${esc(p.name)}</h2><strong>${money(p.price,currency(p))}</strong><label>Notify target<input data-target-id="${esc(p.id)}" type="number" min="0" step="0.01" value="${esc(targets[p.id]||'')}" placeholder="Target price"></label><div><a href="${esc(p.url)}" target="_blank" rel="nofollow sponsored noopener">View product ↗</a><button data-save-id="${esc(p.id)}" type="button">Remove</button></div></div></article>`).join("")}</div><p class="tp-watch-note">This version stores your watch list and target prices on this device. Automated email alerts require the next account/notification phase.</p>`;bindImages(host);
   }
@@ -748,7 +664,7 @@ function normalizeProduct(p) {
   function renderDeals(){
     const productHost=$('[data-tp-deal-products]'); if(!productHost&&!$('[data-tp-coupon-grid]'))return;
     loadManifest().then(m=>{
-      const deals=(m.dealCandidates||[]).map(normalizeProduct).filter(tpCjPublicAllowed).slice(0,60); state.products=uniqProducts([...state.products,...deals]);
+      const deals=(m.dealCandidates||[]).map(normalizeProduct).slice(0,60); state.products=uniqProducts([...state.products,...deals]);
       if(productHost){productHost.innerHTML=deals.length?deals.slice(0,12).map(p=>productCard(p,true)).join(""):`<div class="tp-empty"><h3>No seller price-drop records are available yet.</h3><p>TrendPilot will not invent a verified deal without price evidence.</p></div>`;bindImages(productHost);}
       renderCouponGrid();
     });
@@ -758,7 +674,7 @@ function normalizeProduct(p) {
 
   function renderHome(){
     loadManifest().then(m=>{
-      const featured=(m.featured||[]).map(normalizeProduct).filter(tpCjPublicAllowed),deals=(m.dealCandidates||[]).map(normalizeProduct).filter(tpCjPublicAllowed),rare=(m.rareUsed||[]).map(normalizeProduct).filter(tpCjPublicAllowed);
+      const featured=(m.featured||[]).map(normalizeProduct),deals=(m.dealCandidates||[]).map(normalizeProduct),rare=(m.rareUsed||[]).map(normalizeProduct);
       state.products=uniqProducts([...state.products,...featured,...deals,...rare]);
       const f=$('[data-tp-home-products]');if(f){f.innerHTML=featured.length?featured.slice(0,6).map(p=>productCard(p,true)).join(""):'<div class="tp-empty">Product data is refreshing.</div>';bindImages(f);}
       const de=$('[data-tp-home-deals]');if(de){de.innerHTML=deals.length?deals.slice(0,4).map(p=>productCard(p,true)).join(""):'<div class="tp-empty">No price-drop evidence yet.</div>';bindImages(de);}
