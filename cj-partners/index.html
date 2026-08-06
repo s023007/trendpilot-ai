@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="index,follow">
+  <meta name="description" content="Products, services and current partner offers available through TrendPilot's connected CJ advertisers.">
+  <title>CJ Partner Products and Offers — TrendPilot AI</title>
+  <link rel="canonical" href="https://trendpilotchoice.com/cj-partners/">
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#101820;background:#f7f8f4}
+    *{box-sizing:border-box}body{margin:0}a{color:inherit}
+    .wrap{width:min(1120px,calc(100% - 32px));margin:auto}
+    header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.96);border-bottom:1px solid #e5e7eb}
+    header .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0}
+    .brand{font-size:1.35rem;font-weight:900;text-decoration:none}.brand span{color:#18a57b}
+    .back{padding:10px 14px;border:1px solid #d7dce1;border-radius:14px;text-decoration:none;font-weight:750}
+    main{padding:52px 0 90px}.hero{padding:34px;border-radius:30px;background:linear-gradient(135deg,#eef3ff,#edfff8);border:1px solid #dce4e7}
+    .eyebrow{font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;color:#2555d9;font-weight:900}
+    h1{font-size:clamp(2.2rem,7vw,4.7rem);line-height:.96;margin:14px 0 20px;max-width:850px}
+    .lead{font-size:1.1rem;line-height:1.75;color:#5c6670;max-width:800px}
+    .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:26px}
+    .stat{padding:18px;border-radius:20px;background:#fff;border:1px solid #e2e6e9}.stat b{display:block;font-size:1.7rem}
+    section{margin-top:54px}h2{font-size:clamp(1.75rem,4vw,2.7rem);margin:0 0 10px}.sub{color:#68727b;margin:0 0 24px;line-height:1.65}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .card{display:flex;flex-direction:column;min-height:100%;padding:20px;border-radius:24px;background:white;border:1px solid #e0e4e7;box-shadow:0 12px 35px rgba(14,30,37,.05)}
+    .product-image{aspect-ratio:4/3;border-radius:17px;background:#f1f3f5;display:grid;place-items:center;overflow:hidden;margin-bottom:16px}
+    .product-image img{width:100%;height:100%;object-fit:contain}
+    .seller{font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;font-weight:900;color:#168363}
+    .card h3{font-size:1.15rem;line-height:1.35;margin:10px 0}.card p{color:#66717a;line-height:1.55}
+    .price{font-size:1.35rem;font-weight:900;margin-top:auto;padding-top:12px}
+    .btn{display:inline-flex;justify-content:center;align-items:center;margin-top:15px;padding:13px 16px;border-radius:15px;background:#3159e8;color:#fff;text-decoration:none;font-weight:850}
+    .offer .btn{background:#108664}.tag{display:inline-flex;width:max-content;padding:6px 10px;border-radius:999px;background:#e9f7f2;color:#087557;font-weight:800;font-size:.77rem}
+    .empty{padding:24px;border-radius:22px;border:1px dashed #cbd2d8;color:#69737c;background:#fbfcfc}
+    .disclosure{margin-top:48px;padding:20px;border-radius:18px;background:#fff5df;color:#6d5420;line-height:1.65}
+    footer{border-top:1px solid #e0e4e7;padding:30px 0;color:#657078}
+    [hidden]{display:none!important}
+    @media(max-width:850px){.grid{grid-template-columns:1fr 1fr}.stats{grid-template-columns:1fr 1fr}}
+    @media(max-width:560px){.grid{grid-template-columns:1fr}.hero{padding:25px}.stats{grid-template-columns:1fr 1fr}header .wrap{padding:14px 0}}
+  </style>
+</head>
+<body>
+  <header><div class="wrap"><a class="brand" href="/">TrendPilot <span>AI</span></a><a class="back" href="/deals/">Back to deals</a></div></header>
+  <main class="wrap">
+    <div class="hero">
+      <div class="eyebrow">Connected CJ partners</div>
+      <h1>Real products when available. Useful partner offers otherwise.</h1>
+      <p class="lead">This page separates product-level catalog records from general service and promotional links. A company is never placed in the product filter unless CJ supplies a real product record.</p>
+      <div class="stats">
+        <div class="stat"><b data-products>0</b><span>Product records</span></div>
+        <div class="stat"><b data-offers>0</b><span>Partner offers</span></div>
+        <div class="stat"><b data-product-partners>0</b><span>Product partners</span></div>
+        <div class="stat"><b>7</b><span>Approved partners checked</span></div>
+      </div>
+    </div>
+
+    <section data-product-section>
+      <h2>CJ product catalog</h2>
+      <p class="sub">Only real product records returned by CJ's product-feed API appear here.</p>
+      <div class="grid" data-products-grid></div>
+    </section>
+
+    <section data-offer-section>
+      <h2>Services and partner offers</h2>
+      <p class="sub">These are joined-advertiser tracking links, not invented product listings.</p>
+      <div class="grid" data-offers-grid></div>
+    </section>
+
+    <section data-waiting-section>
+      <h2>Connected partners awaiting usable catalog data</h2>
+      <p class="sub">They remain connected but are not shown as product sellers until CJ returns a genuine product or active link.</p>
+      <div class="grid" data-waiting-grid></div>
+    </section>
+
+    <div class="disclosure" data-disclosure></div>
+  </main>
+  <footer><div class="wrap">TrendPilot AI · Product and offer availability can change on the provider.</div></footer>
+
+  <script src="/js/cj-partner-hub.js?v=13.8.16"></script>
+  <script>
+    (() => {
+      const data = window.TRENDPILOT_CJ_PARTNER_HUB || {};
+      const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+      const money = product => product.price > 0 ? new Intl.NumberFormat(undefined,{style:"currency",currency:product.currency||"USD"}).format(product.price) : "Check provider";
+      const productRows = (data.productPartners || []).flatMap(partner => partner.products || []);
+      const offerRows = [...(data.offerPartners || []), ...(data.productPartners || [])].flatMap(partner => (partner.offers || []).map(offer => ({...offer, kind:partner.kind})));
+      const waitingRows = data.unavailablePartners || [];
+
+      document.querySelector("[data-products]").textContent = data.productCount || 0;
+      document.querySelector("[data-offers]").textContent = data.offerCount || 0;
+      document.querySelector("[data-product-partners]").textContent = data.productPartnerCount || 0;
+      document.querySelector("[data-disclosure]").textContent = data.disclosure || "";
+
+      const productsGrid = document.querySelector("[data-products-grid]");
+      productsGrid.innerHTML = productRows.length ? productRows.map(product => `
+        <article class="card">
+<div class="product-image">${product.image ? `<img src="${esc(product.image)}" alt="" loading="lazy">` : "Product image not supplied"}</div>
+<span class="seller">${esc(product.advertiser)}</span>
+<h3>${esc(product.name)}</h3>
+<div class="price">${esc(money(product))}</div>
+<a class="btn" href="${esc(product.url)}" target="_blank" rel="nofollow sponsored noopener">Check product ↗</a>
+        </article>`).join("") : `<div class="empty">CJ returned no usable product-level records during the latest sync. The connected offers below remain available.</div>`;
+
+      const offersGrid = document.querySelector("[data-offers-grid]");
+      offersGrid.innerHTML = offerRows.length ? offerRows.map(offer => `
+        <article class="card offer">
+<span class="tag">${esc(offer.kind || offer.linkType || "Partner offer")}</span>
+<span class="seller">${esc(offer.advertiser)}</span>
+<h3>${esc(offer.name)}</h3>
+<p>${esc(offer.description || "Open the provider to see current availability and terms.")}</p>
+${offer.couponCode ? `<p><b>Code:</b> ${esc(offer.couponCode)}</p>` : ""}
+<a class="btn" href="${esc(offer.url)}" target="_blank" rel="nofollow sponsored noopener">Open partner ↗</a>
+        </article>`).join("") : `<div class="empty">No active joined-advertiser links were returned in the latest sync.</div>`;
+
+      const waitingGrid = document.querySelector("[data-waiting-grid]");
+      waitingGrid.innerHTML = waitingRows.length ? waitingRows.map(partner => `
+        <article class="card">
+<span class="tag">${esc(partner.kind)}</span>
+<h3>${esc(partner.name)}</h3>
+<p>${esc(partner.reason)}</p>
+        </article>`).join("") : `<div class="empty">Every checked partner supplied either products or a usable offer.</div>`;
+    })();
+  </script>
+</body>
+</html>

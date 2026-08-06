@@ -1,0 +1,347 @@
+{
+  "version": "13.8.16",
+  "generatedAt": "2026-08-06T11:53:54.700159+00:00",
+  "status": "complete",
+  "companyIdMasked": "***7965",
+  "websiteIdMasked": "*****5394",
+  "approvedAdvertisers": [
+    {
+      "advertiserId": "2357926",
+      "name": "Diecast"
+    },
+    {
+      "advertiserId": "7287203",
+      "name": "FragranceShop.com"
+    },
+    {
+      "advertiserId": "5893489",
+      "name": "Karaca EU"
+    },
+    {
+      "advertiserId": "7227612",
+      "name": "MFI Medical"
+    },
+    {
+      "advertiserId": "4837117",
+      "name": "NordVPN"
+    },
+    {
+      "advertiserId": "4295086",
+      "name": "PandaHall"
+    },
+    {
+      "advertiserId": "4368684",
+      "name": "Trip.com (Global)"
+    }
+  ],
+  "productCounts": {
+    "Diecast": 0,
+    "FragranceShop.com": 0,
+    "Karaca EU": 0,
+    "MFI Medical": 0,
+    "NordVPN": 0,
+    "PandaHall": 5,
+    "Trip.com (Global)": 0
+  },
+  "offerCounts": {
+    "Diecast": 30,
+    "FragranceShop.com": 11,
+    "Karaca EU": 15,
+    "MFI Medical": 11,
+    "NordVPN": 30,
+    "PandaHall": 30,
+    "Trip.com (Global)": 30
+  },
+  "searchEligibleProductCount": 5,
+  "searchEligibleSellers": [
+    "PandaHall"
+  ],
+  "productApiErrors": [
+    {
+      "partner": "Diecast",
+      "query": "shoppingProducts",
+      "keyword": "diecast model car",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 98): { shoppingProducts(companyId: \"5917965\", keywords: [\"diecast model car\"], limit: 100, offset: 0, advertiserIds: [\"2357926\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Diecast",
+      "query": "products",
+      "keyword": "model car",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 82): { products(companyId: \"5917965\", keywords: [\"model car\"], limit: 100, offset: 0, advertiserIds: [\"2357926\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Diecast",
+      "query": "shoppingProducts",
+      "keyword": "model car",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 90): { shoppingProducts(companyId: \"5917965\", keywords: [\"model car\"], limit: 100, offset: 0, advertiserIds: [\"2357926\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Diecast",
+      "query": "products",
+      "keyword": "toy car",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 80): { products(companyId: \"5917965\", keywords: [\"toy car\"], limit: 100, offset: 0, advertiserIds: [\"2357926\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Diecast",
+      "query": "shoppingProducts",
+      "keyword": "toy car",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 88): { shoppingProducts(companyId: \"5917965\", keywords: [\"toy car\"], limit: 100, offset: 0, advertiserIds: [\"2357926\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "FragranceShop.com",
+      "query": "products",
+      "keyword": "perfume",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 80): { products(companyId: \"5917965\", keywords: [\"perfume\"], limit: 100, offset: 0, advertiserIds: [\"7287203\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "FragranceShop.com",
+      "query": "shoppingProducts",
+      "keyword": "perfume",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 88): { shoppingProducts(companyId: \"5917965\", keywords: [\"perfume\"], limit: 100, offset: 0, advertiserIds: [\"7287203\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "FragranceShop.com",
+      "query": "products",
+      "keyword": "fragrance",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 82): { products(companyId: \"5917965\", keywords: [\"fragrance\"], limit: 100, offset: 0, advertiserIds: [\"7287203\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "FragranceShop.com",
+      "query": "shoppingProducts",
+      "keyword": "fragrance",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 90): { shoppingProducts(companyId: \"5917965\", keywords: [\"fragrance\"], limit: 100, offset: 0, advertiserIds: [\"7287203\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "FragranceShop.com",
+      "query": "products",
+      "keyword": "eau de parfum",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 86): { products(companyId: \"5917965\", keywords: [\"eau de parfum\"], limit: 100, offset: 0, advertiserIds: [\"7287203\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "FragranceShop.com",
+      "query": "shoppingProducts",
+      "keyword": "eau de parfum",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 94): { shoppingProducts(companyId: \"5917965\", keywords: [\"eau de parfum\"], limit: 100, offset: 0, advertiserIds: [\"7287203\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Karaca EU",
+      "query": "products",
+      "keyword": "cookware",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 81): { products(companyId: \"5917965\", keywords: [\"cookware\"], limit: 100, offset: 0, advertiserIds: [\"5893489\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Karaca EU",
+      "query": "shoppingProducts",
+      "keyword": "cookware",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 89): { shoppingProducts(companyId: \"5917965\", keywords: [\"cookware\"], limit: 100, offset: 0, advertiserIds: [\"5893489\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Karaca EU",
+      "query": "products",
+      "keyword": "kitchen",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 80): { products(companyId: \"5917965\", keywords: [\"kitchen\"], limit: 100, offset: 0, advertiserIds: [\"5893489\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Karaca EU",
+      "query": "shoppingProducts",
+      "keyword": "kitchen",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 88): { shoppingProducts(companyId: \"5917965\", keywords: [\"kitchen\"], limit: 100, offset: 0, advertiserIds: [\"5893489\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Karaca EU",
+      "query": "products",
+      "keyword": "dinnerware",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 83): { products(companyId: \"5917965\", keywords: [\"dinnerware\"], limit: 100, offset: 0, advertiserIds: [\"5893489\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Karaca EU",
+      "query": "shoppingProducts",
+      "keyword": "dinnerware",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 91): { shoppingProducts(companyId: \"5917965\", keywords: [\"dinnerware\"], limit: 100, offset: 0, advertiserIds: [\"5893489\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "MFI Medical",
+      "query": "products",
+      "keyword": "medical equipment",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 90): { products(companyId: \"5917965\", keywords: [\"medical equipment\"], limit: 100, offset: 0, advertiserIds: [\"7227612\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "MFI Medical",
+      "query": "shoppingProducts",
+      "keyword": "medical equipment",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 98): { shoppingProducts(companyId: \"5917965\", keywords: [\"medical equipment\"], limit: 100, offset: 0, advertiserIds: [\"7227612\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "MFI Medical",
+      "query": "products",
+      "keyword": "medical supplies",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 89): { products(companyId: \"5917965\", keywords: [\"medical supplies\"], limit: 100, offset: 0, advertiserIds: [\"7227612\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "MFI Medical",
+      "query": "shoppingProducts",
+      "keyword": "medical supplies",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 97): { shoppingProducts(companyId: \"5917965\", keywords: [\"medical supplies\"], limit: 100, offset: 0, advertiserIds: [\"7227612\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "MFI Medical",
+      "query": "products",
+      "keyword": "diagnostic",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 83): { products(companyId: \"5917965\", keywords: [\"diagnostic\"], limit: 100, offset: 0, advertiserIds: [\"7227612\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "MFI Medical",
+      "query": "shoppingProducts",
+      "keyword": "diagnostic",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 91): { shoppingProducts(companyId: \"5917965\", keywords: [\"diagnostic\"], limit: 100, offset: 0, advertiserIds: [\"7227612\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "NordVPN",
+      "query": "products",
+      "keyword": "vpn",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 76): { products(companyId: \"5917965\", keywords: [\"vpn\"], limit: 100, offset: 0, advertiserIds: [\"4837117\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "NordVPN",
+      "query": "shoppingProducts",
+      "keyword": "vpn",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 84): { shoppingProducts(companyId: \"5917965\", keywords: [\"vpn\"], limit: 100, offset: 0, advertiserIds: [\"4837117\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "NordVPN",
+      "query": "products",
+      "keyword": "cybersecurity",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 86): { products(companyId: \"5917965\", keywords: [\"cybersecurity\"], limit: 100, offset: 0, advertiserIds: [\"4837117\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "NordVPN",
+      "query": "shoppingProducts",
+      "keyword": "cybersecurity",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 94): { shoppingProducts(companyId: \"5917965\", keywords: [\"cybersecurity\"], limit: 100, offset: 0, advertiserIds: [\"4837117\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "NordVPN",
+      "query": "products",
+      "keyword": "privacy software",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 89): { products(companyId: \"5917965\", keywords: [\"privacy software\"], limit: 100, offset: 0, advertiserIds: [\"4837117\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "NordVPN",
+      "query": "shoppingProducts",
+      "keyword": "privacy software",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 97): { shoppingProducts(companyId: \"5917965\", keywords: [\"privacy software\"], limit: 100, offset: 0, advertiserIds: [\"4837117\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "PandaHall",
+      "query": "products",
+      "keyword": "beads",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 78): { products(companyId: \"5917965\", keywords: [\"beads\"], limit: 100, offset: 0, advertiserIds: [\"4295086\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "PandaHall",
+      "query": "shoppingProducts",
+      "keyword": "beads",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 86): { shoppingProducts(companyId: \"5917965\", keywords: [\"beads\"], limit: 100, offset: 0, advertiserIds: [\"4295086\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "PandaHall",
+      "query": "products",
+      "keyword": "jewelry making",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 87): { products(companyId: \"5917965\", keywords: [\"jewelry making\"], limit: 100, offset: 0, advertiserIds: [\"4295086\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "PandaHall",
+      "query": "shoppingProducts",
+      "keyword": "jewelry making",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 95): { shoppingProducts(companyId: \"5917965\", keywords: [\"jewelry making\"], limit: 100, offset: 0, advertiserIds: [\"4295086\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "PandaHall",
+      "query": "products",
+      "keyword": "craft supplies",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 87): { products(companyId: \"5917965\", keywords: [\"craft supplies\"], limit: 100, offset: 0, advertiserIds: [\"4295086\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Trip.com (Global)",
+      "query": "products",
+      "keyword": "hotel",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 78): { products(companyId: \"5917965\", keywords: [\"hotel\"], limit: 100, offset: 0, advertiserIds: [\"4368684\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Trip.com (Global)",
+      "query": "shoppingProducts",
+      "keyword": "hotel",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 86): { shoppingProducts(companyId: \"5917965\", keywords: [\"hotel\"], limit: 100, offset: 0, advertiserIds: [\"4368684\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Trip.com (Global)",
+      "query": "products",
+      "keyword": "flight",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 79): { products(companyId: \"5917965\", keywords: [\"flight\"], limit: 100, offset: 0, advertiserIds: [\"4368684\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Trip.com (Global)",
+      "query": "shoppingProducts",
+      "keyword": "flight",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 87): { shoppingProducts(companyId: \"5917965\", keywords: [\"flight\"], limit: 100, offset: 0, advertiserIds: [\"4368684\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Trip.com (Global)",
+      "query": "products",
+      "keyword": "travel",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'products' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 79): { products(companyId: \"5917965\", keywords: [\"travel\"], limit: 100, offset: 0, advertiserIds: [\"4368684\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    },
+    {
+      "partner": "Trip.com (Global)",
+      "query": "shoppingProducts",
+      "keyword": "travel",
+      "filtered": "true",
+      "error": "HTTP 400: Query does not pass validation. Violations: Unknown argument 'advertiserIds' on field 'shoppingProducts' of type 'Query'. Did you mean 'partnerIds' or 'advertiserCountries'? (line 1, column 87): { shoppingProducts(companyId: \"5917965\", keywords: [\"travel\"], limit: 100, offset: 0, advertiserIds: [\"4368684\"]) { totalCount resultList { advertiserName title price { amount currency } link imageLink } } } ^"
+    }
+  ],
+  "linkApiErrors": [],
+  "notes": [
+    "Only the seven approved CJ advertiser IDs are queried.",
+    "Real CJ products are loaded into Find search; Seller shows only joined CJ sellers whose products include a title, URL, image and positive price.",
+    "Partners without real product records are kept in the separate CJ partner hub."
+  ]
+}

@@ -159,7 +159,7 @@
 
   function readStore(key, fallback = []) { try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); } catch { return fallback; } }
   function writeStore(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch {} }
-  
+
 const tpCjJoinedSellers = new Set((window.TRENDPILOT_CJ_JOINED_SELLERS || []).map(v => String(v || "").trim().toLowerCase()));
 const tpCjKnownSellers = new Set((window.TRENDPILOT_CJ_KNOWN_SELLERS || []).map(v => String(v || "").trim().toLowerCase()));
 function tpCjSellerName(p) {
@@ -240,6 +240,26 @@ function normalizeProduct(p) {
     }
   }
 
+
+  // TP_CJ_SEARCH_BRIDGE_START
+  let tpCjProductsPromise = null;
+  async function loadCjProducts() {
+    if (tpCjProductsPromise) return tpCjProductsPromise;
+    tpCjProductsPromise = (async () => {
+      try {
+        const r = await fetch(`/data/cj-products.json?v=13.8.16-${Date.now()}`, {cache:"no-store"});
+        if (!r.ok) throw new Error(`CJ products ${r.status}`);
+        const data = await r.json();
+        return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct);
+      } catch (error) {
+        console.warn("TrendPilot CJ products unavailable", error);
+        return [];
+      }
+    })();
+    return tpCjProductsPromise;
+  }
+  // TP_CJ_SEARCH_BRIDGE_END
+
   function initChrome() {
     const nav = $("[data-tp-nav]"), open = $("[data-tp-menu-button]"), close = $("[data-tp-menu-close]"), backdrop = $("[data-tp-nav-backdrop]");
     if (nav && open) {
@@ -296,7 +316,7 @@ function normalizeProduct(p) {
     return uniq(routes).slice(0,6);
   }
   function genericIntentTokens(q, groups, family) {
-    const generic=new Set(["men","mens","women","womens","kids","kid","children","child","baby","product","products","item","items","all"]);
+    const generic=new Set(["men","mens","women","womens","kids","kid","children","child","baby","product","products","item","items","all","popular"]);
     const groupGeneric={
       "apparel":["tshirt","tshirts","shirt","shirts","tee","tees","clothing","clothes","apparel","fashion"],
       "footwear":["shoe","shoes","footwear"], "bags-accessories":["bag","bags","accessories"],
@@ -617,8 +637,9 @@ function normalizeProduct(p) {
   async function loadProductById(id) {
     const cached=productCacheLookup(id); if(cached?.name&&cached?.url&&cached?.description) return {product:cached,peers:state.products};
     const m=await loadManifest();
+    const cjProducts=await loadCjProducts();
     const featured=[...(m.featured||[]),...(m.dealCandidates||[]),...(m.rareUsed||[])].map(normalizeProduct);
-    const direct=featured.find(p=>p.id===id)||state.products.find(p=>p.id===id);
+    const direct=featured.find(p=>p.id===id)||state.products.find(p=>p.id===id)||cjProducts.find(p=>p.id===id);
     const base=clean(m.productIndexBase||"/data/search-catalog/product-index").replace(/\/$/,"");
     if (id && base) {
       try {
@@ -801,7 +822,10 @@ function normalizeProduct(p) {
     if(push){const params=new URLSearchParams({q:state.query});if(state.scope)params.set("scope",state.scope);history.replaceState(null,"",`/find/?${params.toString()}`);}
     const input=$('[data-tp-finder-input]');if(input)input.value=state.query;
     const scopeSelect=$('[data-tp-finder-scope]');if(scopeSelect)scopeSelect.value=state.scope;
-    const rows=state.manifest.version==="fallback"?state.products:await loadInitialSegments(); mergeProducts(rows);
+    const [rows,cjRows]=await Promise.all([
+      state.manifest.version==="fallback"?Promise.resolve(state.products):loadInitialSegments(),
+      loadCjProducts()
+    ]); mergeProducts([...rows,...cjRows]);
     await ensureMinimumExact(24);
     populateFilters(); renderFinder();
   }
