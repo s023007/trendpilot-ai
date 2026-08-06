@@ -1,0 +1,38 @@
+{
+  "id": "cj-api-products",
+  "enabled": true,
+  "network": "CJ",
+  "adapter": "json",
+  "advertiser": "CJ joined advertisers",
+  "programme": "CJ Product Search API",
+  "countries": ["GLOBAL"],
+  "location": {
+    "type": "local_file",
+    "path": "automation/cache/cj-products.json"
+  },
+  "itemsPath": "products",
+  "rowLimit": 12000,
+  "defaultCurrency": "USD",
+  "fieldMap": {
+    "productId": ["productId", "sku", "catalogId"],
+    "name": ["name", "title"],
+    "description": ["description"],
+    "category": ["category"],
+    "brand": ["brand"],
+    "affiliateUrl": ["affiliateUrl"],
+    "productUrl": ["productUrl"],
+    "imageUrl": ["imageUrl"],
+    "price": ["price"],
+    "oldPrice": ["oldPrice"],
+    "currency": ["currency"],
+    "availability": ["availability"],
+    "advertiser": ["advertiser"],
+    "merchantId": ["advertiserId"],
+    "updatedAt": ["updatedAt"]
+  },
+  "rules": {
+    "exactProductOnly": true,
+    "doNotInventPrices": true,
+    "requireTrackedAffiliateUrl": true
+  }
+}
