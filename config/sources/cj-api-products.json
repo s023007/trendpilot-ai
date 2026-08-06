@@ -4,20 +4,20 @@
   "network": "CJ",
   "adapter": "json",
   "advertiser": "CJ joined advertisers",
-  "programme": "CJ Product Search API",
+  "programme": "CJ GraphQL Product Feed API",
   "countries": ["GLOBAL"],
   "location": {
     "type": "local_file",
     "path": "automation/cache/cj-products.json"
   },
   "itemsPath": "products",
-  "rowLimit": 12000,
+  "rowLimit": 20000,
   "defaultCurrency": "USD",
   "fieldMap": {
     "productId": ["productId", "sku", "catalogId"],
     "name": ["name", "title"],
     "description": ["description"],
-    "category": ["category"],
+    "category": ["category", "vertical"],
     "brand": ["brand"],
     "affiliateUrl": ["affiliateUrl"],
     "productUrl": ["productUrl"],

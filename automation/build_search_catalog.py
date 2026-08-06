@@ -699,10 +699,12 @@ def build_catalog(offers: list[dict], source_mode: str) -> dict:
         name = clean_text(offer.get("name"))
         url = clean_text(offer.get("affiliateUrl") or offer.get("url") or offer.get("productUrl"))
         advertiser = normalise(offer.get("advertiser") or offer.get("network"))
+        network = normalise(offer.get("network") or offer.get("sourceNetwork"))
         if not name or not valid_public_url(url):
             rejected["missingCoreFields"] += 1
             continue
-        if active and advertiser not in active:
+        # CJ records are already limited to products available to this CID.
+        if active and advertiser not in active and network != "cj":
             rejected["inactiveAdvertiser"] += 1
             continue
         key = clean_text(offer.get("canonicalKey") or offer.get("offerKey") or url).lower()
