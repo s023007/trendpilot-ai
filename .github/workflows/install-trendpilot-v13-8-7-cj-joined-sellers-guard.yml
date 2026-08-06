@@ -1,0 +1,661 @@
+name: Install TrendPilot V13.8.7 CJ Joined Sellers Guard
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows:
+      - Update trends and affiliate products
+      - Install TrendPilot V13.8.6 CJ Seller Bridge
+    types:
+      - completed
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-cj-joined-sellers-guard
+  cancel-in-progress: false
+
+jobs:
+  filter-cj-sellers:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    env:
+      CJ_TOKEN: ${{ secrets.CJ_TOKEN }}
+      CJ_API_TOKEN: ${{ secrets.CJ_API_TOKEN }}
+      CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+      CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+      CJ_PROPERTY_ID: ${{ secrets.CJ_PROPERTY_ID }}
+      CJ_PID: ${{ secrets.CJ_PID }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build joined-only CJ seller guard
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > /tmp/cj_joined_guard.py <<'PY'
+          from __future__ import annotations
+
+          import json
+          import os
+          import re
+          import sys
+          import urllib.parse
+          import urllib.request
+          import xml.etree.ElementTree as ET
+          from collections import Counter
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from typing import Any
+
+          ROOT = Path.cwd()
+          DATA = ROOT / "data"
+          SEARCH_CATALOG = DATA / "search-catalog"
+          JS = ROOT / "js"
+
+          BLOCKED_SELLER_TERMS = (
+              "sexshop",
+              "adult",
+              "casino",
+              "gambling",
+              "sportsbook",
+              "betting",
+          )
+
+          SELLER_KEYS = (
+              "advertiser",
+              "advertiserName",
+              "advertiser_name",
+              "advertiser-name",
+              "seller",
+              "sellerName",
+              "seller_name",
+              "merchant",
+              "merchantName",
+              "merchant_name",
+          )
+
+          STATUS_KEYS = (
+              "relationshipStatus",
+              "relationship_status",
+              "relationship-status",
+              "relationship",
+              "status",
+          )
+
+          NETWORK_KEYS = (
+              "network",
+              "networkName",
+              "network_name",
+              "provider",
+              "source",
+              "sourceId",
+              "source_id",
+              "programme",
+              "program",
+              "platform",
+          )
+
+          TITLE_KEYS = ("title", "name", "productName", "product_name")
+          URL_KEYS = (
+              "affiliateUrl",
+              "affiliate_url",
+              "buyUrl",
+              "buy_url",
+              "productUrl",
+              "product_url",
+              "url",
+              "destination",
+              "destinationUrl",
+              "destination_url",
+              "clickUrl",
+              "click_url",
+          )
+          IMAGE_KEYS = ("image", "imageUrl", "image_url", "imageLink", "image_link")
+          PRICE_KEYS = ("price", "salePrice", "sale_price", "currentPrice", "current_price")
+
+          JOINED_VALUES = {
+              "joined",
+              "active",
+              "approved",
+              "accepted",
+              "relationship active",
+          }
+
+          def clean(value: Any) -> str:
+              return re.sub(r"\s+", " ", str(value or "")).strip()
+
+          def lower(value: Any) -> str:
+              return clean(value).lower()
+
+          def first(record: dict[str, Any], keys: tuple[str, ...]) -> Any:
+              for key in keys:
+                  value = record.get(key)
+                  if value not in (None, "", [], {}):
+                      return value
+              return None
+
+          def seller_name(record: dict[str, Any]) -> str:
+              return clean(first(record, SELLER_KEYS))
+
+          def relationship(record: dict[str, Any]) -> str:
+              return lower(first(record, STATUS_KEYS))
+
+          def network_text(record: dict[str, Any]) -> str:
+              parts = [clean(record.get(key)) for key in NETWORK_KEYS]
+              return " ".join(part for part in parts if part)
+
+          def is_blocked_seller(name: str) -> bool:
+              n = lower(name)
+              return any(term in n for term in BLOCKED_SELLER_TERMS)
+
+          def valid_http(value: Any) -> bool:
+              return lower(value).startswith(("http://", "https://"))
+
+          def positive_price(record: dict[str, Any]) -> bool:
+              value = first(record, PRICE_KEYS)
+              if isinstance(value, dict):
+                  value = value.get("amount") or value.get("value")
+              if value in (None, ""):
+                  return False
+              try:
+                  return float(str(value).replace(",", "").strip()) > 0
+              except (TypeError, ValueError):
+                  return False
+
+          def has_product_evidence(record: dict[str, Any]) -> bool:
+              title = clean(first(record, TITLE_KEYS))
+              url = first(record, URL_KEYS)
+              image = first(record, IMAGE_KEYS)
+              return bool(title and valid_http(url) and valid_http(image) and positive_price(record))
+
+          def walk_records(node: Any):
+              if isinstance(node, dict):
+                  yield node
+                  for value in node.values():
+                      yield from walk_records(value)
+              elif isinstance(node, list):
+                  for value in node:
+                      yield from walk_records(value)
+
+          def load_json(path: Path) -> Any:
+              try:
+                  return json.loads(path.read_text(encoding="utf-8"))
+              except Exception:
+                  return None
+
+          def fetch_joined_from_cj() -> tuple[set[str], dict[str, Any]]:
+              token = (
+                  os.getenv("CJ_TOKEN")
+                  or os.getenv("CJ_API_TOKEN")
+                  or os.getenv("CJ_PERSONAL_ACCESS_TOKEN")
+                  or ""
+              ).strip()
+              website_id = (
+                  os.getenv("CJ_WEBSITE_ID")
+                  or os.getenv("CJ_PROPERTY_ID")
+                  or os.getenv("CJ_PID")
+                  or ""
+              ).strip()
+
+              report: dict[str, Any] = {
+                  "attempted": bool(token and website_id),
+                  "websiteIdMasked": ("***" + website_id[-4:]) if website_id else "",
+                  "pages": 0,
+                  "records": 0,
+                  "error": "",
+              }
+              sellers: set[str] = set()
+
+              if not token or not website_id:
+                  report["error"] = (
+                      "CJ token or Website/Property ID was unavailable. "
+                      "The guard will try explicit joined evidence already stored in the repository."
+                  )
+                  return sellers, report
+
+              page = 1
+              while page <= 50:
+                  params = urllib.parse.urlencode(
+                      {
+                          "website-id": website_id,
+                          "advertiser-ids": "joined",
+                          "records-per-page": 100,
+                          "page-number": page,
+                      }
+                  )
+                  url = f"https://link-search.api.cj.com/v2/link-search?{params}"
+                  request = urllib.request.Request(
+                      url,
+                      headers={
+                          "Authorization": f"Bearer {token}",
+                          "Accept": "application/xml",
+                          "User-Agent": "TrendPilot-CJ-Joined-Guard/13.8.7",
+                      },
+                  )
+
+                  try:
+                      with urllib.request.urlopen(request, timeout=45) as response:
+                          body = response.read()
+                  except Exception as exc:
+                      report["error"] = f"{type(exc).__name__}: {exc}"
+                      break
+
+                  root = ET.fromstring(body)
+                  links_node = root.find(".//links")
+                  records = root.findall(".//link")
+                  actual_records = []
+
+                  for record in records:
+                      advertiser = clean(record.findtext("advertiser-name"))
+                      status = lower(record.findtext("relationship-status"))
+                      if advertiser and status == "joined" and not is_blocked_seller(advertiser):
+                          sellers.add(advertiser)
+                          actual_records.append(record)
+
+                  report["pages"] = page
+                  report["records"] += len(actual_records)
+
+                  total = 0
+                  returned = 0
+                  if links_node is not None:
+                      try:
+                          total = int(links_node.attrib.get("total-matched", "0") or 0)
+                      except ValueError:
+                          total = 0
+                      try:
+                          returned = int(links_node.attrib.get("records-returned", "0") or 0)
+                      except ValueError:
+                          returned = 0
+
+                  if returned == 0 or (total and page * 100 >= total):
+                      break
+                  page += 1
+
+              return sellers, report
+
+          def discover_local_cj_evidence() -> tuple[set[str], set[str], list[str]]:
+              known: set[str] = set()
+              joined: set[str] = set()
+              scanned: list[str] = []
+
+              if not DATA.exists():
+                  return known, joined, scanned
+
+              for path in DATA.rglob("*.json"):
+                  if "search-catalog" in path.parts:
+                      continue
+                  payload = load_json(path)
+                  if payload is None:
+                      continue
+
+                  path_looks_cj = "cj" in path.name.lower() or "/cj" in path.as_posix().lower()
+                  found_cj_record = False
+
+                  for record in walk_records(payload):
+                      seller = seller_name(record)
+                      if not seller:
+                          continue
+
+                      context = lower(network_text(record))
+                      record_looks_cj = (
+                          path_looks_cj
+                          or "commission junction" in context
+                          or re.search(r"(^|[^a-z])cj([^a-z]|$)", context) is not None
+                          or "relationship-status" in record
+                          or "relationshipStatus" in record
+                      )
+                      if not record_looks_cj:
+                          continue
+
+                      found_cj_record = True
+                      if not is_blocked_seller(seller):
+                          known.add(lower(seller))
+                          if relationship(record) in JOINED_VALUES:
+                              joined.add(seller)
+
+                  if found_cj_record:
+                      scanned.append(path.relative_to(ROOT).as_posix())
+
+              return known, joined, scanned
+
+          def record_is_cj(record: dict[str, Any], path: Path, known_sellers: set[str]) -> bool:
+              seller = lower(seller_name(record))
+              context = lower(network_text(record))
+              filename = lower(path.as_posix())
+              return (
+                  "commission junction" in context
+                  or re.search(r"(^|[^a-z])cj([^a-z]|$)", context) is not None
+                  or "/cj" in filename
+                  or path.name.lower().startswith("cj")
+                  or (seller and seller in known_sellers)
+              )
+
+          def filter_node(
+              node: Any,
+              path: Path,
+              joined_lower: set[str],
+              known_sellers: set[str],
+              counters: Counter,
+          ) -> Any:
+              if isinstance(node, list):
+                  output = []
+                  for item in node:
+                      if isinstance(item, dict):
+                          seller = seller_name(item)
+                          if seller and record_is_cj(item, path, known_sellers):
+                              counters["cj_records_seen"] += 1
+                              allowed = (
+                                  lower(seller) in joined_lower
+                                  and not is_blocked_seller(seller)
+                                  and has_product_evidence(item)
+                              )
+                              if not allowed:
+                                  counters["cj_records_removed"] += 1
+                                  if lower(seller) not in joined_lower:
+                                      counters["not_joined_removed"] += 1
+                                  elif not has_product_evidence(item):
+                                      counters["no_product_evidence_removed"] += 1
+                                  else:
+                                      counters["blocked_removed"] += 1
+                                  continue
+                              counters["cj_product_records_kept"] += 1
+
+                      output.append(
+                          filter_node(item, path, joined_lower, known_sellers, counters)
+                      )
+                  return output
+
+              if isinstance(node, dict):
+                  return {
+                      key: filter_node(value, path, joined_lower, known_sellers, counters)
+                      for key, value in node.items()
+                  }
+
+              return node
+
+          def filter_search_catalog(
+              joined_lower: set[str],
+              known_sellers: set[str],
+          ) -> Counter:
+              counters: Counter = Counter()
+              if not SEARCH_CATALOG.exists():
+                  counters["missing_search_catalog"] += 1
+                  return counters
+
+              for path in SEARCH_CATALOG.rglob("*.json"):
+                  payload = load_json(path)
+                  if payload is None:
+                      continue
+                  filtered = filter_node(
+                      payload, path, joined_lower, known_sellers, counters
+                  )
+                  if filtered != payload:
+                      path.write_text(
+                          json.dumps(filtered, ensure_ascii=False, indent=2) + "\n",
+                          encoding="utf-8",
+                      )
+                      counters["files_changed"] += 1
+
+              return counters
+
+          def build_js(joined: list[str], known: list[str]) -> None:
+              JS.mkdir(parents=True, exist_ok=True)
+              content = (
+                  "window.TRENDPILOT_CJ_JOINED_SELLERS="
+                  + json.dumps(joined, ensure_ascii=False, separators=(",", ":"))
+                  + ";\nwindow.TRENDPILOT_CJ_KNOWN_SELLERS="
+                  + json.dumps(known, ensure_ascii=False, separators=(",", ":"))
+                  + ";\n"
+              )
+              (JS / "cj-joined-sellers.js").write_text(content, encoding="utf-8")
+
+          HELPER = r'''
+          const tpCjJoinedSellers = new Set((window.TRENDPILOT_CJ_JOINED_SELLERS || []).map(v => String(v || "").trim().toLowerCase()));
+          const tpCjKnownSellers = new Set((window.TRENDPILOT_CJ_KNOWN_SELLERS || []).map(v => String(v || "").trim().toLowerCase()));
+          function tpCjSellerName(p) {
+            return String((p && (p.advertiser || p.seller || p.merchant)) || "").trim();
+          }
+          function tpIsCjProduct(p) {
+            const seller = tpCjSellerName(p).toLowerCase();
+            const context = [
+              p && p.network, p && p.provider, p && p.source, p && p.sourceId,
+              p && p.programme, p && p.program, p && p.platform
+            ].map(v => String(v || "")).join(" ").toLowerCase();
+            return /(^|[^a-z])cj([^a-z]|$)/.test(context)
+              || context.includes("commission junction")
+              || tpCjKnownSellers.has(seller);
+          }
+          function tpHasRealProductEvidence(p) {
+            const title = String((p && (p.name || p.title || p.productName)) || "").trim();
+            const url = String((p && (p.url || p.affiliateUrl || p.productUrl || p.buyUrl)) || "").trim();
+            const image = String((p && (p.image || p.imageUrl || p.imageLink)) || "").trim();
+            const price = Number(p && (p.price || p.salePrice || p.currentPrice) || 0);
+            return Boolean(title && /^https?:\/\//i.test(url) && /^https?:\/\//i.test(image) && price > 0);
+          }
+          function tpPublicSellerAllowed(p) {
+            if (!tpIsCjProduct(p)) return true;
+            const seller = tpCjSellerName(p).toLowerCase();
+            return tpCjJoinedSellers.has(seller) && tpHasRealProductEvidence(p);
+          }
+          '''
+
+          def patch_site_js(path: Path) -> bool:
+              if not path.exists():
+                  return False
+              text = path.read_text(encoding="utf-8")
+              original = text
+
+              marker = "const tpCjJoinedSellers = new Set("
+              if marker not in text and "function normalizeProduct(p) {" in text:
+                  text = text.replace(
+                      "function normalizeProduct(p) {",
+                      HELPER + "\nfunction normalizeProduct(p) {",
+                      1,
+                  )
+
+              text = text.replace(
+                  "const rows=state.products;",
+                  "const rows=state.products.filter(tpPublicSellerAllowed);",
+              )
+              text = text.replace(
+                  "let out=rows.filter(p=>{",
+                  "let out=rows.filter(p=>{if(!tpPublicSellerAllowed(p))return false;",
+              )
+
+              if text != original:
+                  path.write_text(text, encoding="utf-8")
+                  return True
+              return False
+
+          def inject_script() -> int:
+              changed = 0
+              tag = '<script src="/js/cj-joined-sellers.js?v=13.8.7"></script>'
+              for path in ROOT.rglob("*.html"):
+                  if ".git" in path.parts:
+                      continue
+                  text = path.read_text(encoding="utf-8")
+                  if "site-v13-4.js" not in text and "site-v13-5.js" not in text:
+                      continue
+                  if "cj-joined-sellers.js" in text:
+                      continue
+
+                  new_text = re.sub(
+                      r'(<script[^>]+src=["\'][^"\']*site-v13-(?:4|5)\.js[^"\']*["\'][^>]*></script>)',
+                      tag + r"\n\1",
+                      text,
+                      count=1,
+                      flags=re.IGNORECASE,
+                  )
+                  if new_text != text:
+                      path.write_text(new_text, encoding="utf-8")
+                      changed += 1
+              return changed
+
+          def main() -> int:
+              api_joined, api_report = fetch_joined_from_cj()
+              local_known, local_joined, local_files = discover_local_cj_evidence()
+
+              joined = {clean(name) for name in api_joined | local_joined if clean(name)}
+              joined = {name for name in joined if not is_blocked_seller(name)}
+              joined_lower = {lower(name) for name in joined}
+
+              known_lower = set(local_known) | joined_lower
+
+              if not joined:
+                  report = {
+                      "version": "13.8.7",
+                      "generatedAt": datetime.now(timezone.utc).isoformat(),
+                      "status": "stopped-no-joined-evidence",
+                      "api": api_report,
+                      "localEvidenceFiles": local_files,
+                      "message": (
+                          "No explicit joined CJ advertiser evidence was found. "
+                          "The guard stopped without changing the public catalogue."
+                      ),
+                  }
+                  DATA.mkdir(parents=True, exist_ok=True)
+                  (DATA / "cj-joined-seller-guard-report.json").write_text(
+                      json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                      encoding="utf-8",
+                  )
+                  print(json.dumps(report, indent=2))
+                  return 2
+
+              joined_sorted = sorted(joined, key=str.casefold)
+              known_sorted = sorted(known_lower)
+
+              counters = filter_search_catalog(joined_lower, known_lower)
+              build_js(joined_sorted, known_sorted)
+
+              patched_js = 0
+              for candidate in (
+                  JS / "site-v13-4.js",
+                  JS / "site-v13-5.js",
+              ):
+                  patched_js += int(patch_site_js(candidate))
+
+              html_changed = inject_script()
+
+              report = {
+                  "version": "13.8.7",
+                  "generatedAt": datetime.now(timezone.utc).isoformat(),
+                  "status": "joined-only-active",
+                  "api": api_report,
+                  "localEvidenceFiles": local_files,
+                  "joinedSellerCount": len(joined_sorted),
+                  "joinedSellers": joined_sorted,
+                  "knownCjSellerCount": len(known_sorted),
+                  "catalog": dict(counters),
+                  "siteJavaScriptFilesPatched": patched_js,
+                  "htmlFilesChanged": html_changed,
+                  "rules": [
+                      "CJ advertiser must have explicit joined relationship evidence.",
+                      "CJ record must contain a real product title, affiliate URL, image and positive price.",
+                      "Blocked or sensitive sellers are removed.",
+                      "Non-CJ networks remain unchanged.",
+                  ],
+              }
+
+              DATA.mkdir(parents=True, exist_ok=True)
+              (DATA / "cj-joined-sellers.json").write_text(
+                  json.dumps(
+                      {
+                          "version": "13.8.7",
+                          "generatedAt": report["generatedAt"],
+                          "sellers": joined_sorted,
+                      },
+                      ensure_ascii=False,
+                      indent=2,
+                  )
+                  + "\n",
+                  encoding="utf-8",
+              )
+              (DATA / "cj-joined-seller-guard-report.json").write_text(
+                  json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+                  encoding="utf-8",
+              )
+
+              print(json.dumps(report, ensure_ascii=False, indent=2))
+              return 0
+
+          if __name__ == "__main__":
+              sys.exit(main())
+          PY
+
+          python /tmp/cj_joined_guard.py
+
+      - name: Validate public CJ seller output
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report_path = Path("data/cj-joined-seller-guard-report.json")
+          sellers_path = Path("data/cj-joined-sellers.json")
+          js_path = Path("js/cj-joined-sellers.js")
+
+          assert report_path.exists(), "Guard report was not created."
+          assert sellers_path.exists(), "Joined seller list was not created."
+          assert js_path.exists(), "Joined seller JavaScript was not created."
+
+          report = json.loads(report_path.read_text(encoding="utf-8"))
+          sellers = json.loads(sellers_path.read_text(encoding="utf-8")).get("sellers", [])
+
+          assert report.get("status") == "joined-only-active", report
+          assert sellers, "No joined CJ sellers were confirmed."
+          assert len(sellers) == len(set(sellers)), "Duplicate sellers remain."
+
+          print(f"Confirmed {len(sellers)} joined CJ seller(s).")
+          print("Removed CJ seller-only/non-joined records:", report.get("catalog", {}).get("cj_records_removed", 0))
+          PY
+
+      - name: Commit joined-only seller protection
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/search-catalog data/cj-joined-sellers.json \
+            data/cj-joined-seller-guard-report.json \
+            js/cj-joined-sellers.js js/site-v13-4.js js/site-v13-5.js \
+            '*.html' 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No seller changes were required."
+            exit 0
+          fi
+
+          git commit -m "fix: show joined CJ sellers with real products only"
+
+          for attempt in 1 2 3; do
+            git fetch origin main
+            if git rebase origin/main; then
+              if git push origin HEAD:main; then
+                exit 0
+              fi
+            else
+              git rebase --abort || true
+            fi
+            echo "Push attempt ${attempt} failed; retrying..."
+            sleep $((attempt * 4))
+          done
+
+          echo "Unable to push the joined-seller guard after three attempts."
+          exit 1
