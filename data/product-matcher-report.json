@@ -1,33 +1,35 @@
 {
   "version": "0.7.2",
   "buildId": "2026-07-31-product-first-published-split",
-  "generatedAt": "2026-08-06T02:03:39+00:00",
+  "generatedAt": "2026-08-06T06:46:10+00:00",
   "rankingMode": "product-first-network-neutral",
-  "catalogueOffersRead": 154568,
+  "catalogueOffersRead": 173231,
   "counters": {
-    "offersRead": 154568,
-    "candidateMatches": 4657,
-    "complianceBlocked": 45
+    "offersRead": 173231,
+    "candidateMatches": 4661,
+    "complianceBlocked": 47
   },
   "matchesPerTrend": {
-    "high-capacity-power-banks": 8,
-    "car-multimedia-head-units": 8,
-    "seasonal-kids-costumes": 8,
-    "compact-thermal-printers": 8,
-    "portable-projectors": 8,
-    "smart-pet-feeding": 8,
-    "wireless-carplay-retrofit": 8,
     "wireless-earbuds": 8,
-    "seasonal-party-decor": 8
+    "smart-pet-feeding": 8,
+    "portable-projectors": 8,
+    "seasonal-party-decor": 8,
+    "car-multimedia-head-units": 8,
+    "wireless-carplay-retrofit": 8,
+    "compact-thermal-printers": 8,
+    "high-capacity-power-banks": 8,
+    "seasonal-kids-costumes": 8
   },
   "candidateMatchesByNetwork": {
-    "Admitad": 4657
+    "Admitad": 4658,
+    "CJ": 3
   },
   "candidateMatchesByAdvertiser": {
-    "AliExpress": 747,
+    "AliExpress": 748,
     "Geekbuying": 32,
     "Joom": 802,
-    "Alibaba": 3076
+    "Alibaba": 3076,
+    "Trodo EU": 3
   },
   "matchesByNetwork": {
     "Admitad": 72
@@ -39,10 +41,9 @@
     "Geekbuying": 3
   },
   "publishedMatchesByNetwork": {
-    "Admitad": 43
+    "Admitad": 42
   },
   "publishedMatchesByAdvertiser": {
-    "Alibaba": 1,
     "AliExpress": 34,
     "Joom": 5,
     "Geekbuying": 3
@@ -52,16 +53,16 @@
   },
   "reviewMatchesByAdvertiser": {
     "Geekbuying": 5,
-    "Joom": 10,
-    "AliExpress": 1
+    "Joom": 9,
+    "AliExpress": 2
   },
   "allFinalMatchesByNetwork": {
     "Admitad": 88
   },
   "allFinalMatchesByAdvertiser": {
-    "AliExpress": 35,
+    "AliExpress": 36,
     "Geekbuying": 8,
-    "Joom": 15,
+    "Joom": 14,
     "Alibaba": 30
   },
   "reviewEvidence": {
@@ -82,7 +83,6 @@
   "publicTrendSlugs": [
     "car-multimedia-head-units",
     "compact-thermal-printers",
-    "high-capacity-power-banks",
     "seasonal-kids-costumes",
     "seasonal-party-decor",
     "smart-pet-feeding",
@@ -90,20 +90,19 @@
   ],
   "linkGuard": {
     "version": "1.3.0",
-    "generatedAt": "2026-08-06T02:03:56+00:00",
+    "generatedAt": "2026-08-06T06:46:27+00:00",
     "offersReviewed": 72,
-    "offersKept": 43,
-    "offersRemoved": 29,
+    "offersKept": 42,
+    "offersRemoved": 30,
     "keptByReason": {
-      "verified-alibaba-product-detail": 1,
       "verified-aliexpress-item": 34,
       "verified-generic-product-path": 8
     },
     "removedByReason": {
+      "not-an-alibaba-product-detail-page;resolved": 26,
+      "missing-product-identity": 2,
       "excluded-niche-variant:solar,solar charger": 1,
-      "excluded-niche-variant:solar": 1,
-      "not-an-alibaba-product-detail-page;resolved": 25,
-      "missing-product-identity": 2
+      "excluded-niche-variant:solar": 1
     }
   }
 }
