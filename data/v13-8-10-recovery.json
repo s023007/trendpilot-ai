@@ -1,0 +1,10 @@
+{
+  "version": "13.8.10",
+  "status": "product-loading-recovery",
+  "purpose": [
+    "Restore the product search and result rendering path.",
+    "Remove the incomplete V13.8.8 and V13.8.9 browser guard.",
+    "Force browsers and Netlify to request the recovered JavaScript."
+  ],
+  "cjStatus": "Temporarily restored to the last working behaviour. CJ joined-seller filtering will be rebuilt separately after the catalogue is stable."
+}
