@@ -203,7 +203,15 @@
     "cords-chains-wires":"Cords, chains & wires",
     "storage-organization":"Storage & organization",
     "finished-jewelry":"Finished jewelry",
-    "sewing-diy":"Sewing & DIY"
+    "sewing-diy":"Sewing & DIY",
+    "sports-tickets":"Sports tickets & live events",
+    "general-marketplace":"General marketplace",
+    "computer-accessories":"Computer accessories",
+    "camera-accessories":"Camera accessories",
+    "car-accessories":"Car accessories",
+    "clothing":"Clothing",
+    "shoes":"Shoes",
+    "jewelry":"Jewelry"
   };
 
   const GROUP_ROUTES = [
@@ -370,7 +378,7 @@ function normalizeProduct(p) {
     if (tpCjProductsPromise) return tpCjProductsPromise;
     tpCjProductsPromise = (async () => {
       try {
-        const r = await fetch(`/data/cj-products.json?v=13.8.17-${Date.now()}`, {cache:"no-store"});
+        const r = await fetch(`/data/cj-products.json?v=13.8.22-${Date.now()}`, {cache:"no-store"});
         if (!r.ok) throw new Error(`CJ products ${r.status}`);
         const data = await r.json();
         return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct);

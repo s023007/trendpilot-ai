@@ -23,6 +23,10 @@
       mainLabel = `Compare ${partner.productCount} product${partner.productCount === 1 ? "" : "s"}`;
     } else if (section === "software") {
       mainLabel = "View software plans";
+    } else if (section === "sports") {
+      mainLabel = "Browse sports tickets";
+    } else if (section === "events") {
+      mainLabel = "Browse event tickets";
     } else if (section === "travel") {
       mainLabel = "Browse travel bookings";
     } else if (section === "products") {
@@ -55,7 +59,7 @@
     const hosts = [...document.querySelectorAll("[data-cj-directory]")];
     if (!hosts.length) return;
     try {
-      const response = await fetch(`/data/cj-category-directory.json?v=13.8.17-${Date.now()}`, {cache:"no-store"});
+      const response = await fetch(`/data/cj-category-directory.json?v=13.8.22-${Date.now()}`, {cache:"no-store"});
       if (!response.ok) throw new Error(`CJ directory ${response.status}`);
       const data = await response.json();
       hosts.forEach(host => {

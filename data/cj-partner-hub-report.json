@@ -1,6 +1,6 @@
 {
-  "version": "13.8.17",
-  "generatedAt": "2026-08-06T15:23:05.836938+00:00",
+  "version": "13.8.22",
+  "generatedAt": "2026-08-06T20:08:03.957560+00:00",
   "status": "complete",
   "companyIdMasked": "***7965",
   "websiteIdMasked": "*****5394",
@@ -30,17 +30,32 @@
       "name": "PandaHall"
     },
     {
+      "advertiserId": "6293473",
+      "name": "Temu"
+    },
+    {
+      "advertiserId": "7753674",
+      "name": "Sports Events 365"
+    },
+    {
+      "advertiserId": "2288710",
+      "name": "TicketNetwork"
+    },
+    {
       "advertiserId": "4368684",
       "name": "Trip.com (Global)"
     }
   ],
   "productCounts": {
     "Diecast": 3,
-    "FragranceShop.com": 199,
+    "FragranceShop.com": 100,
     "Karaca EU": 100,
     "MFI Medical": 0,
     "NordVPN": 0,
     "PandaHall": 100,
+    "Temu": 299,
+    "Sports Events 365": 0,
+    "TicketNetwork": 0,
     "Trip.com (Global)": 0
   },
   "offerCounts": {
@@ -50,21 +65,27 @@
     "MFI Medical": 11,
     "NordVPN": 30,
     "PandaHall": 30,
+    "Temu": 0,
+    "Sports Events 365": 30,
+    "TicketNetwork": 30,
     "Trip.com (Global)": 30
   },
-  "searchEligibleProductCount": 402,
+  "searchEligibleProductCount": 602,
   "searchEligibleSellers": [
     "Diecast",
     "FragranceShop.com",
     "Karaca EU",
-    "PandaHall"
+    "PandaHall",
+    "Temu"
   ],
   "productApiErrors": [],
   "linkApiErrors": [],
   "notes": [
-    "Five physical-product advertisers are routed to Find products.",
+    "Six physical-product advertisers are routed to Find products, including Temu as a multi-category marketplace.",
     "NordVPN is routed to Software Finder as a digital subscription service.",
-    "Trip.com Global is routed to Tickets & experiences as a travel booking service.",
+    "Sports Events 365 is routed to sports tickets.",
+    "TicketNetwork is routed to general event tickets for concerts, theatre and sports.",
+    "Trip.com Global remains in travel bookings.",
     "General advertiser links remain directory or offer links and are never converted into invented products."
   ],
   "productFilterArgument": "partnerIds",
@@ -74,10 +95,17 @@
       "FragranceShop.com",
       "Karaca EU",
       "MFI Medical",
-      "PandaHall"
+      "PandaHall",
+      "Temu"
     ],
     "softwareServices": [
       "NordVPN"
+    ],
+    "sportsTickets": [
+      "Sports Events 365"
+    ],
+    "eventTickets": [
+      "TicketNetwork"
     ],
     "travelBookings": [
       "Trip.com (Global)"
