@@ -59,7 +59,7 @@
     const hosts = [...document.querySelectorAll("[data-cj-directory]")];
     if (!hosts.length) return;
     try {
-      const response = await fetch(`/data/cj-category-directory.json?v=13.8.24-${Date.now()}`, {cache:"no-store"});
+      const response = await fetch(`/data/cj-category-directory.json?v=13.8.30-${Date.now()}`, {cache:"no-store"});
       if (!response.ok) throw new Error(`CJ directory ${response.status}`);
       const data = await response.json();
       hosts.forEach(host => {

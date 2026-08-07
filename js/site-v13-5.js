@@ -8,102 +8,27 @@
   const lower = (v) => clean(v).toLowerCase();
   const esc = (v) => clean(v).replace(/[&<>'"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#039;",'"':"&quot;"}[c]));
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
-
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "13.8.24";
-  const TP_CJ_APPROVED_IDS = new Set(["2357926", "7287203", "5893489", "7227612", "4295086", "6293473", "4837117", "7753674", "2288710", "4368684"]);
-  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "thefragranceshop", "thefragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "pandahall", "pandahallcom", "temu", "temucom", "shoptemu", "nordvpn", "sportsevents365", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal"]);
-  const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "thefragranceshop", "thefragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "pandahall", "pandahallcom", "temu", "temucom", "shoptemu", "nordvpn", "sportsevents365", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal"]);
-  const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
-  const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
-
-  function tpCjSellerKey(value) {
-    return lower(value).replace(/[^a-z0-9]+/g, "");
-  }
-
-  function tpCjValue(p, keys) {
-    for (const key of keys) {
-      const value = p && p[key];
-      if (value !== undefined && value !== null && String(value).trim() !== "") return value;
-    }
-    return "";
-  }
-
-  function tpCjId(p) {
-    return String(tpCjValue(p, ["advertiserId","advertiser_id","advertiser-id","advertiserCid","advertiser_cid","cid"]) || "").replace(/\D+/g, "");
-  }
-
-  function tpCjSeller(p) {
-    return clean(tpCjValue(p, ["advertiser","advertiserName","advertiser_name","advertiser-name","seller","sellerName","seller_name","merchant","merchantName","merchant_name"]));
-  }
-
-  function tpCjUrl(p) {
-    return clean(tpCjValue(p, ["affiliateUrl","affiliate_url","buyUrl","buy_url","productUrl","product_url","clickUrl","click_url","url","destination","destinationUrl","destination_url"]));
-  }
-
-  function tpCjImage(p) {
-    return clean(tpCjValue(p, ["image","imageUrl","image_url","imageLink","image_link","thumbnail","thumbnailUrl"]));
-  }
-
-  function tpCjTitle(p) {
-    return clean(tpCjValue(p, ["title","name","productName","product_name"]));
-  }
-
-  function tpCjTrackingUrl(value) {
-    if (!validUrl(value)) return false;
-    try {
-      return TP_CJ_TRACKING_HOST_RE.test(new URL(value).hostname.toLowerCase());
-    } catch {
-      return false;
-    }
-  }
-
-  function tpIsCjItem(p) {
-    const seller = tpCjSellerKey(tpCjSeller(p));
-    const context = lower([
-      p && p.network, p && p.networkName, p && p.provider,
-      p && p.source, p && p.sourceId, p && p.programme,
-      p && p.program, p && p.platform, p && p.affiliateNetwork
-    ].map(value => clean(value)).join(" "));
-    return Boolean(
-      TP_CJ_KNOWN_NAMES.has(seller)
-      || TP_CJ_APPROVED_IDS.has(tpCjId(p))
-      || context.includes("commission junction")
-      || /(^|[^a-z])cj([^a-z]|$)/i.test(context)
-      || tpCjTrackingUrl(tpCjUrl(p))
-    );
-  }
-
-  function tpCjSpecificEvidence(p) {
-    const title = tpCjTitle(p);
-    const seller = tpCjSeller(p);
-    const titleKey = tpCjSellerKey(title);
-    const sellerKey = tpCjSellerKey(seller);
-    const url = tpCjUrl(p);
-    const image = tpCjImage(p);
-    if (!title || !validUrl(url) || !validUrl(image)) return false;
-    if (TP_CJ_GENERIC_TITLES.has(titleKey)) return false;
-    if (titleKey && sellerKey && titleKey === sellerKey) return false;
-    return true;
-  }
-
-  function tpCjApproved(p) {
-    const id = tpCjId(p);
-    const seller = tpCjSellerKey(tpCjSeller(p));
-    return TP_CJ_APPROVED_IDS.has(id) || TP_CJ_APPROVED_NAMES.has(seller);
-  }
-
-  function tpCjPublicAllowed(p) {
-    if (!p || !tpIsCjItem(p)) return Boolean(p);
-    return tpCjApproved(p) && tpCjSpecificEvidence(p);
-  }
-
-  function tpCjOfferAllowed(offer, parent) {
-    const row = Object.assign({}, parent || {}, offer || {});
-    if (!tpIsCjItem(row)) return true;
-    return tpCjApproved(row) && validUrl(tpCjUrl(row));
-  }
-  // TP_CJ_EXACT_GUARD_END
+const TP_CJ_GUARD_VERSION = "13.8.30";
+const TP_CJ_APPROVED_IDS = new Set(["2357926", "7287203", "5893489", "7227612", "4295086", "6293473", "4837117", "7753674", "2288710", "4368684"]);
+const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "thefragranceshop", "thefragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "pandahall", "pandahallcom", "temu", "temucom", "shoptemu", "nordvpn", "sportsevents365", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal"]);
+const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "thefragranceshop", "thefragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "pandahall", "pandahallcom", "temu", "temucom", "shoptemu", "nordvpn", "sportsevents365", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal"]);
+const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
+const TP_CJ_GENERIC_TITLES = new Set(["browseproducts","currentoffer","currentoffers","officialshop","officialstore","seller","shop","shopnow","store","viewproducts","visitstore"]);
+function tpCjSellerKey(value) { return lower(value).replace(/[^a-z0-9]+/g, ""); }
+function tpCjValue(p, keys) { for (const key of keys) { const value=p&&p[key]; if(value!==undefined&&value!==null&&String(value).trim()!=="") return value; } return ""; }
+function tpCjId(p) { return String(tpCjValue(p,["advertiserId","advertiser_id","advertiser-id","advertiserCid","advertiser_cid","cid"])||"").replace(/\D+/g,""); }
+function tpCjSeller(p) { return clean(tpCjValue(p,["advertiser","advertiserName","advertiser_name","advertiser-name","seller","sellerName","seller_name","merchant","merchantName","merchant_name"])); }
+function tpCjUrl(p) { return clean(tpCjValue(p,["affiliateUrl","affiliate_url","buyUrl","buy_url","productUrl","product_url","clickUrl","click_url","url","destination","destinationUrl","destination_url"])); }
+function tpCjImage(p) { return clean(tpCjValue(p,["image","imageUrl","image_url","imageLink","image_link","thumbnail","thumbnailUrl"])); }
+function tpCjTitle(p) { return clean(tpCjValue(p,["title","name","productName","product_name"])); }
+function tpCjTrackingUrl(value) { if(!validUrl(value))return false; try{return TP_CJ_TRACKING_HOST_RE.test(new URL(value).hostname.toLowerCase());}catch{return false;} }
+function tpIsCjItem(p) { const seller=tpCjSellerKey(tpCjSeller(p)); const context=lower([p&&p.network,p&&p.networkName,p&&p.provider,p&&p.source,p&&p.sourceId,p&&p.programme,p&&p.program,p&&p.platform,p&&p.affiliateNetwork].map(value=>clean(value)).join(" ")); return Boolean(TP_CJ_KNOWN_NAMES.has(seller)||TP_CJ_APPROVED_IDS.has(tpCjId(p))||context.includes("commission junction")||/(^|[^a-z])cj([^a-z]|$)/i.test(context)||tpCjTrackingUrl(tpCjUrl(p))); }
+function tpCjSpecificEvidence(p) { const title=tpCjTitle(p),seller=tpCjSeller(p),titleKey=tpCjSellerKey(title),sellerKey=tpCjSellerKey(seller),url=tpCjUrl(p),image=tpCjImage(p); if(!title||!validUrl(url)||!validUrl(image))return false; if(TP_CJ_GENERIC_TITLES.has(titleKey))return false; if(titleKey&&sellerKey&&titleKey===sellerKey)return false; return true; }
+function tpCjApproved(p) { const id=tpCjId(p),seller=tpCjSellerKey(tpCjSeller(p)); return TP_CJ_APPROVED_IDS.has(id)||TP_CJ_APPROVED_NAMES.has(seller); }
+function tpCjPublicAllowed(p) { if(!p||!tpIsCjItem(p))return Boolean(p); return tpCjApproved(p)&&tpCjSpecificEvidence(p); }
+function tpCjOfferAllowed(offer,parent) { const row=Object.assign({},parent||{},offer||{}); if(!tpIsCjItem(row))return true; return tpCjApproved(row)&&validUrl(tpCjUrl(row)); }
+// TP_CJ_EXACT_GUARD_END
 
 // TP_PUBLIC_SELLER_GUARD_START
 function tpPublicSellerAllowed(p) {
@@ -113,7 +38,6 @@ function tpPublicSellerAllowed(p) {
   return Boolean(title && validUrl(target));
 }
 // TP_PUBLIC_SELLER_GUARD_END
-
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];
   const debounce = (fn, wait = 120) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; };
   const fmt = new Intl.NumberFormat(undefined, {maximumFractionDigits: 0});
@@ -387,7 +311,7 @@ function normalizeProduct(p) {
     if (tpCjProductsPromise) return tpCjProductsPromise;
     tpCjProductsPromise = (async () => {
       try {
-        const r = await fetch(`/data/cj-products.json?v=13.8.24-${Date.now()}`, {cache:"no-store"});
+        const r = await fetch(`/data/cj-products.json?v=13.8.30-${Date.now()}`, {cache:"no-store"});
         if (!r.ok) throw new Error(`CJ products ${r.status}`);
         const data = await r.json();
         return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct);
