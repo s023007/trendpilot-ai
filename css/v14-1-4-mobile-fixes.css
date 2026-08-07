@@ -1,0 +1,4 @@
+.tp-amazon-suggest{z-index:15050!important}
+.tp-amazon-list{max-height:min(390px,46vh)!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;touch-action:pan-y!important}
+.tp-amazon-row{touch-action:pan-y!important;user-select:none;-webkit-user-select:none}
+@media(max-width:620px){.tp-amazon-list{max-height:min(360px,44vh)!important}.tp-amazon-row{min-height:54px!important}}

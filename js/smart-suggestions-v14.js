@@ -66,10 +66,14 @@
   const selector='input[type="search"],input[name="q"],input[data-search],.tp-search-input input,.tp-ticket-v141-search input,.tp-wholesale-search input';
   d.addEventListener("input",e=>{if(e.target.matches(selector))render(e.target);});
   d.addEventListener("focusin",e=>{if(e.target.matches(selector)&&clean(e.target.value))render(e.target);});
+  let tpGesture=null;
   d.addEventListener("pointerdown",e=>{
     const row=e.target.closest(".tp-amazon-row");
-    if(row&&activeInput&&panel){e.preventDefault();const data=panel._rows||[],item=data[Number(row.dataset.i)]||{value:row.dataset.value};submit(activeInput,item.value,item);return;}
+    if(row&&activeInput&&panel){tpGesture={row,id:e.pointerId,x:e.clientX,y:e.clientY,moved:false};return;}
     if(panel&&!e.target.closest(".tp-amazon-suggest")&&e.target!==activeInput)close();
   });
+  d.addEventListener("pointermove",e=>{if(!tpGesture||tpGesture.id!==e.pointerId)return;if(Math.hypot(e.clientX-tpGesture.x,e.clientY-tpGesture.y)>7)tpGesture.moved=true;});
+  d.addEventListener("pointerup",e=>{if(!tpGesture||tpGesture.id!==e.pointerId)return;const g=tpGesture;tpGesture=null;if(g.moved)return;const row=e.target.closest(".tp-amazon-row");if(!row||row!==g.row||!activeInput||!panel)return;const data=panel._rows||[],item=data[Number(row.dataset.i)]||{value:row.dataset.value};submit(activeInput,item.value,item);});
+  d.addEventListener("pointercancel",()=>{tpGesture=null;});
   d.addEventListener("keydown",e=>{if(e.key==="Escape"&&panel)close();});
 })();
