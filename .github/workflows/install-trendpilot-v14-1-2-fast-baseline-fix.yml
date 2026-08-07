@@ -1,0 +1,802 @@
+name: Install TrendPilot V14.1.2 Fast Baseline Fix, Amazon Search, Ticket Rebuild and CPC Routing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+
+jobs:
+  install-v14-1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+
+    steps:
+      - name: Check out latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Record starting revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "TP_BASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+
+      - name: Build V14.1 search ticket and monetization layer
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import html
+          import json
+          import re
+          from collections import Counter
+          from pathlib import Path
+          from typing import Any
+
+          VERSION = "14.1.2"
+          ROOT = Path(".")
+          DATA = ROOT / "data"
+          JS = ROOT / "js"
+          CSS = ROOT / "css"
+
+          required = [
+              ROOT / "find" / "index.html",
+              ROOT / "tickets" / "index.html",
+              ROOT / "wholesale" / "index.html",
+              DATA / "ticket-events.json",
+              CSS / "decision-v14.css",
+          ]
+          missing = [str(p) for p in required if not p.exists()]
+          if missing:
+              raise SystemExit(
+                  "V14.1.2 baseline is missing a required source page/data file: "
+                  + ", ".join(missing)
+              )
+
+          def clean(value: Any) -> str:
+              return re.sub(r"\s+", " ", html.unescape(str(value or ""))).strip()
+
+          def low(value: Any) -> str:
+              return clean(value).lower()
+
+          def valid_url(value: Any) -> bool:
+              return bool(re.match(r"^https?://", clean(value), flags=re.I))
+
+          def read_json(path: Path, default: Any) -> Any:
+              try:
+                  return json.loads(path.read_text(encoding="utf-8"))
+              except Exception:
+                  return default
+
+          # ================================================================
+          # A. Amazon-style search suggestion index
+          # ================================================================
+          generic_categories = [
+              "backpack", "bags", "baby products", "beauty products",
+              "bluetooth speakers", "blood pressure monitor", "books",
+              "battery charger", "bedroom furniture", "bathroom accessories",
+              "phone cases", "power banks", "perfume", "printers", "projectors",
+              "pencil case", "pet supplies", "portable charger", "phone accessories",
+              "smart watches", "school supplies", "shoes", "security cameras",
+              "storage organizers", "sports equipment", "skin care",
+              "wireless earbuds", "wifi router", "watches", "women clothing",
+              "laptops", "led lights", "lenovo laptops", "luggage",
+              "tools", "toys", "tablets", "t-shirts", "travel accessories",
+              "home and kitchen", "headphones", "hair care", "handbags",
+              "car accessories", "cameras", "computer accessories", "cookware",
+              "office supplies", "outdoor equipment", "gaming accessories",
+              "jewelry", "kitchen appliances", "medical equipment",
+          ]
+
+          catalog_products: list[dict[str, Any]] = []
+
+          # FAST MODE: reuse the already-built suggestion cache instead of
+          # opening every search-catalog shard on each workflow run.
+          old_suggestions = read_json(DATA / "search-suggestions-v14.json", {})
+          if not old_suggestions:
+              old_suggestions = read_json(DATA / "search-suggestions.json", {})
+
+          cj_payload = read_json(DATA / "cj-products.json", {})
+          if isinstance(cj_payload, dict):
+              for row in cj_payload.get("products", []):
+                  if isinstance(row, dict):
+                      catalog_products.append(row)
+
+          term_score: Counter[str] = Counter()
+          term_image: dict[str, str] = {}
+          term_meta: dict[str, str] = {}
+
+          def add_term(term: Any, score: int, *, image: str = "", meta: str = "") -> None:
+              value = clean(term)
+              if len(value) < 2 or len(value) > 68:
+                  return
+              if "http://" in value.lower() or "https://" in value.lower():
+                  return
+              if len(re.findall(r"\d", value)) > max(7, len(value) // 2):
+                  return
+              key = value.lower()
+              term_score[key] += score
+              if key not in term_meta and meta:
+                  term_meta[key] = clean(meta)[:42]
+              if key not in term_image and valid_url(image):
+                  term_image[key] = image
+
+          for phrase in generic_categories:
+              add_term(phrase, 18, meta="Popular search")
+
+          if isinstance(old_suggestions, dict):
+              old_rows = (
+                  old_suggestions.get("top")
+                  or old_suggestions.get("suggestions")
+                  or old_suggestions.get("items")
+                  or []
+              )
+              if isinstance(old_rows, list):
+                  for row in old_rows[:2500]:
+                      if isinstance(row, str):
+                          add_term(row, 12, meta="Popular search")
+                      elif isinstance(row, dict):
+                          add_term(
+                              row.get("value") or row.get("term") or row.get("name") or row.get("title"),
+                              int(row.get("score") or 10),
+                              image=clean(row.get("image")),
+                              meta=clean(row.get("meta") or row.get("seller") or "Search"),
+                          )
+
+          for row in catalog_products[:24000]:
+              name = clean(row.get("name") or row.get("title"))
+              image = clean(row.get("image") or row.get("imageUrl") or row.get("imageLink"))
+              seller = clean(
+                  row.get("advertiser")
+                  or row.get("seller")
+                  or row.get("merchant")
+                  or row.get("store")
+                  or row.get("brand")
+              )
+              add_term(name, 8, image=image, meta=seller or "Product")
+              for field in ("brand", "category", "subcategory", "group", "family"):
+                  value = clean(row.get(field))
+                  if value and value.lower() not in {"other", "all", "unknown"}:
+                      add_term(value.replace("-", " "), 5, meta="Category")
+
+              words = re.findall(r"[A-Za-z][A-Za-z0-9'+-]{2,}", name)
+              if 2 <= len(words) <= 14:
+                  for n in (2, 3):
+                      for i in range(0, len(words) - n + 1):
+                          phrase = " ".join(words[i:i+n])
+                          if 5 <= len(phrase) <= 40:
+                              add_term(phrase, 1, image=image, meta=seller or "Product")
+
+          suggestions = [
+              {
+                  "value": key,
+                  "score": score,
+                  "image": term_image.get(key, ""),
+                  "meta": term_meta.get(key, "Search"),
+              }
+              for key, score in term_score.most_common(5000)
+          ]
+
+          by_letter: dict[str, list[dict[str, Any]]] = {}
+          for letter in "abcdefghijklmnopqrstuvwxyz":
+              rows = [x for x in suggestions if x["value"].startswith(letter)]
+              if len(rows) < 12:
+                  for phrase in generic_categories:
+                      if phrase.startswith(letter) and not any(x["value"] == phrase for x in rows):
+                          rows.append({"value": phrase, "score": 12, "image": "", "meta": "Popular search"})
+              rows.sort(key=lambda x: (-int(x["score"]), len(x["value"]), x["value"]))
+              by_letter[letter] = rows[:60]
+
+          (DATA / "search-suggestions-v14-1.json").write_text(
+              json.dumps(
+                  {"version": VERSION, "count": len(suggestions), "byLetter": by_letter, "top": suggestions[:300]},
+                  ensure_ascii=False,
+                  indent=2,
+              ) + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # B. Ticket discovery index
+          # ================================================================
+          ticket_payload = read_json(DATA / "ticket-events.json", {})
+          raw_events = ticket_payload.get("events") or []
+          if not isinstance(raw_events, list):
+              raw_events = []
+
+          def clean_ticket_title(value: Any) -> str:
+              text = clean(value)
+              text = re.sub(r"^SportsEvents365\.com\s*-\s*", "", text, flags=re.I)
+              text = re.sub(r"^PL\s*[–-]\s*", "", text, flags=re.I)
+              text = re.sub(r"\s*[–-]\s*(120x600|250x250|728x90)\s*$", "", text, flags=re.I)
+              text = re.sub(r"\s+Tickets?$", "", text, flags=re.I)
+              text = re.sub(r"\s+", " ", text).strip(" -–")
+              replacements = {
+                  "Champion League": "Champions League",
+                  "English Premier League": "Premier League",
+                  "Spanish La Liga": "La Liga",
+                  "Italian Serie A": "Serie A",
+              }
+              return replacements.get(text, text)
+
+          route_seen: dict[str, dict[str, Any]] = {}
+          for row in raw_events:
+              if not isinstance(row, dict):
+                  continue
+              title = clean_ticket_title(row.get("title"))
+              provider = clean(row.get("provider"))
+              destination = clean(row.get("destination"))
+              url = clean(row.get("url"))
+              if not title or not valid_url(url):
+                  continue
+              if title.lower() in {
+                  "sportsevents365.com", "home page", "homepage",
+                  "trip.com at homepage", "trip.com austria homepage",
+                  "trip.com australia homepage", "trip.com be homepage",
+              }:
+                  continue
+              key = f"{provider.lower()}|{title.lower()}|{destination.lower()}"
+              if key not in route_seen:
+                  route_seen[key] = {
+                      "id": clean(row.get("id")) or "ticket-" + hashlib.sha256(key.encode()).hexdigest()[:20],
+                      "title": title,
+                      "provider": provider,
+                      "type": clean(row.get("type")) or "events",
+                      "description": clean(row.get("description")),
+                      "url": url,
+                      "destination": destination if valid_url(destination) else "",
+                      "price": row.get("price"),
+                      "currency": clean(row.get("currency")),
+                      "date": clean(row.get("date")),
+                      "venue": clean(row.get("venue")),
+                      "section": clean(row.get("section")),
+                      "row": clean(row.get("row")),
+                      "source": clean(row.get("source")),
+                      "aliases": [],
+                  }
+
+          routes = list(route_seen.values())
+          league_aliases = {
+              "premier league": [
+                  "arsenal", "liverpool", "chelsea", "tottenham", "spurs",
+                  "manchester city", "man city", "manchester united", "man united",
+                  "newcastle", "aston villa", "west ham", "everton",
+              ],
+              "la liga": [
+                  "real madrid", "barcelona", "atletico madrid", "sevilla",
+                  "real betis", "athletic bilbao",
+              ],
+              "serie a": [
+                  "juventus", "inter milan", "inter", "ac milan", "milan",
+                  "napoli", "roma", "lazio",
+              ],
+              "champions league": ["uefa champions league", "champions league", "ucl"],
+              "formula 1": ["f1", "formula one", "grand prix", "motorsport"],
+          }
+
+          discovered_entities: list[dict[str, Any]] = []
+          for row in routes:
+              blob = low(f'{row["title"]} {row.get("description","")} {row.get("destination","")}')
+              aliases = {row["title"]}
+              for league, names in league_aliases.items():
+                  if league in blob or (league == "champions league" and "champion league" in blob):
+                      aliases.add(league.title())
+                      aliases.update(name.title() for name in names)
+              row["aliases"] = sorted(aliases)
+              for alias in row["aliases"]:
+                  discovered_entities.append(
+                      {
+                          "value": alias,
+                          "routeId": row["id"],
+                          "routeTitle": row["title"],
+                          "provider": row["provider"],
+                          "type": row["type"],
+                      }
+                  )
+
+          entity_map: dict[str, dict[str, Any]] = {}
+          for entity in discovered_entities:
+              k = low(entity["value"])
+              if not k:
+                  continue
+              candidate = entity_map.get(k)
+              direct = low(entity["routeTitle"]) == k
+              if candidate is None or direct:
+                  entity_map[k] = entity
+
+          (DATA / "ticket-discovery-v14-1.json").write_text(
+              json.dumps(
+                  {
+                      "version": VERSION,
+                      "routeCount": len(routes),
+                      "entityCount": len(entity_map),
+                      "routes": routes,
+                      "entities": sorted(entity_map.values(), key=lambda x: (low(x["value"]), low(x["provider"]))),
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              ) + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # C. CPC-aware monetization routing: relevance first, CPC tie-break
+          # ================================================================
+          cpc_hint_aliases = {
+              "Alibaba": ["alibaba", "alibaba.com"],
+              "AliExpress": ["aliexpress", "ali express", "aliexpress.com"],
+              "Geekbuying": ["geekbuying", "geek buying"],
+          }
+          detected_models: dict[str, dict[str, Any]] = {}
+
+          for row in catalog_products[:24000]:
+              blob = low(
+                  " ".join(
+                      str(row.get(k) or "")
+                      for k in (
+                          "advertiser", "seller", "merchant", "brand", "network",
+                          "program", "commissionType", "earningModel", "paymentModel", "source",
+                      )
+                  )
+              )
+              seller = clean(row.get("advertiser") or row.get("seller") or row.get("merchant") or row.get("brand"))
+              if not seller:
+                  continue
+              if re.search(r"\bcpc\b|cost per click|pay per click", blob):
+                  detected_models.setdefault(seller.lower(), {"seller": seller, "model": "CPC", "evidence": "catalog metadata"})
+              elif re.search(r"\bcpa\b|\bcps\b|commission|sale", blob):
+                  detected_models.setdefault(seller.lower(), {"seller": seller, "model": "CPA/CPS", "evidence": "catalog metadata"})
+
+          for seller, aliases in cpc_hint_aliases.items():
+              detected_models.setdefault(
+                  seller.lower(),
+                  {
+                      "seller": seller,
+                      "model": "CPC-candidate",
+                      "evidence": "project monetization routing hint; verify network terms",
+                      "aliases": aliases,
+                  },
+              )
+
+          monetization = {
+              "version": VERSION,
+              "policy": {
+                  "relevanceFirst": True,
+                  "cpcTieBreakOnly": True,
+                  "publicCpcBadge": False,
+                  "note": (
+                      "CPC is only a tie-break between similarly relevant eligible routes. "
+                      "It never makes an irrelevant result outrank a relevant result. "
+                      "Network terms remain the source of truth."
+                  ),
+              },
+              "programs": sorted(detected_models.values(), key=lambda x: low(x.get("seller"))),
+          }
+          (DATA / "monetization-routing-v14-1.json").write_text(
+              json.dumps(monetization, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # D. Amazon-style autocomplete runtime
+          # ================================================================
+          smart_js = r'''
+          (() => {
+            "use strict";
+            const d=document,$=(s,r=d)=>r.querySelector(s);
+            const clean=v=>String(v??"").replace(/\s+/g," ").trim();
+            const low=v=>clean(v).toLowerCase();
+            const esc=v=>clean(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+            let productIndex=null,ticketIndex=null,activeInput=null,panel=null,openSeq=0;
+
+            async function json(url,fallback){
+              try{const r=await fetch(`${url}?v=14.1-${Date.now()}`,{cache:"no-store"});return r.ok?await r.json():fallback;}
+              catch{return fallback;}
+            }
+            async function products(){return productIndex||(productIndex=json("/data/search-suggestions-v14-1.json",{}));}
+            async function tickets(){return ticketIndex||(ticketIndex=json("/data/ticket-discovery-v14-1.json",{}));}
+            function context(){return location.pathname.startsWith("/tickets")?"ticket":"product";}
+            function host(input){
+              const h=input.closest(".tp-search-input,.tp-ticket-v141-search,.tp-wholesale-search,form,label")||input.parentElement;
+              if(h)h.classList.add("tp-amazon-search-host");
+              return h;
+            }
+            function ensure(input){
+              const h=host(input);let p=h?.querySelector(":scope > .tp-amazon-suggest");
+              if(!p){p=d.createElement("div");p.className="tp-amazon-suggest";p.hidden=true;p.innerHTML='<div class="tp-amazon-list" role="listbox"></div>';h?.appendChild(p);}
+              return p;
+            }
+            function icon(row){return row.image?`<span class="tp-amazon-thumb"><img src="${esc(row.image)}" alt="" loading="lazy"></span>`:'<span class="tp-amazon-search-icon" aria-hidden="true">⌕</span>';}
+            function rank(rows,q){
+              const l=low(q),parts=l.split(/\s+/).filter(Boolean);
+              return rows.filter(x=>{const v=low(x.value);return v.startsWith(l)||parts.every(p=>v.includes(p));})
+                .sort((a,b)=>{const av=low(a.value),bv=low(b.value),ap=av.startsWith(l)?0:1,bp=bv.startsWith(l)?0:1;return ap-bp+(b.score||0)-(a.score||0)+a.value.length-b.value.length;});
+            }
+            async function getRows(input){
+              const q=low(input.value);if(!q)return[];
+              if(context()==="ticket"){
+                const data=await tickets(),entities=Array.isArray(data.entities)?data.entities:[];
+                return entities.filter(x=>low(x.value).startsWith(q)||low(x.value).includes(q))
+                  .sort((a,b)=>{const ap=low(a.value).startsWith(q)?0:1,bp=low(b.value).startsWith(q)?0:1;return ap-bp+a.value.length-b.value.length;})
+                  .slice(0,7)
+                  .map(x=>({value:x.value,meta:x.routeTitle||x.provider||"Tickets",routeId:x.routeId||"",image:""}));
+              }
+              const data=await products();let pool=[];
+              if(q.length===1&&data.byLetter)pool=data.byLetter[q[0]]||[];
+              else pool=Array.isArray(data.top)?data.top:[];
+              if(q.length>1&&data.byLetter)pool=[...(data.byLetter[q[0]]||[]),...pool];
+              const seen=new Set(),rows=[];
+              for(const x of rank(pool,q)){const k=low(x.value);if(!k||seen.has(k))continue;seen.add(k);rows.push(x);if(rows.length>=7)break;}
+              return rows;
+            }
+            function close(){openSeq++;if(panel)panel.hidden=true;panel=null;activeInput=null;}
+            function submit(input,value,row){
+              input.value=value;input.dispatchEvent(new Event("input",{bubbles:true}));close();
+              if(context()==="ticket"){
+                const url=new URL(location.href);url.searchParams.set("q",value);if(row?.routeId)url.searchParams.set("route",row.routeId);history.replaceState(null,"",url);
+                input.dispatchEvent(new CustomEvent("tp:ticket-query",{bubbles:true,detail:{value,routeId:row?.routeId||""}}));input.form?.requestSubmit?.();return;
+              }
+              if(input.form){input.form.requestSubmit?.();return;}
+              location.href=`/find/?q=${encodeURIComponent(value)}`;
+            }
+            async function render(input){
+              const seq=++openSeq,q=clean(input.value);if(!q){close();return;}
+              const rows=await getRows(input);if(seq!==openSeq)return;
+              activeInput=input;panel=ensure(input);const list=$(".tp-amazon-list",panel);
+              list.innerHTML=rows.map((row,i)=>`<button type="button" class="tp-amazon-row" role="option" data-i="${i}" data-value="${esc(row.value)}">${icon(row)}<span class="tp-amazon-copy"><b>${esc(row.value)}</b>${row.meta?`<small>${esc(row.meta)}</small>`:""}</span></button>`).join("");
+              panel._rows=rows;panel.hidden=rows.length===0;
+            }
+            const selector='input[type="search"],input[name="q"],input[data-search],.tp-search-input input,.tp-ticket-v141-search input,.tp-wholesale-search input';
+            d.addEventListener("input",e=>{if(e.target.matches(selector))render(e.target);});
+            d.addEventListener("focusin",e=>{if(e.target.matches(selector)&&clean(e.target.value))render(e.target);});
+            d.addEventListener("pointerdown",e=>{
+              const row=e.target.closest(".tp-amazon-row");
+              if(row&&activeInput&&panel){e.preventDefault();const data=panel._rows||[],item=data[Number(row.dataset.i)]||{value:row.dataset.value};submit(activeInput,item.value,item);return;}
+              if(panel&&!e.target.closest(".tp-amazon-suggest")&&e.target!==activeInput)close();
+            });
+            d.addEventListener("keydown",e=>{if(e.key==="Escape"&&panel)close();});
+          })();
+          '''
+          (JS / "smart-suggestions-v14.js").write_text(
+              "\n".join(line.rstrip() for line in smart_js.strip().splitlines()) + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # E. Ticket decision runtime
+          # ================================================================
+          ticket_js = r'''
+          (() => {
+            "use strict";
+            const d=document,$=(s,r=d)=>r.querySelector(s),$$=(s,r=d)=>[...r.querySelectorAll(s)];
+            const clean=v=>String(v??"").replace(/\s+/g," ").trim(),low=v=>clean(v).toLowerCase();
+            const esc=v=>clean(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+            let discovery={routes:[],entities:[]},inventory=[],query="",type="all",shown=18;
+            async function load(){
+              const [a,b]=await Promise.allSettled([
+                fetch(`/data/ticket-discovery-v14-1.json?v=14.1-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}),
+                fetch(`/data/ticket-inventory.json?v=14.1-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{})
+              ]);
+              discovery=a.status==="fulfilled"?a.value:{routes:[],entities:[]};inventory=b.status==="fulfilled"?(b.value.listings||[]):[];
+            }
+            function money(x){const n=Number(x.price);if(!Number.isFinite(n))return"";try{return new Intl.NumberFormat(undefined,{style:"currency",currency:x.currency||"USD"}).format(n)}catch{return`${x.currency||""} ${n.toFixed(2)}`.trim()}}
+            const canonical=x=>clean(x.eventTitle||x.title);
+            function matches(x,q){if(!q)return true;const words=low(q).split(/\s+/).filter(Boolean),blob=low(`${canonical(x)} ${x.provider||""} ${x.description||""} ${(x.aliases||[]).join(" ")}`);return words.every(w=>blob.includes(w));}
+            const typeMatch=x=>type==="all"||low(x.type)===type;
+            function expandedRouteIds(q){const ids=new Set(),l=low(q);if(!l)return ids;for(const e of discovery.entities||[]){const v=low(e.value);if(v===l||v.startsWith(l)||l.startsWith(v))ids.add(e.routeId);}return ids;}
+            function dedupe(rows){const map=new Map();for(const r of rows){const key=low(`${canonical(r)}|${r.provider}|${r.destination||""}`);if(!map.has(key))map.set(key,r);}return[...map.values()];}
+            function facts(rows){rows=rows.filter(x=>clean(x[1]));return rows.length?`<div class="tp-ticket-v141-facts">${rows.map(([k,v])=>`<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div>`:"";}
+            function routeLevel(x){const t=low(`${canonical(x)} ${x.destination||""}`);if(/competition|league|serie a|la liga|formula|grand prix/.test(t))return"Competition";if(/performer|artist|band|concert/.test(t))return"Artist / performer";if(low(x.type)==="travel")return"Travel route";return"Event route";}
+            function inventoryCard(x){return`<article class="tp-ticket-v141-card is-inventory"><div class="tp-ticket-v141-card-head"><span>Live ticket inventory</span><strong>${esc(x.provider||"Provider")}</strong></div><h3>${esc(canonical(x))}</h3>${facts([["Date",x.date],["Venue",x.venue],["Section",x.section],["Row",x.row],["Quantity",x.quantity!=null?String(x.quantity):""],["Price",money(x)]])}<div class="tp-ticket-v141-actions"><button type="button" data-ticket-quick="${esc(x.id)}" data-kind="inventory">Quick view</button><a class="primary" href="/ticket/?id=${encodeURIComponent(x.id)}">Ticket details</a></div></article>`;}
+            function routeCard(x,note=""){return`<article class="tp-ticket-v141-card"><div class="tp-ticket-v141-card-head"><span>${esc(routeLevel(x))}</span><strong>${esc(x.provider||"Provider")}</strong></div><h3>${esc(canonical(x))}</h3><p>${esc(x.description||"Open the connected provider to check current event dates, availability, seats and total price.")}</p>${note?`<div class="tp-ticket-v141-nearest">${esc(note)}</div>`:""}${facts([["Live price",money(x)],["Venue",x.venue],["Date",x.date]])}<div class="tp-ticket-v141-actions"><button type="button" data-ticket-quick="${esc(x.id)}" data-kind="route">Quick view</button><a class="primary" href="/ticket/?id=${encodeURIComponent(x.id)}">Review before provider</a></div></article>`;}
+            function render(){
+              const q=clean(query),host=$("[data-ticket-v141-results]");if(!host)return;
+              const exact=inventory.filter(x=>typeMatch(x)&&matches(x,q)),expanded=expandedRouteIds(q),routes=dedupe((discovery.routes||[]).filter(typeMatch));
+              const direct=routes.filter(x=>matches(x,q)),nearest=q&&direct.length===0&&expanded.size?routes.filter(x=>expanded.has(x.id)):[];
+              const total=exact.length+direct.length+nearest.length,summary=$("[data-ticket-v141-summary]");
+              if(summary){
+                if(!q)summary.textContent=`Explore ${routes.length} verified connected ticket and booking routes.`;
+                else if(exact.length)summary.textContent=`${exact.length} ticket listing${exact.length===1?"":"s"} with inventory evidence, plus ${direct.length} connected routes.`;
+                else if(direct.length)summary.textContent=`${direct.length} connected route${direct.length===1?"":"s"} match “${q}”. Live seat price and availability stay on the provider unless supplied by feed.`;
+                else if(nearest.length)summary.textContent=`No team-specific feed was supplied for “${q}”. Showing the closest verified competition route instead of inventing a fixture.`;
+                else summary.textContent=`No verified connected route currently matches “${q}”. Try a league, team, artist, sport or destination.`;
+              }
+              let html="";
+              if(exact.length)html+=`<section class="tp-ticket-v141-result-group"><div class="tp-ticket-v141-section-title"><span>Exact inventory</span><h2>Tickets with supplied seat or price evidence</h2></div><div class="tp-ticket-v141-grid">${exact.slice(0,shown).map(inventoryCard).join("")}</div></section>`;
+              if(direct.length)html+=`<section class="tp-ticket-v141-result-group"><div class="tp-ticket-v141-section-title"><span>Connected routes</span><h2>${q?`Best routes for “${esc(q)}”`:"Current event, competition and booking routes"}</h2></div><div class="tp-ticket-v141-grid">${direct.slice(0,shown).map(x=>routeCard(x)).join("")}</div></section>`;
+              if(nearest.length)html+=`<section class="tp-ticket-v141-result-group"><div class="tp-ticket-v141-section-title"><span>Closest verified route</span><h2>Continue through the competition rather than a made-up match</h2></div><div class="tp-ticket-v141-grid">${nearest.slice(0,6).map(x=>routeCard(x,`Closest connected route for ${q}. Choose the exact fixture on the provider.`)).join("")}</div></section>`;
+              if(!total)html='<div class="tp-ticket-v141-empty"><b>No connected result yet.</b><span>Try Premier League, Arsenal, Champions League, Formula 1, Muse, flights, hotels or another event name.</span></div>';
+              host.innerHTML=html;const more=$("[data-ticket-v141-more]");if(more)more.hidden=total<=shown;
+            }
+            function quick(x,isInventory){
+              let modal=$("[data-ticket-v141-modal]");if(!modal){modal=d.createElement("div");modal.className="tp-ticket-v141-modal";modal.hidden=true;modal.dataset.ticketV141Modal="";modal.innerHTML='<button class="tp-ticket-v141-backdrop" type="button" data-ticket-v141-close aria-label="Close"></button><section class="tp-ticket-v141-dialog"><button class="tp-ticket-v141-close" type="button" data-ticket-v141-close>×</button><div data-ticket-v141-body></div></section>';d.body.appendChild(modal);}
+              const body=$("[data-ticket-v141-body]",modal);body.innerHTML=`<span class="tp-kicker">${esc(x.provider||"Ticket source")}</span><h2>${esc(canonical(x))}</h2>${facts([["Data level",isInventory?"Seat / ticket inventory":routeLevel(x)],["Price",money(x)],["Date",x.date],["Venue",x.venue],["Section",x.section],["Row",x.row],["Quantity",x.quantity!=null?String(x.quantity):""]])}<div class="tp-ticket-v141-info"><b>What TrendPilot knows</b><p>${isInventory?"This listing contains direct inventory evidence from the connected data source.":"This is a verified provider route. Exact fixture, seat, fees and final price must be confirmed live when the feed does not supply them."}</p></div><div class="tp-ticket-v141-actions"><a href="/ticket/?id=${encodeURIComponent(x.id)}">Full information</a><a class="primary" href="${esc(x.url)}" target="_blank" rel="nofollow sponsored noopener">Check live provider ↗</a></div>`;modal.hidden=false;
+            }
+            async function init(){
+              await load();const input=$("[data-ticket-v141-query]"),form=$("[data-ticket-v141-form]"),select=$("[data-ticket-v141-type]"),params=new URLSearchParams(location.search);
+              query=params.get("q")||"";if(input)input.value=query;type=params.get("type")||"all";if(select)select.value=type;
+              form?.addEventListener("submit",e=>{e.preventDefault();query=clean(input?.value);type=select?.value||"all";shown=18;const u=new URL(location.href);if(query)u.searchParams.set("q",query);else u.searchParams.delete("q");if(type!=="all")u.searchParams.set("type",type);else u.searchParams.delete("type");history.replaceState(null,"",u);render();});
+              select?.addEventListener("change",()=>{type=select.value||"all";shown=18;render();});
+              $$("[data-ticket-v141-chip]").forEach(b=>b.addEventListener("click",()=>{type=b.dataset.ticketV141Chip||"all";if(select)select.value=type;shown=18;render();}));
+              d.addEventListener("tp:ticket-query",e=>{query=clean(e.detail?.value||input?.value);shown=18;render();});
+              d.addEventListener("click",e=>{const qv=e.target.closest("[data-ticket-quick]");if(qv){const isInv=qv.dataset.kind==="inventory",pool=isInv?inventory:(discovery.routes||[]),row=pool.find(x=>x.id===qv.dataset.ticketQuick);if(row)quick(row,isInv);return;}if(e.target.closest("[data-ticket-v141-close]")){const m=$("[data-ticket-v141-modal]");if(m)m.hidden=true;}});
+              $("[data-ticket-v141-more]")?.addEventListener("click",()=>{shown+=18;render();});render();
+            }
+            if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",init,{once:true});else init();
+          })();
+          '''
+          (JS / "ticket-decision-v14.js").write_text(
+              "\n".join(line.rstrip() for line in ticket_js.strip().splitlines()) + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # F. Ticket detail runtime
+          # ================================================================
+          ticket_detail_js = r'''
+          (() => {
+            "use strict";
+            const d=document,$=(s,r=d)=>r.querySelector(s),clean=v=>String(v??"").replace(/\s+/g," ").trim();
+            const esc=v=>clean(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+            const money=x=>{const n=Number(x.price);if(!Number.isFinite(n))return"";try{return new Intl.NumberFormat(undefined,{style:"currency",currency:x.currency||"USD"}).format(n)}catch{return`${x.currency||""} ${n.toFixed(2)}`.trim()}};
+            const facts=rows=>{rows=rows.filter(x=>clean(x[1]));return rows.length?`<div class="tp-ticket-v141-facts">${rows.map(([k,v])=>`<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div>`:""};
+            async function init(){
+              const host=$("[data-ticket-detail]"),id=new URLSearchParams(location.search).get("id")||"",res=await Promise.allSettled([
+                fetch(`/data/ticket-discovery-v14-1.json?v=14.1-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}),
+                fetch(`/data/ticket-inventory.json?v=14.1-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{})
+              ]);
+              const routes=res[0].status==="fulfilled"?(res[0].value.routes||[]):[],inventory=res[1].status==="fulfilled"?(res[1].value.listings||[]):[];
+              let x=inventory.find(v=>v.id===id),kind=x?"Inventory":"Provider route";if(!x)x=routes.find(v=>v.id===id);
+              if(!x){host.innerHTML='<div class="tp-ticket-v141-empty"><b>Ticket information is unavailable.</b><a href="/tickets/">Back to ticket search</a></div>';return;}
+              const title=clean(x.eventTitle||x.title),isInventory=kind==="Inventory";d.title=`${title} — TrendPilot AI`;
+              host.innerHTML=`<a class="tp-ticket-v141-back" href="/tickets/">← Back to ticket search</a><article class="tp-ticket-v141-detail"><span class="tp-kicker">${esc(x.provider||"Ticket source")}</span><h1>${esc(title)}</h1><p class="tp-ticket-v141-detail-lead">${isInventory?"TrendPilot received inventory-level evidence for this listing.":"TrendPilot received a verified route from the connected provider, but not a complete seat inventory feed."}</p>${facts([["Data level",kind],["Price",money(x)],["Date",x.date],["Venue",x.venue],["City",x.city],["Section",x.section],["Row",x.row],["Quantity",x.quantity!=null?String(x.quantity):""]])}<section class="tp-ticket-v141-checklist"><h2>Check before checkout</h2><div><span>1</span><p>Confirm the exact fixture, artist, venue and local date/time.</p></div><div><span>2</span><p>Check whether seats are together, the section/row, restricted-view wording and ticket quantity.</p></div><div><span>3</span><p>Review fees, tax, delivery method, currency, refund policy and event-change terms.</p></div></section>${!isInventory?'<div class="tp-ticket-v141-nearest">Missing seat details are intentionally hidden. TrendPilot does not invent a section, row, fixture or price that the feed did not supply.</div>':""}<div class="tp-ticket-v141-actions"><a href="/tickets/">Compare other routes</a><a class="primary" href="${esc(x.url)}" target="_blank" rel="nofollow sponsored noopener">Check live provider ↗</a></div></article>`;
+            }
+            if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",init,{once:true});else init();
+          })();
+          '''
+          (JS / "ticket-detail-v14.js").write_text(
+              "\n".join(line.rstrip() for line in ticket_detail_js.strip().splitlines()) + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # G. CSS
+          # ================================================================
+          css_path = CSS / "decision-v14.css"
+          css = css_path.read_text(encoding="utf-8")
+          css = re.sub(r"/\* TP_V141_START \*/[\s\S]*?/\* TP_V141_END \*/", "", css, count=1)
+          v141_css = r'''
+          /* TP_V141_START */
+          .tp-amazon-search-host{position:relative!important}.tp-amazon-suggest{position:absolute;z-index:12000;left:0;right:0;top:calc(100% + 2px);overflow:hidden;border:1px solid #cfd6d4;border-radius:0 0 10px 10px;background:#fff;box-shadow:0 8px 18px rgba(0,0,0,.18)}.tp-amazon-suggest[hidden]{display:none!important}.tp-amazon-list{display:block;max-height:min(390px,48vh);overflow:auto;overscroll-behavior:contain}.tp-amazon-row{display:grid;width:100%;grid-template-columns:44px minmax(0,1fr);align-items:center;gap:10px;min-height:54px;padding:6px 12px;border:0;border-bottom:1px solid #eef0ef;background:#fff;color:#111;text-align:left;font:inherit;cursor:pointer}.tp-amazon-row:last-child{border-bottom:0}.tp-amazon-row:active,.tp-amazon-row:hover{background:#f4f6f6}.tp-amazon-thumb{display:grid;width:40px;height:40px;place-items:center;overflow:hidden;border-radius:5px;background:#f1f2f2}.tp-amazon-thumb img{width:100%;height:100%;object-fit:contain}.tp-amazon-search-icon{display:grid;width:40px;height:40px;place-items:center;color:#303735;font-size:1.45rem}.tp-amazon-copy{min-width:0}.tp-amazon-copy b{display:block;overflow:hidden;color:#111;font-size:.98rem;font-weight:760;line-height:1.2;text-overflow:ellipsis;white-space:nowrap}.tp-amazon-copy small{display:block;overflow:hidden;margin-top:3px;color:#68726e;font-size:.69rem;text-overflow:ellipsis;white-space:nowrap}.tp-smart-suggestions{display:none!important}
+          .tp-ticket-v141-page{background:linear-gradient(180deg,#f5f8ff 0,#fbfbf7 440px,#fbfbf7 100%);min-height:100vh}.tp-ticket-v141-hero{padding:46px 0 25px}.tp-ticket-v141-hero-grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:28px;align-items:center}.tp-ticket-v141-hero h1{max-width:760px;margin:10px 0 16px;font-size:clamp(2.45rem,7vw,5.35rem);line-height:.93;letter-spacing:-.045em}.tp-ticket-v141-hero p{max-width:700px;color:#626e69;font-size:1.04rem;line-height:1.7}.tp-ticket-v141-trust{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:20px}.tp-ticket-v141-trust div{padding:13px;border:1px solid #dce4e1;border-radius:15px;background:rgba(255,255,255,.8)}.tp-ticket-v141-trust b{display:block;font-size:.86rem}.tp-ticket-v141-trust span{display:block;margin-top:4px;color:#6c7773;font-size:.68rem;line-height:1.35}.tp-ticket-v141-search-card{padding:19px;border:1px solid #d6dfdc;border-radius:24px;background:#fff;box-shadow:0 20px 50px rgba(31,50,44,.09)}.tp-ticket-v141-form{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:10px}.tp-ticket-v141-search{position:relative}.tp-ticket-v141-form input,.tp-ticket-v141-form select{width:100%;min-height:58px;padding:0 16px;border:1px solid #cbd5d1;border-radius:14px;background:#fff;font:inherit;font-size:1rem}.tp-ticket-v141-form button{grid-column:1/-1;min-height:54px;border:0;border-radius:14px;background:#3158e8;color:#fff;font:inherit;font-weight:850}.tp-ticket-v141-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.tp-ticket-v141-chips button{padding:9px 13px;border:1px solid #d3dcda;border-radius:999px;background:#fff;color:#25302c;font:inherit;font-size:.82rem;font-weight:760}.tp-ticket-v141-summary{margin-top:14px;color:#596761;font-size:.82rem;line-height:1.5}.tp-ticket-v141-feature{padding:22px;border-radius:24px;background:#0f1a2f;color:#fff}.tp-ticket-v141-feature span{color:#7da2ff;font-size:.72rem;font-weight:900;letter-spacing:.12em;text-transform:uppercase}.tp-ticket-v141-feature h2{margin:9px 0 12px;font-size:1.55rem;line-height:1.1}.tp-ticket-v141-feature p{margin:0;color:#cdd5e5;font-size:.85rem}.tp-ticket-v141-feature ul{display:grid;gap:9px;margin:18px 0 0;padding:0;list-style:none}.tp-ticket-v141-feature li{display:flex;gap:9px;color:#eef2ff;font-size:.8rem}.tp-ticket-v141-feature li:before{content:"✓";color:#76e0b3;font-weight:900}.tp-ticket-v141-results{padding:24px 0 85px}.tp-ticket-v141-result-group{margin:22px 0 44px}.tp-ticket-v141-section-title span{color:#3158e8;font-size:.72rem;font-weight:900;letter-spacing:.13em;text-transform:uppercase}.tp-ticket-v141-section-title h2{margin:7px 0 17px;font-size:clamp(1.6rem,4vw,2.45rem);line-height:1.08}.tp-ticket-v141-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px}.tp-ticket-v141-card{display:flex;flex-direction:column;min-height:100%;padding:19px;border:1px solid #dce3e1;border-radius:22px;background:#fff;box-shadow:0 12px 30px rgba(32,49,44,.05)}.tp-ticket-v141-card.is-inventory{border-color:#9bd8bd;background:linear-gradient(180deg,#f4fff9,#fff)}.tp-ticket-v141-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px}.tp-ticket-v141-card-head span{padding:6px 9px;border-radius:999px;background:#eef4ff;color:#3158e8;font-size:.67rem;font-weight:900}.tp-ticket-v141-card-head strong{color:#17765d;font-size:.72rem}.tp-ticket-v141-card h3{margin:12px 0 9px;font-size:1.18rem;line-height:1.28}.tp-ticket-v141-card p{color:#65706c;font-size:.82rem;line-height:1.55}.tp-ticket-v141-facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:11px 0}.tp-ticket-v141-facts div{padding:10px;border-radius:13px;background:#f2f5f4}.tp-ticket-v141-facts small{display:block;color:#728079;font-size:.63rem}.tp-ticket-v141-facts b{display:block;margin-top:3px;font-size:.8rem;line-height:1.3}.tp-ticket-v141-nearest{margin:9px 0;padding:11px;border-radius:12px;background:#fff6df;color:#67521d;font-size:.76rem;line-height:1.48}.tp-ticket-v141-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto;padding-top:12px}.tp-ticket-v141-actions a,.tp-ticket-v141-actions button{display:flex;min-height:45px;align-items:center;justify-content:center;padding:8px;border:1px solid #ccd7d3;border-radius:12px;background:#fff;color:#1f2d28;font:inherit;font-size:.75rem;font-weight:850;text-align:center;text-decoration:none}.tp-ticket-v141-actions .primary{border-color:#3158e8;background:#3158e8;color:#fff}.tp-ticket-v141-empty{display:flex;flex-direction:column;gap:7px;padding:28px;border:1px dashed #c9d3d0;border-radius:20px;background:#fff;color:#5f6b67}.tp-ticket-v141-empty b{color:#17231f;font-size:1.1rem}.tp-ticket-v141-modal{position:fixed;z-index:16000;inset:0}.tp-ticket-v141-modal[hidden]{display:none!important}.tp-ticket-v141-backdrop{position:absolute;inset:0;border:0;background:rgba(10,23,19,.64)}.tp-ticket-v141-dialog{position:relative;z-index:1;width:min(650px,calc(100% - 28px));max-height:calc(100vh - 40px);overflow:auto;margin:20px auto;padding:24px;border-radius:25px;background:#fff;box-shadow:0 30px 90px rgba(0,0,0,.3)}.tp-ticket-v141-close{position:absolute;top:15px;right:15px;width:43px;height:43px;border:1px solid #d2d9d7;border-radius:14px;background:#fff;font-size:1.45rem}.tp-ticket-v141-info{margin:16px 0;padding:14px;border-radius:14px;background:#f3f6f5}.tp-ticket-v141-info p{margin:5px 0 0;color:#5d6964;font-size:.8rem;line-height:1.55}.tp-ticket-v141-detail{max-width:880px;margin:20px auto;padding:28px;border:1px solid #d9e2df;border-radius:26px;background:#fff}.tp-ticket-v141-detail h1{margin:8px 0 12px;font-size:clamp(2rem,6vw,4rem);line-height:1}.tp-ticket-v141-detail-lead{color:#65716c;line-height:1.65}.tp-ticket-v141-checklist{margin:20px 0;padding:18px;border-radius:18px;background:#f4f7f6}.tp-ticket-v141-checklist h2{margin:0 0 10px}.tp-ticket-v141-checklist div{display:flex;gap:10px;margin:9px 0}.tp-ticket-v141-checklist span{display:grid;flex:0 0 28px;width:28px;height:28px;place-items:center;border-radius:50%;background:#3158e8;color:#fff;font-weight:900}.tp-ticket-v141-checklist p{margin:2px 0;color:#56635e;font-size:.83rem;line-height:1.5}.tp-ticket-v141-back{display:inline-flex;margin:10px 0;color:#3158e8;font-weight:800;text-decoration:none}
+          @media(max-width:900px){.tp-ticket-v141-hero-grid{grid-template-columns:1fr}.tp-ticket-v141-grid{grid-template-columns:1fr 1fr}.tp-ticket-v141-feature{display:none}}
+          @media(max-width:620px){.tp-amazon-suggest{left:0;right:0;top:calc(100% + 1px);border-radius:0 0 8px 8px}.tp-amazon-list{max-height:330px}.tp-amazon-row{grid-template-columns:42px minmax(0,1fr);min-height:52px;padding:5px 10px}.tp-ticket-v141-hero{padding:26px 0 18px}.tp-ticket-v141-hero h1{font-size:2.6rem}.tp-ticket-v141-trust{grid-template-columns:1fr 1fr}.tp-ticket-v141-trust div:last-child{display:none}.tp-ticket-v141-form{grid-template-columns:1fr}.tp-ticket-v141-form button{grid-column:auto}.tp-ticket-v141-grid{grid-template-columns:1fr}.tp-ticket-v141-actions{grid-template-columns:1fr}.tp-ticket-v141-facts{grid-template-columns:1fr 1fr}.tp-ticket-v141-dialog{width:calc(100% - 20px);max-height:calc(100vh - 20px);margin:10px auto;padding:20px}.tp-ticket-v141-search-card{padding:14px}}
+          /* TP_V141_END */
+          '''
+          css_path.write_text(css.rstrip() + "\n" + "\n".join(line.rstrip() for line in v141_css.strip().splitlines()) + "\n", encoding="utf-8")
+
+          # ================================================================
+          # H. New Tickets page
+          # ================================================================
+          tickets_html = r'''<!doctype html>
+          <html lang="en"><head>
+          <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+          <meta name="robots" content="index,follow"><title>Compare Tickets & Live Events — TrendPilot AI</title>
+          <meta name="description" content="Search an event, team, competition, concert or travel booking and compare the closest verified connected ticket routes without invented seat data.">
+          <link rel="canonical" href="https://trendpilotchoice.com/tickets/">
+          <link rel="icon" href="/images/favicon-v4.svg" type="image/svg+xml">
+          <link rel="stylesheet" href="/css/style-v13-2.css?v=13.2.0">
+          <link rel="stylesheet" href="/css/style-v13-5.css?v=13.5.0">
+          <link rel="stylesheet" href="/css/decision-v14.css?v=14.1.2">
+          </head><body class="tp-ticket-v141-page" data-tp-page="tickets">
+          <header class="tp-header"><div class="tp-shell tp-nav"><a class="tp-brand" href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><span>TrendPilot <em>AI</em></span></a><nav class="tp-links" data-tp-nav><strong class="tp-menu-title">Explore TrendPilot</strong><button class="tp-menu-close" data-tp-menu-close type="button">×</button><span class="tp-menu-section-title">Decide</span><a href="/find/">Find products</a><a href="/wholesale/">Wholesale & bulk</a><a href="/deals/">Deals & coupons</a><a href="/compare/">Compare</a><span class="tp-menu-section-title">Explore</span><a href="/software/">Software Finder</a><a href="/rare-used/">Rare Finds</a><a class="is-active" href="/tickets/">Tickets & experiences</a><a href="/sourcing/">For Business</a></nav><button class="tp-menu-button" data-tp-menu-button type="button" aria-expanded="false"><span></span><span></span><span></span></button></div><button class="tp-nav-backdrop" data-tp-nav-backdrop type="button"></button></header>
+          <main>
+          <section class="tp-ticket-v141-hero"><div class="tp-shell tp-ticket-v141-hero-grid"><div><span class="tp-kicker">Event-first ticket comparison</span><h1>Search the event first. Then compare the best connected route.</h1><p>Type a team, league, artist, sport or destination. TrendPilot separates real inventory from provider routes and never fills missing seats, dates or prices with invented values.</p><div class="tp-ticket-v141-trust"><div><b>Inventory when supplied</b><span>Price, section and row appear only when the feed gives them.</span></div><div><b>Verified routes</b><span>Competition and performer links remain useful when inventory is live on provider.</span></div><div><b>One decision page</b><span>Review what is known before leaving TrendPilot.</span></div></div></div><aside class="tp-ticket-v141-feature"><span>How it works</span><h2>One query, not four marketplace tabs.</h2><p>TrendPilot checks the connected ticket sources and shows the strongest route for your intent.</p><ul><li>Team search can fall back safely to its competition.</li><li>Exact seat information outranks generic routes.</li><li>Missing fields stay hidden.</li></ul></aside></div></section>
+          <section><div class="tp-shell"><div class="tp-ticket-v141-search-card"><form class="tp-ticket-v141-form" data-ticket-v141-form><div class="tp-ticket-v141-search"><input data-ticket-v141-query name="q" type="search" autocomplete="off" spellcheck="false" placeholder="Team, league, artist, event or destination"></div><select data-ticket-v141-type name="type"><option value="all">All tickets & bookings</option><option value="sports">Sports</option><option value="concerts">Concerts</option><option value="theatre">Theatre</option><option value="travel">Travel & attractions</option></select><button type="submit">Find the best route</button></form><div class="tp-ticket-v141-chips"><button type="button" data-ticket-v141-chip="all">All</button><button type="button" data-ticket-v141-chip="sports">Sports</button><button type="button" data-ticket-v141-chip="concerts">Concerts</button><button type="button" data-ticket-v141-chip="theatre">Theatre</button><button type="button" data-ticket-v141-chip="travel">Travel</button></div><div class="tp-ticket-v141-summary" data-ticket-v141-summary>Loading verified routes…</div></div></div></section>
+          <section class="tp-ticket-v141-results"><div class="tp-shell"><div data-ticket-v141-results><div class="tp-ticket-v141-empty"><b>Loading ticket discovery…</b></div></div><button class="tp-btn tp-btn-light" data-ticket-v141-more type="button" hidden>Show more</button></div></section>
+          </main>
+          <nav class="tp-mobile-tabs" aria-label="Mobile navigation"><a href="/"><span>⌂</span><b>Home</b></a><a href="/find/"><span>⌕</span><b>Search</b></a><a class="is-active" href="/tickets/"><span>▣</span><b>Tickets</b></a><a href="/compare/"><span>⇄</span><b>Compare</b></a></nav>
+          <script defer src="/js/site-v13-5.js?v=13.8.30"></script>
+          <script defer src="/js/smart-suggestions-v14.js?v=14.1.2"></script>
+          <script defer src="/js/ticket-decision-v14.js?v=14.1.2"></script>
+          </body></html>'''
+          (ROOT / "tickets" / "index.html").write_text("\n".join(line.strip() for line in tickets_html.strip().splitlines()) + "\n", encoding="utf-8")
+
+          detail_path = ROOT / "ticket" / "index.html"
+          if detail_path.exists():
+              page = detail_path.read_text(encoding="utf-8")
+              page = re.sub(r'/css/decision-v14\.css\?v=[^"\']+', '/css/decision-v14.css?v=14.1.2', page)
+              page = re.sub(r'/js/ticket-detail-v14\.js\?v=[^"\']+', '/js/ticket-detail-v14.js?v=14.1.2', page)
+              detail_path.write_text(page, encoding="utf-8")
+
+          for page_path in (ROOT / "find" / "index.html", ROOT / "wholesale" / "index.html"):
+              page = page_path.read_text(encoding="utf-8")
+              if re.search(r'/js/smart-suggestions-v14\.js\?v=[^"\']+', page):
+                  page = re.sub(r'/js/smart-suggestions-v14\.js\?v=[^"\']+', '/js/smart-suggestions-v14.js?v=14.1.2', page, count=1)
+              elif "</body>" in page:
+                  page = page.replace("</body>", '<script defer src="/js/smart-suggestions-v14.js?v=14.1.2"></script>\n</body>', 1)
+              page = re.sub(r'/css/decision-v14\.css\?v=[^"\']+', '/css/decision-v14.css?v=14.1.2', page)
+              page_path.write_text(page, encoding="utf-8")
+
+          # ================================================================
+          # I. Internal CPC helper
+          # ================================================================
+          monetization_js = r'''
+          (() => {
+            "use strict";
+            let cache=null;
+            async function config(){if(cache)return cache;try{const r=await fetch(`/data/monetization-routing-v14-1.json?v=14.1-${Date.now()}`,{cache:"no-store"});cache=r.ok?await r.json():{};}catch{cache={};}return cache;}
+            window.TP_MONETIZATION_V141={
+              async modelFor(text){const data=await config(),q=String(text||"").toLowerCase();for(const p of data.programs||[]){const names=[p.seller,...(p.aliases||[])].map(x=>String(x||"").toLowerCase());if(names.some(x=>x&&q.includes(x)))return p.model||"";}return"";},
+              async tieBreak(a,b){const ma=await this.modelFor(a?.seller||a?.advertiser||a?.brand||""),mb=await this.modelFor(b?.seller||b?.advertiser||b?.brand||"");const score=m=>m==="CPC"?2:m==="CPC-candidate"?1:0;return score(mb)-score(ma);}
+            };
+          })();
+          '''
+          (JS / "monetization-v14-1.js").write_text("\n".join(line.rstrip() for line in monetization_js.strip().splitlines()) + "\n", encoding="utf-8")
+
+          for page_path in (ROOT / "find" / "index.html", ROOT / "wholesale" / "index.html"):
+              page = page_path.read_text(encoding="utf-8")
+              page = re.sub(r'\s*<script[^>]+src="/js/monetization-v14-1\.js[^"]*"[^>]*></script>\s*', "\n", page, count=1)
+              if "</body>" in page:
+                  page = page.replace("</body>", '<script defer src="/js/monetization-v14-1.js?v=14.1.2"></script>\n</body>', 1)
+              page_path.write_text(page, encoding="utf-8")
+
+          report = {
+              "version": VERSION,
+              "suggestions": {
+                  "indexedTerms": len(suggestions),
+                  "lettersWithAtLeast12": sum(1 for v in by_letter.values() if len(v) >= 12),
+                  "oldViewAllRemoved": True,
+                  "maxVisibleRows": 7,
+                  "amazonStyle": True,
+              },
+              "tickets": {
+                  "rawRoutes": len(raw_events),
+                  "cleanRoutes": len(routes),
+                  "searchEntities": len(entity_map),
+                  "teamToCompetitionFallback": True,
+                  "inventoryFile": "data/ticket-inventory.json",
+              },
+              "monetization": {
+                  "cpcTieBreakOnly": True,
+                  "publicCpcBadge": False,
+                  "programsDetectedOrHinted": len(monetization["programs"]),
+              },
+          }
+          (DATA / "v14-1-install-report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Validate V14.1 experience
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/smart-suggestions-v14.js
+          node --check js/ticket-decision-v14.js
+          node --check js/ticket-detail-v14.js
+          node --check js/monetization-v14-1.js
+          git diff --check
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          def require(ok, message):
+              if not ok:
+                  raise SystemExit("Validation failed: " + message)
+
+          s = json.loads(Path("data/search-suggestions-v14-1.json").read_text(encoding="utf-8"))
+          t = json.loads(Path("data/ticket-discovery-v14-1.json").read_text(encoding="utf-8"))
+          m = json.loads(Path("data/monetization-routing-v14-1.json").read_text(encoding="utf-8"))
+          report = json.loads(Path("data/v14-1-install-report.json").read_text(encoding="utf-8"))
+          smart = Path("js/smart-suggestions-v14.js").read_text(encoding="utf-8")
+          ticket = Path("js/ticket-decision-v14.js").read_text(encoding="utf-8")
+          css = Path("css/decision-v14.css").read_text(encoding="utf-8")
+          tickets_page = Path("tickets/index.html").read_text(encoding="utf-8")
+
+          require(s.get("version") == "14.1.2", "suggestion index version")
+          require(len(s.get("byLetter", {})) == 26, "all 26 English letters must exist")
+          require(len(s["byLetter"].get("b", [])) >= 6, "B suggestions are too sparse")
+          require(len(s["byLetter"].get("p", [])) >= 6, "P suggestions are too sparse")
+          require("tp-amazon-row" in smart, "Amazon-style rows missing")
+          require("View all" not in smart, "old blue View all button still exists")
+          require("tp-smart-suggestions{display:none!important}" in css, "old V14 popup is not retired")
+
+          require(t.get("version") == "14.1.2", "ticket discovery version")
+          require(t.get("routeCount", 0) >= 10, "ticket route set unexpectedly small")
+          entities = {str(x.get("value","")).lower() for x in t.get("entities", [])}
+          require("premier league" in entities, "Premier League entity missing")
+          require("arsenal" in entities, "Arsenal fallback entity missing")
+          require("expandedRouteIds" in ticket, "ticket team-to-competition fallback missing")
+          require("Event-first ticket comparison" in tickets_page, "new ticket hero missing")
+          require("One query, not four marketplace tabs." in tickets_page, "event-first ticket UX missing")
+
+          require(m.get("policy", {}).get("relevanceFirst") is True, "relevance-first monetization rule missing")
+          require(m.get("policy", {}).get("cpcTieBreakOnly") is True, "CPC tie-break policy missing")
+          require(m.get("policy", {}).get("publicCpcBadge") is False, "CPC should not be claimed publicly without evidence")
+
+          print(json.dumps(report, indent=2))
+          PY
+
+          {
+            echo "## TrendPilot V14.1.2"
+            echo ""
+            echo "- Fast mode / no concurrency lock: **enabled**"
+            echo "- Amazon-style autocomplete: **installed**"
+            echo "- Old blue View-all suggestion button: **removed**"
+            echo "- A-Z product suggestion index: **installed**"
+            echo "- Ticket page: **event-first rebuild**"
+            echo "- Team → competition safe fallback: **installed**"
+            echo "- CPC monetization: **relevance-first tie-break layer installed**"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish V14.1 only if main has not changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin main
+          CURRENT_REMOTE="$(git rev-parse origin/main)"
+          if [[ "$CURRENT_REMOTE" != "$TP_BASE_SHA" ]]; then
+            echo "main changed while V14.1 was building."
+            echo "Expected: $TP_BASE_SHA"
+            echo "Current:  $CURRENT_REMOTE"
+            echo "Nothing was pushed. Run the workflow again on the newest main."
+            exit 1
+          fi
+
+          files=(
+            "data/search-suggestions-v14-1.json"
+            "data/ticket-discovery-v14-1.json"
+            "data/monetization-routing-v14-1.json"
+            "data/v14-1-install-report.json"
+            "js/smart-suggestions-v14.js"
+            "js/ticket-decision-v14.js"
+            "js/ticket-detail-v14.js"
+            "js/monetization-v14-1.js"
+            "css/decision-v14.css"
+            "find/index.html"
+            "wholesale/index.html"
+            "tickets/index.html"
+            "ticket/index.html"
+          )
+
+          present=()
+          for f in "${files[@]}"; do
+            [[ -e "$f" ]] && present+=("$f")
+          done
+
+          git add -- "${present[@]}"
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V14.1 is already present on main."
+            exit 0
+          fi
+
+          git commit -m "feat: V14.1 Amazon search ticket rebuild and CPC routing"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "TrendPilot V14.1.2 pushed successfully."
+              exit 0
+            fi
+            echo "Push attempt ${attempt} failed; refreshing main."
+            git fetch origin main --depth=1
+            git rebase origin/main
+            sleep $((attempt * 2))
+          done
+          echo "Unable to push V14.1.2 after three attempts."
+          exit 1
