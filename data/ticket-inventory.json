@@ -1,0 +1,19 @@
+{
+  "version": "14.0.0",
+  "schema": {
+    "id": "unique listing id",
+    "eventTitle": "exact event title",
+    "provider": "provider name",
+    "date": "event date",
+    "venue": "venue name",
+    "city": "city",
+    "section": "seat section",
+    "row": "seat row",
+    "quantity": "available ticket quantity",
+    "price": "numeric ticket price",
+    "fees": "numeric fees when supplied",
+    "currency": "ISO currency",
+    "url": "affiliate/live inventory URL"
+  },
+  "listings": []
+}
