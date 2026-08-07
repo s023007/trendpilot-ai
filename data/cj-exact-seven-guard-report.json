@@ -1,6 +1,6 @@
 {
   "version": "13.8.9",
-  "generatedAt": "2026-08-06T17:58:54.803573+00:00",
+  "generatedAt": "2026-08-07T05:18:04.029648+00:00",
   "status": "exact-seven-hotfix-installed",
   "approvedAdvertiserCount": 7,
   "approvedAdvertisers": [
@@ -33,8 +33,8 @@
       "name": "Trip.com (Global)"
     }
   ],
-  "knownCjSellerKeysDiscovered": 19,
-  "cjEvidenceRecordsScanned": 1188,
+  "knownCjSellerKeysDiscovered": 25,
+  "cjEvidenceRecordsScanned": 2256,
   "evidenceFiles": [
     "data/cj-link-catalog.json",
     "data/cj-offers.json",
@@ -49,25 +49,8 @@
       "changed": true,
       "patches": [
         "embedded-exact-allowlist",
-        "fallback-products-filtered",
-        "segment-products-filtered",
-        "merge-input-filtered",
-        "merged-state-filtered",
         "visible-results-filtered",
-        "deals-filtered",
-        "home-products-filtered",
-        "detail-featured-filtered",
-        "detail-shard-filtered",
-        "direct-product-blocked",
-        "featured-direct-blocked",
-        "detail-page-guarded",
-        "quick-view-guarded",
-        "compare-cache-filtered",
-        "saved-cache-filtered",
-        "seller-dropdown-structure-aware",
-        "clustered-offers-filtered",
-        "cached-product-lookups-filtered",
-        "browser-cache-cleanup"
+        "seller-dropdown-structure-aware"
       ],
       "guardPresent": true,
       "sellerFilterPresent": true
@@ -78,24 +61,15 @@
       "changed": true,
       "patches": [
         "embedded-exact-allowlist",
-        "fallback-products-filtered",
-        "segment-products-filtered",
-        "merge-input-filtered",
-        "merged-state-filtered",
         "visible-results-filtered",
-        "deals-filtered",
-        "home-products-filtered",
-        "compare-cache-filtered",
-        "saved-cache-filtered",
-        "seller-dropdown-structure-aware",
-        "browser-cache-cleanup"
+        "seller-dropdown-structure-aware"
       ],
       "guardPresent": true,
       "sellerFilterPresent": true
     }
   ],
   "manifestCacheKeyUpdated": true,
-  "htmlFilesCacheBusted": 38,
+  "htmlFilesCacheBusted": 3,
   "important": [
     "The public CJ allowlist is no longer built from local active/approved labels.",
     "Only the seven confirmed CIDs and their name aliases are accepted.",
