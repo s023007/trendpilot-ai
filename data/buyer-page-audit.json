@@ -1,19 +1,19 @@
 {
   "version": "8.0.0",
-  "generatedAt": "2026-08-06T06:46:27+00:00",
-  "pageCount": 38,
+  "generatedAt": "2026-08-07T05:16:56+00:00",
+  "pageCount": 40,
   "buyerPageCount": 13,
   "issueCounts": {
     "missingMain": 1,
-    "v8CssMissing": 22,
-    "v8JsMissing": 22,
+    "v8CssMissing": 24,
+    "v8JsMissing": 24,
     "weakDescription": 4,
     "missingTitle": 1,
     "emptyVisualContainers": 1
   },
   "severityCounts": {
     "error": 2,
-    "warning": 49
+    "warning": 53
   },
   "pages": [
     {
@@ -52,6 +52,25 @@
           "severity": "error",
           "detail": "No main landmark was found."
         },
+        {
+          "code": "v8CssMissing",
+          "severity": "warning",
+          "detail": "V8 stylesheet is not linked."
+        },
+        {
+          "code": "v8JsMissing",
+          "severity": "warning",
+          "detail": "V8 script is not linked."
+        }
+      ]
+    },
+    {
+      "path": "cj-partners/index.html",
+      "buyerPage": false,
+      "readableCharacters": 318,
+      "images": 1,
+      "externalImages": 0,
+      "issues": [
         {
           "code": "v8CssMissing",
           "severity": "warning",
@@ -110,7 +129,7 @@
     {
       "path": "deals/index.html",
       "buyerPage": false,
-      "readableCharacters": 1701,
+      "readableCharacters": 1930,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -137,7 +156,7 @@
     {
       "path": "find/index.html",
       "buyerPage": true,
-      "readableCharacters": 2366,
+      "readableCharacters": 2677,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -353,7 +372,7 @@
     {
       "path": "software/index.html",
       "buyerPage": true,
-      "readableCharacters": 1631,
+      "readableCharacters": 1833,
       "images": 2,
       "externalImages": 0,
       "issues": [
@@ -464,10 +483,29 @@
       "issues": []
     },
     {
+      "path": "ticket/index.html",
+      "buyerPage": false,
+      "readableCharacters": 52,
+      "images": 0,
+      "externalImages": 0,
+      "issues": [
+        {
+          "code": "v8CssMissing",
+          "severity": "warning",
+          "detail": "V8 stylesheet is not linked."
+        },
+        {
+          "code": "v8JsMissing",
+          "severity": "warning",
+          "detail": "V8 script is not linked."
+        }
+      ]
+    },
+    {
       "path": "tickets/index.html",
       "buyerPage": false,
-      "readableCharacters": 4051,
-      "images": 8,
+      "readableCharacters": 3053,
+      "images": 3,
       "externalImages": 0,
       "issues": [
         {
