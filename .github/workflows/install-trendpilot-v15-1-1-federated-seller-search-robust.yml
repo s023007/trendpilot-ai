@@ -1,0 +1,683 @@
+name: Install TrendPilot V15.1.1 Federated Seller Search
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-products-v15-1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Record starting revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          git reset --hard origin/main
+          git clean -fd
+          git rev-parse HEAD > /tmp/trendpilot-v15-1-start-sha
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build seller coverage index and V15.1 search core
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from __future__ import annotations
+          import json
+          import re
+          from collections import defaultdict
+          from pathlib import Path
+
+          VERSION = "15.1.1"
+          ROOT = Path(".")
+          DATA = ROOT / "data"
+          SITE = ROOT / "js" / "site-v13-5.js"
+          FIND = ROOT / "find" / "index.html"
+          MANIFEST = DATA / "search-catalog" / "manifest.json"
+
+          if not SITE.exists():
+              raise SystemExit("js/site-v13-5.js was not found.")
+          if not FIND.exists():
+              raise SystemExit("find/index.html was not found.")
+          if not MANIFEST.exists():
+              raise SystemExit("data/search-catalog/manifest.json was not found.")
+
+          APPROVED = [
+              "AliExpress",
+              "Alibaba",
+              "Geekbuying",
+              "Lenovo",
+              "Diecast",
+              "FragranceShop.com",
+              "Karaca EU",
+              "MFI Medical",
+              "PandaHall",
+              "Temu",
+          ]
+          CPC = ["AliExpress", "Alibaba", "Geekbuying"]
+
+          ALIASES = {
+              "aliexpress": "AliExpress",
+              "ali express": "AliExpress",
+              "aliexpress.com": "AliExpress",
+              "alibaba": "Alibaba",
+              "alibaba.com": "Alibaba",
+              "geekbuying": "Geekbuying",
+              "geek buying": "Geekbuying",
+              "lenovo": "Lenovo",
+              "lenovo many geos": "Lenovo",
+              "diecast": "Diecast",
+              "diecast.com": "Diecast",
+              "diecast models wholesale": "Diecast",
+              "fragranceshop.com": "FragranceShop.com",
+              "fragrance shop": "FragranceShop.com",
+              "the fragrance shop": "FragranceShop.com",
+              "karaca": "Karaca EU",
+              "karaca eu": "Karaca EU",
+              "karaca europe": "Karaca EU",
+              "mfi": "MFI Medical",
+              "mfi medical": "MFI Medical",
+              "mfimedical": "MFI Medical",
+              "pandahall": "PandaHall",
+              "panda hall": "PandaHall",
+              "temu": "Temu",
+              "temu.com": "Temu",
+              "shop temu": "Temu",
+          }
+
+          def clean(value):
+              return re.sub(r"\s+", " ", str(value or "")).strip()
+
+          def low(value):
+              return clean(value).lower()
+
+          def canonical_seller(row):
+              candidates = [
+                  row.get("advertiser"),
+                  row.get("advertiserName"),
+                  row.get("seller"),
+                  row.get("sellerName"),
+                  row.get("merchant"),
+                  row.get("merchantName"),
+                  row.get("store"),
+                  row.get("storeName"),
+                  row.get("source"),
+              ]
+              for raw in candidates:
+                  value = low(raw)
+                  if not value:
+                      continue
+                  for alias, canonical in ALIASES.items():
+                      if value == alias or alias in value:
+                          return canonical
+              return ""
+
+          manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
+          segments = manifest.get("segments") or []
+          seller_segments = {seller: set() for seller in APPROVED}
+          seller_counts = {seller: 0 for seller in APPROVED}
+          seller_families = {seller: defaultdict(int) for seller in APPROVED}
+          seller_groups = {seller: defaultdict(int) for seller in APPROVED}
+
+          file_cache = {}
+          for segment in segments:
+              key = clean(segment.get("key"))
+              group = clean(segment.get("group"))
+              family = clean(segment.get("family"))
+              files = segment.get("files") or []
+              seen_here = set()
+              for file_url in files:
+                  rel = clean(file_url)
+                  if not rel:
+                      continue
+                  path = ROOT / rel.lstrip("/")
+                  if not path.exists():
+                      continue
+                  if path not in file_cache:
+                      try:
+                          payload = json.loads(path.read_text(encoding="utf-8"))
+                          file_cache[path] = payload.get("products") or []
+                      except Exception:
+                          file_cache[path] = []
+                  for row in file_cache[path]:
+                      if not isinstance(row, dict):
+                          continue
+                      seller = canonical_seller(row)
+                      if not seller:
+                          continue
+                      seller_counts[seller] += 1
+                      seen_here.add(seller)
+                      if family:
+                          seller_families[seller][family] += 1
+                      if group:
+                          seller_groups[seller][group] += 1
+              for seller in seen_here:
+                  seller_segments[seller].add(key)
+
+          cj_path = DATA / "cj-products.json"
+          direct_counts = {seller: 0 for seller in APPROVED}
+          if cj_path.exists():
+              try:
+                  payload = json.loads(cj_path.read_text(encoding="utf-8"))
+                  for row in payload.get("products") or []:
+                      if not isinstance(row, dict):
+                          continue
+                      seller = canonical_seller(row)
+                      if seller:
+                          direct_counts[seller] += 1
+              except Exception:
+                  pass
+
+          seller_index = {
+              "version": VERSION,
+              "approvedProductSellers": APPROVED,
+              "cpcSellers": CPC,
+              "sellers": {},
+          }
+          for seller in APPROVED:
+              seller_index["sellers"][seller] = {
+                  "segmentKeys": sorted(seller_segments[seller]),
+                  "catalogueRecords": seller_counts[seller],
+                  "directProductRecords": direct_counts[seller],
+                  "groups": [
+                      key for key, _ in sorted(
+                          seller_groups[seller].items(),
+                          key=lambda item: (-item[1], item[0])
+                      )[:20]
+                  ],
+                  "families": [
+                      key for key, _ in sorted(
+                          seller_families[seller].items(),
+                          key=lambda item: (-item[1], item[0])
+                      )[:40]
+                  ],
+              }
+
+          (DATA / "seller-coverage-v15-1.json").write_text(
+              json.dumps(seller_index, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          site = SITE.read_text(encoding="utf-8")
+          site = re.sub(
+              r"\n\s*// TP_V15_1_FEDERATED_START[\s\S]*?// TP_V15_1_FEDERATED_END\s*\n",
+              "\n",
+              site,
+              count=1,
+          )
+
+          anchor = '  function makePlan(q, manifest, scope = "") {'
+          if anchor not in site:
+              raise SystemExit("Could not find makePlan anchor in js/site-v13-5.js.")
+
+          block = r'''
+            // TP_V15_1_FEDERATED_START
+            const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"];
+            const TP_CPC_SELLERS_V15_1 = new Set(["AliExpress","Alibaba","Geekbuying"]);
+            const TP_SELLER_ALIASES_V15_1 = {
+              "aliexpress":"AliExpress","ali express":"AliExpress","aliexpress.com":"AliExpress",
+              "alibaba":"Alibaba","alibaba.com":"Alibaba",
+              "geekbuying":"Geekbuying","geek buying":"Geekbuying",
+              "lenovo":"Lenovo","lenovo many geos":"Lenovo",
+              "diecast":"Diecast","diecast.com":"Diecast","diecast models wholesale":"Diecast",
+              "fragranceshop.com":"FragranceShop.com","fragrance shop":"FragranceShop.com","the fragrance shop":"FragranceShop.com",
+              "karaca":"Karaca EU","karaca eu":"Karaca EU","karaca europe":"Karaca EU",
+              "mfi":"MFI Medical","mfi medical":"MFI Medical","mfimedical":"MFI Medical",
+              "pandahall":"PandaHall","panda hall":"PandaHall",
+              "temu":"Temu","temu.com":"Temu","shop temu":"Temu"
+            };
+            const TP_QUERY_ALIASES_V15_1 = {
+              "necklace":["necklace","necklaces","pendant","pendants","chain necklace","chains","choker","chokers","neck jewelry","neck jewellery"],
+              "necklaces":["necklace","necklaces","pendant","pendants","chain necklace","chains","choker","chokers","neck jewelry","neck jewellery"],
+              "jewelry":["jewelry","jewellery","necklace","pendant","ring","bracelet","earrings","fashion jewelry"],
+              "jewellery":["jewelry","jewellery","necklace","pendant","ring","bracelet","earrings","fashion jewellery"],
+              "women clothing":["women clothing","women's clothing","womens clothing","womenswear","ladies clothing","women fashion","dresses","tops","blouses","skirts","pants","jackets"],
+              "women's clothing":["women clothing","women's clothing","womens clothing","womenswear","ladies clothing","women fashion","dresses","tops","blouses","skirts","pants","jackets"],
+              "womens clothing":["women clothing","women's clothing","womens clothing","womenswear","ladies clothing","women fashion","dresses","tops","blouses","skirts","pants","jackets"],
+              "phone":["phone","phones","smartphone","smartphones","mobile phone","mobile phones","android phone","iphone"],
+              "phones":["phone","phones","smartphone","smartphones","mobile phone","mobile phones","android phone","iphone"],
+              "phone case":["phone case","phone cases","mobile case","mobile cover","smartphone case","iphone case","protective case"],
+              "phone cases":["phone case","phone cases","mobile case","mobile cover","smartphone case","iphone case","protective case"],
+              "perfume":["perfume","perfumes","fragrance","fragrances","cologne","eau de parfum","eau de toilette"],
+              "tool":["tool","tools","power tools","hand tools","workshop tools","diy tools"],
+              "tools":["tool","tools","power tools","hand tools","workshop tools","diy tools"],
+              "laptop":["laptop","laptops","notebook computer","notebook computers"],
+              "printer":["printer","printers","laser printer","inkjet printer","thermal printer","label printer"]
+            };
+            const TP_SELLER_SPECIALTY_V15_1 = {
+              "FragranceShop.com":["beauty-care"],
+              "Karaca EU":["home-kitchen"],
+              "MFI Medical":["health-medical"],
+              "Diecast":["toys-games"],
+              "PandaHall":["arts-crafts","jewelry-watches"],
+              "Lenovo":["computers"],
+              "Geekbuying":["phones-tablets","computers","audio","cameras","projectors-tv","smart-home","automotive","home-kitchen","tools"],
+              "Temu":[],
+              "AliExpress":[],
+              "Alibaba":[]
+            };
+            function tpCanonicalSellerV15_1(value) {
+              const raw=lower(value);
+              for (const [alias,canonical] of Object.entries(TP_SELLER_ALIASES_V15_1)) {
+                if (raw===alias || raw.includes(alias)) return canonical;
+              }
+              return "";
+            }
+            function tpExpandedTermsV15_1(q) {
+              const raw=lower(q);
+              const out=[];
+              for (const [phrase,terms] of Object.entries(TP_QUERY_ALIASES_V15_1)) {
+                if (raw===phrase || raw.includes(phrase) || phrase.includes(raw)) out.push(...terms);
+              }
+              return uniq(out.map(lower).filter(Boolean));
+            }
+            function tpTitleMatchesExpandedV15_1(p,plan) {
+              const terms=tpExpandedTermsV15_1(plan?.q||"");
+              if (!terms.length) return false;
+              const text=lower(`${p.name||""} ${p.brand||""} ${p.category||""} ${p.family||""} ${p.description||""}`);
+              return terms.some(term=>text.includes(term));
+            }
+            let tpSellerCoveragePromiseV15_1=null;
+            async function tpLoadSellerCoverageV15_1() {
+              if (tpSellerCoveragePromiseV15_1) return tpSellerCoveragePromiseV15_1;
+              tpSellerCoveragePromiseV15_1=fetch(`/data/seller-coverage-v15-1.json?v=15.1.1-${Date.now()}`,{cache:"no-store"})
+                .then(r=>r.ok?r.json():{sellers:{}})
+                .catch(()=>({sellers:{}}));
+              return tpSellerCoveragePromiseV15_1;
+            }
+            function tpPlanRelevantSellerKeysV15_1(seller,index) {
+              const all=(index?.sellers?.[seller]?.segmentKeys||[]).filter(Boolean);
+              const direct=new Set(state.plan?.segmentKeys||[]);
+              let keys=all.filter(key=>direct.has(key));
+              if (!keys.length && state.plan?.groups?.length) {
+                keys=all.filter(key=>{
+                  const meta=segmentMeta(key);
+                  return meta && state.plan.groups.includes(meta.group);
+                });
+              }
+              if (!keys.length && state.plan?.families?.length) {
+                keys=all.filter(key=>{
+                  const meta=segmentMeta(key);
+                  return meta && state.plan.families.includes(meta.family);
+                });
+              }
+              return keys;
+            }
+            async function tpLoadBalancedSellerRowsV15_1() {
+              const index=await tpLoadSellerCoverageV15_1();
+              const jobs=[];
+              for (const seller of TP_PRODUCT_SELLERS_V15_1) {
+                const keys=tpPlanRelevantSellerKeysV15_1(seller,index).slice(0,2);
+                for (const key of keys) jobs.push(loadSegmentPage(key,1));
+              }
+              return (await Promise.all(jobs)).flat();
+            }
+            async function tpLoadSellerSpecificV15_1(seller) {
+              seller=tpCanonicalSellerV15_1(seller)||seller;
+              if (!seller) return;
+              const index=await tpLoadSellerCoverageV15_1();
+              const keys=tpPlanRelevantSellerKeysV15_1(seller,index).slice(0,18);
+              let rounds=0;
+              for (const key of keys) {
+                const meta=segmentMeta(key);
+                if (!meta) continue;
+                for (let page=1; page<=Math.min(meta.pages||1,3); page++) {
+                  const rows=await loadSegmentPage(key,page);
+                  if (rows.length) mergeProducts(rows);
+                  const count=state.exact.filter(p=>tpCanonicalSellerV15_1(p.advertiser)===seller).length;
+                  if (count>=36) return;
+                }
+                rounds++;
+                if (rounds>=18) break;
+              }
+            }
+            function tpDiversifySellersV15_1(rows) {
+              const buckets=new Map();
+              for (const p of rows) {
+                const seller=tpCanonicalSellerV15_1(p.advertiser);
+                if (!seller) continue;
+                if (!buckets.has(seller)) buckets.set(seller,[]);
+                buckets.get(seller).push(p);
+              }
+              const ordered=[];
+              let round=0;
+              while (ordered.length<rows.length && round<80) {
+                let added=false;
+                for (const seller of TP_PRODUCT_SELLERS_V15_1) {
+                  const row=buckets.get(seller)?.[round];
+                  if (row) { ordered.push(row); added=true; }
+                }
+                if (!added) break;
+                round++;
+              }
+              const seen=new Set(ordered.map(p=>p.id));
+              return [...ordered,...rows.filter(p=>!seen.has(p.id))];
+            }
+            function tpSellerNoResultMarkupV15_1(seller,query,plan) {
+              const specialty=TP_SELLER_SPECIALTY_V15_1[seller]||[];
+              const mismatch=specialty.length && plan?.groups?.length && !plan.groups.some(g=>specialty.includes(g));
+              const reason=mismatch
+                ? `${seller} mainly covers other product categories in TrendPilot's connected catalogue.`
+                : `No current indexed ${seller} listing closely matches “${query}”. This does not prove the seller never carries it.`;
+              return `<div class="tp-empty"><h3>No matching ${esc(seller)} products found.</h3><p>${esc(reason)}</p><button class="tp-btn tp-btn-primary" type="button" data-tp-search-all-sellers>Search all approved sellers</button></div>`;
+            }
+            // TP_V15_1_FEDERATED_END
+          '''
+          site = site.replace(anchor, block + "\n" + anchor, 1)
+
+          group_anchor = '["arts-crafts", /\\b(arts? and crafts?|craft supplies|jewelry making|beads?|jewelry findings|diy crafts?)\\b/i]'
+          if group_anchor in site and '"jewelry-watches", /\\b(necklaces?' not in site:
+              site = site.replace(
+                  group_anchor,
+                  group_anchor + ',\n    ["jewelry-watches", /\\b(necklaces?|pendants?|chains?|chokers?|jewelry|jewellery|bracelets?|earrings?|rings?)\\b/i]',
+                  1,
+              )
+
+          old_public = '''function tpPublicSellerAllowed(p) {
+            if (!p) return false;
+            const title = clean(p.name || p.title);
+            const target = clean(p.url || p.affiliateUrl || p.productUrl);
+            return Boolean(title && validUrl(target));
+          }'''
+          new_public = '''function tpPublicSellerAllowed(p) {
+            if (!p) return false;
+            const title = clean(p.name || p.title);
+            const target = clean(p.url || p.affiliateUrl || p.productUrl);
+            const seller = typeof tpCanonicalSellerV15_1 === "function" ? tpCanonicalSellerV15_1(p.advertiser || p.seller || p.merchant || "") : "";
+            return Boolean(title && validUrl(target) && seller);
+          }'''
+          if old_public not in site:
+              raise SystemExit("Could not patch tpPublicSellerAllowed.")
+          site = site.replace(old_public, new_public, 1)
+
+          old_advertiser = 'x.advertiser = clean(x.advertiser || x.network || "Current seller");'
+          new_advertiser = 'x.advertiser = clean(x.advertiser || x.network || "Current seller");\n    { const canonical = typeof tpCanonicalSellerV15_1 === "function" ? tpCanonicalSellerV15_1(x.advertiser) : ""; if (canonical) x.advertiser = canonical; }'
+          if old_advertiser not in site:
+              raise SystemExit("Could not patch normalizeProduct advertiser.")
+          site = site.replace(old_advertiser, new_advertiser, 1)
+
+          old_strict = '''    const titleTokens = words(title);
+              return plan.intentTokens.length ? plan.intentTokens.every(t => titleTokens.some(x => x === t || x.startsWith(t) || t.startsWith(x))) : true;'''
+          new_strict = '''    const titleTokens = words(title);
+              if (typeof tpTitleMatchesExpandedV15_1 === "function" && tpTitleMatchesExpandedV15_1(p,plan)) return true;
+              return plan.intentTokens.length ? plan.intentTokens.every(t => titleTokens.some(x => x === t || x.startsWith(t) || t.startsWith(x))) : true;'''
+          if old_strict not in site:
+              raise SystemExit("Could not patch strictProductMatch synonym support.")
+          site = site.replace(old_strict, new_strict, 1)
+
+          old_score = '''    if (plan.audience && p.audience === plan.audience) n += 40;
+              return n;'''
+          new_score = '''    if (plan.audience && p.audience === plan.audience) n += 40;
+              if (typeof tpTitleMatchesExpandedV15_1 === "function" && tpTitleMatchesExpandedV15_1(p,plan)) n += 45;
+              if (typeof TP_CPC_SELLERS_V15_1 !== "undefined" && TP_CPC_SELLERS_V15_1.has(tpCanonicalSellerV15_1(p.advertiser)) && n >= 45) n += 2.5;
+              return n;'''
+          if old_score not in site:
+              raise SystemExit("Could not patch search score.")
+          site = site.replace(old_score, new_score, 1)
+
+          old_merge = '''    state.exact = state.products.filter(p => strictProductMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+              state.alternatives = state.products.filter(p => relatedMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));'''
+          new_merge = '''    const rankedExact = state.products.filter(p => strictProductMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+              state.exact = typeof tpDiversifySellersV15_1 === "function" ? tpDiversifySellersV15_1(rankedExact) : rankedExact;
+              state.alternatives = state.products.filter(p => relatedMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));'''
+          if old_merge not in site:
+              raise SystemExit("Could not patch seller diversity ranking.")
+          site = site.replace(old_merge, new_merge, 1)
+
+          # Patch performSearch structurally instead of matching whitespace.
+          pattern = re.compile(
+              r'(const\s+results\s*=\s*await\s+Promise\.allSettled\(\[\s*'
+              r'state\.manifest\.version==="fallback"\?Promise\.resolve\(state\.products\):loadInitialSegments\(\)\s*,\s*'
+              r'loadCjProducts\(\))(\s*\]\);)',
+              re.S,
+          )
+          site, count = pattern.subn(
+              lambda m: m.group(1)
+              + ',\n      typeof tpLoadBalancedSellerRowsV15_1==="function"?tpLoadBalancedSellerRowsV15_1():Promise.resolve([])'
+              + m.group(2),
+              site,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Could not structurally patch performSearch Promise.allSettled.")
+
+          marker = '    const cjRows=results[1].status==="fulfilled"?results[1].value:[];'
+          if marker in site:
+              site = site.replace(
+                  marker,
+                  marker + '\n    const balancedRows=results[2].status==="fulfilled"?results[2].value:[];',
+                  1,
+              )
+          else:
+              marker_re = re.compile(
+                  r'(\s*const\s+cjRows\s*=\s*results\[1\]\.status==="fulfilled"\?results\[1\]\.value:\[\];)'
+              )
+              match = marker_re.search(site)
+              if not match:
+                  raise SystemExit("Could not find cjRows inside performSearch.")
+              site = (
+                  site[:match.end()]
+                  + '\n    const balancedRows=results[2].status==="fulfilled"?results[2].value:[];'
+                  + site[match.end():]
+              )
+
+          site, count = re.subn(
+              r'mergeProducts\(\[\.\.\.rows,\.\.\.cjRows\]\);',
+              'mergeProducts([...rows,...cjRows,...balancedRows]);',
+              site,
+              count=1,
+          )
+          if count != 1:
+              raise SystemExit("Could not patch performSearch mergeProducts.")
+
+          seller_pattern = re.compile(
+              r'\s*// TP_CJ_DROPDOWN_13_8_13\s*'
+              r'if\(merchant\)\{[\s\S]*?\n\s*\}'
+              r'(?=\s*\n\s*updateFilterCount\(\);)',
+              re.S,
+          )
+          seller_body = r'''
+              // TP_CJ_DROPDOWN_13_8_13
+              if(merchant){
+                const current=tpCanonicalSellerV15_1(merchant.value)||merchant.value;
+                const matchedRows=uniqProducts([...(state.exact||[]),...(state.alternatives||[])]);
+                const counts=new Map(TP_PRODUCT_SELLERS_V15_1.map(name=>[name,0]));
+                matchedRows.forEach(p=>{
+                  const seller=tpCanonicalSellerV15_1(p.advertiser);
+                  if(counts.has(seller))counts.set(seller,counts.get(seller)+1);
+                });
+                merchant.innerHTML='<option value="">All sellers</option>'+TP_PRODUCT_SELLERS_V15_1.map(v=>`<option value="${esc(v)}">${esc(v)}${counts.get(v)?` (${counts.get(v)})`:""}</option>`).join("");
+                merchant.value=TP_PRODUCT_SELLERS_V15_1.includes(current)?current:"";
+              }'''
+          site, count = seller_pattern.subn(lambda m: seller_body, site, count=1)
+          if count != 1:
+              raise SystemExit("Could not structurally patch the Seller dropdown.")
+
+          old_listener = "$$('[data-filter-group],[data-filter-family],[data-filter-audience],[data-filter-merchant],[data-filter-price],[data-filter-sort],[data-filter-coupon],[data-filter-rare]').forEach(x=>x.addEventListener('change',()=>{if(x.matches('[data-filter-group]'))populateFilters();state.shown=24;renderFinder();}));"
+          new_listener = r'''$$('[data-filter-group],[data-filter-family],[data-filter-audience],[data-filter-merchant],[data-filter-price],[data-filter-sort],[data-filter-coupon],[data-filter-rare]').forEach(x=>x.addEventListener('change',async()=>{
+                if(x.matches('[data-filter-group]'))populateFilters();
+                if(x.matches('[data-filter-merchant]')&&x.value&&typeof tpLoadSellerSpecificV15_1==="function"){
+                  const selected=x.value;
+                  state.loading=true;
+                  renderFinder();
+                  await tpLoadSellerSpecificV15_1(selected);
+                  state.loading=false;
+                  populateFilters();
+                  const merchant=$('[data-filter-merchant]');
+                  if(merchant)merchant.value=selected;
+                }
+                state.shown=24;
+                renderFinder();
+              }));'''
+          if old_listener not in site:
+              raise SystemExit("Could not find the current filter listener.")
+          site = site.replace(old_listener, new_listener, 1)
+
+          old_empty = 'grid.innerHTML=visible.length?visible.map(p=>productCard(p)).join(""):`<div class="tp-empty"><h3>No ${noun} found.</h3><p>${state.activeTab==="exact"?"Try a more specific product name, change the category, or open Related alternatives. TrendPilot will not invent a match from an unrelated description.":"No useful alternatives are available for this search yet."}</p></div>`;'
+          new_empty = 'const selectedSeller=tpCanonicalSellerV15_1(filters().merchant)||filters().merchant;\n    grid.innerHTML=visible.length?visible.map(p=>productCard(p)).join(""):(selectedSeller&&state.activeTab==="exact"?tpSellerNoResultMarkupV15_1(selectedSeller,state.query,state.plan):`<div class="tp-empty"><h3>No ${noun} found.</h3><p>${state.activeTab==="exact"?"Try a more specific product name, change the category, or open Related alternatives. TrendPilot will not invent a match from an unrelated description.":"No useful alternatives are available for this search yet."}</p></div>`);'
+          if old_empty not in site:
+              raise SystemExit("Could not find the current renderFinder empty state.")
+          site = site.replace(old_empty, new_empty, 1)
+
+          event_marker = "      const quick=e.target.closest('[data-quick-view-id]');if(quick){e.preventDefault();openQuickView(quick.dataset.quickViewId);return;}"
+          if event_marker not in site:
+              raise SystemExit("Could not find Quick View event anchor.")
+          site = site.replace(
+              event_marker,
+              "      const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){const merchant=$('[data-filter-merchant]');if(merchant)merchant.value=\"\";state.shown=24;renderFinder();return;}\n"
+              + event_marker,
+              1,
+          )
+
+          SITE.write_text(site, encoding="utf-8")
+
+          page = FIND.read_text(encoding="utf-8")
+          page = re.sub(
+              r'\s*<script[^>]+src="/js/product-sellers-v15\.js[^"]*"[^>]*></script>\s*',
+              "\n",
+              page,
+              count=1,
+          )
+          page = re.sub(
+              r'/js/site-v13-5\.js\?v=[^"\']+',
+              '/js/site-v13-5.js?v=15.1.1',
+              page,
+              count=1,
+          )
+          FIND.write_text(page, encoding="utf-8")
+
+          report = {
+              "version": VERSION,
+              "scope": "products-only",
+              "approvedProductSellers": APPROVED,
+              "cpcSellers": CPC,
+              "sellerIndexCounts": {
+                  seller: {
+                      "catalogueRecords": seller_counts[seller],
+                      "directProductRecords": direct_counts[seller],
+                      "segments": len(seller_segments[seller]),
+                  }
+                  for seller in APPROVED
+              },
+              "features": [
+                  "seller-balanced general search",
+                  "seller-specific deep loading",
+                  "seller dropdown always shows approved sellers",
+                  "query synonym expansion",
+                  "necklace and jewelry routing",
+                  "seller-specific no-result guidance",
+                  "small CPC tie-break bonus only after relevance",
+              ],
+          }
+          (DATA / "seller-search-v15-1-report.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          for path in [
+              SITE,
+              FIND,
+              DATA / "seller-coverage-v15-1.json",
+              DATA / "seller-search-v15-1-report.json",
+          ]:
+              text = path.read_text(encoding="utf-8")
+              path.write_text(
+                  "\n".join(line.rstrip() for line in text.splitlines()) + "\n",
+                  encoding="utf-8",
+              )
+
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Validate V15.1 federated seller search
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/site-v13-5.js
+          git diff --check
+          python - <<'PY'
+          import json
+          import subprocess
+          from pathlib import Path
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit("Validation failed: " + message)
+
+          site = Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          page = Path("find/index.html").read_text(encoding="utf-8")
+          index = json.loads(Path("data/seller-coverage-v15-1.json").read_text(encoding="utf-8"))
+          report = json.loads(Path("data/seller-search-v15-1-report.json").read_text(encoding="utf-8"))
+
+          expected = ["AliExpress","Alibaba","Geekbuying","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"]
+          require(index.get("approvedProductSellers") == expected, "approved seller list changed")
+          require(report.get("approvedProductSellers") == expected, "report seller list changed")
+          require("Joom" not in expected, "Joom must remain excluded")
+          require("TP_V15_1_FEDERATED_START" in site, "V15.1 core block missing")
+          require("tpLoadBalancedSellerRowsV15_1" in site, "balanced seller loader missing")
+          require("tpLoadSellerSpecificV15_1" in site, "seller-specific loader missing")
+          require("tpDiversifySellersV15_1" in site, "seller diversity ranking missing")
+          require("necklace" in site and "pendant" in site and "choker" in site, "necklace synonyms missing")
+          require("women's clothing" in site and "womenswear" in site, "women clothing synonyms missing")
+          require("data-tp-search-all-sellers" in site, "seller no-result recovery missing")
+          require('/js/product-sellers-v15.js' not in page, "old seller controller still loaded")
+          require('/js/site-v13-5.js?v=15.1.1' in page, "site cache version not updated")
+          require(set(index.get("sellers",{})) == set(expected), "seller coverage index is incomplete")
+
+          changed = set(subprocess.check_output(["git","diff","--name-only"], text=True).splitlines())
+          require("tickets/index.html" not in changed, "Tickets changed unexpectedly")
+          require("wholesale/index.html" not in changed, "Wholesale changed unexpectedly")
+          require("software/index.html" not in changed, "Software changed unexpectedly")
+
+          print("V15.1 validation passed.")
+          PY
+
+      - name: Publish V15.1 safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          start_sha="$(cat /tmp/trendpilot-v15-1-start-sha)"
+          git fetch origin main
+          current_sha="$(git rev-parse origin/main)"
+          if [[ "$current_sha" != "$start_sha" ]]; then
+            echo "main changed during this run; stopping safely instead of overwriting newer work."
+            exit 1
+          fi
+
+          git add -- \
+            js/site-v13-5.js \
+            find/index.html \
+            data/seller-coverage-v15-1.json \
+            data/seller-search-v15-1-report.json
+
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "V15.1 is already installed."
+            exit 0
+          fi
+
+          git commit -m "feat: federate approved product sellers in V15.1"
+          git push origin HEAD:main
