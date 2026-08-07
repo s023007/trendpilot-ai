@@ -1,0 +1,39 @@
+{
+  "version": "14.1.2",
+  "policy": {
+    "relevanceFirst": true,
+    "cpcTieBreakOnly": true,
+    "publicCpcBadge": false,
+    "note": "CPC is only a tie-break between similarly relevant eligible routes. It never makes an irrelevant result outrank a relevant result. Network terms remain the source of truth."
+  },
+  "programs": [
+    {
+      "seller": "Alibaba",
+      "model": "CPC-candidate",
+      "evidence": "project monetization routing hint; verify network terms",
+      "aliases": [
+        "alibaba",
+        "alibaba.com"
+      ]
+    },
+    {
+      "seller": "AliExpress",
+      "model": "CPC-candidate",
+      "evidence": "project monetization routing hint; verify network terms",
+      "aliases": [
+        "aliexpress",
+        "ali express",
+        "aliexpress.com"
+      ]
+    },
+    {
+      "seller": "Geekbuying",
+      "model": "CPC-candidate",
+      "evidence": "project monetization routing hint; verify network terms",
+      "aliases": [
+        "geekbuying",
+        "geek buying"
+      ]
+    }
+  ]
+}
