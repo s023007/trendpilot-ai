@@ -11,8 +11,8 @@
 
   // TP_CJ_EXACT_GUARD_START
   const TP_CJ_GUARD_VERSION = "13.8.9";
-  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203"]);
-  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
+  const TP_CJ_APPROVED_IDS = new Set(["2357926","4295086","4368684","4837117","5893489","7227612","7287203","6293473"]);
+  const TP_CJ_APPROVED_NAMES = new Set(["diecast","diecastcom","fragranceshop","fragranceshopcom","karaca","karacaeu","karacaeurope","mfi","mfimedical","nordvpn","pandahall","pandahallcom","thefragranceshop","thefragranceshopcom","tripcom","tripcomglobal","temu","temucom","shoptemu"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal"]);
   const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
   const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
@@ -386,7 +386,7 @@ function normalizeProduct(p) {
     if (tpCjProductsPromise) return tpCjProductsPromise;
     tpCjProductsPromise = (async () => {
       try {
-        const r = await fetch(`/data/cj-products.json?v=13.8.30-${Date.now()}`, {cache:"no-store"});
+        const r = await fetch(`/data/cj-products.json?v=14.1.5-${Date.now()}`, {cache:"no-store"});
         if (!r.ok) throw new Error(`CJ products ${r.status}`);
         const data = await r.json();
         return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct);
