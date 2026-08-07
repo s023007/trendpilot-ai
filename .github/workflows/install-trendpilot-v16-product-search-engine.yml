@@ -1,0 +1,184 @@
+name: Install TrendPilot V16 Product Search Engine
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-product-search-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-products-v16:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build V16 product search engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          VERSION = "16.0.0"
+          root = Path(".")
+          js_dir = root / "js"
+          css_dir = root / "css"
+          data_dir = root / "data"
+          find_path = root / "find" / "index.html"
+
+          required = [
+              find_path,
+              root / "js" / "site-v13-5.js",
+              root / "data" / "search-catalog" / "manifest.json",
+          ]
+          for path in required:
+              if not path.exists():
+                  raise SystemExit(f"Required baseline file is missing: {path}")
+
+          js_dir.mkdir(exist_ok=True)
+          css_dir.mkdir(exist_ok=True)
+          data_dir.mkdir(exist_ok=True)
+
+          approved = [
+              "AliExpress","Alibaba","Geekbuying","Lenovo","Joom",
+              "Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"
+          ]
+          (data_dir / "approved-product-sellers-v16.json").write_text(
+              json.dumps({"version": VERSION, "sellers": approved}, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          js = '(() => {\n  "use strict";\n\n  const VERSION = "16.0.0";\n  const APPROVED = [\n    "AliExpress","Alibaba","Geekbuying","Lenovo","Joom",\n    "Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"\n  ];\n  const ALIASES = {\n    "aliexpress":["aliexpress","ali express"],\n    "alibaba":["alibaba","alibaba.com"],\n    "geekbuying":["geekbuying","geek buying"],\n    "lenovo":["lenovo","lenovo many geos"],\n    "joom":["joom","joom.com"],\n    "diecast":["diecast","diecast.com","diecast models wholesale"],\n    "fragranceshop.com":["fragranceshop.com","fragrance shop","the fragrance shop"],\n    "karaca eu":["karaca eu","karaca europe","karaca"],\n    "mfi medical":["mfi medical","mfimedical","mfi"],\n    "pandahall":["pandahall","panda hall"],\n    "temu":["temu","temu.com","shop temu"]\n  };\n\n  const POPULAR = [\n    "phone cases","power banks","perfume","pencils","pens","pencil cases","printers","pet supplies","projectors",\n    "phones","smartphones","phone chargers","phone cables","screen protectors","phone holders","wireless chargers",\n    "portable chargers","tablets","laptops","laptop bags","keyboards","mice","monitors","storage drives","USB hubs",\n    "earbuds","headphones","speakers","microphones","smartwatches","watches","security cameras","dash cams",\n    "wireless CarPlay adapters","car chargers","car accessories","digital cameras","camera lenses","tripods",\n    "women\'s clothing","women\'s dresses","women\'s tops","women\'s shoes","women\'s handbags","women\'s jewelry",\n    "men\'s T-shirts","men\'s shirts","men\'s shorts","men\'s shoes","men\'s watches","kids clothing","kids shoes",\n    "necklaces","bracelets","rings","earrings","handbags","backpacks","wallets","sneakers","sandals","boots",\n    "makeup","skin care","hair care","nail care","fragrance","cosmetics","makeup brushes","hair styling tools",\n    "school supplies","notebooks","calculators","stationery","desk organizers","school bags",\n    "tools","power tools","hand tools","drills","saws","screwdrivers","multimeters","tool storage","soldering tools",\n    "home decor","furniture","cookware","dinnerware","kitchen appliances","coffee makers","bedding","curtains",\n    "toys","puzzles","board games","building toys","dolls","educational toys","pet toys","pet feeders",\n    "sports equipment","fitness equipment","camping","cycling","fishing","running shoes","yoga",\n    "medical equipment","blood pressure monitors","stethoscopes","patient monitors","wheelchairs",\n    "beads","jewelry making supplies","craft supplies","sewing supplies","DIY supplies",\n    "3D printers","3D filament","thermal printers","labels","office printers",\n    "wholesale products","bulk products","OEM products","private label products"\n  ];\n\n  const SYNONYMS = {\n    "power bank":["power bank","power banks","portable charger","portable chargers","battery pack","battery packs","powerbank"],\n    "phone case":["phone case","phone cases","mobile case","mobile cases","iphone case","android case","protective case","cover"],\n    "pen":["pen","pens","ballpoint pen","gel pen","rollerball pen","writing pen"],\n    "pencil":["pencil","pencils","mechanical pencil","colored pencils","colour pencils"],\n    "necklace":["necklace","necklaces","pendant","pendants","chain necklace","jewelry necklace","jewellery necklace"],\n    "women clothing":["women clothing","women\'s clothing","womens clothing","ladies clothing","female clothing","women fashion","women\'s fashion"],\n    "perfume":["perfume","fragrance","eau de parfum","eau de toilette","cologne"],\n    "earbuds":["earbuds","earphones","tws","wireless earbuds","in ear headphones"],\n    "laptop":["laptop","laptops","notebook computer","notebook computers"],\n    "school supplies":["school supplies","stationery","school stationery","student supplies"],\n    "carplay":["carplay","wireless carplay","carplay adapter","wireless carplay adapter"],\n    "jewelry":["jewelry","jewellery","necklace","bracelet","ring","earrings","pendant"]\n  };\n\n  const norm = v => String(v ?? "").toLowerCase().normalize("NFKD")\n    .replace(/[\\u0300-\\u036f]/g,"").replace(/[^a-z0-9]+/g," ").trim();\n  const uniq = a => [...new Set(a.filter(Boolean))];\n  const esc = v => String(v ?? "").replace(/[&<>"\']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",\'"\':"&quot;","\'":"&#039;"}[c]));\n  const validUrl = v => /^https?:\\/\\//i.test(String(v||""));\n  const sellerName = p => String(p?.advertiser || p?.seller || p?.merchant || "").trim();\n\n  function canonicalSeller(value) {\n    const n = norm(value);\n    for (const approved of APPROVED) {\n      const keys = ALIASES[norm(approved)] || [approved];\n      if (keys.some(x => {\n        const a = norm(x);\n        return n === a || (a.length >= 4 && (n.includes(a) || a.includes(n)));\n      })) return approved;\n    }\n    return "";\n  }\n\n  function normalizeProduct(p) {\n    const x = {...p};\n    x.id = String(x.id || x.clusterKey || x.url || x.name || crypto.randomUUID?.() || Math.random());\n    x.name = String(x.name || "").trim();\n    x.url = String(x.url || x.affiliateUrl || x.productUrl || "").trim();\n    x.image = String(x.image || x.imageUrl || "").trim();\n    x.advertiser = canonicalSeller(sellerName(x));\n    x.group = String(x.group || "other");\n    x.family = String(x.family || x.group || "other");\n    x.audience = String(x.audience || "all");\n    x.price = Number(x.price || 0) || 0;\n    x.oldPrice = Number(x.oldPrice || 0) || 0;\n    x.quality = Number(x.quality || x.qualityScore || 0) || 0;\n    x.currency = String(x.currency || "USD");\n    x.description = String(x.description || "");\n    x.brand = String(x.brand || "");\n    return x;\n  }\n\n  function money(v, currency="USD") {\n    if (!Number(v)) return "Check current price";\n    try { return new Intl.NumberFormat(undefined,{style:"currency",currency,maximumFractionDigits:2}).format(v); }\n    catch { return `${currency} ${Number(v).toFixed(2)}`; }\n  }\n\n  function tokenise(q) { return norm(q).split(/\\s+/).filter(x=>x.length>1); }\n\n  function expandQuery(q) {\n    const base = norm(q);\n    const out = new Set(tokenise(base));\n    for (const [key, values] of Object.entries(SYNONYMS)) {\n      const pool = [key, ...values].map(norm);\n      if (pool.some(v => base.includes(v) || v.includes(base))) {\n        pool.forEach(v => tokenise(v).forEach(t => out.add(t)));\n      }\n    }\n    return [...out];\n  }\n\n  function queryPhrases(q) {\n    const n = norm(q);\n    const out = [n];\n    for (const [key, vals] of Object.entries(SYNONYMS)) {\n      const pool=[key,...vals].map(norm);\n      if (pool.some(v => n.includes(v) || v.includes(n))) out.push(...pool);\n    }\n    return uniq(out);\n  }\n\n  function textOf(p) {\n    return norm([p.name,p.brand,p.category,p.group,p.family,p.description].join(" "));\n  }\n\n  function productMatch(p, q) {\n    const text = textOf(p);\n    const phrases = queryPhrases(q);\n    if (phrases.some(ph => ph.length >= 3 && text.includes(ph))) return true;\n    const tokens = expandQuery(q).filter(t => !["product","products","item","items","buy","best"].includes(t));\n    if (!tokens.length) return true;\n    const hits = tokens.filter(t => text.includes(t)).length;\n    return hits >= Math.max(1, Math.ceil(tokens.length * 0.55));\n  }\n\n  function scoreProduct(p, q) {\n    const text = textOf(p), nq = norm(q), tokens=expandQuery(q);\n    let s = p.quality / 10 + (p.image?8:0) + (p.price?5:0);\n    if (nq && text.includes(nq)) s += 140;\n    for (const t of tokens) {\n      if (norm(p.name).includes(t)) s += 26;\n      else if (text.includes(t)) s += 8;\n    }\n    if (p.advertiser) s += 3;\n    return s;\n  }\n\n  function candidateKeys(manifest, q) {\n    const keys = [];\n    const tokens = expandQuery(q);\n    tokens.forEach(t => (manifest.tokenRoutes?.[t] || []).forEach(k => keys.push(k)));\n\n    const familyAliases = manifest.familyAliases || {};\n    const families = new Set();\n    const nq = norm(q);\n    Object.entries(familyAliases).forEach(([alias,family]) => {\n      const a=norm(alias);\n      if ((a.length>=3 && nq.includes(a)) || (nq.length>=3 && a.startsWith(nq))) families.add(family);\n    });\n    const familyLabels = manifest.familyLabels || {};\n    Object.entries(familyLabels).forEach(([family,label]) => {\n      const l=norm(label);\n      if ((l.length>=3 && nq.includes(l)) || (nq.length>=3 && l.startsWith(nq))) families.add(family);\n    });\n\n    if (families.size) {\n      (manifest.segments||[]).forEach(s => { if (families.has(s.family)) keys.push(s.key); });\n    }\n\n    if (!keys.length) {\n      const qtokens=tokenise(q);\n      (manifest.segments||[]).forEach(s => {\n        const meta=norm(`${s.key} ${s.group||""} ${s.family||""} ${s.audience||""}`);\n        if (qtokens.some(t=>meta.includes(t))) keys.push(s.key);\n      });\n    }\n\n    return uniq(keys).slice(0, 48);\n  }\n\n  async function fetchJson(url) {\n    const r = await fetch(url,{cache:"force-cache"});\n    if (!r.ok) throw new Error(`${r.status} ${url}`);\n    return r.json();\n  }\n\n  let manifestPromise;\n  function loadManifest() {\n    if (!manifestPromise) manifestPromise = fetchJson(`/data/search-catalog/manifest.json?v=v16-${Date.now()}`);\n    return manifestPromise;\n  }\n\n  async function loadKey(meta, allPages=false) {\n    const files = Array.isArray(meta?.files) ? meta.files : [];\n    const chosen = allPages ? files : files.slice(0, Math.min(2, files.length));\n    const pages = await Promise.all(chosen.map(async file => {\n      try {\n        const data = await fetchJson(`${file}?v=${encodeURIComponent(meta.generatedAt || VERSION)}`);\n        return (data.products||[]).map(normalizeProduct).filter(p=>p.advertiser);\n      } catch { return []; }\n    }));\n    return pages.flat();\n  }\n\n  async function federatedSearch(q, seller="") {\n    const manifest = await loadManifest();\n    let keys = candidateKeys(manifest,q);\n    if (!keys.length) keys=(manifest.segments||[]).slice(0,30).map(s=>s.key);\n\n    const metas = keys.map(k => (manifest.segments||[]).find(s=>s.key===k)).filter(Boolean);\n    const allPages = Boolean(seller);\n    const queue = metas.slice(0, allPages ? 36 : 22);\n    const chunks = [];\n    for (let i=0;i<queue.length;i+=6) {\n      const batch = await Promise.all(queue.slice(i,i+6).map(m=>loadKey(m,allPages)));\n      chunks.push(...batch);\n    }\n\n    const map=new Map();\n    chunks.flat().forEach(p=>{\n      if (!p.advertiser || !APPROVED.includes(p.advertiser)) return;\n      const k=p.clusterKey||p.id||`${p.advertiser}|${p.name}|${p.url}`;\n      if (!map.has(k) || scoreProduct(p,q)>scoreProduct(map.get(k),q)) map.set(k,p);\n    });\n\n    let rows=[...map.values()].filter(p=>productMatch(p,q));\n    if (seller) rows=rows.filter(p=>p.advertiser===seller);\n    rows.sort((a,b)=>scoreProduct(b,q)-scoreProduct(a,q));\n    return {rows, manifest, keys};\n  }\n\n  function balanced(rows, limit=48) {\n    const groups=new Map();\n    APPROVED.forEach(s=>groups.set(s,[]));\n    rows.forEach(p=>groups.get(p.advertiser)?.push(p));\n    const out=[];\n    let index=0;\n    while(out.length<limit) {\n      let added=false;\n      for(const seller of APPROVED) {\n        const row=groups.get(seller)?.[index];\n        if(row){out.push(row);added=true;if(out.length>=limit)break;}\n      }\n      if(!added)break;\n      index++;\n    }\n    return out;\n  }\n\n  function image(p) {\n    return validUrl(p.image)\n      ? `<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer">`\n      : `<span class="tpv16-img-fallback">${esc((p.advertiser||"TP").slice(0,2))}</span>`;\n  }\n\n  function card(p) {\n    return `<article class="tpv16-card">\n      <div class="tpv16-media">${image(p)}<button type="button" class="tpv16-quick" data-v16-quick="${esc(p.id)}">Quick view</button></div>\n      <div class="tpv16-body">\n        <div class="tpv16-seller">${esc(p.advertiser)}</div>\n        <h3>${esc(p.name)}</h3>\n        <div class="tpv16-price">${esc(money(p.price,p.currency))}</div>\n        <div class="tpv16-actions">\n          <button type="button" data-v16-quick="${esc(p.id)}">Quick view</button>\n          <a href="${esc(p.url)}" target="_blank" rel="nofollow sponsored noopener" data-v16-outbound>Check price ↗</a>\n        </div>\n      </div>\n    </article>`;\n  }\n\n  const resultCache=new Map();\n\n  function ensureModal() {\n    let m=document.querySelector("[data-v16-modal]");\n    if(m)return m;\n    m=document.createElement("div");m.className="tpv16-modal";m.dataset.v16Modal="";m.hidden=true;\n    m.innerHTML=`<button class="tpv16-backdrop" data-v16-close aria-label="Close"></button>\n      <section class="tpv16-dialog" role="dialog" aria-modal="true">\n        <button class="tpv16-close" data-v16-close aria-label="Close">×</button>\n        <div data-v16-modal-content></div>\n      </section>`;\n    document.body.appendChild(m);return m;\n  }\n\n  function openQuick(id){\n    const p=resultCache.get(id);if(!p)return;\n    const m=ensureModal(), host=m.querySelector("[data-v16-modal-content]");\n    host.innerHTML=`<div class="tpv16-quick-grid">\n      <div class="tpv16-quick-image">${image(p)}</div>\n      <div><span class="tpv16-seller">${esc(p.advertiser)}</span><h2>${esc(p.name)}</h2>\n      <div class="tpv16-price">${esc(money(p.price,p.currency))}</div>\n      ${p.description?`<p>${esc(p.description.slice(0,420))}</p>`:""}\n      <p class="tpv16-note">Price, stock and delivery can change. Confirm them on the seller page.</p>\n      <a class="tpv16-primary" href="${esc(p.url)}" target="_blank" rel="nofollow sponsored noopener" data-v16-outbound>Check current price ↗</a>\n      </div></div>`;\n    m.hidden=false;requestAnimationFrame(()=>m.classList.add("is-open"));document.body.classList.add("tp-modal-open");\n  }\n\n  function closeQuick(){\n    const m=document.querySelector("[data-v16-modal]");if(!m)return;\n    m.classList.remove("is-open");document.body.classList.remove("tp-modal-open");setTimeout(()=>m.hidden=true,140);\n  }\n\n  function fixedSellerDropdown(){\n    const s=document.querySelector("[data-filter-merchant]");if(!s)return;\n    const current=s.value;\n    s.innerHTML=\'<option value="">All approved sellers</option>\'+APPROVED.map(x=>`<option value="${esc(x)}">${esc(x)}</option>`).join("");\n    if(APPROVED.includes(current))s.value=current;\n  }\n\n  function suggestionVocabulary(manifest) {\n    const rows=[...POPULAR];\n    Object.values(manifest?.familyLabels||{}).forEach(x=>rows.push(String(x)));\n    Object.keys(manifest?.familyAliases||{}).forEach(x=>{if(String(x).length>=3)rows.push(String(x));});\n    return uniq(rows.map(x=>String(x).trim()).filter(x=>x.length>=2 && x.length<=42));\n  }\n\n  function rankSuggestion(x,q) {\n    const a=norm(x), n=norm(q);\n    let s=0;\n    if(a.startsWith(n))s+=100;\n    if(a.split(" ").some(w=>w.startsWith(n)))s+=55;\n    if(a.includes(n))s+=20;\n    if(POPULAR.includes(x))s+=12;\n    s-=Math.max(0,a.length-24)*0.25;\n    return s;\n  }\n\n  async function installAutocomplete(){\n    const input=document.querySelector("[data-tp-finder-input]");\n    if(!input)return;\n    const manifest=await loadManifest().catch(()=>({}));\n    const vocab=suggestionVocabulary(manifest);\n    let box=document.querySelector("[data-v16-suggest]");\n    if(!box){\n      box=document.createElement("div");box.className="tpv16-suggest";box.dataset.v16Suggest="";box.hidden=true;\n      input.closest(".tp-search-input")?.appendChild(box);\n    }\n    let moved=false,startY=0;\n    box.addEventListener("touchstart",e=>{moved=false;startY=e.touches?.[0]?.clientY||0;},{passive:true});\n    box.addEventListener("touchmove",e=>{if(Math.abs((e.touches?.[0]?.clientY||0)-startY)>8)moved=true;},{passive:true});\n    box.addEventListener("click",e=>{\n      const b=e.target.closest("[data-v16-suggestion]");if(!b||moved)return;\n      input.value=b.dataset.v16Suggestion;box.hidden=true;input.focus();\n    });\n    const paint=()=>{\n      const q=input.value.trim();\n      if(!q){box.hidden=true;return;}\n      const n=norm(q);\n      const rows=vocab.filter(x=>{\n        const a=norm(x);return a.startsWith(n)||a.split(" ").some(w=>w.startsWith(n))||a.includes(n);\n      }).sort((a,b)=>rankSuggestion(b,q)-rankSuggestion(a,q)).slice(0,9);\n      box.innerHTML=rows.length?rows.map(x=>`<button type="button" data-v16-suggestion="${esc(x)}"><span class="tpv16-search-icon">⌕</span><span><b>${esc(x)}</b><small>Search products</small></span></button>`).join(""):"";\n      box.hidden=!rows.length;\n    };\n    input.addEventListener("input",paint);\n    input.addEventListener("focus",paint);\n    document.addEventListener("pointerdown",e=>{if(!box.contains(e.target)&&e.target!==input)box.hidden=true;});\n  }\n\n  function message(html){\n    const grid=document.querySelector("[data-tp-product-grid]");if(grid)grid.innerHTML=html;\n  }\n\n  async function runSearch(q,seller,push=true){\n    const grid=document.querySelector("[data-tp-product-grid]");\n    const title=document.querySelector("[data-tp-results-title]");\n    const status=document.querySelector("[data-tp-finder-status]");\n    const count=document.querySelector("[data-tp-results-count]");\n    if(!grid)return;\n    fixedSellerDropdown();\n    if(title)title.textContent=`Searching for “${q}”`;\n    if(status)status.textContent=seller?`Checking the indexed catalogue for ${seller} across all relevant product pages.`:"Checking approved sellers and balancing relevant products across them.";\n    if(count)count.textContent="Checking";\n    grid.innerHTML=\'<div class="tpv16-loading"><span></span><b>Searching all relevant catalogue pages…</b></div>\';\n\n    try{\n      const {rows}=await federatedSearch(q,seller);\n      resultCache.clear();rows.forEach(p=>resultCache.set(p.id,p));\n      const view=seller?rows.slice(0,72):balanced(rows,72);\n      if(title)title.textContent=`Exact product matches for “${q}”`;\n      if(count)count.textContent=`${rows.length} matches`;\n      if(status){\n        const sellers=uniq(rows.map(p=>p.advertiser));\n        status.textContent=rows.length\n          ? `${rows.length} relevant indexed products found across ${sellers.length} approved seller${sellers.length===1?"":"s"}.`\n          : seller\n            ? `No current indexed ${seller} listing closely matches “${q}”. This does not mean the seller never carries it.`\n            : `No current indexed approved-seller listing closely matches “${q}”.`;\n      }\n      if(view.length) grid.innerHTML=view.map(card).join("");\n      else {\n        const alt=seller?`<button class="tpv16-primary" type="button" data-v16-all-sellers>Search all approved sellers</button>`:"";\n        grid.innerHTML=`<div class="tp-empty tpv16-empty"><h3>No matching ${seller?esc(seller)+" ":""}products found.</h3><p>Try a synonym, a shorter product name, or another approved seller. TrendPilot will not invent a product match.</p>${alt}</div>`;\n      }\n      if(push){\n        const params=new URLSearchParams({q});if(seller)params.set("seller",seller);\n        history.replaceState(null,"",`/find/?${params.toString()}`);\n      }\n    }catch(err){\n      console.error("TrendPilot V16 search failed",err);\n      message(\'<div class="tp-empty"><h3>Search could not finish.</h3><p>Please retry. The existing catalogue has not been changed.</p></div>\');\n      if(status)status.textContent="The catalogue request failed before results were changed.";\n      if(count)count.textContent="Retry";\n    }\n  }\n\n  function installSearchOverride(){\n    const form=document.querySelector("[data-tp-finder-form]");\n    const input=document.querySelector("[data-tp-finder-input]");\n    const seller=document.querySelector("[data-filter-merchant]");\n    if(!form||!input||!seller)return;\n    fixedSellerDropdown();\n\n    form.addEventListener("submit",e=>{\n      e.preventDefault();e.stopImmediatePropagation();\n      const q=input.value.trim()||"popular products";\n      runSearch(q,seller.value,true);\n    },true);\n\n    seller.addEventListener("change",e=>{\n      e.stopImmediatePropagation();\n      const q=input.value.trim()||new URLSearchParams(location.search).get("q")||"popular products";\n      runSearch(q,seller.value,true);\n    },true);\n\n    document.addEventListener("click",e=>{\n      const qv=e.target.closest("[data-v16-quick]");if(qv){e.preventDefault();openQuick(qv.dataset.v16Quick);return;}\n      if(e.target.closest("[data-v16-close]")){e.preventDefault();closeQuick();return;}\n      if(e.target.closest("[data-v16-all-sellers]")){seller.value="";runSearch(input.value.trim()||"popular products","",true);return;}\n    });\n\n    const params=new URLSearchParams(location.search);\n    const sellerParam=params.get("seller")||"";\n    if(APPROVED.includes(sellerParam))seller.value=sellerParam;\n\n    // Keep the seller list stable even when legacy V13 repopulates filters.\n    new MutationObserver(()=>fixedSellerDropdown()).observe(seller,{childList:true});\n\n    // If this URL was explicitly opened with a seller, run the federated seller search after legacy initialization.\n    if(sellerParam && input.value.trim()) setTimeout(()=>runSearch(input.value.trim(),sellerParam,false),350);\n  }\n\n  async function init(){\n    if(!location.pathname.startsWith("/find"))return;\n    fixedSellerDropdown();\n    await installAutocomplete();\n    installSearchOverride();\n    document.documentElement.classList.add("tp-v16-products");\n  }\n\n  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",init,{once:true});\n  else init();\n})();'
+          css = '.tp-v16-products .tp-search-input{position:relative}\n.tpv16-suggest{position:absolute;z-index:90;left:-1px;right:-1px;top:calc(100% + 2px);max-height:min(52vh,430px);overflow-y:auto;overscroll-behavior:contain;background:#fff;border:1px solid #cfd8dc;border-radius:0 0 18px 18px;box-shadow:0 18px 40px rgba(16,31,38,.18);-webkit-overflow-scrolling:touch}\n.tpv16-suggest button{width:100%;display:flex;align-items:center;gap:14px;border:0;border-bottom:1px solid #e7ecee;background:#fff;padding:13px 15px;text-align:left;color:#152027;min-height:64px}\n.tpv16-suggest button:last-child{border-bottom:0}.tpv16-suggest button:active{background:#f4f7f8}\n.tpv16-suggest b{display:block;font-size:1.03rem;line-height:1.2}.tpv16-suggest small{display:block;margin-top:3px;color:#6c777d;font-size:.78rem}\n.tpv16-search-icon{font-size:1.55rem;flex:0 0 28px;text-align:center}\n.tpv16-loading{grid-column:1/-1;min-height:180px;display:grid;place-items:center;align-content:center;gap:12px;border:1px dashed #cad5d9;border-radius:22px;background:#fff}\n.tpv16-loading span{width:34px;height:34px;border:4px solid #dce5e8;border-top-color:#3159e8;border-radius:50%;animation:tpv16spin .8s linear infinite}@keyframes tpv16spin{to{transform:rotate(360deg)}}\n.tpv16-card{border:1px solid #dce3e6;border-radius:22px;background:#fff;overflow:hidden;display:flex;flex-direction:column;min-width:0;box-shadow:0 10px 30px rgba(20,36,43,.05)}\n.tpv16-media{position:relative;aspect-ratio:1/1;background:#f4f6f6;display:grid;place-items:center;overflow:hidden}.tpv16-media img{width:100%;height:100%;object-fit:contain}\n.tpv16-img-fallback{font-weight:900;font-size:2rem;color:#3553a4}.tpv16-quick{position:absolute;right:10px;bottom:10px;border:1px solid #d2dade;border-radius:999px;background:rgba(255,255,255,.94);padding:8px 11px;font-weight:800}\n.tpv16-body{padding:16px;display:flex;flex-direction:column;gap:9px;flex:1}.tpv16-seller{font-weight:900;color:#2455c8;font-size:.84rem}.tpv16-body h3{margin:0;font-size:1.03rem;line-height:1.35}\n.tpv16-price{font-size:1.25rem;font-weight:900}.tpv16-actions{margin-top:auto;display:grid;grid-template-columns:1fr 1.2fr;gap:8px}.tpv16-actions button,.tpv16-actions a,.tpv16-primary{display:flex;align-items:center;justify-content:center;min-height:44px;border-radius:13px;text-decoration:none;font-weight:850;padding:10px 12px}\n.tpv16-actions button{border:1px solid #ccd7dc;background:#fff}.tpv16-actions a,.tpv16-primary{border:1px solid #3159e8;background:#3159e8;color:#fff}.tpv16-empty .tpv16-primary{margin:18px auto 0;width:max-content;max-width:100%}\n.tpv16-modal{position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:18px}.tpv16-modal[hidden]{display:none}.tpv16-backdrop{position:absolute;inset:0;border:0;background:rgba(9,18,23,.58)}\n.tpv16-dialog{position:relative;width:min(760px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:28px;padding:24px;box-shadow:0 26px 80px rgba(0,0,0,.28);transform:translateY(12px);opacity:0;transition:.14s}.tpv16-modal.is-open .tpv16-dialog{transform:none;opacity:1}\n.tpv16-close{position:absolute;right:16px;top:14px;width:44px;height:44px;border-radius:14px;border:1px solid #d5dde0;background:#fff;font-size:1.7rem}.tpv16-quick-grid{display:grid;grid-template-columns:minmax(180px,.8fr) 1.2fr;gap:22px;align-items:start}\n.tpv16-quick-image{aspect-ratio:1/1;background:#f4f6f6;border-radius:20px;display:grid;place-items:center;overflow:hidden}.tpv16-quick-image img{width:100%;height:100%;object-fit:contain}.tpv16-quick-grid h2{padding-right:50px;font-size:clamp(1.4rem,4vw,2.2rem);margin:8px 0 14px}.tpv16-note{color:#68747a}\n@media(max-width:620px){.tpv16-suggest{position:fixed;left:18px;right:18px;top:auto;bottom:calc(env(safe-area-inset-bottom) + 12px);max-height:46vh;border-radius:20px}.tpv16-quick-grid{grid-template-columns:1fr}.tpv16-dialog{padding:20px}.tpv16-actions{grid-template-columns:1fr 1.15fr}}\n'
+          (js_dir / "product-search-v16.js").write_text(js + "\n", encoding="utf-8")
+          (css_dir / "product-search-v16.css").write_text(css + "\n", encoding="utf-8")
+
+          page = find_path.read_text(encoding="utf-8")
+          page = re.sub(
+              r'\s*<!-- TP_V16_PRODUCT_SEARCH_START -->[\s\S]*?<!-- TP_V16_PRODUCT_SEARCH_END -->\s*',
+              "\n",
+              page,
+              count=1,
+          )
+          block = """<!-- TP_V16_PRODUCT_SEARCH_START -->
+          <link rel="stylesheet" href="/css/product-search-v16.css?v=16.0.0">
+          <script defer src="/js/product-search-v16.js?v=16.0.0"></script>
+          <!-- TP_V16_PRODUCT_SEARCH_END -->"""
+          if "</body>" not in page:
+              raise SystemExit("find/index.html has no closing body tag.")
+          page = page.replace("</body>", block + "\n</body>", 1)
+          find_path.write_text(page, encoding="utf-8")
+
+          report = {
+              "version": VERSION,
+              "mode": "standalone-overlay-no-fragile-performSearch-patching",
+              "approvedSellers": approved,
+              "features": [
+                  "fixed approved-seller registry including Joom and Temu",
+                  "Amazon-style prefix autocomplete with short product ideas",
+                  "mobile-scroll-safe suggestion list",
+                  "synonym expansion",
+                  "federated relevant-segment loading",
+                  "seller-specific all-page loading",
+                  "balanced all-seller result interleaving",
+                  "truthful seller-specific zero-result message",
+                  "independent quick view",
+                  "existing monetised outbound URLs preserved",
+              ],
+          }
+          (data_dir / "product-search-v16-report.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Validate V16 before publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/product-search-v16.js
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          page = Path("find/index.html").read_text(encoding="utf-8")
+          js = Path("js/product-search-v16.js").read_text(encoding="utf-8")
+          approved = json.loads(Path("data/approved-product-sellers-v16.json").read_text(encoding="utf-8"))["sellers"]
+
+          required_sellers = [
+              "AliExpress","Alibaba","Geekbuying","Lenovo","Joom",
+              "Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"
+          ]
+          if approved != required_sellers:
+              raise SystemExit("Approved seller registry is incorrect.")
+          if page.count("TP_V16_PRODUCT_SEARCH_START") != 1:
+              raise SystemExit("V16 HTML block is missing or duplicated.")
+          if "/js/product-search-v16.js?v=16.0.0" not in page:
+              raise SystemExit("V16 JS is not installed on Find.")
+          if "/css/product-search-v16.css?v=16.0.0" not in page:
+              raise SystemExit("V16 CSS is not installed on Find.")
+          for needle in ["power bank","phone cases","pens","pencils","Joom","Temu","balanced(rows","federatedSearch"]:
+              if needle not in js:
+                  raise SystemExit(f"Required V16 search feature is missing: {needle}")
+          if "site-v13-5.js" not in page:
+              raise SystemExit("Existing product baseline was unexpectedly removed.")
+          print("V16 validation passed.")
+          PY
+          git diff --check
+
+      - name: Publish V16 safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          files=(
+            "find/index.html"
+            "js/product-search-v16.js"
+            "css/product-search-v16.css"
+            "data/approved-product-sellers-v16.json"
+            "data/product-search-v16-report.json"
+          )
+
+          git add -- "${files[@]}"
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16 is already installed."
+            exit 0
+          fi
+
+          git commit -m "feat: install V16 federated product search engine"
+
+          for attempt in 1 2 3; do
+            if git push origin HEAD:main; then
+              echo "TrendPilot V16 Product Search Engine published successfully."
+              exit 0
+            fi
+            echo "Push attempt $attempt failed because main may have changed."
+            if [[ "$attempt" -lt 3 ]]; then
+              git pull --rebase origin main
+              sleep $((attempt * 2))
+            fi
+          done
+
+          echo "Unable to publish after three attempts."
+          exit 1
