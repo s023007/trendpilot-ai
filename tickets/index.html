@@ -7,22 +7,23 @@
   <meta name="robots" content="index,follow,max-image-preview:large">
   <title>Tickets & Experiences — Find Events and Choose Better Seats | TrendPilot AI</title>
   <meta name="description" content="Find sports, concert and theatre tickets, choose a suitable seating area and check the key booking details before opening live availability.">
-  <link rel="canonical" href="https://trendpilot-ai.netlify.app/tickets/">
+  <link rel="canonical" href="https://trendpilotchoice.com/tickets/">
   <meta property="og:site_name" content="TrendPilot AI">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Find events and choose better seats — TrendPilot AI">
   <meta property="og:description" content="A booking-first ticket assistant for sports, concerts and theatre.">
-  <meta property="og:url" content="https://trendpilot-ai.netlify.app/tickets/">
-  <meta property="og:image" content="https://trendpilot-ai.netlify.app/images/tickets/ticket-search.svg">
+  <meta property="og:url" content="https://trendpilotchoice.com/tickets/">
+  <meta property="og:image" content="https://trendpilotchoice.com/images/tickets/ticket-search.svg">
   <link rel="icon" href="/images/favicon-v4.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="/css/style-v13-2.css?v=13.2.0">
   <link rel="stylesheet" href="/css/style-v13-5.css?v=13.5.0">
   <link rel="stylesheet" href="/css/style-v13-6-tickets.css?v=13.6.0">
   <link rel="stylesheet" href="/css/style-v13-7-ticket-booking.css?v=13.7.0">
-  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Tickets & Experiences","url":"https://trendpilot-ai.netlify.app/tickets/","description":"A booking-first ticket assistant for event discovery, seating decisions and provider checks.","isPartOf":{"@type":"WebSite","name":"TrendPilot AI","url":"https://trendpilot-ai.netlify.app/"}}</script>
-<link rel="stylesheet" href="/css/cj-category-distribution.css?v=13.8.17">
-<link rel="stylesheet" href="/css/cj-category-distribution.css?v=13.8.22">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CollectionPage","name":"Tickets & Experiences","url":"https://trendpilotchoice.com/tickets/","description":"A booking-first ticket assistant for event discovery, seating decisions and provider checks.","isPartOf":{"@type":"WebSite","name":"TrendPilot AI","url":"https://trendpilotchoice.com/"}}</script>
+
+
+<link rel="stylesheet" href="/css/ticket-comparison-v13-8-24.css?v=13.8.24">
 </head>
 <body class="tp-ticket-v137" data-tp-page="tickets">
 <a class="tp-skip" href="#main">Skip to content</a>
@@ -52,103 +53,39 @@
       </div>
       <div class="tp-booking-hero-visual">
         <img src="/images/tickets/ticket-search.svg" alt="Ticket search and decision assistant illustration">
-        <div class="tp-booking-proof"><small>Connected now</small><strong>Ticombo</strong><span>Live event pages open only after a clear user choice.</span></div>
+        <div class="tp-booking-proof"><small>Compare before leaving</small><strong>4 booking sources</strong><span>Sports, concerts, theatre and travel are routed to the providers that actually cover them.</span></div>
       </div>
     </div>
   </section>
 
-  <section class="tp-ticket-finder-wrap" id="ticket-finder">
-    <div class="tp-shell">
-      <div class="tp-ticket-finder-card">
-        <h2>What do you want to attend?</h2>
-        <p>Search by competition, team, event type or city. TrendPilot will send you to the closest available starting page.</p>
-        <form class="tp-ticket-finder" data-ticket-finder role="search">
-          <svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
-          <input type="search" autocomplete="off" placeholder="Try Premier League, Formula 1 or concerts" aria-label="Search tickets">
-          <button class="tp-btn tp-btn-primary" type="submit">Show the best start</button>
-        </form>
-        <div class="tp-ticket-suggestions" aria-label="Popular searches">
-          <button type="button" data-ticket-suggestion="Premier League">Premier League</button>
-          <button type="button" data-ticket-suggestion="Formula 1">Formula 1</button>
-          <button type="button" data-ticket-suggestion="Concerts">Concerts</button>
-          <button type="button" data-ticket-suggestion="Theatre">Theatre</button>
-          <button type="button" data-ticket-suggestion="Nations League">Nations League</button>
-        </div>
-        <div class="tp-ticket-finder-result" data-ticket-finder-result hidden aria-live="polite">
-          <div><small data-finder-badge>Best starting page</small><h3 data-finder-title></h3><p data-finder-text></p></div>
-          <div class="tp-ticket-result-actions"><a class="tp-btn tp-btn-light" data-finder-internal hidden>Open TrendPilot guide</a><a class="tp-btn tp-btn-primary" data-finder-outbound data-provider="ticombo" href="#">Browse live tickets ↗</a></div>
-        </div>
-      </div>
+  <section class="tp-ticket-compare" id="ticket-finder" data-ticket-compare>
+  <div class="tp-shell">
+    <div class="tp-ticket-compare-head">
+      <div><span class="tp-kicker">Compare connected sources</span><h2>Start with the event—not a single marketplace.</h2><p>Search once, then compare coverage and the closest current routes from Ticombo, Sports Events 365, TicketNetwork and Trip.com.</p></div>
+      <div class="tp-ticket-provider-count"><b data-ticket-provider-count>4</b><span>providers considered for this choice</span></div>
     </div>
-  </section>
-
-  <section class="tp-ticket-booking-section">
-    <div class="tp-shell">
-      <div class="tp-section-intro"><div><span class="tp-kicker">Popular ways to start</span><h2>Go straight to the kind of event you need.</h2></div><p>These links open live category pages. Exact prices, event dates and availability remain on the provider.</p></div>
-      <div class="tp-ticket-category-grid">
-        <article class="tp-ticket-category-card"><img src="/images/tickets/ticket-football.svg" alt="Football event ticket"><h3>Football</h3><p>Browse competitions, clubs and individual match listings.</p><div class="tp-category-meta"><span>Sports</span><span>Live listings</span></div><a class="tp-btn tp-btn-primary" data-ticket-destination="football" data-provider="ticombo" data-placement="category" href="#">Browse football tickets ↗</a></article>
-        <article class="tp-ticket-category-card"><img src="/images/tickets/ticket-f1.svg" alt="Formula 1 event ticket"><h3>Formula 1</h3><p>Compare race days, weekend passes and grandstand categories.</p><div class="tp-category-meta"><span>Motorsport</span><span>Live listings</span></div><a class="tp-btn tp-btn-primary" data-ticket-destination="formula1" data-provider="ticombo" data-placement="category" href="#">Browse Formula 1 tickets ↗</a></article>
-        <article class="tp-ticket-category-card"><img src="/images/tickets/ticket-music.svg" alt="Concert event ticket"><h3>Concerts & music</h3><p>Browse artists, tours, festivals and live music events.</p><div class="tp-category-meta"><span>Music</span><span>Live listings</span></div><a class="tp-btn tp-btn-primary" data-ticket-destination="music" data-provider="ticombo" data-placement="category" href="#">Browse concert tickets ↗</a></article>
-        <article class="tp-ticket-category-card"><img src="/images/tickets/ticket-theatre.svg" alt="Theatre and comedy event ticket"><h3>Theatre & comedy</h3><p>Browse stage shows, comedy and other live performances.</p><div class="tp-category-meta"><span>Shows</span><span>Live listings</span></div><a class="tp-btn tp-btn-primary" data-ticket-destination="theatre" data-provider="ticombo" data-placement="category" href="#">Browse theatre tickets ↗</a></article>
-      </div>
+    <div class="tp-ticket-compare-panel">
+      <form class="tp-ticket-compare-form" data-ticket-compare-form>
+        <input name="ticketQuery" type="search" autocomplete="off" placeholder="Premier League, Formula 1, Muse, theatre or hotels" aria-label="Event or travel search">
+        <select name="ticketType" aria-label="Booking type"><option value="all">All bookings</option><option value="sports">Sports tickets</option><option value="concerts">Concerts & music</option><option value="theatre">Theatre & shows</option><option value="travel">Travel & attractions</option></select>
+        <button class="tp-btn tp-btn-primary" type="submit">Compare providers</button>
+      </form>
+      <div class="tp-ticket-type-chips"><button class="is-active" data-ticket-type="all" type="button">All</button><button data-ticket-type="sports" type="button">Sports</button><button data-ticket-type="concerts" type="button">Concerts</button><button data-ticket-type="theatre" type="button">Theatre</button><button data-ticket-type="travel" type="button">Travel</button></div>
+      <p class="tp-ticket-match-summary" data-ticket-match-summary></p>
+      <div class="tp-ticket-provider-results" data-ticket-provider-results></div>
+      <div data-ticket-provider-matrix></div>
+      <div class="tp-ticket-honesty"><b>What TrendPilot compares now:</b> provider coverage, event type and current destination links. Exact seat price, fees and availability are confirmed live on the provider until an event-level feed is connected.</div>
     </div>
-  </section>
-
-  <section class="tp-ticket-booking-section tp-soft">
-    <div class="tp-shell">
-      <div class="tp-section-intro"><div><span class="tp-kicker">Seat and ticket helper</span><h2>Tell us what matters. Get a sensible starting point.</h2></div><p>This does not invent a “best seat”. It gives you the first category to compare, then tells you what to verify.</p></div>
-      <div class="tp-booking-assistant">
-        <form class="tp-booking-assistant-form" data-booking-assistant>
-          <h3>Build your starting choice</h3><p>Two quick choices are enough.</p>
-          <label class="tp-booking-field"><span>Event type</span><select name="eventType"><option value="football">Football</option><option value="formula1">Formula 1</option><option value="music">Concert or music</option><option value="theatre">Theatre or comedy</option></select></label>
-          <label class="tp-booking-field"><span>What matters most?</span><select name="priority"><option value="balanced">Balanced view and value</option><option value="budget">Lowest price</option><option value="close">Closer to the action</option><option value="atmosphere">Strong atmosphere</option><option value="comfort">Comfort or hospitality</option></select></label>
-          <button class="tp-btn tp-btn-light" type="submit">Update my recommendation</button>
-        </form>
-        <div class="tp-booking-assistant-result" data-booking-result aria-live="polite"><small>Suggested starting category</small><h3 data-assistant-zone>Long side, middle rows</h3><p data-assistant-why>A practical starting point for following the whole match.</p><div class="tp-assistant-check"><b>Check before paying</b><span data-assistant-check>Centre versus corner position and row height.</span></div><a class="tp-btn tp-btn-primary" data-assistant-outbound data-provider="ticombo" href="#">Browse live tickets ↗</a></div>
-      </div>
-    </div>
-  </section>
-
-  <section class="tp-ticket-booking-section">
-    <div class="tp-shell">
-      <div class="tp-section-intro"><div><span class="tp-kicker">Featured decision guide</span><h2>Want football tickets but unsure where to start?</h2></div><p>Open the competition guide first, or go directly to the live listing page when you already know what you want.</p></div>
-      <article class="tp-featured-route">
-        <img src="/images/tickets/stadium-seating.svg" alt="General football stadium seating guide">
-        <div><span class="tp-kicker">Men’s Nations League</span><h3>Choose a match and understand the seat trade-offs.</h3><p>Use the guide for lower tier, long side, upper tier, behind-goal and hospitality choices before opening current matches.</p><div class="tp-featured-route-tags"><span>Competition guide</span><span>Seat helper</span><span>Marketplace disclosed</span></div></div>
-        <div><a class="tp-btn tp-btn-primary" href="/tickets/mens-nations-league/">Open the decision guide</a></div>
-      </article>
-    </div>
-  </section>
-
-  <section class="tp-ticket-booking-section tp-soft">
-    <div class="tp-shell">
-      <div class="tp-section-intro"><div><span class="tp-kicker">Before checkout</span><h2>Four details that change the true booking value.</h2></div><p>A cheap headline price is not enough when fees, seat location or delivery details are unclear.</p></div>
-      <div class="tp-ticket-check-grid">
-        <article class="tp-ticket-check-card"><b>1</b><h3>Exact event</h3><p>Confirm the date, city, venue and local start time. Event schedules can change.</p></article>
-        <article class="tp-ticket-check-card"><b>2</b><h3>Seat evidence</h3><p>Read the block, row, adjacency and restricted-view wording for the exact listing.</p></article>
-        <article class="tp-ticket-check-card"><b>3</b><h3>Total cost</h3><p>Check service fees, taxes, delivery and currency conversion before calling one offer cheaper.</p></article>
-        <article class="tp-ticket-check-card"><b>4</b><h3>Delivery & protection</h3><p>Confirm ticket format, delivery timing, event-change rules and buyer-protection terms.</p></article>
-      </div>
-    </div>
-  </section>
-
-
-<!-- TP_CJ_TRAVEL_DIRECTORY_START -->
-<section class="tp-cj-directory-section tp-cj-white"><div class="tp-shell"><div class="tp-cj-directory-head"><div><span class="tp-kicker">Travel & bookings</span><h2>Flights, hotels, trains and attractions use live booking links.</h2><p>Trip.com is separated from physical products because price and availability depend on destination, dates, passengers and booking conditions.</p></div></div><div class="tp-cj-directory-grid" data-cj-directory="travel"></div><div class="tp-cj-disclosure" data-cj-disclosure></div></div></section>
-<!-- TP_CJ_TRAVEL_DIRECTORY_END -->
-
-
-<!-- TP_CJ_TICKET_DIRECTORY_START -->
-<section class="tp-cj-directory-section tp-cj-white"><div class="tp-shell"><div class="tp-cj-directory-head"><div><span class="tp-kicker">Sports tickets</span><h2>Football and live sporting events.</h2><p>Sports Events 365 remains separate from general event and travel bookings.</p></div></div><div class="tp-cj-directory-grid" data-cj-directory="sports"></div></div></section>
-<section class="tp-cj-directory-section"><div class="tp-shell"><div class="tp-cj-directory-head"><div><span class="tp-kicker">Event tickets</span><h2>Concerts, theatre and more.</h2><p>TicketNetwork is classified as a broad live-event ticket marketplace.</p></div></div><div class="tp-cj-directory-grid" data-cj-directory="events"></div></div></section>
-<section class="tp-cj-directory-section tp-cj-white"><div class="tp-shell"><div class="tp-cj-directory-head"><div><span class="tp-kicker">Travel & bookings</span><h2>Flights, hotels, trains and attractions.</h2><p>Trip.com remains in travel because pricing depends on destination, dates and availability.</p></div></div><div class="tp-cj-directory-grid" data-cj-directory="travel"></div><div class="tp-cj-disclosure" data-cj-disclosure></div></div></section>
-<!-- TP_CJ_TICKET_DIRECTORY_END -->
-
-<section class="tp-ticket-disclosure"><div class="tp-shell"><strong>Marketplace and affiliate disclosure</strong><p>Ticombo is shown as a ticket marketplace, not automatically as an official seller. Provider links may be affiliate links. TrendPilot does not automatically redirect users, and live price, inventory and checkout terms remain controlled by the provider.</p></div></section>
+  </div>
+</section>
+<section class="tp-ticket-booking-section tp-soft">
+  <div class="tp-shell"><div class="tp-section-intro"><div><span class="tp-kicker">Compare the real value</span><h2>Do not judge a ticket by the headline price alone.</h2></div><p>Use the provider comparison above, then verify these four fields on the exact listing.</p></div><div class="tp-ticket-check-grid"><article class="tp-ticket-check-card"><b>1</b><h3>Exact event</h3><p>Date, venue, city and local start time.</p></article><article class="tp-ticket-check-card"><b>2</b><h3>Seat evidence</h3><p>Section, row, adjacency and restricted-view wording.</p></article><article class="tp-ticket-check-card"><b>3</b><h3>Final total</h3><p>Ticket price, service fees, tax, delivery and currency.</p></article><article class="tp-ticket-check-card"><b>4</b><h3>Protection</h3><p>Delivery method, refund terms and event-change policy.</p></article></div></div>
+</section>
+<section class="tp-ticket-disclosure"><div class="tp-shell"><strong>Provider and affiliate disclosure</strong><p>Ticombo, Sports Events 365, TicketNetwork and Trip.com cover different booking needs. Some links are affiliate links. TrendPilot compares the supplied route and coverage evidence; live inventory, seat details, fees and checkout terms remain controlled by each provider.</p></div></section>
 </main>
 <footer class="tp-footer" data-v13-footer><div class="tp-shell tp-footer-grid"><div><a class="tp-brand" href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><span>TrendPilot <em>AI</em></span></a><p>A calmer shopping and booking decision engine for exact discovery, clear evidence and same-type comparison.</p></div><div><h2>Decide</h2><a href="/find/">Find products</a><a href="/compare/">Compare</a><a href="/deals/">Deals & coupons</a><a href="/price-watch/">Saved products</a></div><div><h2>Explore</h2><a href="/products/">Electronics Lab</a><a href="/software/">Software Finder</a><a href="/rare-used/">Rare Finds</a><a href="/tickets/">Tickets & experiences</a><a href="/sourcing/">Business Sourcing</a></div><div><h2>Trust</h2><a href="/editorial-methodology.html">How we rank</a><a href="/affiliate-disclosure.html">Affiliate disclosure</a><a href="/privacy.html">Privacy</a><a href="/terms.html">Terms</a><a href="/contact.html">Contact</a></div></div><div class="tp-shell tp-footer-bottom"><span>© <span data-year></span> TrendPilot AI.</span><span>Prices, fees, availability and event terms can change. Confirm them before payment.</span></div></footer>
 <nav class="tp-bottom-nav" aria-label="Mobile navigation"><a data-bottom-link href="/"><b>⌂</b><span>Home</span></a><a data-bottom-link href="/find/"><b>⌕</b><span>Search</span></a><a class="is-active" data-bottom-link href="/tickets/"><b>◫</b><span>Tickets</span></a><a data-bottom-link href="/compare/"><b>⇄</b><span>Compare</span><i class="tp-count" data-compare-count hidden>0</i></a></nav>
 <script defer src="/js/site-config.js?v=13.2.0"></script><script src="/js/cj-joined-sellers.js?v=13.8.7"></script>
-<script defer src="/js/site-v13-5.js?v=13.8.9"></script><script defer src="/data/tickets-config.js?v=13.7.0"></script><script defer src="/js/tickets-v13-7.js?v=13.7.0"></script>
-<script defer src="/js/cj-category-distribution.js?v=13.8.22"></script>
+<script defer src="/js/site-v13-5.js?v=13.8.24"></script><script defer src="/data/tickets-config.js?v=13.7.0"></script>
+<script defer src="/js/ticket-comparison-v13-8-24.js?v=13.8.24"></script>
 </body></html>

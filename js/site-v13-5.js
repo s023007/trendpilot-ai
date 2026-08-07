@@ -10,10 +10,10 @@
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
 
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "13.8.9";
-  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203"]);
-  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
-  const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
+  const TP_CJ_GUARD_VERSION = "13.8.24";
+  const TP_CJ_APPROVED_IDS = new Set(["2357926", "7287203", "5893489", "7227612", "4295086", "6293473", "4837117", "7753674", "2288710", "4368684"]);
+  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "thefragranceshop", "thefragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "pandahall", "pandahallcom", "temu", "temucom", "shoptemu", "nordvpn", "sportsevents365", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal"]);
+  const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "thefragranceshop", "thefragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "pandahall", "pandahallcom", "temu", "temucom", "shoptemu", "nordvpn", "sportsevents365", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal"]);
   const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
   const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
 
@@ -104,6 +104,15 @@
     return tpCjApproved(row) && validUrl(tpCjUrl(row));
   }
   // TP_CJ_EXACT_GUARD_END
+
+// TP_PUBLIC_SELLER_GUARD_START
+function tpPublicSellerAllowed(p) {
+  if (!p) return false;
+  const title = clean(p.name || p.title);
+  const target = clean(p.url || p.affiliateUrl || p.productUrl);
+  return Boolean(title && validUrl(target));
+}
+// TP_PUBLIC_SELLER_GUARD_END
 
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];
   const debounce = (fn, wait = 120) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), wait); }; };
@@ -378,7 +387,7 @@ function normalizeProduct(p) {
     if (tpCjProductsPromise) return tpCjProductsPromise;
     tpCjProductsPromise = (async () => {
       try {
-        const r = await fetch(`/data/cj-products.json?v=13.8.22-${Date.now()}`, {cache:"no-store"});
+        const r = await fetch(`/data/cj-products.json?v=13.8.24-${Date.now()}`, {cache:"no-store"});
         if (!r.ok) throw new Error(`CJ products ${r.status}`);
         const data = await r.json();
         return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct);
@@ -902,7 +911,9 @@ function normalizeProduct(p) {
     // TP_CJ_DROPDOWN_13_8_13
     if(merchant){
       const current=merchant.value;
-      const sellers=uniq(rows.filter(tpCjPublicAllowed).map(p=>p.advertiser)).filter(Boolean).sort();
+      const matchedRows=uniqProducts([...(state.exact||[]),...(state.alternatives||[])]);
+    const sellerSource=matchedRows.length?matchedRows:rows;
+    const sellers=uniq(sellerSource.filter(p=>tpCjPublicAllowed(p)&&tpPublicSellerAllowed(p)).map(p=>p.advertiser)).filter(Boolean).sort();
       merchant.innerHTML='<option value="">All sellers</option>'+sellers.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
       merchant.value=sellers.includes(current)?current:"";
     }
@@ -947,21 +958,38 @@ function normalizeProduct(p) {
   }
 
   async function performSearch(query,push=true,scope=""){
-    const normalized=normalizeQuery(query);
-    state.originalQuery=normalized.original; state.query=normalized.query; state.queryCorrected=normalized.corrected;
-    state.scope=scope||""; state.shown=24; state.activeTab="exact"; state.products=[]; state.exact=[]; state.alternatives=[]; state.segmentState.clear();
-    resetFilterControls();
+  const normalized=normalizeQuery(query);
+  state.originalQuery=normalized.original; state.query=normalized.query; state.queryCorrected=normalized.corrected;
+  state.scope=scope||""; state.shown=24; state.activeTab="exact"; state.products=[]; state.exact=[]; state.alternatives=[]; state.segmentState.clear(); state.loading=true;
+  resetFilterControls();
+  const grid=$('[data-tp-product-grid]');
+  if(grid)grid.innerHTML='<div class="tp-empty"><h3>Checking matching products…</h3><p>TrendPilot is loading the most relevant catalogue records.</p></div>';
+  try {
     const m=await loadManifest(); state.plan=makePlan(state.query,m,state.scope); state.segments=state.plan.segmentKeys.map(segmentMeta).filter(Boolean);
     if(push){const params=new URLSearchParams({q:state.query});if(state.scope)params.set("scope",state.scope);history.replaceState(null,"",`/find/?${params.toString()}`);}
     const input=$('[data-tp-finder-input]');if(input)input.value=state.query;
     const scopeSelect=$('[data-tp-finder-scope]');if(scopeSelect)scopeSelect.value=state.scope;
-    const [rows,cjRows]=await Promise.all([
+    const results=await Promise.allSettled([
       state.manifest.version==="fallback"?Promise.resolve(state.products):loadInitialSegments(),
       loadCjProducts()
-    ]); mergeProducts([...rows,...cjRows]);
-    await ensureMinimumExact(24);
+    ]);
+    const rows=results[0].status==="fulfilled"?results[0].value:[];
+    const cjRows=results[1].status==="fulfilled"?results[1].value:[];
+    mergeProducts([...rows,...cjRows]);
+    await Promise.race([ensureMinimumExact(24),new Promise(resolve=>setTimeout(resolve,6500))]);
     populateFilters(); renderFinder();
+  } catch(error) {
+    console.error("TrendPilot product search failed safely",error);
+    if(!state.plan){state.plan={q:state.query,groups:[],family:"",families:[],audience:"",segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};}
+    try { populateFilters(); renderFinder(); } catch(renderError) {
+      console.error("TrendPilot finder fallback failed",renderError);
+      if(grid)grid.innerHTML='<div class="tp-empty"><h3>Products could not be displayed.</h3><p>Refresh once or try another search. No unrelated products were substituted.</p></div>';
+    }
+    const status=$('[data-tp-finder-status]');if(status)status.textContent="The catalogue could not finish loading. Try again or change the search.";
+  } finally {
+    state.loading=false;
   }
+}
   async function showMore(){
     let rows=filterProducts(activeProducts());
     if(rows.length>state.shown){state.shown+=24;renderFinder();return;}
