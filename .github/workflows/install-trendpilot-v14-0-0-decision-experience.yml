@@ -1,0 +1,1057 @@
+name: Install TrendPilot V14.0.0 Decision Experience
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v14-decision-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-v14-decision-experience:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+
+    steps:
+      - name: Check out latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Record starting revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "TP_BASE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build V14 mobile search wholesale and ticket intelligence
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from __future__ import annotations
+
+          import hashlib
+          import html
+          import json
+          import re
+          from pathlib import Path
+          from typing import Any
+
+          VERSION = "14.0.0"
+          ROOT = Path(".")
+          DATA = ROOT / "data"
+          JS = ROOT / "js"
+          CSS = ROOT / "css"
+
+          required = [
+              ROOT / "find" / "index.html",
+              ROOT / "tickets" / "index.html",
+              DATA / "cj-products.json",
+              DATA / "ticket-events.json",
+              DATA / "search-catalog" / "manifest.json",
+          ]
+          missing = [str(path) for path in required if not path.exists()]
+          if missing:
+              raise SystemExit(
+                  "V14 requires the successful V13.8.30 baseline. Missing: "
+                  + ", ".join(missing)
+              )
+
+          def clean(value: Any) -> str:
+              return re.sub(r"\s+", " ", html.unescape(str(value or ""))).strip()
+
+          def valid_url(value: Any) -> bool:
+              return bool(re.match(r"^https?://", clean(value), flags=re.I))
+
+          def number(value: Any) -> float | None:
+              try:
+                  result = float(value)
+                  return result if result >= 0 else None
+              except (TypeError, ValueError):
+                  return None
+
+          # ================================================================
+          # A. Wholesale / bulk data layer
+          # ================================================================
+          wholesale_terms = re.compile(
+              r"\b(wholesale|bulk|moq|minimum order|minimum quantity|manufacturer|"
+              r"supplier|factory|private label|custom logo|case pack|carton|"
+              r"lot of|pieces per lot|pcs per lot)\b",
+              re.I,
+          )
+          business_groups = {"business-sourcing", "wholesale", "b2b", "sourcing"}
+          known_platforms = {
+              "Alibaba": ("alibaba", "alibaba.com"),
+              "AliExpress": ("aliexpress", "ali express", "aliexpress.com"),
+              "Temu": ("temu", "temu.com"),
+          }
+
+          def seller_name(row: dict[str, Any]) -> str:
+              return clean(
+                  row.get("advertiser")
+                  or row.get("seller")
+                  or row.get("merchant")
+                  or row.get("store")
+                  or row.get("shop")
+                  or row.get("brand")
+              )
+
+          def platform_for(row: dict[str, Any]) -> str:
+              seller = seller_name(row).lower()
+              context = clean(
+                  " ".join(
+                      str(row.get(key) or "")
+                      for key in (
+                          "network",
+                          "source",
+                          "program",
+                          "url",
+                          "affiliateUrl",
+                          "destination",
+                      )
+                  )
+              ).lower()
+              blob = f"{seller} {context}"
+              for platform, aliases in known_platforms.items():
+                  if any(alias in blob for alias in aliases):
+                      return platform
+              return seller_name(row) or "Other"
+
+          def parse_moq(text: str) -> int | None:
+              patterns = (
+                  r"\bMOQ\s*[:=-]?\s*(\d{1,6})\b",
+                  r"\bminimum\s+(?:order|quantity)\s*[:=-]?\s*(\d{1,6})\b",
+                  r"\bmin\.?\s*order\s*[:=-]?\s*(\d{1,6})\b",
+              )
+              for pattern in patterns:
+                  match = re.search(pattern, text, flags=re.I)
+                  if not match:
+                      continue
+                  try:
+                      value = int(match.group(1))
+                  except ValueError:
+                      continue
+                  if 1 <= value <= 1000000:
+                      return value
+              return None
+
+          def wholesale_evidence(
+              row: dict[str, Any],
+          ) -> tuple[int, str, int | None]:
+              text = clean(
+                  " ".join(
+                      str(row.get(key) or "")
+                      for key in (
+                          "name",
+                          "title",
+                          "description",
+                          "category",
+                          "subcategory",
+                          "family",
+                          "group",
+                      )
+                  )
+              )
+              moq = parse_moq(text)
+              if moq is not None:
+                  return 5, "MOQ stated in listing", moq
+              if wholesale_terms.search(text):
+                  return 4, "Wholesale or bulk wording in listing", None
+              if clean(row.get("group")).lower() in business_groups:
+                  return 3, "Business-sourcing catalogue", None
+              if platform_for(row) in {"Alibaba", "AliExpress", "Temu"}:
+                  return 2, "Wholesale-capable marketplace", None
+              return 0, "", None
+
+          def normalize_wholesale(
+              row: dict[str, Any],
+          ) -> dict[str, Any] | None:
+              title = clean(row.get("name") or row.get("title"))
+              url = clean(
+                  row.get("url")
+                  or row.get("affiliateUrl")
+                  or row.get("productUrl")
+              )
+              image = clean(
+                  row.get("image")
+                  or row.get("imageUrl")
+                  or row.get("imageLink")
+              )
+              if not title or not valid_url(url):
+                  return None
+
+              score, evidence, moq = wholesale_evidence(row)
+              if score <= 0:
+                  return None
+
+              platform = platform_for(row)
+              if platform not in {"Alibaba", "AliExpress", "Temu"} and score < 3:
+                  return None
+
+              price = number(row.get("price"))
+              currency = clean(row.get("currency")) or "USD"
+              source_id = clean(row.get("id"))
+              identity = source_id or hashlib.sha256(
+                  f"{platform}|{title}|{url}".encode("utf-8")
+              ).hexdigest()[:24]
+
+              return {
+                  "id": f"wholesale-{identity}",
+                  "sourceProductId": source_id,
+                  "name": title,
+                  "platform": platform,
+                  "seller": seller_name(row) or platform,
+                  "image": image if valid_url(image) else "",
+                  "url": url,
+                  "price": price,
+                  "currency": currency,
+                  "group": clean(row.get("group")) or "other",
+                  "family": clean(row.get("family")),
+                  "category": clean(row.get("category")),
+                  "moq": moq,
+                  "evidenceScore": score,
+                  "evidence": evidence,
+                  "priceBasis": (
+                      "Listing price; verify whether it is per unit, pack or lot"
+                      if price is not None
+                      else "Price shown on provider"
+                  ),
+                  "quality": number(row.get("quality")) or 0,
+              }
+
+          wholesale_rows: list[dict[str, Any]] = []
+          wholesale_seen: set[str] = set()
+
+          def add_wholesale(row: dict[str, Any]) -> None:
+              item = normalize_wholesale(row)
+              if not item:
+                  return
+              key = (
+                  f'{item["platform"].lower()}|'
+                  f'{item["name"].lower()}|{item["url"]}'
+              )
+              if key in wholesale_seen:
+                  return
+              wholesale_seen.add(key)
+              wholesale_rows.append(item)
+
+          cj_products = json.loads(
+              (DATA / "cj-products.json").read_text(encoding="utf-8")
+          ).get("products") or []
+          for row in cj_products:
+              add_wholesale(row)
+
+          manifest = json.loads(
+              (DATA / "search-catalog" / "manifest.json").read_text(
+                  encoding="utf-8"
+              )
+          )
+          preferred_files: list[str] = []
+          other_files: list[str] = []
+
+          for segment in manifest.get("segments") or []:
+              target = (
+                  preferred_files
+                  if clean(segment.get("group")).lower() in business_groups
+                  else other_files
+              )
+              for value in segment.get("files") or []:
+                  value = clean(value)
+                  if value:
+                      target.append(value)
+
+          ordered_files: list[str] = []
+          for value in [*preferred_files, *other_files]:
+              if value not in ordered_files:
+                  ordered_files.append(value)
+
+          scanned_files = 0
+          scanned_products = 0
+          for relative in ordered_files:
+              if (
+                  scanned_files >= 1400
+                  or scanned_products >= 260000
+                  or len(wholesale_rows) >= 3200
+              ):
+                  break
+              local = ROOT / relative.lstrip("/")
+              if not local.exists() or not local.is_file():
+                  continue
+              try:
+                  payload = json.loads(local.read_text(encoding="utf-8"))
+              except Exception:
+                  continue
+
+              scanned_files += 1
+              rows = payload.get("products") or []
+              scanned_products += len(rows)
+              for row in rows:
+                  add_wholesale(row)
+
+          wholesale_rows.sort(
+              key=lambda row: (
+                  -int(row["evidenceScore"]),
+                  0
+                  if row["platform"] == "Alibaba"
+                  else 1
+                  if row["platform"] == "AliExpress"
+                  else 2
+                  if row["platform"] == "Temu"
+                  else 3,
+                  -float(row.get("quality") or 0),
+                  row["name"].lower(),
+              )
+          )
+          wholesale_rows = wholesale_rows[:2400]
+
+          platform_counts: dict[str, int] = {}
+          for row in wholesale_rows:
+              platform_counts[row["platform"]] = (
+                  platform_counts.get(row["platform"], 0) + 1
+              )
+
+          (DATA / "wholesale-index.json").write_text(
+              json.dumps(
+                  {
+                      "version": VERSION,
+                      "count": len(wholesale_rows),
+                      "platformCounts": platform_counts,
+                      "scannedFiles": scanned_files,
+                      "scannedProducts": scanned_products,
+                      "disclosure": (
+                          "Wholesale evidence comes from explicit MOQ or bulk "
+                          "wording, business-sourcing catalogue data, or a "
+                          "wholesale-capable marketplace. Confirm MOQ, unit/lot "
+                          "price, shipping, tax, customization and supplier terms "
+                          "on the provider before ordering."
+                      ),
+                      "products": wholesale_rows,
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              )
+              + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # B. Ticket inventory schema
+          # ================================================================
+          inventory_path = DATA / "ticket-inventory.json"
+          if not inventory_path.exists():
+              inventory_path.write_text(
+                  json.dumps(
+                      {
+                          "version": VERSION,
+                          "schema": {
+                              "id": "unique listing id",
+                              "eventTitle": "exact event title",
+                              "provider": "provider name",
+                              "date": "event date",
+                              "venue": "venue name",
+                              "city": "city",
+                              "section": "seat section",
+                              "row": "seat row",
+                              "quantity": "available ticket quantity",
+                              "price": "numeric ticket price",
+                              "fees": "numeric fees when supplied",
+                              "currency": "ISO currency",
+                              "url": "affiliate/live inventory URL",
+                          },
+                          "listings": [],
+                      },
+                      ensure_ascii=False,
+                      indent=2,
+                  )
+                  + "\n",
+                  encoding="utf-8",
+              )
+
+          # ================================================================
+          # C. Shared V14 CSS
+          # ================================================================
+          CSS.mkdir(parents=True, exist_ok=True)
+          (CSS / "decision-v14.css").write_text(
+              r'''
+          :root{--tp-v14-blue:#3157e5;--tp-v14-ink:#13201c;--tp-v14-muted:#68746f;--tp-v14-line:#dbe3e0;--tp-v14-soft:#f1f6f4;--tp-v14-green:#14765b}
+          .tp-smart-search-host{position:relative!important}
+          .tp-smart-suggestions{position:absolute;z-index:5000;top:calc(100% + 7px);left:0;right:0;overflow:hidden;border:1px solid var(--tp-v14-line);border-radius:18px;background:#fff;box-shadow:0 24px 70px rgba(13,29,25,.22)}
+          .tp-smart-suggestions[hidden]{display:none!important}.tp-smart-scroll{max-height:330px;overflow:auto;overscroll-behavior:contain;padding:6px}
+          .tp-smart-heading{display:flex;align-items:center;justify-content:space-between;padding:7px 10px 4px;color:var(--tp-v14-blue);font-size:.67rem;font-weight:900;letter-spacing:.1em;text-transform:uppercase}
+          .tp-smart-close{border:0;background:transparent;color:#66716d;font-size:1.15rem;line-height:1;cursor:pointer}
+          .tp-smart-option{display:grid;width:100%;gap:2px;padding:10px 11px;border:0;border-radius:12px;background:transparent;text-align:left;cursor:pointer}
+          .tp-smart-option:hover,.tp-smart-option.is-active{background:#eef3ff}
+          .tp-smart-option b{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:2;color:var(--tp-v14-ink);font-size:.9rem;line-height:1.25}
+          .tp-smart-option small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--tp-v14-muted);font-size:.7rem}
+          .tp-smart-footer{position:sticky;bottom:0;display:flex;gap:8px;padding:8px;border-top:1px solid #e5ece9;background:rgba(255,255,255,.98)}
+          .tp-smart-view-all{display:flex;flex:1;min-height:42px;align-items:center;justify-content:center;border:0;border-radius:12px;background:var(--tp-v14-blue);color:#fff;font-weight:850;cursor:pointer}
+          .tp-wholesale-hero{padding:56px 0 28px;background:linear-gradient(145deg,#f5f1ff,#edfff8)}
+          .tp-wholesale-hero h1{max-width:850px;margin:8px 0 14px;font-size:clamp(2.15rem,6vw,4.4rem);line-height:1}
+          .tp-wholesale-hero p{max-width:780px;color:var(--tp-v14-muted);font-size:1.05rem;line-height:1.7}
+          .tp-wholesale-toolbar{position:sticky;top:74px;z-index:30;padding:14px 0;background:rgba(248,248,245,.96);backdrop-filter:blur(14px)}
+          .tp-wholesale-controls{display:grid;grid-template-columns:minmax(220px,2fr) repeat(3,minmax(140px,1fr));gap:10px}
+          .tp-wholesale-controls input,.tp-wholesale-controls select{width:100%;min-height:48px;padding:0 13px;border:1px solid var(--tp-v14-line);border-radius:13px;background:#fff;font:inherit}
+          .tp-wholesale-summary{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0}.tp-wholesale-summary span{padding:7px 10px;border-radius:999px;background:#edf3ff;color:#274db8;font-size:.78rem;font-weight:800}
+          .tp-wholesale-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:12px 0 60px}
+          .tp-wholesale-card{display:flex;flex-direction:column;min-width:0;overflow:hidden;border:1px solid var(--tp-v14-line);border-radius:22px;background:#fff;box-shadow:0 12px 32px rgba(12,30,24,.05)}
+          .tp-wholesale-image{aspect-ratio:4/3;display:grid;place-items:center;overflow:hidden;background:#f4f6f5}.tp-wholesale-image img{width:100%;height:100%;object-fit:contain}
+          .tp-wholesale-body{display:flex;flex:1;flex-direction:column;padding:16px}.tp-wholesale-platform{color:var(--tp-v14-blue);font-size:.72rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+          .tp-wholesale-card h2{display:-webkit-box;overflow:hidden;-webkit-box-orient:vertical;-webkit-line-clamp:3;margin:7px 0 9px;font-size:1.02rem;line-height:1.35}
+          .tp-wholesale-evidence{width:max-content;max-width:100%;padding:6px 9px;border-radius:999px;background:#eaf7f2;color:var(--tp-v14-green);font-size:.7rem;font-weight:850}
+          .tp-wholesale-facts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:12px 0}.tp-wholesale-facts div{padding:9px;border-radius:12px;background:var(--tp-v14-soft)}
+          .tp-wholesale-facts small{display:block;color:var(--tp-v14-muted);font-size:.65rem}.tp-wholesale-facts b{display:block;margin-top:3px;font-size:.82rem}
+          .tp-wholesale-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:auto}
+          .tp-wholesale-actions a,.tp-wholesale-actions button{display:flex;min-height:43px;align-items:center;justify-content:center;border:1px solid var(--tp-v14-line);border-radius:12px;background:#fff;color:var(--tp-v14-ink);font:inherit;font-size:.78rem;font-weight:850;text-decoration:none;cursor:pointer}
+          .tp-wholesale-actions .primary{border-color:var(--tp-v14-blue);background:var(--tp-v14-blue);color:#fff}
+          .tp-v14-modal{position:fixed;z-index:6000;inset:0;display:grid;place-items:center;padding:16px}.tp-v14-modal[hidden]{display:none}
+          .tp-v14-modal-backdrop{position:absolute;inset:0;border:0;background:rgba(8,20,17,.64)}.tp-v14-modal-dialog{position:relative;z-index:1;width:min(720px,100%);max-height:88dvh;overflow:auto;padding:24px;border-radius:24px;background:#fff}
+          .tp-v14-modal-close{position:absolute;top:12px;right:12px;width:42px;height:42px;border:1px solid var(--tp-v14-line);border-radius:12px;background:#fff;font-size:1.35rem}
+          .tp-ticket-data-legend{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0 18px}.tp-ticket-data-legend span{padding:7px 10px;border-radius:999px;background:#eef3ff;color:#294fb9;font-size:.72rem;font-weight:800}
+          .tp-ticket-inventory-banner{margin:15px 0;padding:14px 16px;border:1px solid #d9e3df;border-radius:16px;background:#f6faf8;color:#4f5f59;line-height:1.55}
+          .tp-ticket-v14-group{margin:24px 0}.tp-ticket-v14-group-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:11px}.tp-ticket-v14-group-head h3{margin:0}.tp-ticket-v14-group-head span{color:var(--tp-v14-muted);font-size:.78rem}
+          .tp-ticket-v14-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.tp-ticket-v14-card{display:flex;flex-direction:column;padding:17px;border:1px solid var(--tp-v14-line);border-radius:20px;background:#fff}
+          .tp-ticket-v14-card .level{width:max-content;max-width:100%;padding:5px 8px;border-radius:999px;background:#eef3ff;color:#294fb9;font-size:.68rem;font-weight:900}
+          .tp-ticket-v14-card h4{margin:10px 0 7px;font-size:1.03rem;line-height:1.32}.tp-ticket-v14-card p{color:var(--tp-v14-muted);font-size:.8rem;line-height:1.48}
+          .tp-ticket-v14-facts{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:auto}.tp-ticket-v14-facts div{padding:9px;border-radius:12px;background:var(--tp-v14-soft)}
+          .tp-ticket-v14-facts small{display:block;color:var(--tp-v14-muted);font-size:.63rem}.tp-ticket-v14-facts b{display:block;margin-top:3px;font-size:.78rem}
+          .tp-ticket-v14-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.tp-ticket-v14-actions button,.tp-ticket-v14-actions a{display:flex;min-height:42px;align-items:center;justify-content:center;border:1px solid var(--tp-v14-line);border-radius:12px;background:#fff;color:var(--tp-v14-ink);font:inherit;font-size:.76rem;font-weight:850;text-decoration:none;cursor:pointer}
+          .tp-ticket-v14-actions .primary{border-color:var(--tp-v14-blue);background:var(--tp-v14-blue);color:#fff}.tp-ticket-route-note{padding:12px;border-radius:13px;background:#fff7e6;color:#6d5522;font-size:.76rem;line-height:1.45}
+          @media(max-width:900px){.tp-wholesale-grid,.tp-ticket-v14-grid{grid-template-columns:1fr 1fr}.tp-wholesale-controls{grid-template-columns:1fr 1fr}}
+          @media(max-width:620px){.tp-smart-suggestions{position:fixed;left:10px;right:10px;top:var(--tp-smart-top,168px);bottom:calc(var(--tp-keyboard-height,0px) + 82px + env(safe-area-inset-bottom));max-height:none;border-radius:18px}.tp-smart-scroll{max-height:100%;padding-bottom:3px}.tp-smart-option{padding:9px 10px}.tp-smart-option b{font-size:.86rem;-webkit-line-clamp:1}.tp-smart-option small{font-size:.68rem}.tp-wholesale-controls,.tp-wholesale-grid,.tp-ticket-v14-grid{grid-template-columns:1fr}.tp-wholesale-toolbar{top:64px}.tp-wholesale-actions,.tp-ticket-v14-actions{grid-template-columns:1fr}.tp-ticket-v14-facts{grid-template-columns:1fr 1fr}}
+          '''
+              .strip()
+              + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # D. Mobile-safe autocomplete
+          # ================================================================
+          (JS / "smart-search-v14.js").write_text(
+              r'''
+          (()=>{"use strict";
+          const d=document,$=(s,r=d)=>r.querySelector(s),$$=(s,r=d)=>Array.from(r.querySelectorAll(s)),clean=v=>String(v??"").replace(/\s+/g," ").trim(),low=v=>clean(v).toLowerCase();
+          const short=(v,n=58)=>{v=clean(v);return v.length<=n?v:v.slice(0,n-1).trimEnd()+"…";};
+          let productPromise=null,ticketPromise=null,wholesalePromise=null,openPanel=null,activeInput=null,active=-1;
+          const curated={product:["Phone cases","Power banks","Perfume","Printers","Wireless earbuds","Smart watches","School supplies","Car accessories","Men's T-shirts","Home & kitchen","Tools","Wholesale products"],ticket:["Premier League","Champions League","Formula 1","NBA","Concert tickets","Theatre shows","Muse","Hotels","Flights","Attractions"],software:["VPN privacy","PDF editor","Video editor","Phone transfer","Data recovery","Password manager","Antivirus"],coupon:["Temu","Lenovo","AliExpress","Geekbuying","Wondershare","NordVPN"],wholesale:["Alibaba wholesale","AliExpress bulk","Temu bulk","Private label","MOQ 10","Custom logo","Factory supplier","Bulk electronics"]};
+          async function products(){if(!productPromise)productPromise=fetch(`/data/cj-products.json?v=14-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(x=>(x.products||[]).map(p=>({value:short(p.name),full:clean(p.name),meta:clean(p.advertiser)||"Product"}))).catch(()=>[]);return productPromise;}
+          async function tickets(){if(!ticketPromise)ticketPromise=fetch(`/data/ticket-events.json?v=14-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(x=>(x.events||[]).map(e=>({value:short(e.title),full:clean(e.title),meta:clean(e.provider)||"Ticket source"}))).catch(()=>[]);return ticketPromise;}
+          async function wholesale(){if(!wholesalePromise)wholesalePromise=fetch(`/data/wholesale-index.json?v=14-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}).then(x=>(x.products||[]).map(p=>({value:short(p.name),full:clean(p.name),meta:`${clean(p.platform)} · ${clean(p.evidence)}`}))).catch(()=>[]);return wholesalePromise;}
+          function context(input){const page=d.body?.dataset?.tpPage||"";if(location.pathname.startsWith("/tickets"))return"ticket";if(location.pathname.startsWith("/wholesale"))return"wholesale";if(page==="software"||location.pathname.startsWith("/software"))return"software";if(location.pathname.includes("deal")||input.matches("[data-coupon-search]"))return"coupon";return"product";}
+          function host(input){const holder=input.closest(".tp-search-input,.tp-ticket-compare-form,.tp-wholesale-search,label")||input.parentElement;holder?.classList.add("tp-smart-search-host");return holder;}
+          function close(){if(openPanel)openPanel.hidden=true;openPanel=null;activeInput=null;active=-1;}
+          function keyboardMetrics(input){if(!window.visualViewport)return;const vv=window.visualViewport,keyboard=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);d.documentElement.style.setProperty("--tp-keyboard-height",`${keyboard}px`);const rect=input.getBoundingClientRect(),top=Math.max(74,Math.min(rect.bottom+7,vv.height-170));d.documentElement.style.setProperty("--tp-smart-top",`${top}px`);}
+          function ensure(input){let panel=input.parentElement?.querySelector(":scope > .tp-smart-suggestions");if(!panel){panel=d.createElement("div");panel.className="tp-smart-suggestions";panel.hidden=true;panel.innerHTML='<div class="tp-smart-scroll"></div><div class="tp-smart-footer"><button class="tp-smart-view-all" type="button">View all results</button></div>';host(input)?.appendChild(panel);}return panel;}
+          function submit(input,value){input.value=clean(value);input.dispatchEvent(new Event("input",{bubbles:true}));input.form?.requestSubmit?.();if(!input.form&&location.pathname.startsWith("/find"))location.href=`/find/?q=${encodeURIComponent(input.value)}`;close();}
+          async function rows(input){const q=low(input.value),ctx=context(input),ideas=(curated[ctx]||curated.product).filter(v=>!q||low(v).includes(q)||low(v).startsWith(q)).slice(0,6).map(v=>({value:v,full:v,meta:"Search suggestion"}));let dynamic=[];if(q){if(ctx==="ticket")dynamic=await tickets();else if(ctx==="wholesale")dynamic=await wholesale();else if(ctx==="product")dynamic=await products();dynamic=dynamic.filter(r=>low(r.full).includes(q)).slice(0,3);}return{ideas,dynamic};}
+          async function render(input){const q=clean(input.value);if(!q){close();return;}const panel=ensure(input),scroll=$(".tp-smart-scroll",panel),data=await rows(input);if(activeInput!==input&&activeInput)close();activeInput=input;openPanel=panel;active=-1;const parts=[];if(data.ideas.length){parts.push('<div class="tp-smart-heading"><span>Search ideas</span><button class="tp-smart-close" type="button" aria-label="Close">×</button></div>');parts.push(data.ideas.map(r=>`<button class="tp-smart-option" type="button" data-value="${r.full.replace(/"/g,"&quot;")}"><b>${r.value}</b><small>${r.meta}</small></button>`).join(""));}if(data.dynamic.length){parts.push('<div class="tp-smart-heading"><span>Matching results</span></div>');parts.push(data.dynamic.map(r=>`<button class="tp-smart-option" type="button" data-value="${r.full.replace(/"/g,"&quot;")}"><b>${r.value}</b><small>${short(r.meta,44)}</small></button>`).join(""));}scroll.innerHTML=parts.join("")||'<div class="tp-smart-heading"><span>No suggestions yet</span><button class="tp-smart-close" type="button" aria-label="Close">×</button></div>';const view=$(".tp-smart-view-all",panel);view.textContent=`View all for “${short(q,28)}”`;view.dataset.value=q;panel.hidden=false;keyboardMetrics(input);}
+          function move(panel,delta){const opts=$$(".tp-smart-option",panel);if(!opts.length)return;active=(active+delta+opts.length)%opts.length;opts.forEach((n,i)=>n.classList.toggle("is-active",i===active));opts[active].scrollIntoView({block:"nearest"});}
+          d.addEventListener("input",e=>{const input=e.target.closest('input[type="search"],[data-coupon-search]');if(input)render(input);});
+          d.addEventListener("focusin",e=>{const input=e.target.closest('input[type="search"],[data-coupon-search]');if(input&&clean(input.value))render(input);});
+          d.addEventListener("keydown",e=>{if(!openPanel||!activeInput)return;if(e.key==="Escape"){close();return;}if(e.key==="ArrowDown"){e.preventDefault();move(openPanel,1);}if(e.key==="ArrowUp"){e.preventDefault();move(openPanel,-1);}if(e.key==="Enter"&&active>=0){const opts=$$(".tp-smart-option",openPanel);if(opts[active]){e.preventDefault();submit(activeInput,opts[active].dataset.value);}}});
+          d.addEventListener("click",e=>{const opt=e.target.closest(".tp-smart-option");if(opt&&activeInput){submit(activeInput,opt.dataset.value);return;}const all=e.target.closest(".tp-smart-view-all");if(all&&activeInput){submit(activeInput,all.dataset.value);return;}if(e.target.closest(".tp-smart-close")){close();return;}if(openPanel&&!e.target.closest(".tp-smart-suggestions")&&e.target!==activeInput)close();});
+          if(window.visualViewport){visualViewport.addEventListener("resize",()=>{if(openPanel&&activeInput)keyboardMetrics(activeInput);});visualViewport.addEventListener("scroll",()=>{if(openPanel&&activeInput)keyboardMetrics(activeInput);});}
+          })();
+          '''
+              .strip()
+              + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # E. Wholesale page runtime
+          # ================================================================
+          (JS / "wholesale-v14.js").write_text(
+              r'''
+          (()=>{"use strict";
+          const d=document,$=(s,r=d)=>r.querySelector(s),$$=(s,r=d)=>Array.from(r.querySelectorAll(s)),clean=v=>String(v??"").replace(/\s+/g," ").trim(),esc=v=>clean(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+          let rows=[],shown=36;
+          function money(p){if(p.price==null)return"Check provider";try{return new Intl.NumberFormat(undefined,{style:"currency",currency:p.currency||"USD"}).format(p.price);}catch{return`${p.price} ${p.currency||""}`.trim();}}
+          function filters(){return{q:clean($("[data-ws-q]")?.value).toLowerCase(),platform:clean($("[data-ws-platform]")?.value),evidence:clean($("[data-ws-evidence]")?.value),sort:clean($("[data-ws-sort]")?.value||"evidence")};}
+          function matched(){const f=filters();let out=rows.filter(p=>(!f.q||`${p.name} ${p.seller} ${p.category} ${p.family}`.toLowerCase().includes(f.q))&&(!f.platform||p.platform===f.platform)&&(!f.evidence||(f.evidence==="moq"?p.moq!=null:f.evidence==="explicit"?p.evidenceScore>=4:p.evidenceScore>=2)));out=[...out];if(f.sort==="price")out.sort((a,b)=>(a.price??Infinity)-(b.price??Infinity));else if(f.sort==="moq")out.sort((a,b)=>(a.moq??Infinity)-(b.moq??Infinity));else if(f.sort==="platform")out.sort((a,b)=>a.platform.localeCompare(b.platform));else out.sort((a,b)=>b.evidenceScore-a.evidenceScore);return out;}
+          function card(p){return`<article class="tp-wholesale-card"><div class="tp-wholesale-image">${p.image?`<img src="${esc(p.image)}" alt="" loading="lazy">`:"Wholesale listing"}</div><div class="tp-wholesale-body"><span class="tp-wholesale-platform">${esc(p.platform)}</span><h2>${esc(p.name)}</h2><span class="tp-wholesale-evidence">${esc(p.evidence)}</span><div class="tp-wholesale-facts"><div><small>Listing price</small><b>${esc(money(p))}</b></div><div><small>MOQ</small><b>${p.moq!=null?esc(p.moq):"Confirm"}</b></div></div><div class="tp-wholesale-actions"><button type="button" data-ws-quick="${esc(p.id)}">Quick view</button><a class="primary" href="${esc(p.url)}" target="_blank" rel="nofollow sponsored noopener">Open listing ↗</a></div></div></article>`;}
+          function render(){const out=matched(),host=$("[data-ws-results]"),count=$("[data-ws-count]");if(count)count.textContent=`${out.length} wholesale-capable result${out.length===1?"":"s"}`;if(host)host.innerHTML=out.slice(0,shown).map(card).join("")||'<div class="tp-empty"><h2>No matching wholesale records</h2><p>Try another product, marketplace or evidence level.</p></div>';const more=$("[data-ws-more]");if(more){more.hidden=out.length<=shown;more.textContent=`Show ${Math.min(36,out.length-shown)} more`;}}
+          function quick(p){let modal=$("[data-ws-modal]");if(!modal){modal=d.createElement("div");modal.className="tp-v14-modal";modal.hidden=true;modal.dataset.wsModal="";modal.innerHTML='<button class="tp-v14-modal-backdrop" data-ws-close type="button" aria-label="Close"></button><section class="tp-v14-modal-dialog"><button class="tp-v14-modal-close" data-ws-close type="button">×</button><div data-ws-modal-body></div></section>';d.body.appendChild(modal);}const body=$("[data-ws-modal-body]",modal);body.innerHTML=`<span class="tp-wholesale-platform">${esc(p.platform)}</span><h2>${esc(p.name)}</h2>${p.image?`<img src="${esc(p.image)}" alt="" style="max-width:220px;width:100%;max-height:220px;object-fit:contain">`:""}<div class="tp-wholesale-facts"><div><small>Evidence</small><b>${esc(p.evidence)}</b></div><div><small>MOQ</small><b>${p.moq!=null?esc(p.moq):"Not stated"}</b></div><div><small>Listing price</small><b>${esc(money(p))}</b></div><div><small>Price basis</small><b>${esc(p.priceBasis)}</b></div></div><p>Before ordering, verify unit versus lot pricing, MOQ, sample availability, customization, shipping, tax and supplier terms.</p><div class="tp-wholesale-actions"><a class="primary" href="${esc(p.url)}" target="_blank" rel="nofollow sponsored noopener">Check supplier ↗</a></div>`;modal.hidden=false;}
+          async function init(){try{const r=await fetch(`/data/wholesale-index.json?v=14-${Date.now()}`,{cache:"no-store"}),data=r.ok?await r.json():{};rows=data.products||[];const platform=$("[data-ws-platform]");if(platform){[...new Set(rows.map(p=>p.platform).filter(Boolean))].sort().forEach(v=>platform.insertAdjacentHTML("beforeend",`<option value="${esc(v)}">${esc(v)}</option>`));}$$("[data-ws-q],[data-ws-platform],[data-ws-evidence],[data-ws-sort]").forEach(n=>n.addEventListener(n.tagName==="INPUT"?"input":"change",()=>{shown=36;render();}));$("[data-ws-more]")?.addEventListener("click",()=>{shown+=36;render();});d.addEventListener("click",e=>{const q=e.target.closest("[data-ws-quick]");if(q){const p=rows.find(x=>x.id===q.dataset.wsQuick);if(p)quick(p);return;}if(e.target.closest("[data-ws-close]")){const m=$("[data-ws-modal]");if(m)m.hidden=true;}});render();}catch(error){const host=$("[data-ws-results]");if(host)host.innerHTML='<div class="tp-empty"><h2>Wholesale catalogue unavailable</h2><p>Please try again shortly.</p></div>';}}
+          if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",init,{once:true});else init();
+          })();
+          '''
+              .strip()
+              + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # F. Ticket decision runtime
+          # ================================================================
+          (JS / "ticket-decision-v14.js").write_text(
+              r'''
+          (()=>{"use strict";
+          const d=document,$=(s,r=d)=>r.querySelector(s),$$=(s,r=d)=>Array.from(r.querySelectorAll(s)),clean=v=>String(v??"").replace(/\s+/g," ").trim(),esc=v=>clean(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+          let routes=[],inventory=[],shown=24;
+          function money(x){if(x.price==null)return"Live price";try{return new Intl.NumberFormat(undefined,{style:"currency",currency:x.currency||"USD"}).format(x.price);}catch{return`${x.price} ${x.currency||""}`.trim();}}
+          function canonicalTitle(e){let t=clean(e.eventTitle||e.title);t=t.replace(/^SportsEvents365\.com\s*-\s*/i,"").replace(/^SportEvents365\.com\s*-\s*/i,"").replace(/\s+Tickets$/i,"").replace(/^(Sports|Concerts?|Theater|Theatre)\s*\([^)]*\)\s*-\s*/i,"").replace(/^(Sports|Concerts?|Theater|Theatre)\s*-\s*/i,"");return t||clean(e.title);}
+          function routeLevel(e){const dest=clean(e.destination).toLowerCase(),title=clean(e.title).toLowerCase();if(e.date&&e.venue)return"Event listing";if(/\/competition\//.test(dest)||/league|champion|serie a|la liga/i.test(title))return"Competition route";if(/\/performers?\//.test(dest)||/tickets$/i.test(title))return"Performer/team route";if(e.type==="travel")return"Travel offer";return"Provider route";}
+          function routeKey(e){const dest=clean(e.destination).replace(/[?#].*$/,"").toLowerCase();if(dest)return`${e.provider}|${dest}`;return`${e.provider}|${canonicalTitle(e).toLowerCase()}`;}
+          function dedupe(rows){const map=new Map();rows.forEach(e=>{const key=routeKey(e),current=map.get(key);if(!current||clean(e.url).length<clean(current.url).length)map.set(key,e);});return[...map.values()];}
+          function typeMatch(e,type){if(type==="all")return true;if(type==="sports")return e.type==="sports";if(type==="concerts")return e.type==="concerts";if(type==="theatre")return e.type==="theatre";if(type==="travel")return e.type==="travel";return true;}
+          function textMatch(e,q){if(!q)return true;return`${canonicalTitle(e)} ${e.title||""} ${e.description||""} ${e.provider||""} ${e.venue||""} ${e.city||""}`.toLowerCase().includes(q.toLowerCase());}
+          function facts(values){const items=values.filter(x=>x&&x[1]);return items.length?`<div class="tp-ticket-v14-facts">${items.map(([k,v])=>`<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div>`:"";}
+          function routeCard(e){const level=routeLevel(e),title=canonicalTitle(e),seat=e.section?`${e.section}${e.row?` · Row ${e.row}`:""}`:"";return`<article class="tp-ticket-v14-card"><span class="level">${esc(level)}</span><h4>${esc(title)}</h4><p>${esc(e.provider)}</p>${facts([["Price",e.price!=null?money(e):""],["Date",e.date||""],["Venue",e.venue||""],["Seat",seat]])}${level!=="Event listing"?'<div class="tp-ticket-route-note">This is a provider route, not seat-level inventory. TrendPilot will not invent a match date, section, row or seat price.</div>':""}<div class="tp-ticket-v14-actions"><button type="button" data-ticket-v14-quick="${esc(e.id)}">Quick view</button><a class="primary" href="/ticket/?id=${encodeURIComponent(e.id)}">Details</a></div></article>`;}
+          function inventoryCard(e){return`<article class="tp-ticket-v14-card"><span class="level">Seat inventory</span><h4>${esc(e.eventTitle)}</h4><p>${esc(e.provider)}</p>${facts([["Date",e.date||""],["Venue",e.venue||""],["Section",e.section||""],["Row",e.row||""],["Quantity",e.quantity!=null?String(e.quantity):""],["Price",money(e)]])}<div class="tp-ticket-v14-actions"><button type="button" data-ticket-v14-inventory="${esc(e.id)}">Quick view</button><a class="primary" href="${esc(e.url)}" target="_blank" rel="nofollow sponsored noopener">Check live ↗</a></div></article>`;}
+          function quick(e,isInventory=false){let m=$("[data-ticket-v14-modal]");if(!m){m=d.createElement("div");m.className="tp-v14-modal";m.hidden=true;m.dataset.ticketV14Modal="";m.innerHTML='<button class="tp-v14-modal-backdrop" data-ticket-v14-close type="button"></button><section class="tp-v14-modal-dialog"><button class="tp-v14-modal-close" data-ticket-v14-close type="button">×</button><div data-ticket-v14-body></div></section>';d.body.appendChild(m);}const title=isInventory?clean(e.eventTitle):canonicalTitle(e),level=isInventory?"Seat inventory":routeLevel(e),body=$("[data-ticket-v14-body]",m);body.innerHTML=`<span class="tp-kicker">${esc(e.provider)}</span><h2>${esc(title)}</h2><p><b>${esc(level)}</b></p>${facts([["Date",e.date||""],["Venue",e.venue||""],["City",e.city||""],["Section",e.section||""],["Row",e.row||""],["Quantity",e.quantity!=null?String(e.quantity):""],["Price",e.price!=null?money(e):""]])}${!isInventory&&level!=="Event listing"?'<div class="tp-ticket-route-note">The connected link does not expose exact seat inventory. Missing fields are hidden instead of showing empty placeholders.</div>':""}<div class="tp-ticket-v14-actions"><a class="primary" href="${esc(e.url)}" target="_blank" rel="nofollow sponsored noopener">Open live provider ↗</a></div>`;m.hidden=false;}
+          function render(){const form=$("[data-ticket-compare-form]"),q=clean($('input[name="ticketQuery"]',form)?.value),type=clean($('select[name="ticketType"]',form)?.value||"all");$$("[data-ticket-type]").forEach(b=>b.classList.toggle("is-active",b.dataset.ticketType===type));const inv=inventory.filter(e=>typeMatch(e,type)&&textMatch(e,q)),rts=dedupe(routes.filter(e=>typeMatch(e,type)&&textMatch(e,q)));const host=$("[data-ticket-event-results]");if(host){let html="";if(inv.length)html+=`<section class="tp-ticket-v14-group"><div class="tp-ticket-v14-group-head"><h3>Exact ticket inventory</h3><span>${inv.length} listing${inv.length===1?"":"s"}</span></div><div class="tp-ticket-v14-grid">${inv.slice(0,shown).map(inventoryCard).join("")}</div></section>`;html+=`<section class="tp-ticket-v14-group"><div class="tp-ticket-v14-group-head"><h3>${inv.length?"More provider routes":"Current provider routes"}</h3><span>${rts.length} deduplicated route${rts.length===1?"":"s"}</span></div><div class="tp-ticket-v14-grid">${rts.slice(0,shown).map(routeCard).join("")||'<div class="tp-empty"><h3>No current route matched.</h3><p>Try a league, team, artist, show or destination.</p></div>'}</div></section>`;host.innerHTML=html;}const count=$("[data-ticket-event-count]");if(count)count.textContent=inv.length?`${inv.length} exact inventory · ${rts.length} routes`:`${rts.length} current routes`;const summary=$("[data-ticket-match-summary]");if(summary)summary.textContent=inv.length?`TrendPilot found ${inv.length} seat-level listing${inv.length===1?"":"s"} plus ${rts.length} provider route${rts.length===1?"":"s"}.`:`No connected feed currently supplies exact seat inventory for this search. ${rts.length} verified provider route${rts.length===1?"":"s"} remain available.`;const more=$("[data-ticket-show-more]");if(more){const total=Math.max(inv.length,rts.length);more.hidden=total<=shown;more.textContent=`Show ${Math.min(24,total-shown)} more`;}}
+          async function init(){const result=await Promise.allSettled([fetch(`/data/ticket-events.json?v=14-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}),fetch(`/data/ticket-inventory.json?v=14-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{})]);routes=result[0].status==="fulfilled"?(result[0].value.events||[]):[];inventory=result[1].status==="fulfilled"?(result[1].value.listings||[]):[];const form=$("[data-ticket-compare-form]");form?.addEventListener("submit",e=>{e.preventDefault();shown=24;render();});$('select[name="ticketType"]',form)?.addEventListener("change",()=>{shown=24;render();});$$("[data-ticket-type]").forEach(b=>b.addEventListener("click",()=>{const s=$('select[name="ticketType"]',form);if(s)s.value=b.dataset.ticketType||"all";shown=24;render();}));$("[data-ticket-show-more]")?.addEventListener("click",()=>{shown+=24;render();});d.addEventListener("click",e=>{const route=e.target.closest("[data-ticket-v14-quick]");if(route){const row=routes.find(x=>x.id===route.dataset.ticketV14Quick);if(row)quick(row,false);return;}const inv=e.target.closest("[data-ticket-v14-inventory]");if(inv){const row=inventory.find(x=>x.id===inv.dataset.ticketV14Inventory);if(row)quick(row,true);return;}if(e.target.closest("[data-ticket-v14-close]")){const m=$("[data-ticket-v14-modal]");if(m)m.hidden=true;}});render();}
+          if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",init,{once:true});else init();
+          })();
+          '''
+              .strip()
+              + "\n",
+              encoding="utf-8",
+          )
+
+          (JS / "ticket-detail-v14.js").write_text(
+              r'''
+          (()=>{"use strict";
+          const d=document,$=(s,r=d)=>r.querySelector(s),clean=v=>String(v??"").replace(/\s+/g," ").trim(),esc=v=>clean(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+          function money(e){if(e.price==null)return"";try{return new Intl.NumberFormat(undefined,{style:"currency",currency:e.currency||"USD"}).format(e.price);}catch{return`${e.price} ${e.currency||""}`.trim();}}
+          function canonical(e){return clean(e.eventTitle||e.title).replace(/^SportsEvents365\.com\s*-\s*/i,"").replace(/\s+Tickets$/i,"");}
+          function routeLevel(e){const dest=clean(e.destination).toLowerCase();if(e.date&&e.venue)return"Event listing";if(/\/competition\//.test(dest))return"Competition route";if(/\/performers?\//.test(dest))return"Performer/team route";if(e.type==="travel")return"Travel offer";return"Provider route";}
+          function facts(rows){rows=rows.filter(x=>x[1]);return rows.length?`<div class="tp-ticket-v14-facts">${rows.map(([k,v])=>`<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div>`:"";}
+          async function init(){const host=$("[data-ticket-detail]"),id=new URLSearchParams(location.search).get("id")||"";const result=await Promise.allSettled([fetch(`/data/ticket-events.json?v=14-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}),fetch(`/data/ticket-inventory.json?v=14-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{})]);const routes=result[0].status==="fulfilled"?(result[0].value.events||[]):[],inventory=result[1].status==="fulfilled"?(result[1].value.listings||[]):[];let e=inventory.find(x=>x.id===id),isInventory=Boolean(e);if(!e)e=routes.find(x=>x.id===id);if(!e){host.innerHTML='<div class="tp-empty"><h1>Ticket information unavailable</h1><a href="/tickets/">Back to tickets</a></div>';return;}const title=canonical(e),level=isInventory?"Seat inventory":routeLevel(e);d.title=`${title} — TrendPilot AI`;host.innerHTML=`<a href="/tickets/">← Back to ticket search</a><section class="tp-v14-modal-dialog" style="margin:20px auto;max-width:860px"><span class="tp-kicker">${esc(e.provider)}</span><h1>${esc(title)}</h1><p><b>Data level:</b> ${esc(level)}</p>${facts([["Date",e.date||""],["Venue",e.venue||""],["City",e.city||""],["Section",e.section||""],["Row",e.row||""],["Quantity",e.quantity!=null?String(e.quantity):""],["Ticket price",money(e)],["Fees",e.fees!=null?String(e.fees):""]])}${!isInventory&&level!=="Event listing"?'<div class="tp-ticket-route-note"><b>Why some details are absent:</b> this provider route does not expose exact seat inventory in the current feed. Missing fields are hidden rather than filled with “Not supplied”.</div>':""}<div class="tp-ticket-inventory-banner"><b>Before checkout:</b> confirm exact event and local time, adjacent-seat quantity, restricted-view wording, fees, tax, delivery, currency, refund terms and event-change policy.</div><div class="tp-ticket-v14-actions"><a href="/tickets/">Compare other routes</a><a class="primary" href="${esc(e.url)}" target="_blank" rel="nofollow sponsored noopener">Continue to live provider ↗</a></div></section>`;}
+          if(d.readyState==="loading")d.addEventListener("DOMContentLoaded",init,{once:true});else init();
+          })();
+          '''
+              .strip()
+              + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # G. Wholesale page
+          # ================================================================
+          wholesale_page = ROOT / "wholesale" / "index.html"
+          wholesale_page.parent.mkdir(parents=True, exist_ok=True)
+          wholesale_page.write_text(
+              r'''<!doctype html>
+          <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="index,follow,max-image-preview:large"><meta name="theme-color" content="#f8f8f5"><title>Wholesale & Bulk Product Finder — TrendPilot AI</title><meta name="description" content="Compare wholesale-capable products and bulk sourcing evidence from Alibaba, AliExpress, Temu and business-sourcing records."><link rel="canonical" href="https://trendpilotchoice.com/wholesale/"><link rel="icon" href="/images/favicon-v4.svg" type="image/svg+xml"><link rel="stylesheet" href="/css/style-v13-2.css?v=13.2.0"><link rel="stylesheet" href="/css/style-v13-5.css?v=13.5.0"><link rel="stylesheet" href="/css/decision-v14.css?v=14.0.0"></head>
+          <body data-tp-page="wholesale"><a class="tp-skip" href="#main">Skip to content</a><header class="tp-header"><div class="tp-shell tp-nav"><a class="tp-brand" href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><span>TrendPilot <em>AI</em></span></a><nav class="tp-links" data-tp-nav><strong class="tp-menu-title">Explore TrendPilot</strong><button class="tp-menu-close" data-tp-menu-close type="button">×</button><span class="tp-menu-section-title">Decide</span><a href="/find/">Find products</a><a href="/wholesale/" class="is-active">Wholesale & bulk</a><a href="/deals/">Deals & coupons</a><a href="/compare/">Compare</a><span class="tp-menu-section-title">Explore</span><a href="/software/">Software Finder</a><a href="/rare-used/">Rare Finds</a><a href="/tickets/">Tickets & experiences</a><a href="/sourcing/">For Business</a></nav><button class="tp-menu-button" data-tp-menu-button type="button" aria-expanded="false"><span></span><span></span><span></span></button></div><button class="tp-nav-backdrop" data-tp-nav-backdrop type="button"></button></header>
+          <main id="main"><section class="tp-wholesale-hero"><div class="tp-shell"><span class="tp-eyebrow">Wholesale & bulk finder</span><h1>Find products for resale, bulk buying and business sourcing.</h1><p>TrendPilot separates ordinary retail listings from records with wholesale, MOQ, supplier or business-sourcing evidence. Marketplace capability alone is labelled clearly; it is never presented as a guaranteed MOQ.</p></div></section>
+          <div class="tp-wholesale-toolbar"><div class="tp-shell"><div class="tp-wholesale-controls"><label class="tp-wholesale-search"><span class="tp-sr-only">Search wholesale products</span><input data-ws-q type="search" autocomplete="off" placeholder="Phone cases, tools, packaging, custom logo…"></label><select data-ws-platform><option value="">All marketplaces</option></select><select data-ws-evidence><option value="">All wholesale evidence</option><option value="moq">MOQ stated</option><option value="explicit">Explicit wholesale/bulk</option><option value="marketplace">Wholesale-capable marketplaces</option></select><select data-ws-sort><option value="evidence">Best evidence</option><option value="price">Lowest listing price</option><option value="moq">Lowest stated MOQ</option><option value="platform">Marketplace A–Z</option></select></div><div class="tp-wholesale-summary"><span data-ws-count>Loading wholesale catalogue…</span><span>Alibaba · AliExpress · Temu · business sourcing</span></div></div></div>
+          <section class="tp-shell"><div class="tp-wholesale-grid" data-ws-results><div class="tp-empty">Loading wholesale products…</div></div><button class="tp-btn tp-btn-light" data-ws-more type="button" hidden>Show more</button><div class="tp-ticket-inventory-banner"><b>Wholesale evidence rule:</b> confirm MOQ, whether the shown price is per unit or per lot, shipping, duties, customization, sample policy and supplier terms before payment.</div></section></main>
+          <footer class="tp-footer"><div class="tp-shell tp-footer-bottom"><span>© <span data-year></span> TrendPilot AI.</span><span>Marketplace and wholesale terms can change; confirm them on the provider.</span></div></footer><nav class="tp-bottom-nav"><a href="/"><b>⌂</b><span>Home</span></a><a href="/find/"><b>⌕</b><span>Search</span></a><a class="is-active" href="/wholesale/"><b>▦</b><span>Wholesale</span></a><a href="/compare/"><b>⇄</b><span>Compare</span></a></nav>
+          <script defer src="/js/site-v13-5.js?v=13.8.30"></script><script defer src="/js/wholesale-v14.js?v=14.0.0"></script><script defer src="/js/smart-search-v14.js?v=14.0.0"></script></body></html>
+          '''
+              .strip()
+              + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # H. Ticket page cleanup and V14 runtime
+          # ================================================================
+          tickets_path = ROOT / "tickets" / "index.html"
+          tickets = tickets_path.read_text(encoding="utf-8")
+
+          # Remove repeated CJ provider-directory blocks. Provider routes remain
+          # inside the decision results where they are useful.
+          tickets = re.sub(
+              r"\s*<!-- TP_CJ_TICKET_DIRECTORY_START -->[\s\S]*?"
+              r"<!-- TP_CJ_TICKET_DIRECTORY_END -->\s*",
+              "\n",
+              tickets,
+              count=1,
+          )
+
+          # Replace any earlier data-level legend.
+          tickets = re.sub(
+              r"\s*<!-- TP_V14_TICKET_LEGEND_START -->[\s\S]*?"
+              r"<!-- TP_V14_TICKET_LEGEND_END -->\s*",
+              "\n",
+              tickets,
+              count=1,
+          )
+          legend = (
+              '<!-- TP_V14_TICKET_LEGEND_START -->'
+              '<section class="tp-ticket-booking-section"><div class="tp-shell">'
+              '<span class="tp-kicker">Ticket data levels</span>'
+              '<h2>Know what you are comparing before you leave TrendPilot.</h2>'
+              '<div class="tp-ticket-data-legend">'
+              '<span>Seat inventory = date + seat/price feed</span>'
+              '<span>Event listing = event details without full seat inventory</span>'
+              '<span>Competition/performer route = provider landing route</span>'
+              '</div><div class="tp-ticket-inventory-banner">'
+              'TrendPilot displays exact match, seat and price details only when '
+              'a connected feed supplies them. Current CJ Link Search records '
+              'from Sports Events 365 and TicketNetwork are often competition '
+              'or performer routes rather than individual seat listings; those '
+              'routes remain useful, but they are labelled honestly.'
+              '</div></div></section>'
+              '<!-- TP_V14_TICKET_LEGEND_END -->'
+          )
+          disclosure_anchor = '<section class="tp-ticket-disclosure">'
+          if disclosure_anchor in tickets:
+              tickets = tickets.replace(
+                  disclosure_anchor,
+                  legend + "\n" + disclosure_anchor,
+                  1,
+              )
+          elif "</main>" in tickets:
+              tickets = tickets.replace("</main>", legend + "\n</main>", 1)
+
+          # Remove V13 ticket/smart runtimes from this page only.
+          tickets = re.sub(
+              r'\s*<link[^>]+href="/css/ticket-comparison-v13-8-[^"]+"'
+              r'[^>]*>\s*',
+              "\n",
+              tickets,
+          )
+          tickets = re.sub(
+              r'\s*<link[^>]+href="/css/smart-search-v13-8-[^"]+"'
+              r'[^>]*>\s*',
+              "\n",
+              tickets,
+          )
+          tickets = re.sub(
+              r'\s*<script[^>]+src="/js/ticket-comparison-v13-8-[^"]+"'
+              r'[^>]*></script>\s*',
+              "\n",
+              tickets,
+          )
+          tickets = re.sub(
+              r'\s*<script[^>]+src="/js/smart-search-v13-8-[^"]+"'
+              r'[^>]*></script>\s*',
+              "\n",
+              tickets,
+          )
+          tickets = re.sub(
+              r'\s*<link[^>]+href="/css/decision-v14\.css[^"]*"[^>]*>\s*',
+              "\n",
+              tickets,
+          )
+          tickets = re.sub(
+              r'\s*<script[^>]+src="/js/ticket-decision-v14\.js[^"]*"'
+              r'[^>]*></script>\s*',
+              "\n",
+              tickets,
+          )
+          tickets = re.sub(
+              r'\s*<script[^>]+src="/js/smart-search-v14\.js[^"]*"'
+              r'[^>]*></script>\s*',
+              "\n",
+              tickets,
+          )
+
+          tickets = tickets.replace(
+              "</head>",
+              '<link rel="stylesheet" href="/css/decision-v14.css?v=14.0.0">\n'
+              "</head>",
+              1,
+          )
+          tickets = tickets.replace(
+              "</body>",
+              '<script defer src="/js/ticket-decision-v14.js?v=14.0.0"></script>\n'
+              '<script defer src="/js/smart-search-v14.js?v=14.0.0"></script>\n'
+              "</body>",
+              1,
+          )
+          tickets_path.write_text(
+              "\n".join(line.rstrip() for line in tickets.splitlines()) + "\n",
+              encoding="utf-8",
+          )
+
+          # Internal detail page: show only fields that exist.
+          detail_page = ROOT / "ticket" / "index.html"
+          detail_page.parent.mkdir(parents=True, exist_ok=True)
+          detail_page.write_text(
+              r'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="index,follow"><title>Ticket details — TrendPilot AI</title><meta name="description" content="Review the ticket data actually supplied before opening the live provider."><link rel="canonical" href="https://trendpilotchoice.com/ticket/"><link rel="stylesheet" href="/css/style-v13-2.css?v=13.2.0"><link rel="stylesheet" href="/css/style-v13-5.css?v=13.5.0"><link rel="stylesheet" href="/css/decision-v14.css?v=14.0.0"></head><body><main class="tp-section"><div class="tp-shell" data-ticket-detail><div class="tp-empty">Loading ticket details…</div></div></main><script defer src="/js/ticket-detail-v14.js?v=14.0.0"></script></body></html>'''
+              + "\n",
+              encoding="utf-8",
+          )
+
+          # ================================================================
+          # I. Replace smart-search runtime across every search page
+          # ================================================================
+          for page_path in ROOT.rglob("*.html"):
+              if page_path in {tickets_path, wholesale_page, detail_page}:
+                  continue
+              page = page_path.read_text(encoding="utf-8")
+              if (
+                  'type="search"' not in page
+                  and "type='search'" not in page
+                  and "data-coupon-search" not in page
+              ):
+                  continue
+
+              page = re.sub(
+                  r'\s*<link[^>]+href="/css/smart-search-v13-8-[^"]+"'
+                  r'[^>]*>\s*',
+                  "\n",
+                  page,
+              )
+              page = re.sub(
+                  r'\s*<script[^>]+src="/js/smart-search-v13-8-[^"]+"'
+                  r'[^>]*></script>\s*',
+                  "\n",
+                  page,
+              )
+              page = re.sub(
+                  r'\s*<link[^>]+href="/css/decision-v14\.css[^"]*"'
+                  r'[^>]*>\s*',
+                  "\n",
+                  page,
+              )
+              page = re.sub(
+                  r'\s*<script[^>]+src="/js/smart-search-v14\.js[^"]*"'
+                  r'[^>]*></script>\s*',
+                  "\n",
+                  page,
+              )
+
+              if "</head>" in page:
+                  page = page.replace(
+                      "</head>",
+                      '<link rel="stylesheet" href="/css/decision-v14.css?v=14.0.0">\n'
+                      "</head>",
+                      1,
+                  )
+              if "</body>" in page:
+                  page = page.replace(
+                      "</body>",
+                      '<script defer src="/js/smart-search-v14.js?v=14.0.0"></script>\n'
+                      "</body>",
+                      1,
+                  )
+
+              page_path.write_text(
+                  "\n".join(line.rstrip() for line in page.splitlines()) + "\n",
+                  encoding="utf-8",
+              )
+
+          # ================================================================
+          # J. Add Wholesale navigation and finder promo
+          # ================================================================
+          for page_path in ROOT.rglob("*.html"):
+              if page_path == wholesale_page:
+                  continue
+              page = page_path.read_text(encoding="utf-8")
+              if (
+                  'href="/wholesale/"' not in page
+                  and '<a href="/sourcing/">' in page
+              ):
+                  page = page.replace(
+                      '<a href="/sourcing/">',
+                      '<a href="/wholesale/">Wholesale & bulk</a>'
+                      '<a href="/sourcing/">',
+                      1,
+                  )
+                  page_path.write_text(page, encoding="utf-8")
+
+          find_path = ROOT / "find" / "index.html"
+          find_page = find_path.read_text(encoding="utf-8")
+          find_page = re.sub(
+              r"\s*<!-- TP_WHOLESALE_PROMO_START -->[\s\S]*?"
+              r"<!-- TP_WHOLESALE_PROMO_END -->\s*",
+              "\n",
+              find_page,
+              count=1,
+          )
+          promo = (
+              '<!-- TP_WHOLESALE_PROMO_START -->'
+              '<section class="tp-shell" style="padding:22px 0">'
+              '<div class="tp-ticket-inventory-banner">'
+              '<b>Buying for resale or in bulk?</b> Use the '
+              '<a href="/wholesale/">Wholesale & Bulk Finder</a> to separate '
+              'Alibaba, AliExpress, Temu and business-sourcing records from '
+              'ordinary retail results.</div></section>'
+              '<!-- TP_WHOLESALE_PROMO_END -->'
+          )
+          marker = '<!-- TP_CJ_PRODUCT_DIRECTORY_START -->'
+          if marker in find_page:
+              find_page = find_page.replace(marker, promo + "\n" + marker, 1)
+          else:
+              find_page = find_page.replace("</main>", promo + "\n</main>", 1)
+
+          find_path.write_text(
+              "\n".join(line.rstrip() for line in find_page.splitlines()) + "\n",
+              encoding="utf-8",
+          )
+
+          sitemap = ROOT / "sitemap.xml"
+          if sitemap.exists():
+              source = sitemap.read_text(encoding="utf-8")
+              if "https://trendpilotchoice.com/wholesale/" not in source:
+                  source = source.replace(
+                      "</urlset>",
+                      '  <url><loc>https://trendpilotchoice.com/wholesale/</loc>'
+                      '<changefreq>daily</changefreq><priority>0.85</priority>'
+                      "</url>\n</urlset>",
+                  )
+              sitemap.write_text(source, encoding="utf-8")
+
+          print(
+              json.dumps(
+                  {
+                      "version": VERSION,
+                      "mobileSuggestions": {
+                          "searchIdeasMax": 6,
+                          "productTitlesMax": 3,
+                          "persistentOnKeyboardHide": True,
+                          "visualViewportAware": True,
+                      },
+                      "wholesale": {
+                          "records": len(wholesale_rows),
+                          "platformCounts": platform_counts,
+                          "page": "/wholesale/",
+                      },
+                      "tickets": {
+                          "currentRoutes": json.loads(
+                              (DATA / "ticket-events.json").read_text(
+                                  encoding="utf-8"
+                              )
+                          ).get("count", 0),
+                          "inventoryListings": len(
+                              json.loads(
+                                  inventory_path.read_text(encoding="utf-8")
+                              ).get("listings") or []
+                          ),
+                          "missingFieldsHidden": True,
+                          "routeDuplicatesCollapsedInBrowser": True,
+                      },
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              )
+          )
+          PY
+
+      - name: Validate V14 decision experience
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          node --check js/smart-search-v14.js
+          node --check js/wholesale-v14.js
+          node --check js/ticket-decision-v14.js
+          node --check js/ticket-detail-v14.js
+          git diff --check
+
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+
+          def require(condition: bool, message: str) -> None:
+              if not condition:
+                  raise SystemExit(f"V14 validation failed: {message}")
+
+          wholesale = json.loads(
+              Path("data/wholesale-index.json").read_text(encoding="utf-8")
+          )
+          inventory = json.loads(
+              Path("data/ticket-inventory.json").read_text(encoding="utf-8")
+          )
+          ticket_events = json.loads(
+              Path("data/ticket-events.json").read_text(encoding="utf-8")
+          )
+
+          smart_js = Path("js/smart-search-v14.js").read_text(encoding="utf-8")
+          ticket_js = Path("js/ticket-decision-v14.js").read_text(
+              encoding="utf-8"
+          )
+          ticket_detail = Path("js/ticket-detail-v14.js").read_text(
+              encoding="utf-8"
+          )
+          wholesale_js = Path("js/wholesale-v14.js").read_text(
+              encoding="utf-8"
+          )
+          wholesale_page = Path("wholesale/index.html").read_text(
+              encoding="utf-8"
+          )
+          tickets_page = Path("tickets/index.html").read_text(
+              encoding="utf-8"
+          )
+          find_page = Path("find/index.html").read_text(encoding="utf-8")
+
+          require(
+              wholesale.get("version") == "14.0.0",
+              "wholesale dataset version is incorrect",
+          )
+          require(
+              isinstance(wholesale.get("products"), list),
+              "wholesale products is not a list",
+          )
+          require(
+              wholesale.get("count") == len(wholesale.get("products") or []),
+              "wholesale count does not match rows",
+          )
+          require(
+              isinstance(inventory.get("listings"), list),
+              "ticket inventory schema is invalid",
+          )
+          require(
+              ticket_events.get("count", 0) >= 10,
+              "current ticket route dataset is unexpectedly small",
+          )
+
+          require(
+              "visualViewport" in smart_js,
+              "mobile keyboard/viewport handling is missing",
+          )
+          require(
+              "blur" not in smart_js,
+              "suggestions still close directly on input blur",
+          )
+          require(
+              ".slice(0,6)" in smart_js and ".slice(0,3)" in smart_js,
+              "short suggestion limits are missing",
+          )
+          require(
+              "View all for" in smart_js,
+              "suggestion View all action is missing",
+          )
+
+          require(
+              "data-ws-results" in wholesale_page
+              and "data-ws-q" in wholesale_page,
+              "wholesale page search/results UI is incomplete",
+          )
+          require(
+              "data-ws-quick" in wholesale_js,
+              "wholesale Quick View is missing",
+          )
+          require(
+              "MOQ" in wholesale_page and "evidence" in wholesale_js,
+              "wholesale MOQ/evidence model is incomplete",
+          )
+
+          require(
+              "routeLevel" in ticket_js and "dedupe" in ticket_js,
+              "ticket route intelligence is incomplete",
+          )
+          require(
+              "data-ticket-v14-quick" in ticket_js,
+              "ticket Quick View is missing",
+          )
+          require(
+              "ticket-inventory.json" in ticket_js,
+              "seat inventory data hook is missing",
+          )
+          require(
+              '"Not supplied"' not in ticket_js
+              and '"Not supplied"' not in ticket_detail,
+              "ticket UI still exposes Not supplied placeholders",
+          )
+          require(
+              tickets_page.count("ticket-decision-v14.js") == 1,
+              "V14 ticket runtime is missing or duplicated",
+          )
+          require(
+              tickets_page.count("smart-search-v14.js") == 1,
+              "V14 ticket suggestions runtime is missing or duplicated",
+          )
+          require(
+              tickets_page.count("decision-v14.css") == 1,
+              "V14 ticket CSS is missing or duplicated",
+          )
+          require(
+              "ticket-comparison-v13-8-30.js" not in tickets_page,
+              "legacy ticket comparison runtime is still loaded",
+          )
+          require(
+              "smart-search-v13-8-30.js" not in tickets_page,
+              "legacy ticket suggestions runtime is still loaded",
+          )
+          require(
+              tickets_page.count("TP_V14_TICKET_LEGEND_START") == 1,
+              "ticket data-level legend is missing or duplicated",
+          )
+          require(
+              "TP_CJ_TICKET_DIRECTORY_START" not in tickets_page,
+              "redundant ticket provider directories remain",
+          )
+
+          require(
+              find_page.count("TP_WHOLESALE_PROMO_START") == 1,
+              "wholesale finder promotion is missing or duplicated",
+          )
+          require(
+              Path("ticket/index.html").exists(),
+              "ticket detail page is missing",
+          )
+          require(
+              Path("wholesale/index.html").exists(),
+              "wholesale page is missing",
+          )
+
+          print(
+              json.dumps(
+                  {
+                      "status": "PASS",
+                      "wholesaleProducts": wholesale.get("count", 0),
+                      "wholesalePlatforms": wholesale.get(
+                          "platformCounts", {}
+                      ),
+                      "ticketRoutes": ticket_events.get("count", 0),
+                      "seatInventoryRows": len(inventory.get("listings") or []),
+                      "mobileSuggestions": "short + keyboard-aware + persistent",
+                      "ticketMissingFields": "hidden",
+                  },
+                  ensure_ascii=False,
+                  indent=2,
+              )
+          )
+          PY
+
+      - name: Publish V14 only if main has not changed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin main
+          REMOTE_SHA="$(git rev-parse origin/main)"
+
+          if [[ "$REMOTE_SHA" != "$TP_BASE_SHA" ]]; then
+            echo "::error::main changed while V14 was running."
+            echo "::error::Nothing was pushed. Run V14 again after other workflows finish."
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/wholesale-index.json
+          git add data/ticket-inventory.json
+          git add js/smart-search-v14.js
+          git add js/wholesale-v14.js
+          git add js/ticket-decision-v14.js
+          git add js/ticket-detail-v14.js
+          git add css/decision-v14.css
+          git add wholesale/index.html
+          git add ticket/index.html
+          git add tickets/index.html
+          git add find/index.html
+          git add sitemap.xml 2>/dev/null || true
+          git add -u
+
+          if git diff --cached --quiet; then
+            echo "V14 is already installed."
+            exit 0
+          fi
+
+          git diff --cached --check
+          git commit -m "feat: install V14 decision experience"
+          git push origin HEAD:main
