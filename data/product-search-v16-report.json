@@ -1,0 +1,30 @@
+{
+  "version": "16.0.1",
+  "fix": "normalize EOF and trailing whitespace before git diff --check",
+  "mode": "standalone-overlay-no-fragile-performSearch-patching",
+  "approvedSellers": [
+    "AliExpress",
+    "Alibaba",
+    "Geekbuying",
+    "Lenovo",
+    "Joom",
+    "Diecast",
+    "FragranceShop.com",
+    "Karaca EU",
+    "MFI Medical",
+    "PandaHall",
+    "Temu"
+  ],
+  "features": [
+    "fixed approved-seller registry including Joom and Temu",
+    "Amazon-style prefix autocomplete with short product ideas",
+    "mobile-scroll-safe suggestion list",
+    "synonym expansion",
+    "federated relevant-segment loading",
+    "seller-specific all-page loading",
+    "balanced all-seller result interleaving",
+    "truthful seller-specific zero-result message",
+    "independent quick view",
+    "existing monetised outbound URLs preserved"
+  ]
+}
