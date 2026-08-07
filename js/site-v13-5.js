@@ -110,7 +110,8 @@ function tpPublicSellerAllowed(p) {
   if (!p) return false;
   const title = clean(p.name || p.title);
   const target = clean(p.url || p.affiliateUrl || p.productUrl);
-  return Boolean(title && validUrl(target));
+  const seller = typeof tpCanonicalSellerV15_1 === "function" ? tpCanonicalSellerV15_1(p.advertiser || p.seller || p.merchant || "") : "";
+  return Boolean(title && validUrl(target) && seller);
 }
 // TP_PUBLIC_SELLER_GUARD_END
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];
@@ -240,7 +241,8 @@ function tpPublicSellerAllowed(p) {
     ["software", /\b(software|video editor|pdf editor|license|subscription|filmora|dr\.fone|mobiletrans)\b/i],
     ["business-sourcing", /\b(supplier|manufacturer|wholesale|private label|custom logo|bulk order|factory)\b/i],
     ["health-medical", /\b(medical equipment|medical supplies|clinical equipment|diagnostic equipment|patient monitoring|hospital equipment)\b/i],
-    ["arts-crafts", /\b(arts? and crafts?|craft supplies|jewelry making|beads?|jewelry findings|diy crafts?)\b/i]
+    ["arts-crafts", /\b(arts? and crafts?|craft supplies|jewelry making|beads?|jewelry findings|diy crafts?)\b/i],
+    ["jewelry-watches", /\b(necklaces?|pendants?|chains?|chokers?|jewelry|jewellery|bracelets?|earrings?|rings?)\b/i]
   ];
   const FAMILY_ROUTES = [
     ["wireless-carplay-adapter", /\b(wireless carplay|carplay adapter|carplay dongle)\b/i],
@@ -336,6 +338,7 @@ function normalizeProduct(p) {
     x.url = clean(x.url || x.affiliateUrl || x.productUrl);
     x.image = clean(x.image || x.imageUrl);
     x.advertiser = clean(x.advertiser || x.network || "Current seller");
+    { const canonical = typeof tpCanonicalSellerV15_1 === "function" ? tpCanonicalSellerV15_1(x.advertiser) : ""; if (canonical) x.advertiser = canonical; }
     x.group = clean(x.group || "other");
     x.family = clean(x.family || x.group);
     x.audience = clean(x.audience || "all");
@@ -476,6 +479,159 @@ function normalizeProduct(p) {
     if(family) familyMembers(family,state.manifest).forEach(x=>x.split("-").forEach(t=>generic.add(t)));
     return words(q).filter(t=>!generic.has(t));
   }
+
+  // TP_V15_1_FEDERATED_START
+  const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"];
+  const TP_CPC_SELLERS_V15_1 = new Set(["AliExpress","Alibaba","Geekbuying"]);
+  const TP_SELLER_ALIASES_V15_1 = {
+    "aliexpress":"AliExpress","ali express":"AliExpress","aliexpress.com":"AliExpress",
+    "alibaba":"Alibaba","alibaba.com":"Alibaba",
+    "geekbuying":"Geekbuying","geek buying":"Geekbuying",
+    "lenovo":"Lenovo","lenovo many geos":"Lenovo",
+    "diecast":"Diecast","diecast.com":"Diecast","diecast models wholesale":"Diecast",
+    "fragranceshop.com":"FragranceShop.com","fragrance shop":"FragranceShop.com","the fragrance shop":"FragranceShop.com",
+    "karaca":"Karaca EU","karaca eu":"Karaca EU","karaca europe":"Karaca EU",
+    "mfi":"MFI Medical","mfi medical":"MFI Medical","mfimedical":"MFI Medical",
+    "pandahall":"PandaHall","panda hall":"PandaHall",
+    "temu":"Temu","temu.com":"Temu","shop temu":"Temu"
+  };
+  const TP_QUERY_ALIASES_V15_1 = {
+    "necklace":["necklace","necklaces","pendant","pendants","chain necklace","chains","choker","chokers","neck jewelry","neck jewellery"],
+    "necklaces":["necklace","necklaces","pendant","pendants","chain necklace","chains","choker","chokers","neck jewelry","neck jewellery"],
+    "jewelry":["jewelry","jewellery","necklace","pendant","ring","bracelet","earrings","fashion jewelry"],
+    "jewellery":["jewelry","jewellery","necklace","pendant","ring","bracelet","earrings","fashion jewellery"],
+    "women clothing":["women clothing","women's clothing","womens clothing","womenswear","ladies clothing","women fashion","dresses","tops","blouses","skirts","pants","jackets"],
+    "women's clothing":["women clothing","women's clothing","womens clothing","womenswear","ladies clothing","women fashion","dresses","tops","blouses","skirts","pants","jackets"],
+    "womens clothing":["women clothing","women's clothing","womens clothing","womenswear","ladies clothing","women fashion","dresses","tops","blouses","skirts","pants","jackets"],
+    "phone":["phone","phones","smartphone","smartphones","mobile phone","mobile phones","android phone","iphone"],
+    "phones":["phone","phones","smartphone","smartphones","mobile phone","mobile phones","android phone","iphone"],
+    "phone case":["phone case","phone cases","mobile case","mobile cover","smartphone case","iphone case","protective case"],
+    "phone cases":["phone case","phone cases","mobile case","mobile cover","smartphone case","iphone case","protective case"],
+    "perfume":["perfume","perfumes","fragrance","fragrances","cologne","eau de parfum","eau de toilette"],
+    "tool":["tool","tools","power tools","hand tools","workshop tools","diy tools"],
+    "tools":["tool","tools","power tools","hand tools","workshop tools","diy tools"],
+    "laptop":["laptop","laptops","notebook computer","notebook computers"],
+    "printer":["printer","printers","laser printer","inkjet printer","thermal printer","label printer"]
+  };
+  const TP_SELLER_SPECIALTY_V15_1 = {
+    "FragranceShop.com":["beauty-care"],
+    "Karaca EU":["home-kitchen"],
+    "MFI Medical":["health-medical"],
+    "Diecast":["toys-games"],
+    "PandaHall":["arts-crafts","jewelry-watches"],
+    "Lenovo":["computers"],
+    "Geekbuying":["phones-tablets","computers","audio","cameras","projectors-tv","smart-home","automotive","home-kitchen","tools"],
+    "Temu":[],
+    "AliExpress":[],
+    "Alibaba":[]
+  };
+  function tpCanonicalSellerV15_1(value) {
+    const raw=lower(value);
+    for (const [alias,canonical] of Object.entries(TP_SELLER_ALIASES_V15_1)) {
+      if (raw===alias || raw.includes(alias)) return canonical;
+    }
+    return "";
+  }
+  function tpExpandedTermsV15_1(q) {
+    const raw=lower(q);
+    const out=[];
+    for (const [phrase,terms] of Object.entries(TP_QUERY_ALIASES_V15_1)) {
+      if (raw===phrase || raw.includes(phrase) || phrase.includes(raw)) out.push(...terms);
+    }
+    return uniq(out.map(lower).filter(Boolean));
+  }
+  function tpTitleMatchesExpandedV15_1(p,plan) {
+    const terms=tpExpandedTermsV15_1(plan?.q||"");
+    if (!terms.length) return false;
+    const text=lower(`${p.name||""} ${p.brand||""} ${p.category||""} ${p.family||""} ${p.description||""}`);
+    return terms.some(term=>text.includes(term));
+  }
+  let tpSellerCoveragePromiseV15_1=null;
+  async function tpLoadSellerCoverageV15_1() {
+    if (tpSellerCoveragePromiseV15_1) return tpSellerCoveragePromiseV15_1;
+    tpSellerCoveragePromiseV15_1=fetch(`/data/seller-coverage-v15-1.json?v=15.1.1-${Date.now()}`,{cache:"no-store"})
+      .then(r=>r.ok?r.json():{sellers:{}})
+      .catch(()=>({sellers:{}}));
+    return tpSellerCoveragePromiseV15_1;
+  }
+  function tpPlanRelevantSellerKeysV15_1(seller,index) {
+    const all=(index?.sellers?.[seller]?.segmentKeys||[]).filter(Boolean);
+    const direct=new Set(state.plan?.segmentKeys||[]);
+    let keys=all.filter(key=>direct.has(key));
+    if (!keys.length && state.plan?.groups?.length) {
+      keys=all.filter(key=>{
+        const meta=segmentMeta(key);
+        return meta && state.plan.groups.includes(meta.group);
+      });
+    }
+    if (!keys.length && state.plan?.families?.length) {
+      keys=all.filter(key=>{
+        const meta=segmentMeta(key);
+        return meta && state.plan.families.includes(meta.family);
+      });
+    }
+    return keys;
+  }
+  async function tpLoadBalancedSellerRowsV15_1() {
+    const index=await tpLoadSellerCoverageV15_1();
+    const jobs=[];
+    for (const seller of TP_PRODUCT_SELLERS_V15_1) {
+      const keys=tpPlanRelevantSellerKeysV15_1(seller,index).slice(0,2);
+      for (const key of keys) jobs.push(loadSegmentPage(key,1));
+    }
+    return (await Promise.all(jobs)).flat();
+  }
+  async function tpLoadSellerSpecificV15_1(seller) {
+    seller=tpCanonicalSellerV15_1(seller)||seller;
+    if (!seller) return;
+    const index=await tpLoadSellerCoverageV15_1();
+    const keys=tpPlanRelevantSellerKeysV15_1(seller,index).slice(0,18);
+    let rounds=0;
+    for (const key of keys) {
+      const meta=segmentMeta(key);
+      if (!meta) continue;
+      for (let page=1; page<=Math.min(meta.pages||1,3); page++) {
+        const rows=await loadSegmentPage(key,page);
+        if (rows.length) mergeProducts(rows);
+        const count=state.exact.filter(p=>tpCanonicalSellerV15_1(p.advertiser)===seller).length;
+        if (count>=36) return;
+      }
+      rounds++;
+      if (rounds>=18) break;
+    }
+  }
+  function tpDiversifySellersV15_1(rows) {
+    const buckets=new Map();
+    for (const p of rows) {
+      const seller=tpCanonicalSellerV15_1(p.advertiser);
+      if (!seller) continue;
+      if (!buckets.has(seller)) buckets.set(seller,[]);
+      buckets.get(seller).push(p);
+    }
+    const ordered=[];
+    let round=0;
+    while (ordered.length<rows.length && round<80) {
+      let added=false;
+      for (const seller of TP_PRODUCT_SELLERS_V15_1) {
+        const row=buckets.get(seller)?.[round];
+        if (row) { ordered.push(row); added=true; }
+      }
+      if (!added) break;
+      round++;
+    }
+    const seen=new Set(ordered.map(p=>p.id));
+    return [...ordered,...rows.filter(p=>!seen.has(p.id))];
+  }
+  function tpSellerNoResultMarkupV15_1(seller,query,plan) {
+    const specialty=TP_SELLER_SPECIALTY_V15_1[seller]||[];
+    const mismatch=specialty.length && plan?.groups?.length && !plan.groups.some(g=>specialty.includes(g));
+    const reason=mismatch
+      ? `${seller} mainly covers other product categories in TrendPilot's connected catalogue.`
+      : `No current indexed ${seller} listing closely matches “${query}”. This does not prove the seller never carries it.`;
+    return `<div class="tp-empty"><h3>No matching ${esc(seller)} products found.</h3><p>${esc(reason)}</p><button class="tp-btn tp-btn-primary" type="button" data-tp-search-all-sellers>Search all approved sellers</button></div>`;
+  }
+  // TP_V15_1_FEDERATED_END
+
   function makePlan(q, manifest, scope = "") {
     const inferredAudience = inferAudience(q);
     const audience = inferredAudience || (scope==="kids" ? "kids" : "");
@@ -586,6 +742,7 @@ function normalizeProduct(p) {
     if (plan.families?.length || plan.audience) return true;
     const title = lower(`${p.name} ${p.brand || ""} ${p.category || ""} ${p.family || ""}`);
     const titleTokens = words(title);
+    if (typeof tpTitleMatchesExpandedV15_1 === "function" && tpTitleMatchesExpandedV15_1(p,plan)) return true;
     return plan.intentTokens.length ? plan.intentTokens.every(t => titleTokens.some(x => x === t || x.startsWith(t) || t.startsWith(x))) : true;
   }
   function relatedMatch(p, plan) {
@@ -601,6 +758,8 @@ function normalizeProduct(p) {
     plan.intentTokens.forEach(t => { if (title.includes(t)) n += 22; else if (lower(`${p.brand} ${p.category}`).includes(t)) n += 8; });
     if (plan.families?.includes(p.family)) n += 60;
     if (plan.audience && p.audience === plan.audience) n += 40;
+    if (typeof tpTitleMatchesExpandedV15_1 === "function" && tpTitleMatchesExpandedV15_1(p,plan)) n += 45;
+    if (typeof TP_CPC_SELLERS_V15_1 !== "undefined" && TP_CPC_SELLERS_V15_1.has(tpCanonicalSellerV15_1(p.advertiser)) && n >= 45) n += 2.5;
     return n;
   }
   function mergeProducts(rows) {
@@ -608,7 +767,8 @@ function normalizeProduct(p) {
     const map = new Map(state.products.filter(tpCjPublicAllowed).map(p => [p.clusterKey || p.id,p]));
     rows.forEach(p => { const key=p.clusterKey||p.id; if (!map.has(key) || score(p,state.plan)>score(map.get(key),state.plan)) map.set(key,p); });
     state.products = [...map.values()].filter(tpCjPublicAllowed);
-    state.exact = state.products.filter(p => strictProductMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+    const rankedExact = state.products.filter(p => strictProductMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+    state.exact = typeof tpDiversifySellersV15_1 === "function" ? tpDiversifySellersV15_1(rankedExact) : rankedExact;
     state.alternatives = state.products.filter(p => relatedMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
   }
 
@@ -909,12 +1069,15 @@ function normalizeProduct(p) {
     if(audience)audience.value=audience.value||state.plan.audience||"";
     // TP_CJ_DROPDOWN_13_8_13
     if(merchant){
-      const current=merchant.value;
+      const current=tpCanonicalSellerV15_1(merchant.value)||merchant.value;
       const matchedRows=uniqProducts([...(state.exact||[]),...(state.alternatives||[])]);
-    const sellerSource=matchedRows.length?matchedRows:rows;
-    const sellers=uniq(sellerSource.filter(p=>tpCjPublicAllowed(p)&&tpPublicSellerAllowed(p)).map(p=>p.advertiser)).filter(Boolean).sort();
-      merchant.innerHTML='<option value="">All sellers</option>'+sellers.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join("");
-      merchant.value=sellers.includes(current)?current:"";
+      const counts=new Map(TP_PRODUCT_SELLERS_V15_1.map(name=>[name,0]));
+      matchedRows.forEach(p=>{
+        const seller=tpCanonicalSellerV15_1(p.advertiser);
+        if(counts.has(seller))counts.set(seller,counts.get(seller)+1);
+      });
+      merchant.innerHTML='<option value="">All sellers</option>'+TP_PRODUCT_SELLERS_V15_1.map(v=>`<option value="${esc(v)}">${esc(v)}${counts.get(v)?` (${counts.get(v)})`:""}</option>`).join("");
+      merchant.value=TP_PRODUCT_SELLERS_V15_1.includes(current)?current:"";
     }
 
     updateFilterCount();
@@ -930,7 +1093,8 @@ function normalizeProduct(p) {
     const grid=$('[data-tp-product-grid]'); if(!grid)return;
     const rows=filterProducts(activeProducts()); const visible=rows.slice(0,state.shown);
     const noun=state.activeTab==="exact"?"exact matches":"related alternatives";
-    grid.innerHTML=visible.length?visible.map(p=>productCard(p)).join(""):`<div class="tp-empty"><h3>No ${noun} found.</h3><p>${state.activeTab==="exact"?"Try a more specific product name, change the category, or open Related alternatives. TrendPilot will not invent a match from an unrelated description.":"No useful alternatives are available for this search yet."}</p></div>`;
+    const selectedSeller=tpCanonicalSellerV15_1(filters().merchant)||filters().merchant;
+    grid.innerHTML=visible.length?visible.map(p=>productCard(p)).join(""):(selectedSeller&&state.activeTab==="exact"?tpSellerNoResultMarkupV15_1(selectedSeller,state.query,state.plan):`<div class="tp-empty"><h3>No ${noun} found.</h3><p>${state.activeTab==="exact"?"Try a more specific product name, change the category, or open Related alternatives. TrendPilot will not invent a match from an unrelated description.":"No useful alternatives are available for this search yet."}</p></div>`);
     bindImages(grid);
     const count=$('[data-tp-results-count]'), status=$('[data-tp-finder-status]'), title=$('[data-tp-results-title]');
     if(title)title.textContent=`${state.activeTab==="exact"?"Exact matches":"Related alternatives"} for “${state.query}”`;
@@ -970,11 +1134,13 @@ function normalizeProduct(p) {
     const scopeSelect=$('[data-tp-finder-scope]');if(scopeSelect)scopeSelect.value=state.scope;
     const results=await Promise.allSettled([
       state.manifest.version==="fallback"?Promise.resolve(state.products):loadInitialSegments(),
-      loadCjProducts()
+      loadCjProducts(),
+      typeof tpLoadBalancedSellerRowsV15_1==="function"?tpLoadBalancedSellerRowsV15_1():Promise.resolve([])
     ]);
     const rows=results[0].status==="fulfilled"?results[0].value:[];
     const cjRows=results[1].status==="fulfilled"?results[1].value:[];
-    mergeProducts([...rows,...cjRows]);
+    const balancedRows=results[2].status==="fulfilled"?results[2].value:[];
+    mergeProducts([...rows,...cjRows,...balancedRows]);
     await Promise.race([ensureMinimumExact(24),new Promise(resolve=>setTimeout(resolve,6500))]);
     populateFilters(); renderFinder();
   } catch(error) {
@@ -1124,7 +1290,21 @@ function normalizeProduct(p) {
     form.addEventListener('submit',e=>{e.preventDefault();const scope=$('[data-tp-finder-scope]')?.value||'';performSearch($('[data-tp-finder-input]')?.value||scope||'popular products',true,scope);});
     $$('[data-search-suggestion]').forEach(b=>b.addEventListener('click',()=>performSearch(b.dataset.searchSuggestion,true,b.dataset.searchScope||'')));
     $('[data-tp-load-more]')?.addEventListener('click',showMore);
-    $$('[data-filter-group],[data-filter-family],[data-filter-audience],[data-filter-merchant],[data-filter-price],[data-filter-sort],[data-filter-coupon],[data-filter-rare]').forEach(x=>x.addEventListener('change',()=>{if(x.matches('[data-filter-group]'))populateFilters();state.shown=24;renderFinder();}));
+    $$('[data-filter-group],[data-filter-family],[data-filter-audience],[data-filter-merchant],[data-filter-price],[data-filter-sort],[data-filter-coupon],[data-filter-rare]').forEach(x=>x.addEventListener('change',async()=>{
+      if(x.matches('[data-filter-group]'))populateFilters();
+      if(x.matches('[data-filter-merchant]')&&x.value&&typeof tpLoadSellerSpecificV15_1==="function"){
+        const selected=x.value;
+        state.loading=true;
+        renderFinder();
+        await tpLoadSellerSpecificV15_1(selected);
+        state.loading=false;
+        populateFilters();
+        const merchant=$('[data-filter-merchant]');
+        if(merchant)merchant.value=selected;
+      }
+      state.shown=24;
+      renderFinder();
+    }));
     $('[data-reset-filters]')?.addEventListener('click',()=>{$$('[data-filter-panel] select').forEach(x=>x.value='');$$('[data-filter-panel] input[type="checkbox"]').forEach(x=>x.checked=false);state.shown=24;renderFinder();});
     $('[data-tp-filter-toggle]')?.addEventListener('click',e=>{const p=$('[data-tp-filter-panel]');p?.classList.toggle('is-expanded');e.currentTarget.setAttribute('aria-expanded',String(p?.classList.contains('is-expanded')));});
     const params=new URLSearchParams(location.search);performSearch(params.get('q')||"popular products",false,params.get('scope')||'');
@@ -1132,6 +1312,7 @@ function normalizeProduct(p) {
 
   function initEvents(){
     d.addEventListener('click',e=>{
+      const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){const merchant=$('[data-filter-merchant]');if(merchant)merchant.value="";state.shown=24;renderFinder();return;}
       const quick=e.target.closest('[data-quick-view-id]');if(quick){e.preventDefault();openQuickView(quick.dataset.quickViewId);return;}
       const close=e.target.closest('[data-quick-close]');if(close){e.preventDefault();closeQuickView();return;}
       const detail=e.target.closest('[data-product-detail-id]');if(detail){const p=findProduct(detail.dataset.productDetailId);if(p)cacheProduct(normalizeProduct(p));trackEvent("product_detail_click",{productId:detail.dataset.productDetailId});return;}

@@ -1,0 +1,82 @@
+{
+  "version": "15.1.1",
+  "scope": "products-only",
+  "approvedProductSellers": [
+    "AliExpress",
+    "Alibaba",
+    "Geekbuying",
+    "Lenovo",
+    "Diecast",
+    "FragranceShop.com",
+    "Karaca EU",
+    "MFI Medical",
+    "PandaHall",
+    "Temu"
+  ],
+  "cpcSellers": [
+    "AliExpress",
+    "Alibaba",
+    "Geekbuying"
+  ],
+  "sellerIndexCounts": {
+    "AliExpress": {
+      "catalogueRecords": 15667,
+      "directProductRecords": 0,
+      "segments": 278
+    },
+    "Alibaba": {
+      "catalogueRecords": 21170,
+      "directProductRecords": 0,
+      "segments": 218
+    },
+    "Geekbuying": {
+      "catalogueRecords": 1108,
+      "directProductRecords": 0,
+      "segments": 60
+    },
+    "Lenovo": {
+      "catalogueRecords": 0,
+      "directProductRecords": 0,
+      "segments": 0
+    },
+    "Diecast": {
+      "catalogueRecords": 0,
+      "directProductRecords": 3,
+      "segments": 0
+    },
+    "FragranceShop.com": {
+      "catalogueRecords": 0,
+      "directProductRecords": 100,
+      "segments": 0
+    },
+    "Karaca EU": {
+      "catalogueRecords": 0,
+      "directProductRecords": 100,
+      "segments": 0
+    },
+    "MFI Medical": {
+      "catalogueRecords": 0,
+      "directProductRecords": 0,
+      "segments": 0
+    },
+    "PandaHall": {
+      "catalogueRecords": 83,
+      "directProductRecords": 100,
+      "segments": 2
+    },
+    "Temu": {
+      "catalogueRecords": 0,
+      "directProductRecords": 700,
+      "segments": 0
+    }
+  },
+  "features": [
+    "seller-balanced general search",
+    "seller-specific deep loading",
+    "seller dropdown always shows approved sellers",
+    "query synonym expansion",
+    "necklace and jewelry routing",
+    "seller-specific no-result guidance",
+    "small CPC tie-break bonus only after relevance"
+  ]
+}
