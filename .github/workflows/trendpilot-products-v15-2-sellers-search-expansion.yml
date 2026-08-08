@@ -1,0 +1,199 @@
+name: TrendPilot Products V15.2 Sellers and Search Expansion
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  upgrade-products-data:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Upgrade sellers and suggestion coverage
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json, re
+          from pathlib import Path
+
+          bridge_path = Path('data/approved-product-sellers-v15-bridge.json')
+          seller_path = Path('data/approved-product-sellers-v14-1-5.json')
+          discovery_path = Path('data/product-discovery-v15.json')
+          whitelist_js = Path('js/seller-whitelist-v14-1-5.js')
+          discovery_js = Path('js/product-discovery-v15.js')
+          finder = Path('find/index.html')
+
+          for p in (bridge_path, seller_path, discovery_path, whitelist_js, discovery_js, finder):
+              if not p.exists():
+                  raise SystemExit(f'Missing required file: {p}')
+
+          bridge = json.loads(bridge_path.read_text(encoding='utf-8'))
+          if bridge.get('version') != '15-bridge-2':
+              raise SystemExit('Expected corrected seller bridge v15-bridge-2.')
+
+          approved=[]
+          for row in bridge.get('sellers') or []:
+              if not isinstance(row,dict) or row.get('approved') is not True: continue
+              name=str(row.get('display_name') or row.get('name') or '').strip()
+              if not name or 'joom' in name.lower(): continue
+              if name not in approved: approved.append(name)
+
+          required={'AliExpress','Alibaba','Geekbuying','Lenovo','Diecast','FragranceShop.com','Karaca EU','MFI Medical','PandaHall','Temu'}
+          missing=required-set(approved)
+          if missing:
+              raise SystemExit('Safety stop: missing required sellers: '+', '.join(sorted(missing)))
+
+          seller_path.write_text(json.dumps({
+              'version':'15.2.0',
+              'source':'approved-product-sellers-v15-bridge',
+              'approvedProductSellers':approved
+          },ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+          js=whitelist_js.read_text(encoding='utf-8')
+          alias_block='''const aliases={
+            "aliexpress":["aliexpress","ali express","aliexpress ww"],
+            "alibaba":["alibaba","alibaba.com","alibaba ww"],
+            "geekbuying":["geekbuying","geekbuying ww"],
+            "lenovo":["lenovo","lenovo many geos"],
+            "diecast":["diecast","diecast.com"],
+            "fragranceshop.com":["fragranceshop.com","fragrance shop","the fragrance shop"],
+            "karaca eu":["karaca eu","karaca europe","karaca"],
+            "mfi medical":["mfi medical","mfimedical","mfi"],
+            "pandahall":["pandahall","panda hall"],
+            "temu":["temu","temu.com","shop temu"],
+            "filamentpro eu cps":["filamentpro eu cps","filamentpro"],
+            "govee many geos":["govee many geos","govee"],
+            "harfington many geos":["harfington many geos","harfington"],
+            "sunsky-online ww":["sunsky-online ww","sunsky","sunsky online"]
+          };'''
+          js,n=re.subn(r'const aliases=\{.*?\};',alias_block,js,count=1,flags=re.S)
+          if n!=1: raise SystemExit('Could not patch seller aliases safely.')
+          js=js.replace('/data/approved-product-sellers-v14-1-5.json?v=${Date.now()}','/data/approved-product-sellers-v14-1-5.json?v=15.2.0')
+          js=js.replace('{cache:"no-store"}','{cache:"force-cache"}',1)
+          js=js.replace('s.dataset.tpApprovedSellers="14.1.5";','s.dataset.tpApprovedSellers="15.2.0";')
+          whitelist_js.write_text(js.rstrip()+'\n',encoding='utf-8')
+
+          discovery=json.loads(discovery_path.read_text(encoding='utf-8'))
+          discovery['version']='15.2.0'
+          discovery['approvedProductSellers']=approved
+
+          curated={
+          'a':['air fryer','airpods','android phone','action camera','air purifier','ankle boots','art supplies','automatic watch','air mattress','apple watch accessories','audio cable','adapter'],
+          'b':['backpack','bluetooth speaker','baby products','beauty products','blood pressure monitor','bed sheets','bike accessories','building blocks','battery charger','blender','boots','bracelet','barbecue grill'],
+          'c':['camera','car accessories','chargers','computer accessories','cookware','coffee maker','cosmetics','craft supplies','car phone holder','carplay adapter','cables','camping gear','cat supplies','ceiling light'],
+          'd':['drill','desk accessories','dresses','digital camera','dinnerware','dog supplies','dash cam','desk lamp','drone','door lock','drawing tablet','dumbbells'],
+          'e':['earbuds','electric toothbrush','espresso machine','ethernet cable','external hard drive','electric scooter','eyeliner','extension cord','exercise equipment','electric shaver'],
+          'f':['face cream','fan','fitness tracker','flash drive','floor lamp','food processor','fragrance','frying pan','furniture','filament','flashlight','folding chair'],
+          'g':['gaming mouse','gaming keyboard','gaming chair','garden tools','gift sets','glasses','gps tracker','graphics card','grill','gym equipment','govee lights'],
+          'h':['headphones','hair dryer','handbags','home decor','humidifier','hand tools','hard drive','hoodie','hair straightener','helmet','heater','HDMI cable'],
+          'i':['iphone cases','iphone charger','ipad accessories','ink cartridges','iron','ice maker','induction cooker','instant camera','in-ear headphones'],
+          'j':['jewelry','jackets','jeans','juicer','jigsaw','jewelry making supplies','jump starter','kids jewelry'],
+          'k':['keyboard','kitchen tools','kettle','kids toys','knife set','kitchen storage','karaoke microphone','knee brace','key finder'],
+          'l':['laptop','laptop stand','led lights','luggage','laptop bag','lawn tools','lipstick','lamp','laser printer','label maker','lenovo laptop'],
+          'm':['mouse','monitor','mobile phone','memory card','microphone','men shoes','makeup','massage gun','medical supplies','mini pc','mattress','multimeter'],
+          'n':['necklace','network switch','night light','nail tools','notebook','noise cancelling headphones','nvme ssd','neck fan'],
+          'o':['office supplies','office chair','outdoor lights','oven','organizer','oil diffuser','office desk','oral care','outdoor furniture'],
+          'p':['pen','pens','pencil','pencil case','phone cases','phones','power bank','power banks','perfume','printers','projectors','pet supplies','portable speaker','portable charger','phone holder','paper','printer ink','PS5 accessories','pressure washer'],
+          'q':['quadcopters','quilt','queen bed sheets','quick charger','quartz watch'],
+          'r':['router','robot vacuum','ring light','running shoes','rice cooker','razor','refrigerator accessories','remote control','rings','RAM memory'],
+          's':['smart watch','smartphone','shoes','school supplies','ssd','speaker','security camera','sunglasses','skincare','storage box','solar lights','smart home','screen protector','screwdriver set'],
+          't':['tablet','t-shirts','tools','toys','TV accessories','tripod','toothbrush','travel bag','thermal printer','tempered glass','tool box','table lamp'],
+          'u':['usb cable','usb hub','usb charger','underwear','umbrella','ultrawide monitor','usb flash drive','utensils'],
+          'v':['vacuum cleaner','video doorbell','VR headset','vacuum accessories','vanity mirror','vase','voltage tester'],
+          'w':['wireless earbuds','wireless charger','watch','women dresses','wallet','webcam','wifi router','water bottle','washing machine accessories','work tools','wall lights'],
+          'x':['xiaomi phone','xiaomi accessories','xbox accessories','xbox controller','xl t-shirts'],
+          'y':['yoga mat','yoga pants','youth shoes','yarn','yard tools'],
+          'z':['zipper bags','zinc alloy jewelry','zoom lens','zero gravity chair']}
+
+          by=discovery.setdefault('byLetter',{})
+          for letter,terms in curated.items():
+              existing=by.setdefault(letter,[])
+              existing_map={str(x.get('value') or '').strip().lower():x for x in existing if isinstance(x,dict)}
+              additions=[]; score=130
+              for term in terms:
+                  key=term.lower()
+                  if key not in existing_map:
+                      additions.append({'value':term,'kind':'product-type','score':score})
+                  elif existing_map[key].get('kind')=='product-type':
+                      existing_map[key]['score']=max(int(existing_map[key].get('score') or 0),score)
+                  score-=1
+              combined=additions+existing
+              seen=set(); clean=[]
+              for item in combined:
+                  if not isinstance(item,dict): continue
+                  value=str(item.get('value') or '').strip(); key=value.lower()
+                  if not value or key in seen: continue
+                  seen.add(key); clean.append(item)
+              by[letter]=clean
+
+          discovery_path.write_text(json.dumps(discovery,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+
+          djs=discovery_js.read_text(encoding='utf-8')
+          old='fetch(`/data/product-discovery-v15.json?v=15.0.0-${Date.now()}`,{cache:"no-store"})'
+          new='fetch(`/data/product-discovery-v15.json?v=15.2.0`,{cache:"force-cache"})'
+          if old not in djs: raise SystemExit('Could not find current Product Discovery fetch line.')
+          discovery_js.write_text(djs.replace(old,new,1).rstrip()+'\n',encoding='utf-8')
+
+          html=finder.read_text(encoding='utf-8')
+          html=html.replace('/js/seller-whitelist-v14-1-5.js?v=14.1.5','/js/seller-whitelist-v14-1-5.js?v=15.2.0')
+          html=html.replace('/js/product-discovery-v15.js?v=15.0.0','/js/product-discovery-v15.js?v=15.2.0')
+          finder.write_text(html.rstrip()+'\n',encoding='utf-8')
+
+          print(f'Approved sellers: {len(approved)}')
+          print('Sellers: '+', '.join(approved))
+          print('P includes pen:', any(str(x.get('value','')).lower()=='pen' for x in by['p']))
+          PY
+
+      - name: Validate V15.2 safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/seller-whitelist-v14-1-5.js
+          node --check js/product-discovery-v15.js
+          git diff --check
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          sellers=json.loads(Path('data/approved-product-sellers-v14-1-5.json').read_text())
+          discovery=json.loads(Path('data/product-discovery-v15.json').read_text())
+          names=sellers.get('approvedProductSellers') or []
+          required={'AliExpress','Alibaba','Geekbuying','Lenovo','Diecast','FragranceShop.com','Karaca EU','MFI Medical','PandaHall','Temu'}
+          if not required.issubset(set(names)): raise SystemExit('Core approved sellers missing.')
+          if any('joom' in n.lower() for n in names): raise SystemExit('Joom leaked into seller list.')
+          pvals={str(x.get('value') or '').lower() for x in discovery.get('byLetter',{}).get('p',[])}
+          for term in ('pen','pens','pencil','power bank','phone cases','perfume','printers','projectors'):
+              if term not in pvals: raise SystemExit('Missing P suggestion: '+term)
+          if discovery.get('version')!='15.2.0': raise SystemExit('Wrong discovery version.')
+          changed=set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())
+          forbidden={'js/site-v13-5.js','js/matched-products.js','js/affiliate-links.js','js/product-cpc-v15.js','css/product-discovery-v15.css'}
+          bad=changed & forbidden
+          if bad: raise SystemExit('Safety stop: core result/monetization files changed: '+', '.join(sorted(bad)))
+          print('Validation passed. Seller count:',len(names),'P suggestions:',len(pvals))
+          PY
+
+      - name: Publish V15.2
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/approved-product-sellers-v14-1-5.json data/product-discovery-v15.json js/seller-whitelist-v14-1-5.js js/product-discovery-v15.js find/index.html
+          git diff --cached --check
+          if git diff --cached --quiet; then echo 'V15.2 already installed.'; exit 0; fi
+          git commit -m 'feat: expand approved sellers and product suggestions'
+          git push origin HEAD:main
