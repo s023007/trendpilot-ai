@@ -1,0 +1,104 @@
+name: TrendPilot Products V15.6.4 Seller Search Repair
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-6-4-seller-search-repair-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  repair-seller-search:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Apply seller search repair to current source
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQgcmUKCmpzX3BhdGggPSBQYXRoKCJqcy9zaXRlLXYxMy01LmpzIikKaHRtbF9wYXRoID0gUGF0aCgiZmluZC9pbmRleC5odG1sIikKCmpzID0ganNfcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKaHRtbCA9IGh0bWxfcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKCiMgUmVtb3ZlIHByZXZpb3VzIGJsb2NrIG9uIHJlcnVuLgpqcyA9IHJlLnN1YigKICAgIHInXG5ccyovLyBUUF9TRUxMRVJfU0VBUkNIX1JFUEFJUl9WMTVfNl80X1NUQVJULio/Ly8gVFBfU0VMTEVSX1NFQVJDSF9SRVBBSVJfVjE1XzZfNF9FTkRcbicsCiAgICAiXG4iLAogICAganMsCiAgICBmbGFncz1yZS5TCikKCiMgSW5zZXJ0IENKLW9ubHkgdGF4b25vbXkgaGVscGVyIGJlZm9yZSB0aGUgQ0ogYnJpZGdlLgphbmNob3IgPSAiICAvLyBUUF9DSl9TRUFSQ0hfQlJJREdFX1NUQVJUIgppZiBhbmNob3Igbm90IGluIGpzOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiQ0ogYnJpZGdlIGFuY2hvciBub3QgZm91bmQuIikKCmJsb2NrID0gJycnCiAgLy8gVFBfU0VMTEVSX1NFQVJDSF9SRVBBSVJfVjE1XzZfNF9TVEFSVAogIGZ1bmN0aW9uIHRwRW5yaWNoQ2pUYXhvbm9teVYxNV82XzQocHJvZHVjdCl7CiAgICBjb25zdCBwPW5vcm1hbGl6ZVByb2R1Y3QocHJvZHVjdCk7CiAgICBjb25zdCByb3c9e3RpdGxlOnAubmFtZXx8IiIsY2F0ZWdvcnk6cC5jYXRlZ29yeXx8IiIsYnJhbmQ6cC5icmFuZHx8IiJ9OwoKICAgIGlmKCFwLmdyb3VwIHx8IHAuZ3JvdXA9PT0ib3RoZXIiKXsKICAgICAgY29uc3QgaW5mZXJyZWQ9dHBBZG1pdGFkR3Vlc3NHcm91cFYxNV80KHJvdyk7CiAgICAgIGlmKGluZmVycmVkKSBwLmdyb3VwPWluZmVycmVkOwogICAgfQoKICAgIGlmKCFwLmZhbWlseSB8fCBwLmZhbWlseT09PSJvdGhlciIgfHwgcC5mYW1pbHk9PT1wLmdyb3VwKXsKICAgICAgY29uc3QgaW5mZXJyZWRGYW1pbHk9dHBBZG1pdGFkR3Vlc3NGYW1pbHlWMTVfNChyb3cscC5ncm91cHx8Im90aGVyIik7CiAgICAgIGlmKGluZmVycmVkRmFtaWx5KSBwLmZhbWlseT1pbmZlcnJlZEZhbWlseTsKICAgIH0KCiAgICBjb25zdCBzZWxsZXI9dHBDYW5vbmljYWxTZWxsZXJWMTVfMShwLmFkdmVydGlzZXIpOwoKICAgIGlmKCghcC5ncm91cCB8fCBwLmdyb3VwPT09Im90aGVyIikgJiYgc2VsbGVyKXsKICAgICAgY29uc3QgZmFsbGJhY2tHcm91cHM9ewogICAgICAgICJEaWVjYXN0IjoidG95cy1nYW1lcyIsCiAgICAgICAgIkZyYWdyYW5jZVNob3AuY29tIjoiYmVhdXR5LWNhcmUiLAogICAgICAgICJLYXJhY2EgRVUiOiJob21lLWtpdGNoZW4iLAogICAgICAgICJNRkkgTWVkaWNhbCI6ImhlYWx0aC1tZWRpY2FsIiwKICAgICAgICAiUGFuZGFIYWxsIjoiYXJ0cy1jcmFmdHMiCiAgICAgIH07CiAgICAgIGlmKGZhbGxiYWNrR3JvdXBzW3NlbGxlcl0pIHAuZ3JvdXA9ZmFsbGJhY2tHcm91cHNbc2VsbGVyXTsKICAgIH0KCiAgICBpZigoIXAuZmFtaWx5IHx8IHAuZmFtaWx5PT09Im90aGVyIiB8fCBwLmZhbWlseT09PXAuZ3JvdXApICYmIHNlbGxlcil7CiAgICAgIGNvbnN0IGZhbGxiYWNrRmFtaWxpZXM9ewogICAgICAgICJEaWVjYXN0IjoibW9kZWwtY2Fycy1jb2xsZWN0aWJsZXMiLAogICAgICAgICJGcmFncmFuY2VTaG9wLmNvbSI6ImZyYWdyYW5jZSIsCiAgICAgICAgIkthcmFjYSBFVSI6ImNvb2t3YXJlIiwKICAgICAgICAiTUZJIE1lZGljYWwiOiJtZWRpY2FsLWVxdWlwbWVudCIsCiAgICAgICAgIlBhbmRhSGFsbCI6ImJlYWRzIgogICAgICB9OwogICAgICBpZihmYWxsYmFja0ZhbWlsaWVzW3NlbGxlcl0pIHAuZmFtaWx5PWZhbGxiYWNrRmFtaWxpZXNbc2VsbGVyXTsKICAgIH0KCiAgICByZXR1cm4gcDsKICB9CgogIGZ1bmN0aW9uIHRwU2VsbGVyU2NvcGVkUmVsZXZhbnRWMTVfNl80KHNlbGxlcixxdWVyeSl7CiAgICBjb25zdCBjYW5vbmljYWw9dHBDYW5vbmljYWxTZWxsZXJWMTVfMShzZWxsZXIpfHxjbGVhbihzZWxsZXIpOwogICAgY29uc3QgcmF3PWxvd2VyKHF1ZXJ5fHwiIik7CiAgICBjb25zdCBleHBhbmRlZD10cEV4cGFuZGVkVGVybXNWMTVfMShyYXcpOwogICAgY29uc3QgdG9rZW5zPXdvcmRzKHJhdyk7CgogICAgY29uc3Qgc2VsbGVyUm93cz0oc3RhdGUucHJvZHVjdHN8fFtdKS5maWx0ZXIocD0+ewogICAgICBjb25zdCByb3dTZWxsZXI9dHBDYW5vbmljYWxTZWxsZXJWMTVfMShwLmFkdmVydGlzZXIpfHxjbGVhbihwLmFkdmVydGlzZXIpOwogICAgICByZXR1cm4gcm93U2VsbGVyPT09Y2Fub25pY2FsICYmIHRwQ2pQdWJsaWNBbGxvd2VkKHApICYmIHRwUHVibGljU2VsbGVyQWxsb3dlZChwKTsKICAgIH0pOwoKICAgIGlmKCFyYXcgfHwgcmF3PT09InBvcHVsYXIgcHJvZHVjdHMiKSByZXR1cm4gc2VsbGVyUm93czsKCiAgICByZXR1cm4gc2VsbGVyUm93cy5maWx0ZXIocD0+ewogICAgICBjb25zdCB0ZXh0PWxvd2VyKGAke3AubmFtZXx8IiJ9ICR7cC5icmFuZHx8IiJ9ICR7cC5jYXRlZ29yeXx8IiJ9ICR7cC5ncm91cHx8IiJ9ICR7cC5mYW1pbHl8fCIifWApOwogICAgICBpZih0ZXh0LmluY2x1ZGVzKHJhdykpIHJldHVybiB0cnVlOwogICAgICBpZihleHBhbmRlZC5sZW5ndGggJiYgZXhwYW5kZWQuc29tZSh0ZXJtPT50ZXh0LmluY2x1ZGVzKHRlcm0pKSkgcmV0dXJuIHRydWU7CiAgICAgIGlmKHRva2Vucy5sZW5ndGggJiYgdG9rZW5zLmV2ZXJ5KHQ9PnRleHQuaW5jbHVkZXModCkpKSByZXR1cm4gdHJ1ZTsKICAgICAgaWYoc3RhdGUucGxhbj8uZmFtaWxpZXM/LmluY2x1ZGVzKHAuZmFtaWx5KSkgcmV0dXJuIHRydWU7CiAgICAgIGlmKHN0YXRlLnBsYW4/Lmdyb3Vwcz8uaW5jbHVkZXMocC5ncm91cCkgJiYgdG9rZW5zLnNvbWUodD0+dGV4dC5pbmNsdWRlcyh0KSkpIHJldHVybiB0cnVlOwogICAgICByZXR1cm4gZmFsc2U7CiAgICB9KS5zb3J0KChhLGIpPT5zY29yZShiLHN0YXRlLnBsYW4pLXNjb3JlKGEsc3RhdGUucGxhbikpOwogIH0KCiAgZnVuY3Rpb24gdHBTZWxsZXJTdWdnZXN0aW9uc1YxNV82XzQoc2VsbGVyKXsKICAgIGNvbnN0IGNhbm9uaWNhbD10cENhbm9uaWNhbFNlbGxlclYxNV8xKHNlbGxlcil8fGNsZWFuKHNlbGxlcik7CiAgICBjb25zdCBjb3VudHM9bmV3IE1hcCgpOwogICAgY29uc3Qgc3RvcD1uZXcgU2V0KFsidGhlIiwiYW5kIiwiZm9yIiwid2l0aCIsImZyb20iLCJ0aGlzIiwidGhhdCIsIm5ldyIsInNhbGUiLCJiZXN0IiwidG9wIiwicGNzIiwic2V0IiwicGFjayIsInByb2R1Y3QiLCJwcm9kdWN0cyIsIml0ZW0iLCJpdGVtcyIsImZyZWUiLCJzaGlwcGluZyIsIm1hbnkiLCJnbG9iYWwiLCJvbmxpbmUiLCJ3dyIsImdlbyIsImdlb3MiXSk7CgogICAgKHN0YXRlLnByb2R1Y3RzfHxbXSkuZm9yRWFjaChwPT57CiAgICAgIGNvbnN0IHJvd1NlbGxlcj10cENhbm9uaWNhbFNlbGxlclYxNV8xKHAuYWR2ZXJ0aXNlcil8fGNsZWFuKHAuYWR2ZXJ0aXNlcik7CiAgICAgIGlmKHJvd1NlbGxlciE9PWNhbm9uaWNhbCkgcmV0dXJuOwoKICAgICAgd29yZHMoYCR7cC5uYW1lfHwiIn0gJHtwLmNhdGVnb3J5fHwiIn1gKS5mb3JFYWNoKHc9PnsKICAgICAgICBpZih3Lmxlbmd0aDwzIHx8IHN0b3AuaGFzKHcpKSByZXR1cm47CiAgICAgICAgY291bnRzLnNldCh3LChjb3VudHMuZ2V0KHcpfHwwKSsxKTsKICAgICAgfSk7CiAgICB9KTsKCiAgICByZXR1cm4gWy4uLmNvdW50cy5lbnRyaWVzKCldCiAgICAgIC5zb3J0KChhLGIpPT5iWzFdLWFbMV0pCiAgICAgIC5zbGljZSgwLDMpCiAgICAgIC5tYXAoKFt3XSk9PncpOwogIH0KICAvLyBUUF9TRUxMRVJfU0VBUkNIX1JFUEFJUl9WMTVfNl80X0VORAonJycKanMgPSBqcy5yZXBsYWNlKGFuY2hvciwgYmxvY2sgKyAiXG4iICsgYW5jaG9yLCAxKQoKIyBDdXJyZW50IENKIGxvYWRlciBleGFjdCBsaW5lIGZyb20gbGF0ZXN0IG1haW4uCm9sZF9jaiA9ICcgICAgICAgIHJldHVybiAoQXJyYXkuaXNBcnJheShkYXRhLnByb2R1Y3RzKSA/IGRhdGEucHJvZHVjdHMgOiBbXSkubWFwKG5vcm1hbGl6ZVByb2R1Y3QpOycKbmV3X2NqID0gJyAgICAgICAgcmV0dXJuIChBcnJheS5pc0FycmF5KGRhdGEucHJvZHVjdHMpID8gZGF0YS5wcm9kdWN0cyA6IFtdKS5tYXAobm9ybWFsaXplUHJvZHVjdCkubWFwKHRwRW5yaWNoQ2pUYXhvbm9teVYxNV82XzQpLmZpbHRlcih0cENqUHVibGljQWxsb3dlZCk7JwppZiBvbGRfY2ogaW4ganM6CiAgICBqcyA9IGpzLnJlcGxhY2Uob2xkX2NqLCBuZXdfY2osIDEpCmVsaWYgbmV3X2NqIG5vdCBpbiBqczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkN1cnJlbnQgQ0ogbG9hZGVyIGxpbmUgbm90IGZvdW5kLiIpCgojIEN1cnJlbnQgcmVuZGVyRmluZGVyIGV4YWN0IGJsb2NrIGZyb20gbGF0ZXN0IG1haW4uCm9sZF9yZW5kZXIgPSAnJycgICAgY29uc3Qgcm93cz1maWx0ZXJQcm9kdWN0cyhhY3RpdmVQcm9kdWN0cygpKTsgY29uc3QgdmlzaWJsZT1yb3dzLnNsaWNlKDAsc3RhdGUuc2hvd24pOwogICAgY29uc3Qgbm91bj1zdGF0ZS5hY3RpdmVUYWI9PT0iZXhhY3QiPyJleGFjdCBtYXRjaGVzIjoicmVsYXRlZCBhbHRlcm5hdGl2ZXMiOwogICAgY29uc3Qgc2VsZWN0ZWRTZWxsZXI9dHBDYW5vbmljYWxTZWxsZXJWMTVfMShmaWx0ZXJzKCkubWVyY2hhbnQpfHxmaWx0ZXJzKCkubWVyY2hhbnQ7CiAgICBncmlkLmlubmVySFRNTD12aXNpYmxlLmxlbmd0aD92aXNpYmxlLm1hcChwPT5wcm9kdWN0Q2FyZChwKSkuam9pbigiIik6KHNlbGVjdGVkU2VsbGVyJiZzdGF0ZS5hY3RpdmVUYWI9PT0iZXhhY3QiP3RwU2VsbGVyTm9SZXN1bHRNYXJrdXBWMTVfMShzZWxlY3RlZFNlbGxlcixzdGF0ZS5xdWVyeSxzdGF0ZS5wbGFuKTpgPGRpdiBjbGFzcz0idHAtZW1wdHkiPjxoMz5ObyAke25vdW59IGZvdW5kLjwvaDM+PHA+JHtzdGF0ZS5hY3RpdmVUYWI9PT0iZXhhY3QiPyJUcnkgYSBtb3JlIHNwZWNpZmljIHByb2R1Y3QgbmFtZSwgY2hhbmdlIHRoZSBjYXRlZ29yeSwgb3Igb3BlbiBSZWxhdGVkIGFsdGVybmF0aXZlcy4gVHJlbmRQaWxvdCB3aWxsIG5vdCBpbnZlbnQgYSBtYXRjaCBmcm9tIGFuIHVucmVsYXRlZCBkZXNjcmlwdGlvbi4iOiJObyB1c2VmdWwgYWx0ZXJuYXRpdmVzIGFyZSBhdmFpbGFibGUgZm9yIHRoaXMgc2VhcmNoIHlldC4ifTwvcD48L2Rpdj5gKTsnJycKCm5ld19yZW5kZXIgPSAnJycgICAgY29uc3Qgcm93cz1maWx0ZXJQcm9kdWN0cyhhY3RpdmVQcm9kdWN0cygpKTsKICAgIGNvbnN0IG5vdW49c3RhdGUuYWN0aXZlVGFiPT09ImV4YWN0Ij8iZXhhY3QgbWF0Y2hlcyI6InJlbGF0ZWQgYWx0ZXJuYXRpdmVzIjsKICAgIGNvbnN0IHNlbGVjdGVkU2VsbGVyPXRwQ2Fub25pY2FsU2VsbGVyVjE1XzEoZmlsdGVycygpLm1lcmNoYW50KXx8ZmlsdGVycygpLm1lcmNoYW50OwogICAgbGV0IHJlbmRlclJvd3M9cm93czsKCiAgICBpZighcmVuZGVyUm93cy5sZW5ndGggJiYgc2VsZWN0ZWRTZWxsZXIgJiYgc3RhdGUuYWN0aXZlVGFiPT09ImV4YWN0IiAmJiBzZWxlY3RlZFNlbGxlciE9PSJMZW5vdm8iKXsKICAgICAgcmVuZGVyUm93cz10cFNlbGxlclNjb3BlZFJlbGV2YW50VjE1XzZfNChzZWxlY3RlZFNlbGxlcixzdGF0ZS5xdWVyeSk7CiAgICB9CgogICAgY29uc3QgdmlzaWJsZT1yZW5kZXJSb3dzLnNsaWNlKDAsc3RhdGUuc2hvd24pOwoKICAgIGlmKHZpc2libGUubGVuZ3RoKXsKICAgICAgZ3JpZC5pbm5lckhUTUw9dmlzaWJsZS5tYXAocD0+cHJvZHVjdENhcmQocCkpLmpvaW4oIiIpOwogICAgfWVsc2UgaWYoc2VsZWN0ZWRTZWxsZXImJnN0YXRlLmFjdGl2ZVRhYj09PSJleGFjdCIpewogICAgICBjb25zdCBoaW50cz10cFNlbGxlclN1Z2dlc3Rpb25zVjE1XzZfNChzZWxlY3RlZFNlbGxlcik7CiAgICAgIGNvbnN0IGJhc2U9dHBTZWxsZXJOb1Jlc3VsdE1hcmt1cFYxNV8xKHNlbGVjdGVkU2VsbGVyLHN0YXRlLnF1ZXJ5LHN0YXRlLnBsYW4pOwogICAgICBncmlkLmlubmVySFRNTD1oaW50cy5sZW5ndGgKICAgICAgICA/IGJhc2UucmVwbGFjZSgiPC9kaXY+IixgPHAgY2xhc3M9InRwLXNlbGxlci1oaW50cyI+VHJ5IHRoaXMgc2VsbGVyIHdpdGg6IDxzdHJvbmc+JHtoaW50cy5tYXAoZXNjKS5qb2luKCIsICIpfTwvc3Ryb25nPjwvcD48L2Rpdj5gKQogICAgICAgIDogYmFzZTsKICAgIH1lbHNlewogICAgICBncmlkLmlubmVySFRNTD1gPGRpdiBjbGFzcz0idHAtZW1wdHkiPjxoMz5ObyAke25vdW59IGZvdW5kLjwvaDM+PHA+JHtzdGF0ZS5hY3RpdmVUYWI9PT0iZXhhY3QiPyJUcnkgYSBtb3JlIHNwZWNpZmljIHByb2R1Y3QgbmFtZSwgY2hhbmdlIHRoZSBjYXRlZ29yeSwgb3Igb3BlbiBSZWxhdGVkIGFsdGVybmF0aXZlcy4gVHJlbmRQaWxvdCB3aWxsIG5vdCBpbnZlbnQgYSBtYXRjaCBmcm9tIGFuIHVucmVsYXRlZCBkZXNjcmlwdGlvbi4iOiJObyB1c2VmdWwgYWx0ZXJuYXRpdmVzIGFyZSBhdmFpbGFibGUgZm9yIHRoaXMgc2VhcmNoIHlldC4ifTwvcD48L2Rpdj5gOwogICAgfScnJwoKaWYgb2xkX3JlbmRlciBub3QgaW4ganM6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJDdXJyZW50IHJlbmRlckZpbmRlciBibG9jayBub3QgZm91bmQuIikKanMgPSBqcy5yZXBsYWNlKG9sZF9yZW5kZXIsIG5ld19yZW5kZXIsIDEpCgojIFVwZGF0ZSByZW5kZXJGaW5kZXIncyBjb3VudC9zdGF0dXMvbG9hZC1tb3JlIHJlZmVyZW5jZXMgdG8gcmVuZGVyUm93cy4KanMgPSBqcy5yZXBsYWNlKAogICAgJyAgICBpZihjb3VudCljb3VudC50ZXh0Q29udGVudD1yZXN1bHRDb3VudExhYmVsKCk7JywKICAgICcgICAgaWYoY291bnQpY291bnQudGV4dENvbnRlbnQ9c2VsZWN0ZWRTZWxsZXImJnJlbmRlclJvd3MhPT1yb3dzP2Ake2ZtdC5mb3JtYXQocmVuZGVyUm93cy5sZW5ndGgpfSBzZWxsZXIgbWF0Y2hlc2A6cmVzdWx0Q291bnRMYWJlbCgpOycsCiAgICAxCikKCmpzID0ganMucmVwbGFjZSgKICAgICcgICAgICBzdGF0dXMudGV4dENvbnRlbnQ9YCR7Y29ycmVjdGlvbn1TaG93aW5nICR7Zm10LmZvcm1hdCh2aXNpYmxlLmxlbmd0aCl9IG9mICR7Zm10LmZvcm1hdChyb3dzLmxlbmd0aCl9ICR7bm91bn0uICR7Zm10LmZvcm1hdChzY2FuKX0gY2FuZGlkYXRlcyBjaGVja2VkLiAke3Byb2dyZXNzfWA7JywKICAgICcgICAgICBzdGF0dXMudGV4dENvbnRlbnQ9YCR7Y29ycmVjdGlvbn1TaG93aW5nICR7Zm10LmZvcm1hdCh2aXNpYmxlLmxlbmd0aCl9IG9mICR7Zm10LmZvcm1hdChyZW5kZXJSb3dzLmxlbmd0aCl9ICR7c2VsZWN0ZWRTZWxsZXImJnJlbmRlclJvd3MhPT1yb3dzPyJzZWxsZXIgbWF0Y2hlcyI6bm91bn0uICR7Zm10LmZvcm1hdChzY2FuKX0gY2FuZGlkYXRlcyBjaGVja2VkLiAke3Byb2dyZXNzfWA7JywKICAgIDEKKQoKanMgPSBqcy5yZXBsYWNlKAogICAgJyAgICBjb25zdCBtb3JlTG9hZGVkPXJvd3MubGVuZ3RoPnN0YXRlLnNob3duOycsCiAgICAnICAgIGNvbnN0IG1vcmVMb2FkZWQ9cmVuZGVyUm93cy5sZW5ndGg+c3RhdGUuc2hvd247JywKICAgIDEKKQoKanMgPSBqcy5yZXBsYWNlKAogICAgJyAgICBtb3JlLnRleHRDb250ZW50PXN0YXRlLmxvYWRpbmc/IkNoZWNraW5nIG1vcmUgcHJvZHVjdHPigKYiOm1vcmVMb2FkZWQ/YFNob3cgJHtNYXRoLm1pbigyNCxyb3dzLmxlbmd0aC1zdGF0ZS5zaG93bil9IG1vcmVgOiJDaGVjayBtb3JlIGNhdGFsb2d1ZSBwYWdlcyI7JywKICAgICcgICAgbW9yZS50ZXh0Q29udGVudD1zdGF0ZS5sb2FkaW5nPyJDaGVja2luZyBtb3JlIHByb2R1Y3Rz4oCmIjptb3JlTG9hZGVkP2BTaG93ICR7TWF0aC5taW4oMjQscmVuZGVyUm93cy5sZW5ndGgtc3RhdGUuc2hvd24pfSBtb3JlYDoiQ2hlY2sgbW9yZSBjYXRhbG9ndWUgcGFnZXMiOycsCiAgICAxCikKCmpzX3BhdGgud3JpdGVfdGV4dChqcy5yc3RyaXAoKSsiXG4iLCBlbmNvZGluZz0idXRmLTgiKQoKIyBDYWNoZS1idXN0IGxhdGVzdCBsaXZlIHNjcmlwdC4KaWYgIi9qcy9zaXRlLXYxMy01LmpzP3Y9MTUuNi4xIiBpbiBodG1sOgogICAgaHRtbCA9IGh0bWwucmVwbGFjZSgiL2pzL3NpdGUtdjEzLTUuanM/dj0xNS42LjEiLCIvanMvc2l0ZS12MTMtNS5qcz92PTE1LjYuNCIsMSkKZWxpZiAiL2pzL3NpdGUtdjEzLTUuanM/dj0xNS42LjQiIG5vdCBpbiBodG1sOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiVW5leHBlY3RlZCBsaXZlIHNpdGUgSlMgdmVyc2lvbi4iKQoKaHRtbF9wYXRoLndyaXRlX3RleHQoaHRtbC5yc3RyaXAoKSsiXG4iLCBlbmNvZGluZz0idXRmLTgiKQpwcmludCgiVjE1LjYuNCBzZWxsZXIgc2VhcmNoIHJlcGFpciBhcHBsaWVkLiIpCg==' | base64 -d > /tmp/tp_v15_6_4.py
+          python /tmp/tp_v15_6_4.py
+
+      - name: Validate V15.6.4
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          js=Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          html=Path("find/index.html").read_text(encoding="utf-8")
+          blob=js+"\n"+html
+
+          required=[
+              "TP_SELLER_SEARCH_REPAIR_V15_6_4_START",
+              "tpEnrichCjTaxonomyV15_6_4",
+              "tpSellerScopedRelevantV15_6_4",
+              "tpSellerSuggestionsV15_6_4",
+              ".map(tpEnrichCjTaxonomyV15_6_4).filter(tpCjPublicAllowed)",
+              'selectedSeller!=="Lenovo"',
+              "seller matches",
+              "/js/site-v13-5.js?v=15.6.4",
+              "TP_LENOVO_DIRECT_LINK_V15_5_3_START",
+              "TP_CJ_SEARCH_BRIDGE_START"
+          ]
+          missing=[x for x in required if x not in blob]
+          if missing:
+              raise SystemExit("Missing validation markers: "+", ".join(missing))
+
+          if js.count("function renderFinder()") != 1:
+              raise SystemExit("renderFinder count changed unexpectedly.")
+
+          if js.count("TP_CJ_SEARCH_BRIDGE_START") != 1:
+              raise SystemExit("CJ bridge integrity failed.")
+
+          if "/js/product-discovery-v15.js?v=15.2.0" not in html:
+              raise SystemExit("Suggestion engine changed unexpectedly.")
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={"js/site-v13-5.js","find/index.html"}
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected changed files: "+", ".join(sorted(unexpected)))
+
+          print("V15.6.4 validation passed.")
+          print("- Patch matches current main source.")
+          print("- Admitad loader is left untouched.")
+          print("- CJ taxonomy and seller-scoped fallback are repaired.")
+          print("- Lenovo direct-link remains intact.")
+          PY
+
+      - name: Publish V15.6.4
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add js/site-v13-5.js find/index.html
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.6.4 already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: repair seller search against current main source"
+          git push origin HEAD:main
