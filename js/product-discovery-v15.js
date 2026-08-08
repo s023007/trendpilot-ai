@@ -4,7 +4,7 @@
   const esc=v=>clean(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   let cache=null,panel=null,input=null,gesture=null,seq=0;
   const rankKind={"product-type":0,"product":1,"seller":2};
-  async function data(){return cache||(cache=fetch(`/data/product-discovery-v15.json?v=15.0.0-${Date.now()}`,{cache:"no-store"}).then(r=>r.ok?r.json():{}).catch(()=>({})));}
+  async function data(){return cache||(cache=fetch(`/data/product-discovery-v15.json?v=15.2.0`,{cache:"force-cache"}).then(r=>r.ok?r.json():{}).catch(()=>({})));}
   function ensure(el){let p=el.closest(".tp-search-input")?.querySelector(":scope > .tp-v15-suggest");if(!p){p=d.createElement("div");p.className="tp-v15-suggest";p.hidden=true;p.innerHTML='<div class="tp-v15-list" role="listbox"></div>';el.closest(".tp-search-input")?.appendChild(p);}return p;}
   function close(){seq++;if(panel)panel.hidden=true;panel=null;input=null;gesture=null;d.documentElement.classList.remove("tp-v15-search-open");}
   function score(r,q){const v=low(r.value);let s=Number(r.score||0);if(v===q)s+=500;if(v.startsWith(q))s+=300;else if(v.split(/\s+/).some(x=>x.startsWith(q)))s+=140;else if(v.includes(q))s+=60;s-=(rankKind[r.kind]??4)*35;return s;}

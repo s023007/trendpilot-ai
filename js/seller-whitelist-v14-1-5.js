@@ -4,17 +4,21 @@
   const clean=v=>String(v??"").replace(/\s+/g," ").trim();
   const low=v=>clean(v).toLowerCase();
   const aliases={
-    "aliexpress":["aliexpress","ali express"],
-    "alibaba":["alibaba","alibaba.com"],
-    "geekbuying":["geekbuying"],
-    "lenovo":["lenovo","lenovo many geos"],
-    "diecast":["diecast","diecast.com"],
-    "fragranceshop.com":["fragranceshop.com","fragrance shop","the fragrance shop"],
-    "karaca eu":["karaca eu","karaca europe","karaca"],
-    "mfi medical":["mfi medical","mfimedical","mfi"],
-    "pandahall":["pandahall","panda hall"],
-    "temu":["temu","temu.com","shop temu"]
-  };
+  "aliexpress":["aliexpress","ali express","aliexpress ww"],
+  "alibaba":["alibaba","alibaba.com","alibaba ww"],
+  "geekbuying":["geekbuying","geekbuying ww"],
+  "lenovo":["lenovo","lenovo many geos"],
+  "diecast":["diecast","diecast.com"],
+  "fragranceshop.com":["fragranceshop.com","fragrance shop","the fragrance shop"],
+  "karaca eu":["karaca eu","karaca europe","karaca"],
+  "mfi medical":["mfi medical","mfimedical","mfi"],
+  "pandahall":["pandahall","panda hall"],
+  "temu":["temu","temu.com","shop temu"],
+  "filamentpro eu cps":["filamentpro eu cps","filamentpro"],
+  "govee many geos":["govee many geos","govee"],
+  "harfington many geos":["harfington many geos","harfington"],
+  "sunsky-online ww":["sunsky-online ww","sunsky","sunsky online"]
+};
   let allowed=[];
   let applying=false;
 
@@ -62,7 +66,7 @@
         const opt=[...s.options].find(o=>canon(o.textContent)===selected);
         if(opt) s.value=opt.value;
       }
-      s.dataset.tpApprovedSellers="14.1.5";
+      s.dataset.tpApprovedSellers="15.2.0";
     } finally {
       applying=false;
     }
@@ -75,7 +79,7 @@
 
   async function init(){
     try{
-      const r=await fetch(`/data/approved-product-sellers-v14-1-5.json?v=${Date.now()}`,{cache:"no-store"});
+      const r=await fetch(`/data/approved-product-sellers-v14-1-5.json?v=15.2.0`,{cache:"force-cache"});
       const j=r.ok?await r.json():{};
       allowed=Array.isArray(j.approvedProductSellers)?j.approvedProductSellers:[];
     }catch{
