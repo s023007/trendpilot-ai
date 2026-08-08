@@ -724,7 +724,12 @@ function normalizeProduct(p) {
     const seen=new Set(ordered.map(p=>p.id));
     return [...ordered,...rows.filter(p=>!seen.has(p.id))];
   }
+  // TP_LENOVO_DIRECT_LINK_V15_5_3_START
   function tpSellerNoResultMarkupV15_1(seller,query,plan) {
+    if(clean(seller).toLowerCase()==="lenovo"){
+      const lenovoAffiliateUrl="https://bednari.com/g/6iia5dppfe179d0dbedccc01b591a8/";
+      return `<div class="tp-empty" data-tp-lenovo-direct-link="15.5.3"><h3>Lenovo product feed temporarily unavailable.</h3><p>TrendPilot detected incorrect Lenovo feed data and removed those unrelated listings instead of showing misleading products.</p><a class="tp-btn tp-btn-primary" href="${esc(lenovoAffiliateUrl)}" target="_blank" rel="sponsored noopener">Visit Lenovo</a><button class="tp-btn tp-btn-light" type="button" data-tp-search-all-sellers>Compare with all approved sellers</button></div>`;
+    }
     const specialty=TP_SELLER_SPECIALTY_V15_1[seller]||[];
     const mismatch=specialty.length && plan?.groups?.length && !plan.groups.some(g=>specialty.includes(g));
     const reason=mismatch
@@ -732,6 +737,7 @@ function normalizeProduct(p) {
       : `No current indexed ${seller} listing closely matches “${query}”. This does not prove the seller never carries it.`;
     return `<div class="tp-empty"><h3>No matching ${esc(seller)} products found.</h3><p>${esc(reason)}</p><button class="tp-btn tp-btn-primary" type="button" data-tp-search-all-sellers>Search all approved sellers</button></div>`;
   }
+  // TP_LENOVO_DIRECT_LINK_V15_5_3_END
   // TP_V15_1_FEDERATED_END
 
   function makePlan(q, manifest, scope = "") {
