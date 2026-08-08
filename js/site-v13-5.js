@@ -463,7 +463,7 @@ function normalizeProduct(p) {
     if (tpAdmitadProductsPromiseV15_4) return tpAdmitadProductsPromiseV15_4;
     tpAdmitadProductsPromiseV15_4 = (async () => {
       try {
-        const r = await fetch("/data/admitad-products-new-account-v15-3-2.json?v=15.4.0",{cache:"force-cache"});
+        const r = await fetch("/data/admitad-products-new-account-v15-3-2.json?v=15.6.0",{cache:"force-cache"});
         if (!r.ok) throw new Error(`Admitad products ${r.status}`);
         const payload = await r.json();
         if (Number(payload.website_id)!==2980568 || payload.domain!=="trendpilotchoice.com") {
