@@ -1,0 +1,118 @@
+{
+  "version": "15-bridge-1",
+  "purpose": "Products seller bridge without touching the stable UI",
+  "rules": {
+    "admitad_source": "new-account-active-only",
+    "admitad_requires_product_feed": true,
+    "cj_source": "stable-products-baseline",
+    "joom_policy": "excluded-until-active-for-trendpilotchoice.com",
+    "empty_names_excluded": true,
+    "ui_modified": false
+  },
+  "counts": {
+    "admitad_product_sellers": 8,
+    "cj_product_sellers": 0,
+    "merged_product_sellers": 8,
+    "excluded_admitad": 5
+  },
+  "sellers": [
+    {
+      "name": "Alibaba WW",
+      "network": "Admitad",
+      "approved": true,
+      "campaign_id": 20881,
+      "allow_deeplink": true,
+      "has_product_feed": true,
+      "source": "admitad-new-account-api"
+    },
+    {
+      "name": "AliExpress WW",
+      "network": "Admitad",
+      "approved": true,
+      "campaign_id": 6115,
+      "allow_deeplink": true,
+      "has_product_feed": true,
+      "source": "admitad-new-account-api"
+    },
+    {
+      "name": "FilamentPRO EU CPS",
+      "network": "Admitad",
+      "approved": true,
+      "campaign_id": 182710,
+      "allow_deeplink": true,
+      "has_product_feed": true,
+      "source": "admitad-new-account-api"
+    },
+    {
+      "name": "Geekbuying WW",
+      "network": "Admitad",
+      "approved": true,
+      "campaign_id": 15467,
+      "allow_deeplink": true,
+      "has_product_feed": true,
+      "source": "admitad-new-account-api"
+    },
+    {
+      "name": "Govee Many GEOs",
+      "network": "Admitad",
+      "approved": true,
+      "campaign_id": 24808,
+      "allow_deeplink": true,
+      "has_product_feed": true,
+      "source": "admitad-new-account-api"
+    },
+    {
+      "name": "Harfington Many GEOs",
+      "network": "Admitad",
+      "approved": true,
+      "campaign_id": 37060,
+      "allow_deeplink": true,
+      "has_product_feed": true,
+      "source": "admitad-new-account-api"
+    },
+    {
+      "name": "Lenovo Many GEOs",
+      "network": "Admitad",
+      "approved": true,
+      "campaign_id": 18201,
+      "allow_deeplink": true,
+      "has_product_feed": true,
+      "source": "admitad-new-account-api"
+    },
+    {
+      "name": "Sunsky-online WW",
+      "network": "Admitad",
+      "approved": true,
+      "campaign_id": 18428,
+      "allow_deeplink": true,
+      "has_product_feed": true,
+      "source": "admitad-new-account-api"
+    }
+  ],
+  "excluded_admitad": [
+    {
+      "reason": "empty-name",
+      "id": 40315
+    },
+    {
+      "reason": "no-product-feed",
+      "name": "Giftmio [Lifetime] Many GEOs",
+      "id": 42487
+    },
+    {
+      "reason": "no-product-feed",
+      "name": "Ticombo - Global Event Tickets Many GEOs",
+      "id": 142825
+    },
+    {
+      "reason": "no-product-feed",
+      "name": "TurboVPN WW",
+      "id": 25249
+    },
+    {
+      "reason": "no-product-feed",
+      "name": "WAU GLOBAL WW",
+      "id": 191147
+    }
+  ]
+}
