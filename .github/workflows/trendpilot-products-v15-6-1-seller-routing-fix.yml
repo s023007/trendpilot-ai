@@ -1,0 +1,114 @@
+name: TrendPilot Products V15.6.1 Seller Routing Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-6-1-seller-routing-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix-seller-routing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Fix Admitad seller persistence and CJ Temu guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAoKanNfcGF0aCA9IFBhdGgoImpzL3NpdGUtdjEzLTUuanMiKQpodG1sX3BhdGggPSBQYXRoKCJmaW5kL2luZGV4Lmh0bWwiKQoKanMgPSBqc19wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpodG1sID0gaHRtbF9wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQoKb2xkID0gJ2NvbnN0IFRQX1BST0RVQ1RfU0VMTEVSU19WMTVfMSA9IFsiQWxpRXhwcmVzcyIsIkFsaWJhYmEiLCJHZWVrYnV5aW5nIiwiTGVub3ZvIiwiRGllY2FzdCIsIkZyYWdyYW5jZVNob3AuY29tIiwiS2FyYWNhIEVVIiwiTUZJIE1lZGljYWwiLCJQYW5kYUhhbGwiLCJUZW11Il07JwpuZXcgPSAnY29uc3QgVFBfUFJPRFVDVF9TRUxMRVJTX1YxNV8xID0gWyJBbGlFeHByZXNzIiwiQWxpYmFiYSIsIkdlZWtidXlpbmciLCJGaWxhbWVudFBSTyBFVSBDUFMiLCJHb3ZlZSBNYW55IEdFT3MiLCJIYXJmaW5ndG9uIE1hbnkgR0VPcyIsIlN1bnNreS1vbmxpbmUgV1ciLCJMZW5vdm8iLCJEaWVjYXN0IiwiRnJhZ3JhbmNlU2hvcC5jb20iLCJLYXJhY2EgRVUiLCJNRkkgTWVkaWNhbCIsIlBhbmRhSGFsbCIsIlRlbXUiXTsnCmlmIG9sZCBpbiBqczoKICAgIGpzID0ganMucmVwbGFjZShvbGQsIG5ldywgMSkKZWxpZiBuZXcgbm90IGluIGpzOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiQ3VycmVudCBzZWxsZXIgbGlzdCBub3QgZm91bmQuIikKCm9sZCA9ICcnJyAgICAiZ2Vla2J1eWluZyI6IkdlZWtidXlpbmciLCJnZWVrIGJ1eWluZyI6IkdlZWtidXlpbmciLAogICAgImxlbm92byI6Ikxlbm92byIsImxlbm92byBtYW55IGdlb3MiOiJMZW5vdm8iLCcnJwpuZXcgPSAnJycgICAgImdlZWtidXlpbmciOiJHZWVrYnV5aW5nIiwiZ2VlayBidXlpbmciOiJHZWVrYnV5aW5nIiwiZ2Vla2J1eWluZyB3dyI6IkdlZWtidXlpbmciLAogICAgImZpbGFtZW50cHJvIjoiRmlsYW1lbnRQUk8gRVUgQ1BTIiwiZmlsYW1lbnRwcm8gZXUiOiJGaWxhbWVudFBSTyBFVSBDUFMiLCJmaWxhbWVudHBybyBldSBjcHMiOiJGaWxhbWVudFBSTyBFVSBDUFMiLAogICAgImdvdmVlIjoiR292ZWUgTWFueSBHRU9zIiwiZ292ZWUgbWFueSBnZW9zIjoiR292ZWUgTWFueSBHRU9zIiwKICAgICJoYXJmaW5ndG9uIjoiSGFyZmluZ3RvbiBNYW55IEdFT3MiLCJoYXJmaW5ndG9uIG1hbnkgZ2VvcyI6IkhhcmZpbmd0b24gTWFueSBHRU9zIiwKICAgICJzdW5za3kiOiJTdW5za3ktb25saW5lIFdXIiwic3Vuc2t5IG9ubGluZSI6IlN1bnNreS1vbmxpbmUgV1ciLCJzdW5za3ktb25saW5lIjoiU3Vuc2t5LW9ubGluZSBXVyIsInN1bnNreS1vbmxpbmUgd3ciOiJTdW5za3ktb25saW5lIFdXIiwKICAgICJsZW5vdm8iOiJMZW5vdm8iLCJsZW5vdm8gbWFueSBnZW9zIjoiTGVub3ZvIiwnJycKaWYgb2xkIGluIGpzOgogICAganMgPSBqcy5yZXBsYWNlKG9sZCwgbmV3LCAxKQplbGlmICciZ292ZWUgbWFueSBnZW9zIjoiR292ZWUgTWFueSBHRU9zIicgbm90IGluIGpzOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiU2VsbGVyIGFsaWFzIGFuY2hvciBub3QgZm91bmQuIikKCm9sZCA9ICcnJyAgICAiR2Vla2J1eWluZyI6WyJwaG9uZXMtdGFibGV0cyIsImNvbXB1dGVycyIsImF1ZGlvIiwiY2FtZXJhcyIsInByb2plY3RvcnMtdHYiLCJzbWFydC1ob21lIiwiYXV0b21vdGl2ZSIsImhvbWUta2l0Y2hlbiIsInRvb2xzIl0sCiAgICAiVGVtdSI6W10sJycnCm5ldyA9ICcnJyAgICAiR2Vla2J1eWluZyI6WyJwaG9uZXMtdGFibGV0cyIsImNvbXB1dGVycyIsImF1ZGlvIiwiY2FtZXJhcyIsInByb2plY3RvcnMtdHYiLCJzbWFydC1ob21lIiwiYXV0b21vdGl2ZSIsImhvbWUta2l0Y2hlbiIsInRvb2xzIl0sCiAgICAiRmlsYW1lbnRQUk8gRVUgQ1BTIjpbInByaW50aW5nLTNkIl0sCiAgICAiR292ZWUgTWFueSBHRU9zIjpbInNtYXJ0LWhvbWUiLCJob21lLWtpdGNoZW4iXSwKICAgICJIYXJmaW5ndG9uIE1hbnkgR0VPcyI6W10sCiAgICAiU3Vuc2t5LW9ubGluZSBXVyI6WyJwaG9uZXMtdGFibGV0cyIsImNvbXB1dGVycyIsImF1ZGlvIiwiY2FtZXJhcyIsInByb2plY3RvcnMtdHYiLCJzbWFydC1ob21lIiwiYXV0b21vdGl2ZSIsImhvbWUta2l0Y2hlbiIsInRvb2xzIl0sCiAgICAiVGVtdSI6W10sJycnCmlmIG9sZCBpbiBqczoKICAgIGpzID0ganMucmVwbGFjZShvbGQsIG5ldywgMSkKZWxpZiAnIkZpbGFtZW50UFJPIEVVIENQUyI6WyJwcmludGluZy0zZCJdJyBub3QgaW4ganM6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJTZWxsZXIgc3BlY2lhbHR5IGFuY2hvciBub3QgZm91bmQuIikKCm9sZCA9ICdpZihmLm1lcmNoYW50JiZwLmFkdmVydGlzZXIhPT1mLm1lcmNoYW50KXJldHVybiBmYWxzZTsnCm5ldyA9ICcnJ2lmKGYubWVyY2hhbnQpewogICAgICAgIGNvbnN0IHdhbnRlZFNlbGxlcj10cENhbm9uaWNhbFNlbGxlclYxNV8xKGYubWVyY2hhbnQpfHxjbGVhbihmLm1lcmNoYW50KTsKICAgICAgICBjb25zdCByb3dTZWxsZXI9dHBDYW5vbmljYWxTZWxsZXJWMTVfMShwLmFkdmVydGlzZXIpfHxjbGVhbihwLmFkdmVydGlzZXIpOwogICAgICAgIGlmKHJvd1NlbGxlciE9PXdhbnRlZFNlbGxlcilyZXR1cm4gZmFsc2U7CiAgICAgIH0nJycKaWYgb2xkIGluIGpzOgogICAganMgPSBqcy5yZXBsYWNlKG9sZCwgbmV3LCAxKQplbGlmICJjb25zdCB3YW50ZWRTZWxsZXI9dHBDYW5vbmljYWxTZWxsZXJWMTVfMShmLm1lcmNoYW50KSIgbm90IGluIGpzOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiTWVyY2hhbnQgZmlsdGVyIGFuY2hvciBub3QgZm91bmQuIikKCm9sZCA9ICdjb25zdCBUUF9DSl9BUFBST1ZFRF9JRFMgPSBuZXcgU2V0KFsiMjM1NzkyNiIsICI0Mjk1MDg2IiwgIjQzNjg2ODQiLCAiNDgzNzExNyIsICI1ODkzNDg5IiwgIjcyMjc2MTIiLCAiNzI4NzIwMyJdKTsnCm5ldyA9ICdjb25zdCBUUF9DSl9BUFBST1ZFRF9JRFMgPSBuZXcgU2V0KFsiMjM1NzkyNiIsICI0Mjk1MDg2IiwgIjQzNjg2ODQiLCAiNDgzNzExNyIsICI1ODkzNDg5IiwgIjYyOTM0NzMiLCAiNzIyNzYxMiIsICI3Mjg3MjAzIl0pOycKaWYgb2xkIGluIGpzOgogICAganMgPSBqcy5yZXBsYWNlKG9sZCwgbmV3LCAxKQplbHNlOgogICAgaWRfbGluZSA9IGpzLnNwbGl0KCJUUF9DSl9BUFBST1ZFRF9JRFMiLDEpWzFdLnNwbGl0KCI7IiwxKVswXSBpZiAiVFBfQ0pfQVBQUk9WRURfSURTIiBpbiBqcyBlbHNlICIiCiAgICBpZiAnIjYyOTM0NzMiJyBub3QgaW4gaWRfbGluZToKICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KCJDSiBhcHByb3ZlZCBJRCBzZXQgYW5jaG9yIG5vdCBmb3VuZC4iKQoKb2xkID0gJ2NvbnN0IFRQX0NKX0FQUFJPVkVEX05BTUVTID0gbmV3IFNldChbImRpZWNhc3QiLCAiZGllY2FzdGNvbSIsICJmcmFncmFuY2VzaG9wIiwgImZyYWdyYW5jZXNob3Bjb20iLCAia2FyYWNhIiwgImthcmFjYWV1IiwgImthcmFjYWV1cm9wZSIsICJtZmkiLCAibWZpbWVkaWNhbCIsICJub3JkdnBuIiwgInBhbmRhaGFsbCIsICJwYW5kYWhhbGxjb20iLCAidGhlZnJhZ3JhbmNlc2hvcCIsICJ0aGVmcmFncmFuY2VzaG9wY29tIiwgInRyaXBjb20iLCAidHJpcGNvbWdsb2JhbCJdKTsnCm5ldyA9ICdjb25zdCBUUF9DSl9BUFBST1ZFRF9OQU1FUyA9IG5ldyBTZXQoWyJkaWVjYXN0IiwgImRpZWNhc3Rjb20iLCAiZnJhZ3JhbmNlc2hvcCIsICJmcmFncmFuY2VzaG9wY29tIiwgImthcmFjYSIsICJrYXJhY2FldSIsICJrYXJhY2FldXJvcGUiLCAibWZpIiwgIm1maW1lZGljYWwiLCAibm9yZHZwbiIsICJwYW5kYWhhbGwiLCAicGFuZGFoYWxsY29tIiwgInRlbXUiLCAidGVtdWNvbSIsICJzaG9wdGVtdSIsICJ0aGVmcmFncmFuY2VzaG9wIiwgInRoZWZyYWdyYW5jZXNob3Bjb20iLCAidHJpcGNvbSIsICJ0cmlwY29tZ2xvYmFsIl0pOycKaWYgb2xkIGluIGpzOgogICAganMgPSBqcy5yZXBsYWNlKG9sZCwgbmV3LCAxKQplbHNlOgogICAgbmFtZV9saW5lID0ganMuc3BsaXQoIlRQX0NKX0FQUFJPVkVEX05BTUVTIiwxKVsxXS5zcGxpdCgiOyIsMSlbMF0gaWYgIlRQX0NKX0FQUFJPVkVEX05BTUVTIiBpbiBqcyBlbHNlICIiCiAgICBpZiAnInRlbXUiJyBub3QgaW4gbmFtZV9saW5lOgogICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoIkNKIGFwcHJvdmVkIG5hbWUgc2V0IGFuY2hvciBub3QgZm91bmQuIikKCmpzX3BhdGgud3JpdGVfdGV4dChqcy5yc3RyaXAoKSsiXG4iLCBlbmNvZGluZz0idXRmLTgiKQoKaWYgIi9qcy9zaXRlLXYxMy01LmpzP3Y9MTUuNi4wIiBpbiBodG1sOgogICAgaHRtbCA9IGh0bWwucmVwbGFjZSgiL2pzL3NpdGUtdjEzLTUuanM/dj0xNS42LjAiLCIvanMvc2l0ZS12MTMtNS5qcz92PTE1LjYuMSIsMSkKZWxpZiAiL2pzL3NpdGUtdjEzLTUuanM/dj0xNS42LjEiIG5vdCBpbiBodG1sOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiVW5leHBlY3RlZCBsaXZlIHNpdGUgSlMgdmVyc2lvbi4iKQpodG1sX3BhdGgud3JpdGVfdGV4dChodG1sLnJzdHJpcCgpKyJcbiIsIGVuY29kaW5nPSJ1dGYtOCIpCgpwcmludCgiVjE1LjYuMSBzZWxsZXIgcm91dGluZyBwYXRjaCBhcHBsaWVkLiIpCg==' | base64 -d > /tmp/tp_v15_6_1.py
+          python /tmp/tp_v15_6_1.py
+
+      - name: Validate seller routing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          js=Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          html=Path("find/index.html").read_text(encoding="utf-8")
+          blob=js+"\n"+html
+
+          required=[
+              '"FilamentPRO EU CPS"',
+              '"Govee Many GEOs"',
+              '"Harfington Many GEOs"',
+              '"Sunsky-online WW"',
+              '"govee many geos":"Govee Many GEOs"',
+              '"sunsky-online ww":"Sunsky-online WW"',
+              "const wantedSeller=tpCanonicalSellerV15_1(f.merchant)",
+              "const rowSeller=tpCanonicalSellerV15_1(p.advertiser)",
+              '"6293473"',
+              '"temu"',
+              "/js/site-v13-5.js?v=15.6.1",
+              "TP_LENOVO_DIRECT_LINK_V15_5_3_START",
+              "TP_CJ_SEARCH_BRIDGE_START"
+          ]
+          missing=[x for x in required if x not in blob]
+          if missing:
+              raise SystemExit("Missing validation markers: "+", ".join(missing))
+
+          seller_line=js.split("const TP_PRODUCT_SELLERS_V15_1 =",1)[1].split(";",1)[0]
+          for seller in [
+              "AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS",
+              "Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW"
+          ]:
+              if f'"{seller}"' not in seller_line:
+                  raise SystemExit("Missing seller from dropdown registry: "+seller)
+
+          id_line=js.split("TP_CJ_APPROVED_IDS",1)[1].split(";",1)[0]
+          name_line=js.split("TP_CJ_APPROVED_NAMES",1)[1].split(";",1)[0]
+          if '"6293473"' not in id_line or '"temu"' not in name_line:
+              raise SystemExit("Temu is still not in the CJ exact allow-list.")
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={"js/site-v13-5.js","find/index.html"}
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected files changed: "+", ".join(sorted(unexpected)))
+
+          if "/js/product-discovery-v15.js?v=15.2.0" not in html:
+              raise SystemExit("Suggestion engine changed unexpectedly.")
+
+          print("V15.6.1 validation passed.")
+          print("- Admitad sellers no longer reset to All sellers.")
+          print("- Seller filtering canonicalizes both selected seller and product seller.")
+          print("- Temu advertiser 6293473 is allowed by the CJ exact guard.")
+          print("- Lenovo direct-link, CJ bridge, CPC and suggestions remain intact.")
+          PY
+
+      - name: Publish V15.6.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add js/site-v13-5.js find/index.html
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.6.1 already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: preserve Admitad sellers and allow CJ Temu products"
+          git push origin HEAD:main
