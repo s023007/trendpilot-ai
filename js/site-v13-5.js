@@ -11,8 +11,8 @@
 
   // TP_CJ_EXACT_GUARD_START
   const TP_CJ_GUARD_VERSION = "13.8.9";
-  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203"]);
-  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
+  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "6293473", "7227612", "7287203"]);
+  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "temu", "temucom", "shoptemu", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal"]);
   const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
   const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
@@ -583,12 +583,16 @@ function normalizeProduct(p) {
   }
 
   // TP_V15_1_FEDERATED_START
-  const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"];
+  const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"];
   const TP_CPC_SELLERS_V15_1 = new Set(["AliExpress","Alibaba","Geekbuying"]);
   const TP_SELLER_ALIASES_V15_1 = {
     "aliexpress":"AliExpress","ali express":"AliExpress","aliexpress.com":"AliExpress",
     "alibaba":"Alibaba","alibaba.com":"Alibaba",
-    "geekbuying":"Geekbuying","geek buying":"Geekbuying",
+    "geekbuying":"Geekbuying","geek buying":"Geekbuying","geekbuying ww":"Geekbuying",
+    "filamentpro":"FilamentPRO EU CPS","filamentpro eu":"FilamentPRO EU CPS","filamentpro eu cps":"FilamentPRO EU CPS",
+    "govee":"Govee Many GEOs","govee many geos":"Govee Many GEOs",
+    "harfington":"Harfington Many GEOs","harfington many geos":"Harfington Many GEOs",
+    "sunsky":"Sunsky-online WW","sunsky online":"Sunsky-online WW","sunsky-online":"Sunsky-online WW","sunsky-online ww":"Sunsky-online WW",
     "lenovo":"Lenovo","lenovo many geos":"Lenovo",
     "diecast":"Diecast","diecast.com":"Diecast","diecast models wholesale":"Diecast",
     "fragranceshop.com":"FragranceShop.com","fragrance shop":"FragranceShop.com","the fragrance shop":"FragranceShop.com",
@@ -623,6 +627,10 @@ function normalizeProduct(p) {
     "PandaHall":["arts-crafts","jewelry-watches"],
     "Lenovo":["computers"],
     "Geekbuying":["phones-tablets","computers","audio","cameras","projectors-tv","smart-home","automotive","home-kitchen","tools"],
+    "FilamentPRO EU CPS":["printing-3d"],
+    "Govee Many GEOs":["smart-home","home-kitchen"],
+    "Harfington Many GEOs":[],
+    "Sunsky-online WW":["phones-tablets","computers","audio","cameras","projectors-tv","smart-home","automotive","home-kitchen","tools"],
     "Temu":[],
     "AliExpress":[],
     "Alibaba":[]
@@ -1153,7 +1161,11 @@ function normalizeProduct(p) {
     let out=rows.filter(p=>{if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpPublicSellerAllowed(p))return false;
       if(f.group&&p.group!==f.group&&!(relatedRows&&state.plan?.family==="makeup"&&p.group==="bags-accessories"))return false;
       if(selectedFamilies.length&&!relatedRows&&!selectedFamilies.includes(p.family))return false; if(f.audience&&p.audience!==f.audience)return false;
-      if(f.merchant&&p.advertiser!==f.merchant)return false; if(f.coupon&&!couponFor(p))return false; if(f.rare&&!(p.rareScore>=4&&["used","refurbished","open-box"].includes(p.condition)))return false;
+      if(f.merchant){
+        const wantedSeller=tpCanonicalSellerV15_1(f.merchant)||clean(f.merchant);
+        const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
+        if(rowSeller!==wantedSeller)return false;
+      } if(f.coupon&&!couponFor(p))return false; if(f.rare&&!(p.rareScore>=4&&["used","refurbished","open-box"].includes(p.condition)))return false;
       if(f.price){const [lo,hi]=f.price.split("-"); if(f.price.endsWith("+")&&p.price<Number(lo.replace("+","")))return false; if(hi&&!(p.price>=Number(lo)&&p.price<Number(hi)))return false;}
       return true;
     });
