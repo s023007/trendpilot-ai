@@ -1,0 +1,102 @@
+name: TrendPilot Lenovo Direct Link V15.5.3 Render Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-lenovo-direct-link-v15-5-3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-lenovo-direct-link:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Resolve Lenovo approved affiliate link
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'CmltcG9ydCBiYXNlNjQsIGpzb24sIG9zLCB1cmxsaWIucGFyc2UsIHVybGxpYi5yZXF1ZXN0CgpBUEk9Imh0dHBzOi8vYXBpLmFkbWl0YWQuY29tIgpXRUJTSVRFX0lEPTI5ODA1NjgKQ0FNUEFJR05fSUQ9MTgyMDEKCmRlZiBmaXJzdF9lbnYoKm5hbWVzKToKICAgIGZvciBuIGluIG5hbWVzOgogICAgICAgIHY9KG9zLmVudmlyb24uZ2V0KG4pIG9yICIiKS5zdHJpcCgpCiAgICAgICAgaWYgdjoKICAgICAgICAgICAgcmV0dXJuIHYKICAgIHJldHVybiAiIgoKY2lkPWZpcnN0X2VudigiQURNSVRBRF9DTElFTlRfSURfUFJJTUFSWSIsIkFETUlUQURfQ0xJRU5UX0lEX0FMVCIpCnNlY3JldD1maXJzdF9lbnYoIkFETUlUQURfQ0xJRU5UX1NFQ1JFVF9QUklNQVJZIiwiQURNSVRBRF9DTElFTlRfU0VDUkVUX0FMVCIpCmlmIG5vdCBjaWQgb3Igbm90IHNlY3JldDoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIk1pc3NpbmcgQWRtaXRhZCBjcmVkZW50aWFscy4iKQoKZGVmIHJlcXVlc3RfanNvbih1cmwsIG1ldGhvZD0iR0VUIiwgaGVhZGVycz1Ob25lLCBkYXRhPU5vbmUpOgogICAgcmVxPXVybGxpYi5yZXF1ZXN0LlJlcXVlc3QoCiAgICAgICAgdXJsLCBkYXRhPWRhdGEsIG1ldGhvZD1tZXRob2QsCiAgICAgICAgaGVhZGVycz17IkFjY2VwdCI6ImFwcGxpY2F0aW9uL2pzb24iLCJVc2VyLUFnZW50IjoiVHJlbmRQaWxvdC1MZW5vdm8tRGlyZWN0LUxpbmsvMTUuNS4zIiwqKihoZWFkZXJzIG9yIHt9KX0KICAgICkKICAgIHdpdGggdXJsbGliLnJlcXVlc3QudXJsb3BlbihyZXEsIHRpbWVvdXQ9NDUpIGFzIHJlc3A6CiAgICAgICAgcmV0dXJuIGpzb24ubG9hZHMocmVzcC5yZWFkKCkuZGVjb2RlKCJ1dGYtOCIsInJlcGxhY2UiKSkKCmJhc2ljPWJhc2U2NC5iNjRlbmNvZGUoZiJ7Y2lkfTp7c2VjcmV0fSIuZW5jb2RlKCkpLmRlY29kZSgpCnRva2VuX2JvZHk9dXJsbGliLnBhcnNlLnVybGVuY29kZSh7CiAgICAiZ3JhbnRfdHlwZSI6ImNsaWVudF9jcmVkZW50aWFscyIsCiAgICAiY2xpZW50X2lkIjpjaWQsCiAgICAic2NvcGUiOiJ3ZWJzaXRlcyBhZHZjYW1wYWlnbnNfZm9yX3dlYnNpdGUgZGVlcGxpbmtfZ2VuZXJhdG9yIgp9KS5lbmNvZGUoKQoKdG9rZW49cmVxdWVzdF9qc29uKAogICAgZiJ7QVBJfS90b2tlbi8iLAogICAgbWV0aG9kPSJQT1NUIiwKICAgIGhlYWRlcnM9eyJBdXRob3JpemF0aW9uIjpmIkJhc2ljIHtiYXNpY30iLCJDb250ZW50LVR5cGUiOiJhcHBsaWNhdGlvbi94LXd3dy1mb3JtLXVybGVuY29kZWQ7Y2hhcnNldD1VVEYtOCJ9LAogICAgZGF0YT10b2tlbl9ib2R5CikuZ2V0KCJhY2Nlc3NfdG9rZW4iKQoKaWYgbm90IHRva2VuOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiQWRtaXRhZCBhY2Nlc3MgdG9rZW4gbWlzc2luZy4iKQoKYXV0aD17IkF1dGhvcml6YXRpb24iOmYiQmVhcmVyIHt0b2tlbn0ifQpxPXVybGxpYi5wYXJzZS51cmxlbmNvZGUoeyJsaW1pdCI6MjAwLCJvZmZzZXQiOjAsImNvbm5lY3Rpb25fc3RhdHVzIjoiYWN0aXZlIn0pCmNhbXBhaWducz1yZXF1ZXN0X2pzb24oZiJ7QVBJfS9hZHZjYW1wYWlnbnMvd2Vic2l0ZS97V0VCU0lURV9JRH0vP3txfSIsaGVhZGVycz1hdXRoKS5nZXQoInJlc3VsdHMiLFtdKQpjYW1wYWlnbj1uZXh0KChjIGZvciBjIGluIGNhbXBhaWducyBpZiBpbnQoYy5nZXQoImlkIikgb3IgMCk9PUNBTVBBSUdOX0lEKSxOb25lKQoKaWYgbm90IGNhbXBhaWduOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiTGVub3ZvIGNhbXBhaWduIDE4MjAxIGlzIG5vdCBhY3RpdmUgZm9yIGFkIHNwYWNlIDI5ODA1NjguIikKaWYgImxlbm92byIgbm90IGluIHN0cihjYW1wYWlnbi5nZXQoIm5hbWUiKSBvciAiIikubG93ZXIoKToKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkNhbXBhaWduIDE4MjAxIG5vIGxvbmdlciByZXNvbHZlcyB0byBMZW5vdm8uIikKCmdvdG9saW5rPXN0cihjYW1wYWlnbi5nZXQoImdvdG9saW5rIikgb3IgIiIpLnN0cmlwKCkKaWYgbm90IGdvdG9saW5rLnN0YXJ0c3dpdGgoKCJodHRwOi8vIiwiaHR0cHM6Ly8iKSk6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJMZW5vdm8gYXBwcm92ZWQgZ290b2xpbmsgaXMgdW5hdmFpbGFibGUuIikKCnByaW50KGdvdG9saW5rKQo=' | base64 -d > /tmp/resolve_lenovo.py
+          python /tmp/resolve_lenovo.py > /tmp/lenovo_link.txt
+          test -s /tmp/lenovo_link.txt
+
+      - name: Patch existing Lenovo seller no-result renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQganNvbiwgcmUsIHN5cwoKZ290b2xpbms9c3lzLmFyZ3ZbMV0KCmpzX3BhdGg9UGF0aCgianMvc2l0ZS12MTMtNS5qcyIpCmh0bWxfcGF0aD1QYXRoKCJmaW5kL2luZGV4Lmh0bWwiKQpqcz1qc19wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpodG1sPWh0bWxfcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKCm9sZF9mdW5jdGlvbiA9ICcnJyAgZnVuY3Rpb24gdHBTZWxsZXJOb1Jlc3VsdE1hcmt1cFYxNV8xKHNlbGxlcixxdWVyeSxwbGFuKSB7CiAgICBjb25zdCBzcGVjaWFsdHk9VFBfU0VMTEVSX1NQRUNJQUxUWV9WMTVfMVtzZWxsZXJdfHxbXTsKICAgIGNvbnN0IG1pc21hdGNoPXNwZWNpYWx0eS5sZW5ndGggJiYgcGxhbj8uZ3JvdXBzPy5sZW5ndGggJiYgIXBsYW4uZ3JvdXBzLnNvbWUoZz0+c3BlY2lhbHR5LmluY2x1ZGVzKGcpKTsKICAgIGNvbnN0IHJlYXNvbj1taXNtYXRjaAogICAgICA/IGAke3NlbGxlcn0gbWFpbmx5IGNvdmVycyBvdGhlciBwcm9kdWN0IGNhdGVnb3JpZXMgaW4gVHJlbmRQaWxvdCdzIGNvbm5lY3RlZCBjYXRhbG9ndWUuYAogICAgICA6IGBObyBjdXJyZW50IGluZGV4ZWQgJHtzZWxsZXJ9IGxpc3RpbmcgY2xvc2VseSBtYXRjaGVzIOKAnCR7cXVlcnl94oCdLiBUaGlzIGRvZXMgbm90IHByb3ZlIHRoZSBzZWxsZXIgbmV2ZXIgY2FycmllcyBpdC5gOwogICAgcmV0dXJuIGA8ZGl2IGNsYXNzPSJ0cC1lbXB0eSI+PGgzPk5vIG1hdGNoaW5nICR7ZXNjKHNlbGxlcil9IHByb2R1Y3RzIGZvdW5kLjwvaDM+PHA+JHtlc2MocmVhc29uKX08L3A+PGJ1dHRvbiBjbGFzcz0idHAtYnRuIHRwLWJ0bi1wcmltYXJ5IiB0eXBlPSJidXR0b24iIGRhdGEtdHAtc2VhcmNoLWFsbC1zZWxsZXJzPlNlYXJjaCBhbGwgYXBwcm92ZWQgc2VsbGVyczwvYnV0dG9uPjwvZGl2PmA7CiAgfScnJwoKaWYgb2xkX2Z1bmN0aW9uIG5vdCBpbiBqczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkN1cnJlbnQgc2VsbGVyIG5vLXJlc3VsdCByZW5kZXJlciBkb2VzIG5vdCBtYXRjaCBleHBlY3RlZCBzb3VyY2UuIikKCnNhZmVfdXJsPWpzb24uZHVtcHMoZ290b2xpbmspCm5ld19mdW5jdGlvbiA9IGYnJycgIC8vIFRQX0xFTk9WT19ESVJFQ1RfTElOS19WMTVfNV8zX1NUQVJUCiAgZnVuY3Rpb24gdHBTZWxsZXJOb1Jlc3VsdE1hcmt1cFYxNV8xKHNlbGxlcixxdWVyeSxwbGFuKSB7ewogICAgaWYoY2xlYW4oc2VsbGVyKS50b0xvd2VyQ2FzZSgpPT09Imxlbm92byIpe3sKICAgICAgY29uc3QgbGVub3ZvQWZmaWxpYXRlVXJsPXtzYWZlX3VybH07CiAgICAgIHJldHVybiBgPGRpdiBjbGFzcz0idHAtZW1wdHkiIGRhdGEtdHAtbGVub3ZvLWRpcmVjdC1saW5rPSIxNS41LjMiPjxoMz5MZW5vdm8gcHJvZHVjdCBmZWVkIHRlbXBvcmFyaWx5IHVuYXZhaWxhYmxlLjwvaDM+PHA+VHJlbmRQaWxvdCBkZXRlY3RlZCBpbmNvcnJlY3QgTGVub3ZvIGZlZWQgZGF0YSBhbmQgcmVtb3ZlZCB0aG9zZSB1bnJlbGF0ZWQgbGlzdGluZ3MgaW5zdGVhZCBvZiBzaG93aW5nIG1pc2xlYWRpbmcgcHJvZHVjdHMuPC9wPjxhIGNsYXNzPSJ0cC1idG4gdHAtYnRuLXByaW1hcnkiIGhyZWY9IiR7e2VzYyhsZW5vdm9BZmZpbGlhdGVVcmwpfX0iIHRhcmdldD0iX2JsYW5rIiByZWw9InNwb25zb3JlZCBub29wZW5lciI+VmlzaXQgTGVub3ZvPC9hPjxidXR0b24gY2xhc3M9InRwLWJ0biB0cC1idG4tbGlnaHQiIHR5cGU9ImJ1dHRvbiIgZGF0YS10cC1zZWFyY2gtYWxsLXNlbGxlcnM+Q29tcGFyZSB3aXRoIGFsbCBhcHByb3ZlZCBzZWxsZXJzPC9idXR0b24+PC9kaXY+YDsKICAgIH19CiAgICBjb25zdCBzcGVjaWFsdHk9VFBfU0VMTEVSX1NQRUNJQUxUWV9WMTVfMVtzZWxsZXJdfHxbXTsKICAgIGNvbnN0IG1pc21hdGNoPXNwZWNpYWx0eS5sZW5ndGggJiYgcGxhbj8uZ3JvdXBzPy5sZW5ndGggJiYgIXBsYW4uZ3JvdXBzLnNvbWUoZz0+c3BlY2lhbHR5LmluY2x1ZGVzKGcpKTsKICAgIGNvbnN0IHJlYXNvbj1taXNtYXRjaAogICAgICA/IGAke3tzZWxsZXJ9fSBtYWlubHkgY292ZXJzIG90aGVyIHByb2R1Y3QgY2F0ZWdvcmllcyBpbiBUcmVuZFBpbG90J3MgY29ubmVjdGVkIGNhdGFsb2d1ZS5gCiAgICAgIDogYE5vIGN1cnJlbnQgaW5kZXhlZCAke3tzZWxsZXJ9fSBsaXN0aW5nIGNsb3NlbHkgbWF0Y2hlcyDigJwke3txdWVyeX194oCdLiBUaGlzIGRvZXMgbm90IHByb3ZlIHRoZSBzZWxsZXIgbmV2ZXIgY2FycmllcyBpdC5gOwogICAgcmV0dXJuIGA8ZGl2IGNsYXNzPSJ0cC1lbXB0eSI+PGgzPk5vIG1hdGNoaW5nICR7e2VzYyhzZWxsZXIpfX0gcHJvZHVjdHMgZm91bmQuPC9oMz48cD4ke3tlc2MocmVhc29uKX19PC9wPjxidXR0b24gY2xhc3M9InRwLWJ0biB0cC1idG4tcHJpbWFyeSIgdHlwZT0iYnV0dG9uIiBkYXRhLXRwLXNlYXJjaC1hbGwtc2VsbGVycz5TZWFyY2ggYWxsIGFwcHJvdmVkIHNlbGxlcnM8L2J1dHRvbj48L2Rpdj5gOwogIH19CiAgLy8gVFBfTEVOT1ZPX0RJUkVDVF9MSU5LX1YxNV81XzNfRU5EJycnCgpqcz1qcy5yZXBsYWNlKG9sZF9mdW5jdGlvbixuZXdfZnVuY3Rpb24sMSkKanNfcGF0aC53cml0ZV90ZXh0KGpzLnJzdHJpcCgpKyJcbiIsZW5jb2Rpbmc9InV0Zi04IikKCmlmICIvanMvc2l0ZS12MTMtNS5qcz92PTE1LjQuMiIgaW4gaHRtbDoKICAgIGh0bWw9aHRtbC5yZXBsYWNlKCIvanMvc2l0ZS12MTMtNS5qcz92PTE1LjQuMiIsIi9qcy9zaXRlLXYxMy01LmpzP3Y9MTUuNS4zIiwxKQplbGlmICIvanMvc2l0ZS12MTMtNS5qcz92PTE1LjUuMyIgbm90IGluIGh0bWw6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJVbmV4cGVjdGVkIHNpdGUtdjEzLTUuanMgdmVyc2lvbiByZWZlcmVuY2UuIikKCmh0bWxfcGF0aC53cml0ZV90ZXh0KGh0bWwucnN0cmlwKCkrIlxuIixlbmNvZGluZz0idXRmLTgiKQpwcmludCgiTGVub3ZvIGRpcmVjdC1saW5rIGZhbGxiYWNrIHBhdGNoZWQgaW50byBleGlzdGluZyByZW5kZXJlci4iKQo=' | base64 -d > /tmp/patch_lenovo.py
+          LENOVO_LINK="$(tail -n 1 /tmp/lenovo_link.txt)"
+          python /tmp/patch_lenovo.py "$LENOVO_LINK"
+
+      - name: Validate V15.5.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/site-v13-5.js
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          js=Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          html=Path("find/index.html").read_text(encoding="utf-8")
+          blob=js+"\n"+html
+
+          required=[
+              "TP_LENOVO_DIRECT_LINK_V15_5_3_START",
+              "Lenovo product feed temporarily unavailable.",
+              "Visit Lenovo",
+              'data-tp-lenovo-direct-link="15.5.3"',
+              "/js/site-v13-5.js?v=15.5.3"
+          ]
+          missing=[x for x in required if x not in blob]
+          if missing:
+              raise SystemExit("Missing validation markers: "+", ".join(missing))
+
+          if js.count("function tpSellerNoResultMarkupV15_1") != 1:
+              raise SystemExit("Seller no-result renderer count is not exactly one.")
+          if js.count("TP_CJ_SEARCH_BRIDGE_START") != 1:
+              raise SystemExit("CJ bridge integrity failed.")
+          if "/js/product-discovery-v15.js?v=15.2.0" not in html:
+              raise SystemExit("Suggestion engine changed unexpectedly.")
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={"js/site-v13-5.js","find/index.html"}
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected changed files: "+", ".join(sorted(unexpected)))
+
+          print("V15.5.3 validation passed.")
+          PY
+
+      - name: Publish V15.5.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add js/site-v13-5.js find/index.html
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "V15.5.3 already installed."
+            exit 0
+          fi
+          git commit -m "fix: add Lenovo direct-link fallback to existing renderer"
+          git push origin HEAD:main
