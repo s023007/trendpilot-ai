@@ -1,0 +1,168 @@
+name: TrendPilot Products V15.4.2 Lenovo Laptop Mapping Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-4-2-lenovo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix-lenovo-mapping:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Patch Lenovo laptop mapping only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js_path = Path("js/site-v13-5.js")
+          html_path = Path("find/index.html")
+
+          js = js_path.read_text(encoding="utf-8")
+          html = html_path.read_text(encoding="utf-8")
+
+          # Patch the main group route used by makePlan/inference.
+          old = '["computers", /\\b(laptops?|notebooks?|computers?|mini pc|monitors?|keyboard|ssd)\\b/i],'
+          new = '["computers", /\\b(laptops?|notebooks?|computers?|mini pc|monitors?|keyboard|ssd|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\\b/i],'
+          if old not in js:
+              raise SystemExit("Core computers route not found.")
+          js = js.replace(old, new, 1)
+
+          # Patch the core laptop family route.
+          old = '["laptops", /\\b(laptops?|notebook computers?)\\b/i],'
+          new = '["laptops", /\\b(laptops?|notebook computers?|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\\b/i],'
+          count = js.count(old)
+          if count < 1:
+              raise SystemExit("Core laptop family route not found.")
+          js = js.replace(old, new, 1)
+
+          # Patch the V15.4 Admitad group route.
+          old = '["computers", /\\b(laptop|notebook|computer|monitor|keyboard|mouse|ssd|ram|mini pc)\\b/i],'
+          new = '["computers", /\\b(laptop|notebook|computer|monitor|keyboard|mouse|ssd|ram|mini pc|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\\b/i],'
+          if old not in js:
+              raise SystemExit("V15.4 Admitad computers route not found.")
+          js = js.replace(old, new, 1)
+
+          # Patch the V15.4 Admitad laptop family route.
+          old = '["laptops", /\\b(laptops?|notebook computers?)\\b/i],'
+          new = '["laptops", /\\b(laptops?|notebook computers?|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\\b/i],'
+          if old not in js:
+              raise SystemExit("V15.4 Admitad laptop family route not found.")
+          js = js.replace(old, new, 1)
+
+          # Expand laptop query aliases so "laptop" scores Lenovo model families.
+          old = '"laptop":["laptop","laptops","notebook computer","notebook computers"],'
+          new = '"laptop":["laptop","laptops","notebook computer","notebook computers","thinkpad","ideapad","thinkbook","yoga","legion","lenovo loq","loq"],'
+          if old not in js:
+              raise SystemExit("Laptop query alias not found.")
+          js = js.replace(old, new, 1)
+
+          js_path.write_text(js.rstrip() + "\n", encoding="utf-8")
+
+          # Cache-bust only the already-live site JS.
+          if "/js/site-v13-5.js?v=15.4.0" in html:
+              html = html.replace("/js/site-v13-5.js?v=15.4.0",
+                                  "/js/site-v13-5.js?v=15.4.2", 1)
+          elif "/js/site-v13-5.js?v=15.4.1" in html:
+              html = html.replace("/js/site-v13-5.js?v=15.4.1",
+                                  "/js/site-v13-5.js?v=15.4.2", 1)
+          elif "/js/site-v13-5.js?v=15.4.2" not in html:
+              raise SystemExit("Unexpected site-v13-5.js version reference.")
+
+          html_path.write_text(html.rstrip() + "\n", encoding="utf-8")
+
+          print("Lenovo laptop mapping patch applied.")
+          PY
+
+      - name: Validate Lenovo mapping
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          js = Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          html = Path("find/index.html").read_text(encoding="utf-8")
+
+          markers = [
+              "thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq",
+              '"laptop":["laptop","laptops","notebook computer","notebook computers","thinkpad","ideapad","thinkbook","yoga","legion","lenovo loq","loq"]',
+              "TP_ADMITAD_LIVE_BRIDGE_V15_4_START",
+              "/js/site-v13-5.js?v=15.4.2",
+          ]
+          missing = [m for m in markers if m not in (js + "\n" + html)]
+          if missing:
+              raise SystemExit("Validation failed: " + ", ".join(missing))
+
+          # Verify seller canonicalization already exists and remains intact.
+          if '"lenovo":"Lenovo","lenovo many geos":"Lenovo"' not in js:
+              raise SystemExit("Lenovo seller canonicalization missing.")
+
+          if 'if(f.merchant&&p.advertiser!==f.merchant)return false;' not in js:
+              raise SystemExit("Unexpected seller filter structure; refusing broader patch.")
+
+          changed = set(
+              subprocess.check_output(["git","diff","--name-only"], text=True).splitlines()
+          )
+          if changed - {"js/site-v13-5.js","find/index.html"}:
+              raise SystemExit("Unexpected files changed.")
+
+          if js.count("TP_CJ_SEARCH_BRIDGE_START") != 1:
+              raise SystemExit("CJ bridge integrity failed.")
+          if "/js/product-discovery-v15.js?v=15.2.0" not in html:
+              raise SystemExit("Suggestion engine changed unexpectedly.")
+
+          print("Validation passed.")
+          print("- Lenovo model families map to laptops.")
+          print("- Lenovo Many GEOs remains canonicalized to Lenovo.")
+          print("- CJ, CPC, sellers and suggestion engine untouched.")
+          PY
+
+      - name: Publish V15.4.2
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add js/site-v13-5.js find/index.html
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.4.2 already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: map Lenovo model families to laptops"
+          git push origin HEAD:main
+
+          {
+            echo "## Products V15.4.2 Lenovo Mapping Fix"
+            echo ""
+            echo "- Maps ThinkPad, IdeaPad, ThinkBook, Yoga, Legion and LOQ to laptop/computer intent."
+            echo "- Keeps Lenovo Many GEOs canonicalized as Lenovo."
+            echo "- Does not alter the seller loader, CJ, CPC, suggestions or styling."
+          } >> "$GITHUB_STEP_SUMMARY"
