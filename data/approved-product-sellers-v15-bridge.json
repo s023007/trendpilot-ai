@@ -1,23 +1,21 @@
 {
-  "version": "15-bridge-1",
-  "purpose": "Products seller bridge without touching the stable UI",
+  "version": "15-bridge-2",
+  "purpose": "Correct approved Products seller bridge",
   "rules": {
-    "admitad_source": "new-account-active-only",
-    "admitad_requires_product_feed": true,
-    "cj_source": "stable-products-baseline",
+    "admitad_source": "new-account-active-product-feed-only",
+    "cj_source": "stable-approved-product-sellers",
     "joom_policy": "excluded-until-active-for-trendpilotchoice.com",
-    "empty_names_excluded": true,
     "ui_modified": false
   },
   "counts": {
     "admitad_product_sellers": 8,
-    "cj_product_sellers": 0,
-    "merged_product_sellers": 8,
-    "excluded_admitad": 5
+    "cj_product_sellers": 6,
+    "merged_product_sellers": 14
   },
   "sellers": [
     {
       "name": "Alibaba WW",
+      "display_name": "Alibaba",
       "network": "Admitad",
       "approved": true,
       "campaign_id": 20881,
@@ -27,6 +25,7 @@
     },
     {
       "name": "AliExpress WW",
+      "display_name": "AliExpress",
       "network": "Admitad",
       "approved": true,
       "campaign_id": 6115,
@@ -35,7 +34,15 @@
       "source": "admitad-new-account-api"
     },
     {
+      "name": "Diecast",
+      "display_name": "Diecast",
+      "network": "CJ",
+      "approved": true,
+      "source": "stable-products-baseline"
+    },
+    {
       "name": "FilamentPRO EU CPS",
+      "display_name": "FilamentPRO EU CPS",
       "network": "Admitad",
       "approved": true,
       "campaign_id": 182710,
@@ -44,7 +51,15 @@
       "source": "admitad-new-account-api"
     },
     {
+      "name": "FragranceShop.com",
+      "display_name": "FragranceShop.com",
+      "network": "CJ",
+      "approved": true,
+      "source": "stable-products-baseline"
+    },
+    {
       "name": "Geekbuying WW",
+      "display_name": "Geekbuying",
       "network": "Admitad",
       "approved": true,
       "campaign_id": 15467,
@@ -54,6 +69,7 @@
     },
     {
       "name": "Govee Many GEOs",
+      "display_name": "Govee Many GEOs",
       "network": "Admitad",
       "approved": true,
       "campaign_id": 24808,
@@ -63,6 +79,7 @@
     },
     {
       "name": "Harfington Many GEOs",
+      "display_name": "Harfington Many GEOs",
       "network": "Admitad",
       "approved": true,
       "campaign_id": 37060,
@@ -71,7 +88,15 @@
       "source": "admitad-new-account-api"
     },
     {
+      "name": "Karaca EU",
+      "display_name": "Karaca EU",
+      "network": "CJ",
+      "approved": true,
+      "source": "stable-products-baseline"
+    },
+    {
       "name": "Lenovo Many GEOs",
+      "display_name": "Lenovo",
       "network": "Admitad",
       "approved": true,
       "campaign_id": 18201,
@@ -80,39 +105,35 @@
       "source": "admitad-new-account-api"
     },
     {
+      "name": "MFI Medical",
+      "display_name": "MFI Medical",
+      "network": "CJ",
+      "approved": true,
+      "source": "stable-products-baseline"
+    },
+    {
+      "name": "PandaHall",
+      "display_name": "PandaHall",
+      "network": "CJ",
+      "approved": true,
+      "source": "stable-products-baseline"
+    },
+    {
       "name": "Sunsky-online WW",
+      "display_name": "Sunsky-online WW",
       "network": "Admitad",
       "approved": true,
       "campaign_id": 18428,
       "allow_deeplink": true,
       "has_product_feed": true,
       "source": "admitad-new-account-api"
-    }
-  ],
-  "excluded_admitad": [
-    {
-      "reason": "empty-name",
-      "id": 40315
     },
     {
-      "reason": "no-product-feed",
-      "name": "Giftmio [Lifetime] Many GEOs",
-      "id": 42487
-    },
-    {
-      "reason": "no-product-feed",
-      "name": "Ticombo - Global Event Tickets Many GEOs",
-      "id": 142825
-    },
-    {
-      "reason": "no-product-feed",
-      "name": "TurboVPN WW",
-      "id": 25249
-    },
-    {
-      "reason": "no-product-feed",
-      "name": "WAU GLOBAL WW",
-      "id": 191147
+      "name": "Temu",
+      "display_name": "Temu",
+      "network": "CJ",
+      "approved": true,
+      "source": "stable-products-baseline"
     }
   ]
 }
