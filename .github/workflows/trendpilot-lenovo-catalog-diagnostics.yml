@@ -1,0 +1,246 @@
+name: TrendPilot Lenovo Catalog Diagnostics
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-lenovo-catalog-diagnostics-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  diagnose-lenovo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Inspect Lenovo rows from staged Admitad catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          import re
+
+          catalog_path = Path("data/admitad-products-new-account-v15-3-2.json")
+          if not catalog_path.exists():
+              raise SystemExit("Missing staged Admitad catalog.")
+
+          data = json.loads(catalog_path.read_text(encoding="utf-8"))
+          products = data.get("products") or []
+
+          lenovo = [
+              p for p in products
+              if "lenovo" in str(p.get("seller") or "").lower()
+          ]
+
+          if not lenovo:
+              raise SystemExit("No Lenovo products found in staged catalog.")
+
+          laptop_terms = re.compile(
+              r"\b("
+              r"laptop|laptops|notebook|notebooks|"
+              r"thinkpad|ideapad|thinkbook|yoga|legion|lenovo\s+loq|loq"
+              r")\b",
+              re.I,
+          )
+
+          accessory_terms = re.compile(
+              r"\b("
+              r"charger|adapter|dock|docking|mouse|keyboard|monitor|"
+              r"bag|case|sleeve|stand|cable|power supply|battery|headset|"
+              r"stylus|pen|screen|cover|accessor"
+              r")\b",
+              re.I,
+          )
+
+          rows = []
+          laptop_count = 0
+          accessory_count = 0
+          other_count = 0
+
+          for i, p in enumerate(lenovo, start=1):
+              title = str(p.get("title") or "").strip()
+              category = str(p.get("category") or "").strip()
+              brand = str(p.get("brand") or "").strip()
+              seller = str(p.get("seller") or "").strip()
+              price = p.get("price")
+              currency = str(p.get("currency") or "").strip()
+
+              text = f"{title} {category} {brand}"
+              is_laptop = bool(laptop_terms.search(text))
+              is_accessory = bool(accessory_terms.search(text))
+
+              if is_laptop:
+                  classification = "LAPTOP"
+                  laptop_count += 1
+              elif is_accessory:
+                  classification = "ACCESSORY"
+                  accessory_count += 1
+              else:
+                  classification = "OTHER"
+                  other_count += 1
+
+              rows.append({
+                  "n": i,
+                  "classification": classification,
+                  "seller": seller,
+                  "title": title,
+                  "category": category,
+                  "brand": brand,
+                  "price": price,
+                  "currency": currency,
+                  "affiliate_url_present": bool(p.get("affiliate_url")),
+              })
+
+          # Detect actual seller label consistency.
+          seller_names = sorted({
+              str(p.get("seller") or "").strip()
+              for p in lenovo
+          })
+
+          # Simulate the current intended "laptop" text intent over Lenovo rows.
+          laptop_matches = [
+              r for r in rows
+              if r["classification"] == "LAPTOP"
+          ]
+
+          report = {
+              "catalog_version": data.get("version"),
+              "website_id": data.get("website_id"),
+              "total_catalog_products": len(products),
+              "lenovo_products": len(lenovo),
+              "seller_names_seen": seller_names,
+              "classification_counts": {
+                  "laptop": laptop_count,
+                  "accessory": accessory_count,
+                  "other": other_count,
+              },
+              "laptop_match_count": len(laptop_matches),
+              "rows": rows,
+          }
+
+          Path("data/diagnostics").mkdir(parents=True, exist_ok=True)
+          Path("data/diagnostics/lenovo-catalog-diagnostic.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          summary = Path("/tmp/lenovo-diagnostic-summary.md")
+          with summary.open("w", encoding="utf-8") as fh:
+              fh.write("## Lenovo catalog diagnostic\n\n")
+              fh.write(f"- Total staged catalog products: **{len(products)}**\n")
+              fh.write(f"- Lenovo products found: **{len(lenovo)}**\n")
+              fh.write(f"- Lenovo seller label(s): **{', '.join(seller_names)}**\n")
+              fh.write(f"- Classified as laptops: **{laptop_count}**\n")
+              fh.write(f"- Classified as accessories: **{accessory_count}**\n")
+              fh.write(f"- Other Lenovo items: **{other_count}**\n\n")
+
+              fh.write("### Lenovo products\n")
+              for r in rows:
+                  price = ""
+                  if r["price"] is not None:
+                      price = f" — {r['price']} {r['currency']}".rstrip()
+                  fh.write(
+                      f"- **{r['classification']}** — "
+                      f"{r['title'] or '(no title)'}"
+                      f"{price}"
+                  )
+                  if r["category"]:
+                      fh.write(f" — category: {r['category']}")
+                  if r["brand"]:
+                      fh.write(f" — brand: {r['brand']}")
+                  fh.write("\n")
+
+              fh.write("\n### Diagnostic conclusion\n")
+              if laptop_count == 0:
+                  fh.write(
+                      "- **The staged Lenovo sample contains zero laptop-like products.** "
+                      "The next fix should change Lenovo feed sampling/selection, not search ranking.\n"
+                  )
+              elif laptop_count < 5:
+                  fh.write(
+                      "- Lenovo does contain laptop-like products, but the first 40-product sample "
+                      "is heavily biased away from laptops. The next fix should sample Lenovo by "
+                      "laptop/model terms before changing search logic again.\n"
+                  )
+              else:
+                  fh.write(
+                      "- The staged Lenovo sample contains enough laptop-like products. "
+                      "The next fix should focus on live seller filtering / ranking / query scoring.\n"
+                  )
+
+          print(f"Lenovo rows: {len(lenovo)}")
+          print(f"Laptop-like: {laptop_count}")
+          print(f"Accessories: {accessory_count}")
+          print(f"Other: {other_count}")
+          print(f"Seller labels: {seller_names}")
+
+          for r in rows:
+              print(
+                  f"{r['n']:02d}. [{r['classification']}] "
+                  f"{r['title']} | category={r['category']} | "
+                  f"brand={r['brand']} | price={r['price']} {r['currency']}"
+              )
+          PY
+
+          cat /tmp/lenovo-diagnostic-summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Validate diagnostic output
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import json
+
+          p = Path("data/diagnostics/lenovo-catalog-diagnostic.json")
+          if not p.exists():
+              raise SystemExit("Diagnostic file missing.")
+
+          d = json.loads(p.read_text(encoding="utf-8"))
+
+          if d.get("website_id") != 2980568:
+              raise SystemExit("Wrong Admitad website ID.")
+
+          if d.get("lenovo_products", 0) <= 0:
+              raise SystemExit("No Lenovo rows in diagnostic.")
+
+          if len(d.get("rows") or []) != d.get("lenovo_products"):
+              raise SystemExit("Diagnostic row count mismatch.")
+
+          print("Lenovo diagnostic validated.")
+          PY
+
+          git diff --check
+
+      - name: Confirm no live site files changed
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for file in \
+            find/index.html \
+            js/site-v13-5.js \
+            js/product-discovery-v15.js \
+            js/seller-whitelist-v14-1-5.js
+          do
+            if ! git diff --quiet -- "$file"; then
+              echo "Safety stop: live site file changed unexpectedly: $file"
+              exit 1
+            fi
+          done
+
+          echo "Live Products page and search code remain untouched."
