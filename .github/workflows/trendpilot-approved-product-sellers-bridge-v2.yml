@@ -1,0 +1,254 @@
+name: TrendPilot Approved Product Sellers Bridge V2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-approved-product-sellers-bridge-v2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rebuild-product-sellers:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Rebuild seller bridge correctly
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          admitad_path = Path("data/admitad-approved-sellers.json")
+          stable_path = Path("data/approved-product-sellers-v14-1-5.json")
+          out_path = Path("data/approved-product-sellers-v15-bridge.json")
+
+          if not admitad_path.exists():
+              raise SystemExit("Missing Admitad approved sellers manifest.")
+          if not stable_path.exists():
+              raise SystemExit("Missing stable Products seller list.")
+
+          admitad = json.loads(admitad_path.read_text(encoding="utf-8"))
+          stable = json.loads(stable_path.read_text(encoding="utf-8"))
+
+          # Existing stable file uses the key approvedProductSellers.
+          stable_names = stable.get("approvedProductSellers") or []
+          if not isinstance(stable_names, list):
+              raise SystemExit("Unexpected stable seller schema.")
+
+          # Normalize equivalent seller names between old UI labels and Admitad program names.
+          aliases = {
+              "aliexpress": "aliexpress",
+              "aliexpress ww": "aliexpress",
+              "alibaba": "alibaba",
+              "alibaba ww": "alibaba",
+              "geekbuying": "geekbuying",
+              "geekbuying ww": "geekbuying",
+              "lenovo": "lenovo",
+              "lenovo many geos": "lenovo",
+          }
+
+          def canonical(name):
+              n = str(name or "").strip().lower()
+              return aliases.get(n, n)
+
+          # Admitad: active-approved + product feed only.
+          admitad_product = []
+          admitad_canon = set()
+
+          for row in admitad.get("sellers") or []:
+              if not isinstance(row, dict):
+                  continue
+              name = str(row.get("name") or "").strip()
+              if not name:
+                  continue
+              if row.get("approved") is not True:
+                  continue
+              if row.get("has_product_feed") is not True:
+                  continue
+
+              low = name.lower()
+              if any(x in low for x in ("vpn", "ticket", "tickets", "software", "hosting", "travel", "flight", "hotel")):
+                  continue
+
+              admitad_product.append({
+                  "name": name,
+                  "display_name": {
+                      "AliExpress WW": "AliExpress",
+                      "Alibaba WW": "Alibaba",
+                      "Geekbuying WW": "Geekbuying",
+                      "Lenovo Many GEOs": "Lenovo",
+                  }.get(name, name),
+                  "network": "Admitad",
+                  "approved": True,
+                  "campaign_id": row.get("id"),
+                  "allow_deeplink": bool(row.get("allow_deeplink")),
+                  "has_product_feed": True,
+                  "source": "admitad-new-account-api",
+              })
+              admitad_canon.add(canonical(name))
+
+          # Stable non-Admitad rows are the approved CJ sellers we want to preserve.
+          cj = []
+          for item in stable_names:
+              name = str(item or "").strip()
+              if not name:
+                  continue
+              if canonical(name) in admitad_canon:
+                  continue
+              # Joom remains excluded until active for new domain.
+              if canonical(name) == "joom":
+                  continue
+              cj.append({
+                  "name": name,
+                  "display_name": name,
+                  "network": "CJ",
+                  "approved": True,
+                  "source": "stable-products-baseline",
+              })
+
+          merged = admitad_product + cj
+
+          # Dedupe by display label.
+          final = []
+          seen = set()
+          for row in merged:
+              key = str(row.get("display_name") or row.get("name") or "").strip().lower()
+              if not key or key in seen:
+                  continue
+              seen.add(key)
+              final.append(row)
+
+          final.sort(key=lambda x: str(x.get("display_name") or x.get("name") or "").lower())
+
+          result = {
+              "version": "15-bridge-2",
+              "purpose": "Correct approved Products seller bridge",
+              "rules": {
+                  "admitad_source": "new-account-active-product-feed-only",
+                  "cj_source": "stable-approved-product-sellers",
+                  "joom_policy": "excluded-until-active-for-trendpilotchoice.com",
+                  "ui_modified": False,
+              },
+              "counts": {
+                  "admitad_product_sellers": len(admitad_product),
+                  "cj_product_sellers": len(cj),
+                  "merged_product_sellers": len(final),
+              },
+              "sellers": final,
+          }
+
+          out_path.write_text(
+              json.dumps(result, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8",
+          )
+
+          print(f"Admitad product sellers: {len(admitad_product)}")
+          print(f"CJ product sellers: {len(cj)}")
+          print(f"Merged sellers: {len(final)}")
+          for row in final:
+              print(f"- {row['network']}: {row['display_name']}")
+          PY
+
+      - name: Validate corrected seller bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          p = Path("data/approved-product-sellers-v15-bridge.json")
+          data = json.loads(p.read_text(encoding="utf-8"))
+          sellers = data.get("sellers") or []
+
+          if data.get("version") != "15-bridge-2":
+              raise SystemExit("Wrong bridge version.")
+
+          # Required CJ sellers from the stable working page.
+          required_cj = {
+              "Diecast",
+              "FragranceShop.com",
+              "Karaca EU",
+              "MFI Medical",
+              "PandaHall",
+              "Temu",
+          }
+
+          names = {str(x.get("display_name") or x.get("name") or "") for x in sellers}
+          missing = required_cj - names
+          if missing:
+              raise SystemExit("Missing CJ sellers: " + ", ".join(sorted(missing)))
+
+          required_admitad = {"AliExpress", "Alibaba", "Geekbuying", "Lenovo"}
+          missing_admitad = required_admitad - names
+          if missing_admitad:
+              raise SystemExit("Missing core Admitad sellers: " + ", ".join(sorted(missing_admitad)))
+
+          if any("joom" in n.lower() for n in names):
+              raise SystemExit("Joom must remain excluded until approved for new domain.")
+
+          if data["counts"]["cj_product_sellers"] < 6:
+              raise SystemExit("CJ preservation failed.")
+
+          if data["counts"]["admitad_product_sellers"] < 4:
+              raise SystemExit("Admitad product seller count is unexpectedly low.")
+
+          print("Corrected bridge validation passed.")
+          print("CJ sellers preserved.")
+          print("New-account Admitad product sellers preserved.")
+          PY
+
+          git diff --check
+
+      - name: Confirm Products UI untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet -- find/index.html || {
+            echo "Safety stop: Products page changed unexpectedly."
+            exit 1
+          }
+
+      - name: Publish corrected bridge only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add data/approved-product-sellers-v15-bridge.json
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "Corrected bridge already current."
+            exit 0
+          fi
+
+          git commit -m "fix: preserve CJ sellers in Products bridge"
+          git push origin HEAD:main
+
+          {
+            echo "## Products seller bridge V2"
+            echo ""
+            echo "- Corrected old seller schema parsing."
+            echo "- Preserved six working CJ product sellers."
+            echo "- Kept active product-feed programs from new Admitad account."
+            echo "- Joom remains excluded until approved for trendpilotchoice.com."
+            echo "- Products UI was not modified."
+          } >> "$GITHUB_STEP_SUMMARY"
