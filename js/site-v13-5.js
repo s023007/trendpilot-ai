@@ -228,7 +228,7 @@ function tpPublicSellerAllowed(p) {
     ["footwear", /\b(shoes?|footwear|sneakers?|trainers?|boots?|sandals?)\b/i],
     ["pet-supplies", /\b(pets?|dogs?|cats?|puppy|kitten|pet feeder|litter box)\b/i],
     ["phones-tablets", /\b(phones?|smartphones?|iphone|android phone|tablets?|ipad)\b/i],
-    ["computers", /\b(laptops?|notebooks?|computers?|mini pc|monitors?|keyboard|ssd)\b/i],
+    ["computers", /\b(laptops?|notebooks?|computers?|mini pc|monitors?|keyboard|ssd|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\b/i],
     ["audio", /\b(audio|headphones?|earbuds?|earphones?|speakers?|microphone|headset|tws)\b/i],
     ["cameras", /\b(cameras?|photography|gimbal|tripod|lens)\b/i],
     ["projectors-tv", /\b(projectors?|television|smart tv|streaming box|tv box)\b/i],
@@ -276,7 +276,7 @@ function tpPublicSellerAllowed(p) {
     ["dresses", /\b(dresses?|gowns?|abaya)\b/i],
     ["mens-underwear", /\b(men'?s underwear|boxers?|boxer briefs?)\b/i],
     ["womens-underwear", /\b(women'?s underwear|lingerie|bras?|panties)\b/i],
-    ["laptops", /\b(laptops?|notebook computers?)\b/i],
+    ["laptops", /\b(laptops?|notebook computers?|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\b/i],
     ["smartphones", /\b(smartphones?|mobile phones?|iphone)\b/i],
     ["tablets", /\b(tablets?|ipad)\b/i],
     ["power-banks", /\b(power banks?|portable battery chargers?)\b/i],
@@ -409,7 +409,7 @@ function normalizeProduct(p) {
     const text = lower(`${row.title||""} ${row.category||""} ${row.brand||""}`);
     const routes = [
       ["phones-tablets", /\b(phone|smartphone|iphone|android|tablet|ipad|phone case|screen protector)\b/i],
-      ["computers", /\b(laptop|notebook|computer|monitor|keyboard|mouse|ssd|ram|mini pc)\b/i],
+      ["computers", /\b(laptop|notebook|computer|monitor|keyboard|mouse|ssd|ram|mini pc|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\b/i],
       ["audio", /\b(earbuds?|headphones?|speaker|microphone|headset|tws)\b/i],
       ["cameras", /\b(camera|lens|tripod|gimbal|photography)\b/i],
       ["projectors-tv", /\b(projector|television|smart tv|tv box)\b/i],
@@ -440,7 +440,7 @@ function normalizeProduct(p) {
       ["power-banks", /\b(power banks?|portable chargers?|battery packs?)\b/i],
       ["phone-cases", /\b(phone cases?|mobile covers?|iphone cases?|protective cases?)\b/i],
       ["smartphones", /\b(smartphones?|mobile phones?|iphone)\b/i],
-      ["laptops", /\b(laptops?|notebook computers?)\b/i],
+      ["laptops", /\b(laptops?|notebook computers?|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\b/i],
       ["earbuds", /\b(earbuds?|tws|earphones?)\b/i],
       ["headphones", /\b(headphones?|headsets?)\b/i],
       ["portable-projector", /\b(projectors?|mini projector|portable projector)\b/i],
@@ -612,7 +612,7 @@ function normalizeProduct(p) {
     "perfume":["perfume","perfumes","fragrance","fragrances","cologne","eau de parfum","eau de toilette"],
     "tool":["tool","tools","power tools","hand tools","workshop tools","diy tools"],
     "tools":["tool","tools","power tools","hand tools","workshop tools","diy tools"],
-    "laptop":["laptop","laptops","notebook computer","notebook computers"],
+    "laptop":["laptop","laptops","notebook computer","notebook computers","thinkpad","ideapad","thinkbook","yoga","legion","lenovo loq","loq"],
     "printer":["printer","printers","laser printer","inkjet printer","thermal printer","label printer"]
   };
   const TP_SELLER_SPECIALTY_V15_1 = {
