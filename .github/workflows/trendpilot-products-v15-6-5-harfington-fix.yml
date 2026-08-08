@@ -1,0 +1,116 @@
+name: TrendPilot Products V15.6.5 Harfington Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-6-5-harfington-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix-harfington:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Preserve Harfington seller and expand hose suggestions
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAppbXBvcnQganNvbiwgcmUKCnNpdGVfcGF0aCA9IFBhdGgoImpzL3NpdGUtdjEzLTUuanMiKQpkaXNjX2pzX3BhdGggPSBQYXRoKCJqcy9wcm9kdWN0LWRpc2NvdmVyeS12MTUuanMiKQpkaXNjX2RhdGFfcGF0aCA9IFBhdGgoImRhdGEvcHJvZHVjdC1kaXNjb3ZlcnktdjE1Lmpzb24iKQphZG1pdGFkX3BhdGggPSBQYXRoKCJkYXRhL2FkbWl0YWQtcHJvZHVjdHMtbmV3LWFjY291bnQtdjE1LTMtMi5qc29uIikKaHRtbF9wYXRoID0gUGF0aCgiZmluZC9pbmRleC5odG1sIikKCmZvciBwIGluIChzaXRlX3BhdGgsIGRpc2NfanNfcGF0aCwgZGlzY19kYXRhX3BhdGgsIGFkbWl0YWRfcGF0aCwgaHRtbF9wYXRoKToKICAgIGlmIG5vdCBwLmV4aXN0cygpOgogICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoZiJNaXNzaW5nIHJlcXVpcmVkIGZpbGU6IHtwfSIpCgpzaXRlID0gc2l0ZV9wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpkaXNjX2pzID0gZGlzY19qc19wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpodG1sID0gaHRtbF9wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpkaXNjID0ganNvbi5sb2FkcyhkaXNjX2RhdGFfcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikpCmFkbWl0YWQgPSBqc29uLmxvYWRzKGFkbWl0YWRfcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikpCgpvbGRfYWxpYXMgPSAnImhhcmZpbmd0b24iOiJIYXJmaW5ndG9uIE1hbnkgR0VPcyIsImhhcmZpbmd0b24gbWFueSBnZW9zIjoiSGFyZmluZ3RvbiBNYW55IEdFT3MiLCcKbmV3X2FsaWFzID0gJyJoYXJmaW5ndG9uIjoiSGFyZmluZ3RvbiBNYW55IEdFT3MiLCJoYXJmaW5ndG9uIG1hbnkgZ2VvcyI6IkhhcmZpbmd0b24gTWFueSBHRU9zIiwiaGFycmluZ3RvbiI6IkhhcmZpbmd0b24gTWFueSBHRU9zIiwiaGFycmluZ3RvbiBtYW55IGdlb3MiOiJIYXJmaW5ndG9uIE1hbnkgR0VPcyIsJwppZiBvbGRfYWxpYXMgaW4gc2l0ZToKICAgIHNpdGUgPSBzaXRlLnJlcGxhY2Uob2xkX2FsaWFzLCBuZXdfYWxpYXMsIDEpCmVsaWYgJyJoYXJyaW5ndG9uIjoiSGFyZmluZ3RvbiBNYW55IEdFT3MiJyBub3QgaW4gc2l0ZToKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkhhcmZpbmd0b24gYWxpYXMgYW5jaG9yIG5vdCBmb3VuZC4iKQoKaWYgJyJob3NlIjpbJyBub3QgaW4gc2l0ZToKICAgIG1hcmtlciA9ICcgICAgInByaW50ZXIiOlsicHJpbnRlciIsInByaW50ZXJzIiwibGFzZXIgcHJpbnRlciIsImlua2pldCBwcmludGVyIiwidGhlcm1hbCBwcmludGVyIiwibGFiZWwgcHJpbnRlciJdJwogICAgaWYgbWFya2VyIG5vdCBpbiBzaXRlOgogICAgICAgIHJhaXNlIFN5c3RlbUV4aXQoIlF1ZXJ5IGFsaWFzIGluc2VydGlvbiBwb2ludCBub3QgZm91bmQuIikKICAgIHJlcGxhY2VtZW50ID0gbWFya2VyICsgJyxcbicgKyAnICAgICJob3NlIjpbImhvc2UiLCJob3NlcyIsImhvc2UgZml0dGluZyIsImhvc2UgZml0dGluZ3MiLCJoeWRyYXVsaWMgaG9zZSIsInJ1YmJlciBob3NlIiwidHViZSIsInR1YmluZyIsInBpcGUgZml0dGluZyIsImNvbm5lY3RvciJdJwogICAgc2l0ZSA9IHNpdGUucmVwbGFjZShtYXJrZXIsIHJlcGxhY2VtZW50LCAxKQoKc3RhcnRfbWFya2VyID0gJyAgYXN5bmMgZnVuY3Rpb24gcGVyZm9ybVNlYXJjaChxdWVyeSxwdXNoPXRydWUsc2NvcGU9IiIpeycKaWYgc3RhcnRfbWFya2VyIG5vdCBpbiBzaXRlOgogICAgcmFpc2UgU3lzdGVtRXhpdCgicGVyZm9ybVNlYXJjaCBzdGFydCBub3QgZm91bmQuIikKCmlmICJUUF9QUkVTRVJWRV9TRUxMRVJfVjE1XzZfNSIgbm90IGluIHNpdGU6CiAgICBvbGQgPSAnJycgIGFzeW5jIGZ1bmN0aW9uIHBlcmZvcm1TZWFyY2gocXVlcnkscHVzaD10cnVlLHNjb3BlPSIiKXsKICBjb25zdCBub3JtYWxpemVkPW5vcm1hbGl6ZVF1ZXJ5KHF1ZXJ5KTsnJycKICAgIG5ldyA9ICcnJyAgYXN5bmMgZnVuY3Rpb24gcGVyZm9ybVNlYXJjaChxdWVyeSxwdXNoPXRydWUsc2NvcGU9IiIpewogIC8vIFRQX1BSRVNFUlZFX1NFTExFUl9WMTVfNl81CiAgY29uc3QgbWVyY2hhbnRCZWZvcmVTZWFyY2g9JCgnW2RhdGEtZmlsdGVyLW1lcmNoYW50XScpOwogIGNvbnN0IHByZXNlcnZlZFNlbGxlcj10cENhbm9uaWNhbFNlbGxlclYxNV8xKG1lcmNoYW50QmVmb3JlU2VhcmNoPy52YWx1ZSl8fG1lcmNoYW50QmVmb3JlU2VhcmNoPy52YWx1ZXx8IiI7CiAgY29uc3Qgbm9ybWFsaXplZD1ub3JtYWxpemVRdWVyeShxdWVyeSk7JycnCiAgICBpZiBvbGQgbm90IGluIHNpdGU6CiAgICAgICAgcmFpc2UgU3lzdGVtRXhpdCgicGVyZm9ybVNlYXJjaCBoZWFkZXIgYW5jaG9yIG5vdCBmb3VuZC4iKQogICAgc2l0ZSA9IHNpdGUucmVwbGFjZShvbGQsIG5ldywgMSkKCiAgICBvbGRfZW5kID0gJyAgICBwb3B1bGF0ZUZpbHRlcnMoKTsgcmVuZGVyRmluZGVyKCk7JwogICAgbmV3X2VuZCA9ICcnJyAgICBwb3B1bGF0ZUZpbHRlcnMoKTsKICAgIGlmKHByZXNlcnZlZFNlbGxlcil7CiAgICAgIGNvbnN0IG1lcmNoYW50QWZ0ZXJTZWFyY2g9JCgnW2RhdGEtZmlsdGVyLW1lcmNoYW50XScpOwogICAgICBpZihtZXJjaGFudEFmdGVyU2VhcmNoICYmIFsuLi5tZXJjaGFudEFmdGVyU2VhcmNoLm9wdGlvbnNdLnNvbWUobz0+by52YWx1ZT09PXByZXNlcnZlZFNlbGxlcikpewogICAgICAgIG1lcmNoYW50QWZ0ZXJTZWFyY2gudmFsdWU9cHJlc2VydmVkU2VsbGVyOwogICAgICB9CiAgICB9CiAgICByZW5kZXJGaW5kZXIoKTsnJycKCiAgICBwb3MgPSBzaXRlLmZpbmQoc3RhcnRfbWFya2VyKQogICAgZW5kcG9zID0gc2l0ZS5maW5kKCcgIH0gY2F0Y2goZXJyb3IpIHsnLCBwb3MpCiAgICBzZWdtZW50ID0gc2l0ZVtwb3M6ZW5kcG9zXQogICAgaWYgb2xkX2VuZCBub3QgaW4gc2VnbWVudDoKICAgICAgICByYWlzZSBTeXN0ZW1FeGl0KCJwZXJmb3JtU2VhcmNoIHJlc3RvcmUgYW5jaG9yIG5vdCBmb3VuZC4iKQogICAgc2VnbWVudCA9IHNlZ21lbnQucmVwbGFjZShvbGRfZW5kLCBuZXdfZW5kLCAxKQogICAgc2l0ZSA9IHNpdGVbOnBvc10gKyBzZWdtZW50ICsgc2l0ZVtlbmRwb3M6XQoKYXBwcm92ZWQgPSBkaXNjLnNldGRlZmF1bHQoImFwcHJvdmVkUHJvZHVjdFNlbGxlcnMiLCBbXSkKZm9yIHNlbGxlciBpbiBbIkZpbGFtZW50UFJPIEVVIENQUyIsIkdvdmVlIE1hbnkgR0VPcyIsIkhhcmZpbmd0b24gTWFueSBHRU9zIiwiU3Vuc2t5LW9ubGluZSBXVyJdOgogICAgaWYgc2VsbGVyIG5vdCBpbiBhcHByb3ZlZDoKICAgICAgICBhcHByb3ZlZC5hcHBlbmQoc2VsbGVyKQoKYnlfbGV0dGVyID0gZGlzYy5zZXRkZWZhdWx0KCJieUxldHRlciIsIHt9KQpocm93cyA9IGJ5X2xldHRlci5zZXRkZWZhdWx0KCJoIiwgW10pCgpkZWYgaGFzX3ZhbHVlKHZhbHVlKToKICAgIHYgPSBzdHIodmFsdWUpLnN0cmlwKCkubG93ZXIoKQogICAgcmV0dXJuIGFueShzdHIoeC5nZXQoInZhbHVlIiwiIikpLnN0cmlwKCkubG93ZXIoKSA9PSB2IGZvciB4IGluIGhyb3dzIGlmIGlzaW5zdGFuY2UoeCxkaWN0KSkKCmZvciB2YWx1ZSwgc2NvcmUgaW4gWwogICAgKCJob3NlIiwgMTAwKSwKICAgICgiaG9zZSBmaXR0aW5ncyIsIDk5KSwKICAgICgiaHlkcmF1bGljIGhvc2UiLCA5OCksCiAgICAoIkhhcmZpbmd0b24gTWFueSBHRU9zIiwgMzApLApdOgogICAgaWYgbm90IGhhc192YWx1ZSh2YWx1ZSk6CiAgICAgICAgaHJvd3MuaW5zZXJ0KDAsIHsKICAgICAgICAgICAgInZhbHVlIjogdmFsdWUsCiAgICAgICAgICAgICJraW5kIjogInNlbGxlciIgaWYgdmFsdWUgPT0gIkhhcmZpbmd0b24gTWFueSBHRU9zIiBlbHNlICJwcm9kdWN0LXR5cGUiLAogICAgICAgICAgICAic2NvcmUiOiBzY29yZQogICAgICAgIH0pCgpwcm9kdWN0cyA9IGFkbWl0YWQuZ2V0KCJwcm9kdWN0cyIpIG9yIFtdCmhhcmZpbmd0b24gPSBbXQpmb3Igcm93IGluIHByb2R1Y3RzOgogICAgaWYgbm90IGlzaW5zdGFuY2Uocm93LCBkaWN0KToKICAgICAgICBjb250aW51ZQogICAgc2VsbGVyID0gc3RyKHJvdy5nZXQoInNlbGxlciIpIG9yIHJvdy5nZXQoImFkdmVydGlzZXIiKSBvciAiIikubG93ZXIoKQogICAgaWYgImhhcmZpbmd0b24iIG5vdCBpbiBzZWxsZXIgYW5kICJoYXJyaW5ndG9uIiBub3QgaW4gc2VsbGVyOgogICAgICAgIGNvbnRpbnVlCiAgICB0aXRsZSA9IHN0cihyb3cuZ2V0KCJ0aXRsZSIpIG9yIHJvdy5nZXQoIm5hbWUiKSBvciAiIikuc3RyaXAoKQogICAgaWYgbm90IHRpdGxlOgogICAgICAgIGNvbnRpbnVlCiAgICBsb3cgPSB0aXRsZS5sb3dlcigpCiAgICBpZiBub3QgYW55KGsgaW4gbG93IGZvciBrIGluICgiaG9zZSIsImZpdHRpbmciLCJ0dWJlIiwidHViaW5nIiwicGlwZSIsImNvbm5lY3RvciIpKToKICAgICAgICBjb250aW51ZQogICAgaW1hZ2UgPSBzdHIocm93LmdldCgiaW1hZ2UiKSBvciByb3cuZ2V0KCJpbWFnZV91cmwiKSBvciAiIikuc3RyaXAoKQogICAgaGFyZmluZ3Rvbi5hcHBlbmQoKHRpdGxlLGltYWdlKSkKCnNlZW4gPSBzZXQoKQpmb3IgdGl0bGUsaW1hZ2UgaW4gaGFyZmluZ3RvbjoKICAgIGtleSA9IHRpdGxlLmxvd2VyKCkKICAgIGlmIGtleSBpbiBzZWVuOgogICAgICAgIGNvbnRpbnVlCiAgICBzZWVuLmFkZChrZXkpCiAgICBmaXJzdCA9IHJlLnN1YihyIlteYS16MC05XSsiLCIiLCB0aXRsZVs6MV0ubG93ZXIoKSkgb3IgImgiCiAgICBidWNrZXQgPSBieV9sZXR0ZXIuc2V0ZGVmYXVsdChmaXJzdCwgW10pCiAgICBpZiBub3QgYW55KHN0cih4LmdldCgidmFsdWUiLCIiKSkuc3RyaXAoKS5sb3dlcigpPT1rZXkgZm9yIHggaW4gYnVja2V0IGlmIGlzaW5zdGFuY2UoeCxkaWN0KSk6CiAgICAgICAgaXRlbSA9IHsKICAgICAgICAgICAgInZhbHVlIjogdGl0bGUsCiAgICAgICAgICAgICJraW5kIjogInByb2R1Y3QiLAogICAgICAgICAgICAic2VsbGVyIjogIkhhcmZpbmd0b24gTWFueSBHRU9zIiwKICAgICAgICAgICAgInNjb3JlIjogNzAKICAgICAgICB9CiAgICAgICAgaWYgaW1hZ2Uuc3RhcnRzd2l0aCgoImh0dHA6Ly8iLCJodHRwczovLyIpKToKICAgICAgICAgICAgaXRlbVsiaW1hZ2UiXSA9IGltYWdlCiAgICAgICAgYnVja2V0LmFwcGVuZChpdGVtKQogICAgaWYgbGVuKHNlZW4pID49IDEyOgogICAgICAgIGJyZWFrCgpkaXNjWyJ2ZXJzaW9uIl0gPSAiMTUuNi41IgpkaXNjX2RhdGFfcGF0aC53cml0ZV90ZXh0KGpzb24uZHVtcHMoZGlzYywgZW5zdXJlX2FzY2lpPUZhbHNlLCBpbmRlbnQ9MikgKyAiXG4iLCBlbmNvZGluZz0idXRmLTgiKQoKZGlzY19qcyA9IHJlLnN1YigKICAgIHInL2RhdGEvcHJvZHVjdC1kaXNjb3ZlcnktdjE1XC5qc29uXD92PVteYCJdKycsCiAgICAnL2RhdGEvcHJvZHVjdC1kaXNjb3ZlcnktdjE1Lmpzb24/dj0xNS42LjUnLAogICAgZGlzY19qcywKICAgIGNvdW50PTEKKQpkaXNjX2pzX3BhdGgud3JpdGVfdGV4dChkaXNjX2pzLnJzdHJpcCgpKyJcbiIsIGVuY29kaW5nPSJ1dGYtOCIpCnNpdGVfcGF0aC53cml0ZV90ZXh0KHNpdGUucnN0cmlwKCkrIlxuIiwgZW5jb2Rpbmc9InV0Zi04IikKCmh0bWwgPSByZS5zdWIocicvanMvc2l0ZS12MTMtNVwuanNcP3Y9WzAtOS5dKycsICcvanMvc2l0ZS12MTMtNS5qcz92PTE1LjYuNScsIGh0bWwsIGNvdW50PTEpCmh0bWwgPSByZS5zdWIocicvanMvcHJvZHVjdC1kaXNjb3ZlcnktdjE1XC5qc1w/dj1bMC05Ll0rJywgJy9qcy9wcm9kdWN0LWRpc2NvdmVyeS12MTUuanM/dj0xNS42LjUnLCBodG1sLCBjb3VudD0xKQpodG1sX3BhdGgud3JpdGVfdGV4dChodG1sLnJzdHJpcCgpKyJcbiIsIGVuY29kaW5nPSJ1dGYtOCIpCgpwcmludCgiVjE1LjYuNSBIYXJmaW5ndG9uIHBlcnNpc3RlbmNlICsgaG9zZSBhdXRvY29tcGxldGUgcGF0Y2ggYXBwbGllZC4iKQpwcmludChmIkhhcmZpbmd0b24gcHJvZHVjdCBzdWdnZXN0aW9ucyBhZGRlZDoge21pbihsZW4oc2VlbiksMTIpfSIpCg==' | base64 -d > /tmp/tp_v15_6_5.py
+          python /tmp/tp_v15_6_5.py
+
+      - name: Validate V15.6.5
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/site-v13-5.js
+          node --check js/product-discovery-v15.js
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import json, subprocess
+
+          site=Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          discjs=Path("js/product-discovery-v15.js").read_text(encoding="utf-8")
+          html=Path("find/index.html").read_text(encoding="utf-8")
+          disc=json.loads(Path("data/product-discovery-v15.json").read_text(encoding="utf-8"))
+
+          required=[
+              '"harrington":"Harfington Many GEOs"',
+              '"hose":["hose","hoses","hose fitting"',
+              "TP_PRESERVE_SELLER_V15_6_5",
+              "preservedSeller",
+              "/js/site-v13-5.js?v=15.6.5",
+              "/js/product-discovery-v15.js?v=15.6.5",
+              "/data/product-discovery-v15.json?v=15.6.5"
+          ]
+          blob=site+"\n"+discjs+"\n"+html
+          missing=[x for x in required if x not in blob]
+          if missing:
+              raise SystemExit("Missing markers: "+", ".join(missing))
+
+          if disc.get("version")!="15.6.5":
+              raise SystemExit("Wrong product discovery version.")
+
+          h=disc.get("byLetter",{}).get("h",[])
+          values=[str(x.get("value","")).lower() for x in h if isinstance(x,dict)]
+          for term in ("hose","hose fittings","hydraulic hose"):
+              if term not in values:
+                  raise SystemExit("Missing autocomplete term: "+term)
+
+          if "Harfington Many GEOs" not in disc.get("approvedProductSellers",[]):
+              raise SystemExit("Harfington missing from discovery seller registry.")
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={
+              "js/site-v13-5.js",
+              "js/product-discovery-v15.js",
+              "data/product-discovery-v15.json",
+              "find/index.html"
+          }
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected changed files: "+", ".join(sorted(unexpected)))
+
+          for marker in ("TP_CJ_SEARCH_BRIDGE_START","TP_LENOVO_DIRECT_LINK_V15_5_3_START"):
+              if marker not in site:
+                  raise SystemExit("Safety marker missing: "+marker)
+
+          print("V15.6.5 validation passed.")
+          print("- Seller survives a new search instead of resetting to All sellers.")
+          print("- Harfington/Harrington aliases both canonicalize.")
+          print("- hose, hose fittings and hydraulic hose are autocomplete entries.")
+          print("- Real Harfington hose/fitting product titles were added when present.")
+          PY
+
+      - name: Publish V15.6.5
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add             js/site-v13-5.js             js/product-discovery-v15.js             data/product-discovery-v15.json             find/index.html
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.6.5 already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: preserve Harfington seller and add hose autocomplete"
+          git push origin HEAD:main
