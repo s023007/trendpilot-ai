@@ -1,0 +1,90 @@
+name: TrendPilot Products V15.4.1 Lenovo Search Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-4-1-lenovo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix-lenovo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Apply Lenovo fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAoKanNfcGF0aCA9IFBhdGgoImpzL3NpdGUtdjEzLTUuanMiKQpodG1sX3BhdGggPSBQYXRoKCJmaW5kL2luZGV4Lmh0bWwiKQoKanMgPSBqc19wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQpodG1sID0gaHRtbF9wYXRoLnJlYWRfdGV4dChlbmNvZGluZz0idXRmLTgiKQoKb2xkX2ZhbWlseSA9ICcgICAgICBbImxhcHRvcHMiLCAvXFxiKGxhcHRvcHM/fG5vdGVib29rIGNvbXB1dGVycz8pXFxiL2ldLCcKbmV3X2ZhbWlseSA9ICcgICAgICBbImxhcHRvcHMiLCAvXFxiKGxhcHRvcHM/fG5vdGVib29rIGNvbXB1dGVycz98dGhpbmtwYWR8aWRlYXBhZHx0aGlua2Jvb2t8eW9nYXxsZWdpb258bGVub3ZvIGxvcXxsb3EpXFxiL2ldLCcKaWYgb2xkX2ZhbWlseSBub3QgaW4ganM6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJDb3VsZCBub3QgZmluZCBWMTUuNCBsYXB0b3AgZmFtaWx5IG1hcHBpbmcuIikKanMgPSBqcy5yZXBsYWNlKG9sZF9mYW1pbHksIG5ld19mYW1pbHksIDEpCgpvbGRfZ3JvdXAgPSAnICAgICAgWyJjb21wdXRlcnMiLCAvXFxiKGxhcHRvcHxub3RlYm9va3xjb21wdXRlcnxtb25pdG9yfGtleWJvYXJkfG1vdXNlfHNzZHxyYW18bWluaSBwYylcXGIvaV0sJwpuZXdfZ3JvdXAgPSAnICAgICAgWyJjb21wdXRlcnMiLCAvXFxiKGxhcHRvcHxub3RlYm9va3xjb21wdXRlcnxtb25pdG9yfGtleWJvYXJkfG1vdXNlfHNzZHxyYW18bWluaSBwY3x0aGlua3BhZHxpZGVhcGFkfHRoaW5rYm9va3x5b2dhfGxlZ2lvbnxsZW5vdm8gbG9xfGxvcSlcXGIvaV0sJwppZiBvbGRfZ3JvdXAgbm90IGluIGpzOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiQ291bGQgbm90IGZpbmQgVjE1LjQgY29tcHV0ZXIgZ3JvdXAgbWFwcGluZy4iKQpqcyA9IGpzLnJlcGxhY2Uob2xkX2dyb3VwLCBuZXdfZ3JvdXAsIDEpCgpvbGRfZmlsdGVyID0gJyAgICAgIGlmKGYubWVyY2hhbnQmJnAuYWR2ZXJ0aXNlciE9PWYubWVyY2hhbnQpcmV0dXJuIGZhbHNlOycKbmV3X2ZpbHRlciA9ICIgICAgICBpZihmLm1lcmNoYW50KXtcXG4gICAgICAgIGNvbnN0IHNlbGVjdGVkU2VsbGVyPXRwQ2Fub25pY2FsU2VsbGVyVjE1XzEoZi5tZXJjaGFudCl8fGNsZWFuKGYubWVyY2hhbnQpO1xcbiAgICAgICAgY29uc3QgcHJvZHVjdFNlbGxlcj10cENhbm9uaWNhbFNlbGxlclYxNV8xKHAuYWR2ZXJ0aXNlcil8fGNsZWFuKHAuYWR2ZXJ0aXNlcik7XFxuICAgICAgICBpZihwcm9kdWN0U2VsbGVyIT09c2VsZWN0ZWRTZWxsZXIpcmV0dXJuIGZhbHNlO1xcbiAgICAgIH0iCmlmIG9sZF9maWx0ZXIgbm90IGluIGpzOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiQ291bGQgbm90IGxvY2F0ZSBzZWxsZXIgZmlsdGVyIGNvbXBhcmlzb24uIikKanMgPSBqcy5yZXBsYWNlKG9sZF9maWx0ZXIsIG5ld19maWx0ZXIsIDEpCgpvbGRfc3BlY2lmaWMgPSAiICBhc3luYyBmdW5jdGlvbiB0cExvYWRTZWxsZXJTcGVjaWZpY1YxNV8xKHNlbGxlcikge1xcbiAgICBzZWxsZXI9dHBDYW5vbmljYWxTZWxsZXJWMTVfMShzZWxsZXIpfHxzZWxsZXI7XFxuICAgIGlmICghc2VsbGVyKSByZXR1cm47XFxuICAgIGNvbnN0IGluZGV4PWF3YWl0IHRwTG9hZFNlbGxlckNvdmVyYWdlVjE1XzEoKTsiCm5ld19zcGVjaWZpYyA9ICIgIGFzeW5jIGZ1bmN0aW9uIHRwTG9hZFNlbGxlclNwZWNpZmljVjE1XzEoc2VsbGVyKSB7XFxuICAgIHNlbGxlcj10cENhbm9uaWNhbFNlbGxlclYxNV8xKHNlbGxlcil8fHNlbGxlcjtcXG4gICAgaWYgKCFzZWxsZXIpIHJldHVybjtcXG5cXG4gICAgY29uc3QgY3VycmVudFNlbGxlclJvd3M9KHN0YXRlLnByb2R1Y3RzfHxbXSkuZmlsdGVyKHA9PlxcbiAgICAgICh0cENhbm9uaWNhbFNlbGxlclYxNV8xKHAuYWR2ZXJ0aXNlcil8fGNsZWFuKHAuYWR2ZXJ0aXNlcikpPT09c2VsbGVyXFxuICAgICk7XFxuICAgIGlmKGN1cnJlbnRTZWxsZXJSb3dzLmxlbmd0aCl7XFxuICAgICAgbWVyZ2VQcm9kdWN0cyhjdXJyZW50U2VsbGVyUm93cyk7XFxuICAgIH1cXG5cXG4gICAgY29uc3QgaW5kZXg9YXdhaXQgdHBMb2FkU2VsbGVyQ292ZXJhZ2VWMTVfMSgpOyIKaWYgb2xkX3NwZWNpZmljIG5vdCBpbiBqczoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkNvdWxkIG5vdCBsb2NhdGUgc2VsbGVyLXNwZWNpZmljIGxvYWRlci4iKQpqcyA9IGpzLnJlcGxhY2Uob2xkX3NwZWNpZmljLCBuZXdfc3BlY2lmaWMsIDEpCgpqc19wYXRoLndyaXRlX3RleHQoanMucnN0cmlwKCkrIlxcbiIsIGVuY29kaW5nPSJ1dGYtOCIpCgppZiAiL2pzL3NpdGUtdjEzLTUuanM/dj0xNS40LjAiIG5vdCBpbiBodG1sOgogICAgcmFpc2UgU3lzdGVtRXhpdCgiRXhwZWN0ZWQgVjE1LjQgc2NyaXB0IHJlZmVyZW5jZSBub3QgZm91bmQuIikKaHRtbCA9IGh0bWwucmVwbGFjZSgiL2pzL3NpdGUtdjEzLTUuanM/dj0xNS40LjAiLCIvanMvc2l0ZS12MTMtNS5qcz92PTE1LjQuMSIsMSkKaHRtbF9wYXRoLndyaXRlX3RleHQoaHRtbC5yc3RyaXAoKSsiXFxuIiwgZW5jb2Rpbmc9InV0Zi04IikKCnByaW50KCJMZW5vdm8gcGF0Y2ggYXBwbGllZC4iKQo=' | base64 -d > /tmp/tp_lenovo_fix.py
+          python /tmp/tp_lenovo_fix.py
+
+      - name: Validate Lenovo fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/site-v13-5.js
+          git diff --check
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          js=Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          html=Path("find/index.html").read_text(encoding="utf-8")
+
+          required=[
+              "thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq",
+              "const selectedSeller=tpCanonicalSellerV15_1(f.merchant)",
+              "const productSeller=tpCanonicalSellerV15_1(p.advertiser)",
+              "currentSellerRows=(state.products||[]).filter",
+              "/js/site-v13-5.js?v=15.4.1",
+              "TP_ADMITAD_LIVE_BRIDGE_V15_4_START",
+          ]
+          blob=js+"\n"+html
+          missing=[x for x in required if x not in blob]
+          if missing:
+              raise SystemExit("Missing validation markers: "+", ".join(missing))
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={"js/site-v13-5.js","find/index.html"}
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected files changed: "+", ".join(sorted(unexpected)))
+
+          if js.count("TP_CJ_SEARCH_BRIDGE_START") != 1:
+              raise SystemExit("CJ bridge integrity failed.")
+          if "/js/product-discovery-v15.js?v=15.2.0" not in html:
+              raise SystemExit("Suggestion engine changed unexpectedly.")
+
+          print("Validation passed.")
+          PY
+
+      - name: Publish V15.4.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add js/site-v13-5.js find/index.html
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.4.1 already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: surface Lenovo laptops and canonical seller filtering"
+          git push origin HEAD:main
