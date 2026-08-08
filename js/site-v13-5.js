@@ -402,6 +402,108 @@ function normalizeProduct(p) {
   }
   // TP_CJ_SEARCH_BRIDGE_END
 
+  // TP_ADMITAD_LIVE_BRIDGE_V15_4_START
+  let tpAdmitadProductsPromiseV15_4 = null;
+
+  function tpAdmitadGuessGroupV15_4(row) {
+    const text = lower(`${row.title||""} ${row.category||""} ${row.brand||""}`);
+    const routes = [
+      ["phones-tablets", /\b(phone|smartphone|iphone|android|tablet|ipad|phone case|screen protector)\b/i],
+      ["computers", /\b(laptop|notebook|computer|monitor|keyboard|mouse|ssd|ram|mini pc)\b/i],
+      ["audio", /\b(earbuds?|headphones?|speaker|microphone|headset|tws)\b/i],
+      ["cameras", /\b(camera|lens|tripod|gimbal|photography)\b/i],
+      ["projectors-tv", /\b(projector|television|smart tv|tv box)\b/i],
+      ["smart-home", /\b(smart light|led strip|security camera|doorbell|robot vacuum|smart plug)\b/i],
+      ["automotive", /\b(carplay|dash cam|car charger|car holder|automotive|car accessories?)\b/i],
+      ["home-kitchen", /\b(kitchen|cookware|frying pan|pot|home|bedding|furniture|vacuum)\b/i],
+      ["tools", /\b(tool|drill|saw|screwdriver|multimeter|workshop|tester)\b/i],
+      ["office-school", /\b(pen|pencil|notebook|school|office|stationery|paper|printer ink)\b/i],
+      ["sports-outdoors", /\b(sport|fitness|gym|camping|cycling|yoga|outdoor)\b/i],
+      ["beauty-care", /\b(beauty|makeup|cosmetic|perfume|fragrance|skin care|hair care)\b/i],
+      ["baby-kids", /\b(baby|toddler|kids?|children)\b/i],
+      ["toys-games", /\b(toy|game|gaming|building blocks)\b/i],
+      ["pet-supplies", /\b(pet|dog|cat|aquarium)\b/i],
+      ["printing-3d", /\b(3d print|filament|3d printer|thermal printer|label printer)\b/i],
+      ["health-medical", /\b(medical|clinical|blood pressure|patient|diagnostic|health)\b/i],
+      ["arts-crafts", /\b(craft|bead|jewelry making|sewing|diy)\b/i],
+      ["apparel", /\b(dress|shirt|tshirt|t-shirt|hoodie|jacket|clothing|pants|shorts)\b/i],
+      ["footwear", /\b(shoes?|sneakers?|boots?|sandals?)\b/i],
+      ["bags-accessories", /\b(backpack|handbag|wallet|luggage|bag)\b/i],
+      ["jewelry-watches", /\b(necklace|bracelet|ring|earrings?|watch|jewelry|jewellery)\b/i]
+    ];
+    return (routes.find(([,re])=>re.test(text)) || ["other"])[0];
+  }
+
+  function tpAdmitadGuessFamilyV15_4(row, group) {
+    const text = lower(`${row.title||""} ${row.category||""} ${row.brand||""}`);
+    const routes = [
+      ["power-banks", /\b(power banks?|portable chargers?|battery packs?)\b/i],
+      ["phone-cases", /\b(phone cases?|mobile covers?|iphone cases?|protective cases?)\b/i],
+      ["smartphones", /\b(smartphones?|mobile phones?|iphone)\b/i],
+      ["laptops", /\b(laptops?|notebook computers?)\b/i],
+      ["earbuds", /\b(earbuds?|tws|earphones?)\b/i],
+      ["headphones", /\b(headphones?|headsets?)\b/i],
+      ["portable-projector", /\b(projectors?|mini projector|portable projector)\b/i],
+      ["security-camera", /\b(security cameras?|ip cameras?|cctv|video doorbell)\b/i],
+      ["robot-vacuum", /\b(robot(?:ic)? vacuums?)\b/i],
+      ["smart-lighting", /\b(smart lights?|led strips?|light strips?|smart bulbs?)\b/i],
+      ["thermal-printer", /\b(thermal printers?|label printers?|receipt printers?)\b/i],
+      ["3d-filament", /\b(filament|pla|petg|abs filament)\b/i],
+      ["fragrance", /\b(perfumes?|fragrances?|cologne|eau de parfum|eau de toilette)\b/i],
+      ["cookware", /\b(cookware|frying pans?|pots? and pans?)\b/i],
+      ["medical-equipment", /\b(medical equipment|clinical equipment)\b/i],
+      ["craft-supplies", /\b(craft supplies|beads?|jewelry making)\b/i],
+      ["dresses", /\b(dresses?|gowns?)\b/i],
+      ["running-shoes", /\b(running shoes?|jogging shoes?)\b/i]
+    ];
+    return (routes.find(([,re])=>re.test(text)) || [group])[0];
+  }
+
+  async function loadAdmitadProductsV15_4() {
+    if (tpAdmitadProductsPromiseV15_4) return tpAdmitadProductsPromiseV15_4;
+    tpAdmitadProductsPromiseV15_4 = (async () => {
+      try {
+        const r = await fetch("/data/admitad-products-new-account-v15-3-2.json?v=15.4.0",{cache:"force-cache"});
+        if (!r.ok) throw new Error(`Admitad products ${r.status}`);
+        const payload = await r.json();
+        if (Number(payload.website_id)!==2980568 || payload.domain!=="trendpilotchoice.com") {
+          throw new Error("Admitad new-domain catalog safety check failed");
+        }
+        const rows = Array.isArray(payload.products) ? payload.products : [];
+        return rows.map((row,index)=>{
+          const group = tpAdmitadGuessGroupV15_4(row);
+          const family = tpAdmitadGuessFamilyV15_4(row,group);
+          return normalizeProduct({
+            id:`admitad-${row.campaign_id||"x"}-${clean(row.source_id)||index}`,
+            clusterKey:`admitad-${row.campaign_id||"x"}-${clean(row.source_id)||index}`,
+            name:row.title,
+            url:row.affiliate_url,
+            image:row.image,
+            advertiser:row.seller,
+            network:"Admitad",
+            group,
+            family,
+            audience:"all",
+            brand:row.brand,
+            category:row.category,
+            price:row.price,
+            currency:row.currency||"USD",
+            quality:row.image?72:62,
+            offerCount:1,
+            storeCount:1,
+            description:`Product supplied by ${row.seller||"an approved Admitad seller"} through the TrendPilot new-account product feed.`
+          });
+        }).filter(p=>p.name && validUrl(p.url));
+      } catch (error) {
+        console.warn("TrendPilot Admitad products unavailable",error);
+        return [];
+      }
+    })();
+    return tpAdmitadProductsPromiseV15_4;
+  }
+  // TP_ADMITAD_LIVE_BRIDGE_V15_4_END
+
+
   function initChrome() {
     const nav = $("[data-tp-nav]"), open = $("[data-tp-menu-button]"), close = $("[data-tp-menu-close]"), backdrop = $("[data-tp-nav-backdrop]");
     if (nav && open) {
@@ -1135,12 +1237,14 @@ function normalizeProduct(p) {
     const results=await Promise.allSettled([
       state.manifest.version==="fallback"?Promise.resolve(state.products):loadInitialSegments(),
       loadCjProducts(),
-      typeof tpLoadBalancedSellerRowsV15_1==="function"?tpLoadBalancedSellerRowsV15_1():Promise.resolve([])
+      typeof tpLoadBalancedSellerRowsV15_1==="function"?tpLoadBalancedSellerRowsV15_1():Promise.resolve([]),
+      loadAdmitadProductsV15_4()
     ]);
     const rows=results[0].status==="fulfilled"?results[0].value:[];
     const cjRows=results[1].status==="fulfilled"?results[1].value:[];
     const balancedRows=results[2].status==="fulfilled"?results[2].value:[];
-    mergeProducts([...rows,...cjRows,...balancedRows]);
+    const admitadRows=results[3].status==="fulfilled"?results[3].value:[];
+    mergeProducts([...rows,...cjRows,...balancedRows,...admitadRows]);
     await Promise.race([ensureMinimumExact(24),new Promise(resolve=>setTimeout(resolve,6500))]);
     populateFilters(); renderFinder();
   } catch(error) {
