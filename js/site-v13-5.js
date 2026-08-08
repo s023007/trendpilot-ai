@@ -383,6 +383,95 @@ function normalizeProduct(p) {
     }
   }
 
+
+  // TP_SELLER_SEARCH_REPAIR_V15_6_4_START
+  function tpEnrichCjTaxonomyV15_6_4(product){
+    const p=normalizeProduct(product);
+    const row={title:p.name||"",category:p.category||"",brand:p.brand||""};
+
+    if(!p.group || p.group==="other"){
+      const inferred=tpAdmitadGuessGroupV15_4(row);
+      if(inferred) p.group=inferred;
+    }
+
+    if(!p.family || p.family==="other" || p.family===p.group){
+      const inferredFamily=tpAdmitadGuessFamilyV15_4(row,p.group||"other");
+      if(inferredFamily) p.family=inferredFamily;
+    }
+
+    const seller=tpCanonicalSellerV15_1(p.advertiser);
+
+    if((!p.group || p.group==="other") && seller){
+      const fallbackGroups={
+        "Diecast":"toys-games",
+        "FragranceShop.com":"beauty-care",
+        "Karaca EU":"home-kitchen",
+        "MFI Medical":"health-medical",
+        "PandaHall":"arts-crafts"
+      };
+      if(fallbackGroups[seller]) p.group=fallbackGroups[seller];
+    }
+
+    if((!p.family || p.family==="other" || p.family===p.group) && seller){
+      const fallbackFamilies={
+        "Diecast":"model-cars-collectibles",
+        "FragranceShop.com":"fragrance",
+        "Karaca EU":"cookware",
+        "MFI Medical":"medical-equipment",
+        "PandaHall":"beads"
+      };
+      if(fallbackFamilies[seller]) p.family=fallbackFamilies[seller];
+    }
+
+    return p;
+  }
+
+  function tpSellerScopedRelevantV15_6_4(seller,query){
+    const canonical=tpCanonicalSellerV15_1(seller)||clean(seller);
+    const raw=lower(query||"");
+    const expanded=tpExpandedTermsV15_1(raw);
+    const tokens=words(raw);
+
+    const sellerRows=(state.products||[]).filter(p=>{
+      const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
+      return rowSeller===canonical && tpCjPublicAllowed(p) && tpPublicSellerAllowed(p);
+    });
+
+    if(!raw || raw==="popular products") return sellerRows;
+
+    return sellerRows.filter(p=>{
+      const text=lower(`${p.name||""} ${p.brand||""} ${p.category||""} ${p.group||""} ${p.family||""}`);
+      if(text.includes(raw)) return true;
+      if(expanded.length && expanded.some(term=>text.includes(term))) return true;
+      if(tokens.length && tokens.every(t=>text.includes(t))) return true;
+      if(state.plan?.families?.includes(p.family)) return true;
+      if(state.plan?.groups?.includes(p.group) && tokens.some(t=>text.includes(t))) return true;
+      return false;
+    }).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+  }
+
+  function tpSellerSuggestionsV15_6_4(seller){
+    const canonical=tpCanonicalSellerV15_1(seller)||clean(seller);
+    const counts=new Map();
+    const stop=new Set(["the","and","for","with","from","this","that","new","sale","best","top","pcs","set","pack","product","products","item","items","free","shipping","many","global","online","ww","geo","geos"]);
+
+    (state.products||[]).forEach(p=>{
+      const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
+      if(rowSeller!==canonical) return;
+
+      words(`${p.name||""} ${p.category||""}`).forEach(w=>{
+        if(w.length<3 || stop.has(w)) return;
+        counts.set(w,(counts.get(w)||0)+1);
+      });
+    });
+
+    return [...counts.entries()]
+      .sort((a,b)=>b[1]-a[1])
+      .slice(0,3)
+      .map(([w])=>w);
+  }
+  // TP_SELLER_SEARCH_REPAIR_V15_6_4_END
+
   // TP_CJ_SEARCH_BRIDGE_START
   let tpCjProductsPromise = null;
   async function loadCjProducts() {
@@ -392,7 +481,7 @@ function normalizeProduct(p) {
         const r = await fetch(`/data/cj-products.json?v=14.1.5-${Date.now()}`, {cache:"no-store"});
         if (!r.ok) throw new Error(`CJ products ${r.status}`);
         const data = await r.json();
-        return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct);
+        return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct).map(tpEnrichCjTaxonomyV15_6_4).filter(tpCjPublicAllowed);
       } catch (error) {
         console.warn("TrendPilot CJ products unavailable", error);
         return [];
@@ -1211,25 +1300,43 @@ function normalizeProduct(p) {
   }
   function renderFinder() {
     const grid=$('[data-tp-product-grid]'); if(!grid)return;
-    const rows=filterProducts(activeProducts()); const visible=rows.slice(0,state.shown);
+    const rows=filterProducts(activeProducts());
     const noun=state.activeTab==="exact"?"exact matches":"related alternatives";
     const selectedSeller=tpCanonicalSellerV15_1(filters().merchant)||filters().merchant;
-    grid.innerHTML=visible.length?visible.map(p=>productCard(p)).join(""):(selectedSeller&&state.activeTab==="exact"?tpSellerNoResultMarkupV15_1(selectedSeller,state.query,state.plan):`<div class="tp-empty"><h3>No ${noun} found.</h3><p>${state.activeTab==="exact"?"Try a more specific product name, change the category, or open Related alternatives. TrendPilot will not invent a match from an unrelated description.":"No useful alternatives are available for this search yet."}</p></div>`);
+    let renderRows=rows;
+
+    if(!renderRows.length && selectedSeller && state.activeTab==="exact" && selectedSeller!=="Lenovo"){
+      renderRows=tpSellerScopedRelevantV15_6_4(selectedSeller,state.query);
+    }
+
+    const visible=renderRows.slice(0,state.shown);
+
+    if(visible.length){
+      grid.innerHTML=visible.map(p=>productCard(p)).join("");
+    }else if(selectedSeller&&state.activeTab==="exact"){
+      const hints=tpSellerSuggestionsV15_6_4(selectedSeller);
+      const base=tpSellerNoResultMarkupV15_1(selectedSeller,state.query,state.plan);
+      grid.innerHTML=hints.length
+        ? base.replace("</div>",`<p class="tp-seller-hints">Try this seller with: <strong>${hints.map(esc).join(", ")}</strong></p></div>`)
+        : base;
+    }else{
+      grid.innerHTML=`<div class="tp-empty"><h3>No ${noun} found.</h3><p>${state.activeTab==="exact"?"Try a more specific product name, change the category, or open Related alternatives. TrendPilot will not invent a match from an unrelated description.":"No useful alternatives are available for this search yet."}</p></div>`;
+    }
     bindImages(grid);
     const count=$('[data-tp-results-count]'), status=$('[data-tp-finder-status]'), title=$('[data-tp-results-title]');
     if(title)title.textContent=`${state.activeTab==="exact"?"Exact matches":"Related alternatives"} for “${state.query}”`;
-    if(count)count.textContent=resultCountLabel();
+    if(count)count.textContent=selectedSeller&&renderRows!==rows?`${fmt.format(renderRows.length)} seller matches`:resultCountLabel();
     if(status){
       const scan=scannedCandidateCount();
       const progress=candidatePagesExhausted()?"Catalogue check complete.":"More relevant catalogue pages can still be checked.";
       const correction=state.queryCorrected?`Corrected “${state.originalQuery}” to “${state.query}”. `:"";
-      status.textContent=`${correction}Showing ${fmt.format(visible.length)} of ${fmt.format(rows.length)} ${noun}. ${fmt.format(scan)} candidates checked. ${progress}`;
+      status.textContent=`${correction}Showing ${fmt.format(visible.length)} of ${fmt.format(renderRows.length)} ${selectedSeller&&renderRows!==rows?"seller matches":noun}. ${fmt.format(scan)} candidates checked. ${progress}`;
     }
     const more=$('[data-tp-load-more]'); if(more){
-      const moreLoaded=rows.length>state.shown;
+      const moreLoaded=renderRows.length>state.shown;
       const moreRemote=state.activeTab==="exact"&&!candidatePagesExhausted();
       more.hidden=!(moreLoaded||moreRemote);
-      more.textContent=state.loading?"Checking more products…":moreLoaded?`Show ${Math.min(24,rows.length-state.shown)} more`:"Check more catalogue pages";
+      more.textContent=state.loading?"Checking more products…":moreLoaded?`Show ${Math.min(24,renderRows.length-state.shown)} more`:"Check more catalogue pages";
     }
     renderTabs(); updateFilterCount();
   }
