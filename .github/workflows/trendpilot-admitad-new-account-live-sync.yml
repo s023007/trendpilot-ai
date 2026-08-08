@@ -1,0 +1,235 @@
+name: TrendPilot Admitad New Account Live Sync
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-admitad-new-account-live-sync
+  cancel-in-progress: true
+
+jobs:
+  sync-admitad:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      TARGET_DOMAIN: trendpilotchoice.com
+      EXPECTED_WEBSITE_ID: "2980568"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Build active-only Admitad manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64, json, os, urllib.parse, urllib.request
+          from datetime import datetime, timezone
+          from pathlib import Path
+          from urllib.parse import urlparse
+
+          API="https://api.admitad.com"
+          domain=os.environ["TARGET_DOMAIN"].strip().lower()
+          expected=int(os.environ["EXPECTED_WEBSITE_ID"])
+
+          def env(*names):
+              for n in names:
+                  v=(os.environ.get(n) or "").strip()
+                  if v: return v
+              return ""
+
+          cid=env("ADMITAD_CLIENT_ID_PRIMARY","ADMITAD_CLIENT_ID_ALT")
+          secret=env("ADMITAD_CLIENT_SECRET_PRIMARY","ADMITAD_CLIENT_SECRET_ALT")
+          if not cid or not secret:
+              raise SystemExit("Missing Admitad API credentials.")
+
+          def req_json(url, method="GET", headers=None, data=None):
+              r=urllib.request.Request(
+                  url, data=data, method=method,
+                  headers={"Accept":"application/json","User-Agent":"TrendPilot-Admitad-Live-Sync/1.0", **(headers or {})}
+              )
+              with urllib.request.urlopen(r, timeout=60) as resp:
+                  return json.loads(resp.read().decode("utf-8","replace"))
+
+          basic=base64.b64encode(f"{cid}:{secret}".encode()).decode()
+          body=urllib.parse.urlencode({
+              "grant_type":"client_credentials",
+              "client_id":cid,
+              "scope":"websites advcampaigns_for_website deeplink_generator"
+          }).encode()
+
+          token=req_json(
+              f"{API}/token/", method="POST",
+              headers={
+                  "Authorization":f"Basic {basic}",
+                  "Content-Type":"application/x-www-form-urlencoded;charset=UTF-8"
+              },
+              data=body
+          ).get("access_token")
+          if not token:
+              raise SystemExit("No Admitad access_token returned.")
+          auth={"Authorization":f"Bearer {token}"}
+
+          def host(v):
+              v=str(v or "").strip()
+              if not v: return ""
+              if "://" not in v: v="https://"+v
+              h=(urlparse(v).hostname or "").lower()
+              return h[4:] if h.startswith("www.") else h
+
+          sites=req_json(f"{API}/websites/v2/",headers=auth)
+          sites=sites.get("results",[]) if isinstance(sites,dict) else sites
+          matches=[s for s in sites if isinstance(s,dict) and host(s.get("site_url") or s.get("url"))==domain]
+          if not matches:
+              raise SystemExit(f"No exact ad space found for {domain}.")
+          matches.sort(key=lambda s:(0 if str(s.get("status","")).lower()=="active" else 1,int(s.get("id") or 0)))
+          site=matches[0]
+          wid=int(site["id"])
+          if wid!=expected:
+              raise SystemExit(f"Safety stop: expected {expected}, got {wid}.")
+          if str(site.get("status","")).lower()!="active":
+              raise SystemExit("Safety stop: new TrendPilot ad space is not active.")
+
+          rows=[]
+          offset=0
+          while True:
+              q=urllib.parse.urlencode({"limit":200,"offset":offset,"connection_status":"active"})
+              p=req_json(f"{API}/advcampaigns/website/{wid}/?{q}",headers=auth)
+              batch=p.get("results",[]) if isinstance(p,dict) else []
+              rows.extend(x for x in batch if isinstance(x,dict))
+              if len(batch)<200: break
+              offset+=200
+              if offset>5000: raise SystemExit("Unexpected campaign pagination.")
+
+          programs=[]
+          for c in rows:
+              state=str(c.get("connection_status") or c.get("status") or "").lower()
+              if state!="active": continue
+              feeds=[]
+              if c.get("products_csv_link") or c.get("products_xml_link"):
+                  feeds.append({"name":"main","has_csv":bool(c.get("products_csv_link")),"has_xml":bool(c.get("products_xml_link"))})
+              for f in c.get("feeds_info") or []:
+                  if isinstance(f,dict):
+                      feeds.append({
+                          "name":str(f.get("name") or "feed").strip(),
+                          "has_csv":bool(f.get("csv_link")),
+                          "has_xml":bool(f.get("xml_link")),
+                          "admitad_last_update":f.get("admitad_last_update"),
+                          "advertiser_last_update":f.get("advertiser_last_update")
+                      })
+              programs.append({
+                  "id":c.get("id"),
+                  "name":c.get("name"),
+                  "connection_status":"active",
+                  "allow_deeplink":bool(c.get("allow_deeplink")),
+                  "has_product_feed":bool(c.get("show_products_links") or c.get("products_csv_link") or c.get("products_xml_link") or feeds),
+                  "feed_count":len(feeds),
+                  "feeds":feeds,
+                  "action_countries":c.get("action_countries") or []
+              })
+
+          programs.sort(key=lambda x:str(x.get("name") or "").lower())
+          now=datetime.now(timezone.utc).isoformat()
+          joom=any("joom" in str(p.get("name") or "").lower() for p in programs)
+
+          live={
+              "version":"1.0",
+              "generated_at":now,
+              "source":"Admitad API",
+              "account_policy":"new-account-only",
+              "domain":domain,
+              "website_id":wid,
+              "website_status":site.get("status"),
+              "validation_passed":site.get("validation_passed"),
+              "connection_filter":"active",
+              "program_count":len(programs),
+              "programs":programs,
+              "joom":{"active_for_new_domain":joom,"published_as_seller":joom}
+          }
+          sellers={
+              "version":"1.0",
+              "generated_at":now,
+              "website_id":wid,
+              "source":"Admitad API active programs for trendpilotchoice.com",
+              "sellers":[
+                  {
+                      "id":p["id"],"name":p["name"],"network":"Admitad",
+                      "approved":True,
+                      "allow_deeplink":p["allow_deeplink"],
+                      "has_product_feed":p["has_product_feed"]
+                  } for p in programs
+              ]
+          }
+
+          Path("data").mkdir(exist_ok=True)
+          Path("data/admitad-live-new-account.json").write_text(json.dumps(live,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          Path("data/admitad-approved-sellers.json").write_text(json.dumps(sellers,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+
+          print(f"Ad Space {wid}: {len(programs)} active programs")
+          print(f"Joom active for new domain: {joom}")
+          for p in programs:
+              print(f"- {p['name']} | feed={p['has_product_feed']} | deeplink={p['allow_deeplink']}")
+          PY
+
+      - name: Validate manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          live=json.loads(Path("data/admitad-live-new-account.json").read_text(encoding="utf-8"))
+          sellers=json.loads(Path("data/admitad-approved-sellers.json").read_text(encoding="utf-8"))
+          assert live["website_id"]==2980568
+          assert live["domain"]=="trendpilotchoice.com"
+          assert live["connection_filter"]=="active"
+          assert live["account_policy"]=="new-account-only"
+          assert live["programs"]
+          assert all(p["connection_status"]=="active" for p in live["programs"])
+          assert all(s["approved"] is True for s in sellers["sellers"])
+          assert len(sellers["sellers"])==len(live["programs"])
+          blob=(Path("data/admitad-live-new-account.json").read_text()+Path("data/admitad-approved-sellers.json").read_text()).lower()
+          for term in ["access_token","client_secret","products_csv_link","products_xml_link","xml_link","csv_link"]:
+              if term in blob:
+                  raise SystemExit(f"Unsafe field leaked: {term}")
+          print("Validation passed.")
+          PY
+          git diff --check
+
+      - name: Ensure Products page is untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet -- find/index.html || {
+            echo "Safety stop: Products page changed unexpectedly."
+            exit 1
+          }
+
+      - name: Publish manifests only
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/admitad-live-new-account.json data/admitad-approved-sellers.json
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo "No changes."
+            exit 0
+          fi
+          git commit -m "chore: sync active Admitad programs for new domain"
+          git push origin HEAD:main
