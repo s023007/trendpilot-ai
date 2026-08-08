@@ -1,0 +1,181 @@
+name: Emergency Rollback Products to Pre-V16 Stable
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-emergency-rollback-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rollback-products:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out complete history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Find last stable Products revision before V16
+        id: stable
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --all --tags --prune
+
+          intro=""
+
+          # Find the commit that first introduced the V16 Products engine.
+          for path in \
+            "css/product-search-v16.css" \
+            "js/product-search-v16.js" \
+            "css/product-search-v16-0-1.css" \
+            "js/product-search-v16-0-1.js"
+          do
+            candidate="$(git log --diff-filter=A --format=%H -- "$path" | tail -n 1 || true)"
+            if [[ -n "$candidate" ]]; then
+              intro="$candidate"
+              break
+            fi
+          done
+
+          if [[ -z "$intro" ]]; then
+            # Fallback: find the first commit mentioning V16 Product Search Engine.
+            intro="$(git log --all --reverse --format='%H %s' | awk 'BEGIN{IGNORECASE=1} /V16.*Product Search|Product Search Engine.*V16/ {print $1; exit}')"
+          fi
+
+          if [[ -z "$intro" ]]; then
+            echo "Could not identify the first V16 Products commit."
+            exit 1
+          fi
+
+          stable="$(git rev-parse "${intro}^")"
+
+          echo "intro=$intro" >> "$GITHUB_OUTPUT"
+          echo "stable=$stable" >> "$GITHUB_OUTPUT"
+
+          echo "V16 introduction: $intro"
+          echo "Stable parent:      $stable"
+          git show -s --format='%h %ci %s' "$stable"
+
+      - name: Restore Products surface only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          stable="${{ steps.stable.outputs.stable }}"
+
+          # Core Products page: restore exactly to the last revision before V16.
+          git restore --source="$stable" -- "find/index.html"
+
+          # Restore known V15 Products assets if they existed at the stable revision.
+          restore_if_exists () {
+            local path="$1"
+            if git cat-file -e "${stable}:${path}" 2>/dev/null; then
+              git restore --source="$stable" -- "$path"
+              echo "Restored $path"
+            fi
+          }
+
+          restore_if_exists "js/product-discovery-v15.js"
+          restore_if_exists "css/product-discovery-v15.css"
+          restore_if_exists "js/product-search-v15.js"
+          restore_if_exists "css/product-search-v15.css"
+          restore_if_exists "js/seller-federation-v15.js"
+          restore_if_exists "data/seller-coverage-index.json"
+
+          # Remove only V16 Products recovery/search files.
+          rm -f \
+            js/product-search-v16*.js \
+            css/product-search-v16*.css \
+            js/product-touch-recovery-v16*.js \
+            css/product-touch-recovery-v16*.css
+
+          echo "Products rollback prepared."
+
+      - name: Validate rollback before publish
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f find/index.html
+
+          # V16 Products files/references must be gone.
+          if grep -Eqi 'product-search-v16|product-touch-recovery-v16' find/index.html; then
+            echo "V16 Products reference still exists in find/index.html"
+            exit 1
+          fi
+
+          if find js css -maxdepth 1 -type f \( -name 'product-search-v16*' -o -name 'product-touch-recovery-v16*' \) | grep -q .; then
+            echo "A V16 Products asset still exists."
+            exit 1
+          fi
+
+          # Ensure the page still contains its finder/search structure.
+          grep -q 'data-tp-finder-input' find/index.html
+          grep -q 'data-tp-page="finder"' find/index.html
+
+          # Syntax-check restored JS files that exist.
+          for file in \
+            js/product-discovery-v15.js \
+            js/product-search-v15.js \
+            js/seller-federation-v15.js
+          do
+            if [[ -f "$file" ]]; then
+              node --check "$file"
+            fi
+          done
+
+          git diff --check
+
+          echo "Emergency rollback validation passed."
+          echo "Stable source: ${{ steps.stable.outputs.stable }}"
+
+      - name: Publish rollback safely
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A -- \
+            find/index.html \
+            js/product-discovery-v15.js \
+            css/product-discovery-v15.css \
+            js/product-search-v15.js \
+            css/product-search-v15.css \
+            js/seller-federation-v15.js \
+            data/seller-coverage-index.json \
+            'js/product-search-v16*.js' \
+            'css/product-search-v16*.css' \
+            'js/product-touch-recovery-v16*.js' \
+            'css/product-touch-recovery-v16*.css' || true
+
+          git add -A
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "Products are already at the pre-V16 state."
+            exit 0
+          fi
+
+          git commit -m "revert: restore Products page to last stable pre-V16 state"
+          git push origin HEAD:main
+
+          {
+            echo "## Emergency Products rollback completed"
+            echo ""
+            echo "- Restored Products page from: **${{ steps.stable.outputs.stable }}**"
+            echo "- Removed V16 Products search/touch recovery assets."
+            echo "- Left Tickets, Software, CJ data, CPC data, and the rest of the site untouched."
+            echo "- Next step: verify page scrolling and basic product search before any new development."
+          } >> "$GITHUB_STEP_SUMMARY"
