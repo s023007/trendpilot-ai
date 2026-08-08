@@ -680,7 +680,7 @@ function normalizeProduct(p) {
     "geekbuying":"Geekbuying","geek buying":"Geekbuying","geekbuying ww":"Geekbuying",
     "filamentpro":"FilamentPRO EU CPS","filamentpro eu":"FilamentPRO EU CPS","filamentpro eu cps":"FilamentPRO EU CPS",
     "govee":"Govee Many GEOs","govee many geos":"Govee Many GEOs",
-    "harfington":"Harfington Many GEOs","harfington many geos":"Harfington Many GEOs",
+    "harfington":"Harfington Many GEOs","harfington many geos":"Harfington Many GEOs","harrington":"Harfington Many GEOs","harrington many geos":"Harfington Many GEOs",
     "sunsky":"Sunsky-online WW","sunsky online":"Sunsky-online WW","sunsky-online":"Sunsky-online WW","sunsky-online ww":"Sunsky-online WW",
     "lenovo":"Lenovo","lenovo many geos":"Lenovo",
     "diecast":"Diecast","diecast.com":"Diecast","diecast models wholesale":"Diecast",
@@ -706,7 +706,8 @@ function normalizeProduct(p) {
     "tool":["tool","tools","power tools","hand tools","workshop tools","diy tools"],
     "tools":["tool","tools","power tools","hand tools","workshop tools","diy tools"],
     "laptop":["laptop","laptops","notebook computer","notebook computers","thinkpad","ideapad","thinkbook","yoga","legion","lenovo loq","loq"],
-    "printer":["printer","printers","laser printer","inkjet printer","thermal printer","label printer"]
+    "printer":["printer","printers","laser printer","inkjet printer","thermal printer","label printer"],
+    "hose":["hose","hoses","hose fitting","hose fittings","hydraulic hose","rubber hose","tube","tubing","pipe fitting","connector"]
   };
   const TP_SELLER_SPECIALTY_V15_1 = {
     "FragranceShop.com":["beauty-care"],
@@ -1348,6 +1349,9 @@ function normalizeProduct(p) {
   }
 
   async function performSearch(query,push=true,scope=""){
+  // TP_PRESERVE_SELLER_V15_6_5
+  const merchantBeforeSearch=$('[data-filter-merchant]');
+  const preservedSeller=tpCanonicalSellerV15_1(merchantBeforeSearch?.value)||merchantBeforeSearch?.value||"";
   const normalized=normalizeQuery(query);
   state.originalQuery=normalized.original; state.query=normalized.query; state.queryCorrected=normalized.corrected;
   state.scope=scope||""; state.shown=24; state.activeTab="exact"; state.products=[]; state.exact=[]; state.alternatives=[]; state.segmentState.clear(); state.loading=true;
@@ -1371,7 +1375,14 @@ function normalizeProduct(p) {
     const admitadRows=results[3].status==="fulfilled"?results[3].value:[];
     mergeProducts([...rows,...cjRows,...balancedRows,...admitadRows]);
     await Promise.race([ensureMinimumExact(24),new Promise(resolve=>setTimeout(resolve,6500))]);
-    populateFilters(); renderFinder();
+    populateFilters();
+    if(preservedSeller){
+      const merchantAfterSearch=$('[data-filter-merchant]');
+      if(merchantAfterSearch && [...merchantAfterSearch.options].some(o=>o.value===preservedSeller)){
+        merchantAfterSearch.value=preservedSeller;
+      }
+    }
+    renderFinder();
   } catch(error) {
     console.error("TrendPilot product search failed safely",error);
     if(!state.plan){state.plan={q:state.query,groups:[],family:"",families:[],audience:"",segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};}
