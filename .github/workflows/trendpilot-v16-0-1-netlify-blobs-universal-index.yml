@@ -1,0 +1,962 @@
+name: TrendPilot V16.0.1 Netlify Blobs Universal Index
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-0-1-blobs-index-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replace-database-with-blobs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Replace unavailable Netlify Database dependency
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ ! -f package.json ]; then
+            cat > package.json <<'JSON'
+          {
+            "name": "trendpilot-ai",
+            "private": true,
+            "description": "TrendPilot AI Netlify runtime dependencies"
+          }
+          JSON
+          fi
+
+          npm uninstall @netlify/database || true
+          npm install --save-exact @netlify/blobs
+
+          rm -f netlify/database/migrations/20260809160400_create_trendpilot_product_index.sql
+          rmdir netlify/database/migrations 2>/dev/null || true
+          rmdir netlify/database 2>/dev/null || true
+
+      - name: Create V16 Blobs universal index
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p netlify/functions
+
+          cat > netlify/functions/products-v16-lib.mjs <<'JS'
+          import { createHash } from "node:crypto";
+
+          export const STORE_NAME = "trendpilot-products-v16";
+
+          export const clean = value =>
+            String(value ?? "")
+              .replace(/<script[\s\S]*?<\/script>/gi, " ")
+              .replace(/<style[\s\S]*?<\/style>/gi, " ")
+              .replace(/<[^>]*>/g, " ")
+              .replace(/\s+/g, " ")
+              .trim();
+
+          export const lower = value => clean(value).toLocaleLowerCase("en-US");
+
+          export function validUrl(value) {
+            try {
+              const url = new URL(clean(value));
+              return url.protocol === "http:" || url.protocol === "https:";
+            } catch {
+              return false;
+            }
+          }
+
+          export function pick(obj, keys) {
+            for (const key of keys) {
+              const value = obj?.[key];
+              if (value !== undefined && value !== null && clean(value)) return value;
+            }
+            return "";
+          }
+
+          export function numberValue(value) {
+            if (typeof value === "number" && Number.isFinite(value)) return value;
+            const match = clean(value).replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+            return match ? Number(match[0]) : null;
+          }
+
+          export function hashHex(value) {
+            return createHash("sha256").update(String(value)).digest("hex");
+          }
+
+          export function tokenBucket(token) {
+            return createHash("sha1").update(token).digest("hex").slice(0, 2);
+          }
+
+          function baseTokens(value, max = 80) {
+            const raw = lower(value)
+              .normalize("NFKC")
+              .match(/[\p{L}\p{N}]+/gu) || [];
+
+            const out = [];
+            const seen = new Set();
+
+            for (const rawToken of raw) {
+              const token = rawToken.slice(0, 80);
+              if (token.length < 2 || seen.has(token)) continue;
+              seen.add(token);
+              out.push(token);
+              if (out.length >= max) break;
+            }
+
+            return out;
+          }
+
+          function tokenForms(token) {
+            const forms = new Set([token]);
+
+            if (/^[a-z0-9]+$/i.test(token)) {
+              if (token.length > 4 && token.endsWith("ies")) forms.add(token.slice(0, -3) + "y");
+              if (token.length > 4 && token.endsWith("es")) forms.add(token.slice(0, -2));
+              if (token.length > 3 && token.endsWith("s")) forms.add(token.slice(0, -1));
+            }
+
+            return [...forms].filter(x => x.length >= 2);
+          }
+
+          export function queryTokens(value) {
+            const tokens = baseTokens(value, 12);
+            const out = [];
+            const seen = new Set();
+
+            for (const token of tokens) {
+              for (const form of tokenForms(token)) {
+                if (!seen.has(form)) {
+                  seen.add(form);
+                  out.push(form);
+                }
+              }
+            }
+
+            return out.slice(0, 20);
+          }
+
+          function weightedTokens(product) {
+            const fields = [
+              [product.title, 12, 36],
+              [product.brand, 8, 12],
+              [product.category, 6, 20],
+              [product.subcategory, 6, 20],
+              [product.seller, 4, 12],
+              [product.network, 3, 8],
+              [product.description.slice(0, 500), 1, 50]
+            ];
+
+            const weights = new Map();
+
+            for (const [text, weight, max] of fields) {
+              for (const token of baseTokens(text, max)) {
+                for (const form of tokenForms(token)) {
+                  weights.set(form, Math.max(weights.get(form) || 0, weight));
+                }
+              }
+            }
+
+            return weights;
+          }
+
+          export function normalizeProduct(obj, sourceHint = "") {
+            if (!obj || typeof obj !== "object" || Array.isArray(obj)) return null;
+
+            const title = clean(pick(obj, [
+              "title", "name", "product_name", "productName", "product_title", "productTitle",
+              "offer_name", "offerName", "product"
+            ]));
+            if (title.length < 2 || title.length > 900) return null;
+
+            const affiliateUrl = clean(pick(obj, [
+              "affiliateUrl", "affiliate_url", "deeplink", "deep_link", "trackingUrl",
+              "tracking_url", "clickUrl", "click_url", "goto", "affiliate_link", "tracking_link"
+            ]));
+            const destinationUrl = clean(pick(obj, [
+              "destinationUrl", "destination_url", "productUrl", "product_url", "url",
+              "link", "landing_page", "landingPage", "product_link"
+            ]));
+            const imageUrl = clean(pick(obj, [
+              "image", "imageUrl", "image_url", "imageLink", "image_link", "picture",
+              "picture_url", "photo", "mainImage", "main_image"
+            ]));
+
+            if (!validUrl(affiliateUrl) && !validUrl(destinationUrl) && !validUrl(imageUrl)) return null;
+
+            const seller = clean(pick(obj, [
+              "advertiser", "advertiserName", "advertiser_name", "seller", "merchant",
+              "merchantName", "merchant_name", "store", "storeName", "store_name", "shop"
+            ])).slice(0, 300);
+
+            const network =
+              clean(pick(obj, [
+                "network", "affiliateNetwork", "affiliate_network", "sourceNetwork", "source_network"
+              ])).slice(0, 120) ||
+              clean(sourceHint).split(":")[0].slice(0, 120) ||
+              "catalog";
+
+            const source =
+              clean(pick(obj, ["source", "sourceName", "source_name"])).slice(0, 300) ||
+              sourceHint.slice(0, 300) ||
+              network;
+
+            const sourceProductId = clean(pick(obj, [
+              "sourceProductId", "source_product_id", "productId", "product_id", "id",
+              "sku", "offerId", "offer_id", "itemId", "item_id"
+            ])).slice(0, 300);
+
+            const advertiserId = clean(pick(obj, [
+              "advertiserId", "advertiser_id", "merchantId", "merchant_id", "sellerId", "seller_id"
+            ])).slice(0, 120);
+
+            const description = clean(pick(obj, [
+              "description", "shortDescription", "short_description", "summary",
+              "product_description", "productDescription"
+            ])).slice(0, 6000);
+
+            const brand = clean(pick(obj, ["brand", "manufacturer", "vendor"])).slice(0, 300);
+            const category = clean(pick(obj, [
+              "category", "categoryName", "category_name", "group", "department", "vertical"
+            ])).slice(0, 300);
+            const subcategory = clean(pick(obj, [
+              "subcategory", "subCategory", "subcategoryName", "subcategory_name", "family"
+            ])).slice(0, 300);
+
+            const currency = clean(pick(obj, [
+              "currency", "currencyCode", "currency_code", "priceCurrency", "price_currency"
+            ])).slice(0, 12);
+
+            const price = numberValue(pick(obj, [
+              "price", "salePrice", "sale_price", "currentPrice", "current_price", "amount"
+            ]));
+
+            const conditionText = clean(pick(obj, [
+              "condition", "productCondition", "product_condition"
+            ])).slice(0, 120);
+
+            const availability = clean(pick(obj, [
+              "availability", "stock", "stockStatus", "stock_status"
+            ])).slice(0, 160);
+
+            const qualityRaw = Number(pick(obj, ["quality", "score", "matchScore", "match_score"]));
+            const quality = Number.isFinite(qualityRaw)
+              ? Math.max(1, Math.min(100, Math.round(qualityRaw)))
+              : 60;
+
+            const identity = [
+              lower(network),
+              lower(seller),
+              sourceProductId || affiliateUrl || destinationUrl || lower(title)
+            ].join("|");
+
+            const id = hashHex(identity);
+
+            return {
+              id,
+              source,
+              network,
+              seller,
+              advertiserId,
+              sourceProductId,
+              title: title.slice(0, 900),
+              description,
+              brand,
+              category,
+              subcategory,
+              price,
+              currency,
+              imageUrl: validUrl(imageUrl) ? imageUrl : "",
+              affiliateUrl: validUrl(affiliateUrl) ? affiliateUrl : "",
+              destinationUrl: validUrl(destinationUrl) ? destinationUrl : "",
+              condition: conditionText,
+              availability,
+              quality
+            };
+          }
+
+          export function extractProducts(root, sourceHint = "", max = 160000) {
+            const found = [];
+            const stack = [root];
+            const seenObjects = new Set();
+
+            while (stack.length && found.length < max) {
+              const value = stack.pop();
+
+              if (!value || typeof value !== "object") continue;
+              if (seenObjects.has(value)) continue;
+              seenObjects.add(value);
+
+              if (Array.isArray(value)) {
+                for (let i = value.length - 1; i >= 0; i--) stack.push(value[i]);
+                continue;
+              }
+
+              const product = normalizeProduct(value, sourceHint);
+              if (product) found.push(product);
+
+              for (const child of Object.values(value)) {
+                if (child && typeof child === "object") stack.push(child);
+              }
+            }
+
+            return found;
+          }
+
+          export function collectCatalogJsonPaths(root, max = 250) {
+            const paths = new Set();
+            const stack = [root];
+            const seenObjects = new Set();
+
+            const add = raw => {
+              let value = clean(raw);
+              if (!value || !/\.json(?:\?|$)/i.test(value)) return;
+
+              try {
+                if (/^https?:\/\//i.test(value)) value = new URL(value).pathname;
+              } catch {}
+
+              value = value.split("?")[0].replace(/^\/+/, "");
+
+              if (value.startsWith("data/search-catalog/")) {
+                paths.add("/" + value);
+              } else if (value.startsWith("search-catalog/")) {
+                paths.add("/data/" + value);
+              } else if (/^(?:shards|product-index|segments)\//i.test(value)) {
+                paths.add("/data/search-catalog/" + value);
+              }
+            };
+
+            while (stack.length && paths.size < max) {
+              const value = stack.pop();
+
+              if (typeof value === "string") {
+                add(value);
+                continue;
+              }
+              if (!value || typeof value !== "object") continue;
+              if (seenObjects.has(value)) continue;
+              seenObjects.add(value);
+
+              if (Array.isArray(value)) {
+                for (const child of value) stack.push(child);
+              } else {
+                for (const child of Object.values(value)) {
+                  if (typeof child === "string") add(child);
+                  else if (child && typeof child === "object") stack.push(child);
+                }
+              }
+            }
+
+            return [...paths];
+          }
+
+          export function buildIndex(products) {
+            const docs = new Map();
+            const postings = new Map();
+            const sellers = new Map();
+            const networks = new Map();
+
+            for (const product of products) {
+              docs.set(product.id, product);
+
+              const sellerKey = product.seller || "(unknown seller)";
+              sellers.set(sellerKey, (sellers.get(sellerKey) || 0) + 1);
+
+              const networkKey = product.network || "(unknown network)";
+              networks.set(networkKey, (networks.get(networkKey) || 0) + 1);
+
+              const weights = weightedTokens(product);
+              for (const [token, score] of weights) {
+                let byId = postings.get(token);
+                if (!byId) {
+                  byId = new Map();
+                  postings.set(token, byId);
+                }
+
+                const current = byId.get(product.id);
+                if (!current || score > current.score) {
+                  byId.set(product.id, {
+                    id: product.id,
+                    score,
+                    seller: lower(product.seller),
+                    network: lower(product.network)
+                  });
+                }
+              }
+            }
+
+            return { docs, postings, sellers, networks };
+          }
+          JS
+
+          cat > netlify/functions/products-v16.mjs <<'JS'
+          import { getStore } from "@netlify/blobs";
+          import {
+            STORE_NAME,
+            clean,
+            lower,
+            queryTokens,
+            tokenBucket
+          } from "./products-v16-lib.mjs";
+
+          const json = (body, status = 200) =>
+            new Response(JSON.stringify(body), {
+              status,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+                "x-content-type-options": "nosniff"
+              }
+            });
+
+          const safeGetJSON = async (store, key) => {
+            try {
+              return await store.get(key, { type: "json" });
+            } catch {
+              return null;
+            }
+          };
+
+          export default async function handler(request) {
+            if (request.method !== "GET") {
+              return json({ ok: false, error: "Method not allowed" }, 405);
+            }
+
+            try {
+              const url = new URL(request.url);
+              const q = clean(url.searchParams.get("q") || "").slice(0, 180);
+              const seller = clean(url.searchParams.get("seller") || "").slice(0, 140);
+              const network = clean(url.searchParams.get("network") || "").slice(0, 100);
+              const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") || 48) || 48));
+              const offset = Math.max(0, Math.min(1000, Number(url.searchParams.get("offset") || 0) || 0));
+
+              const store = getStore({ name: STORE_NAME, consistency: "strong" });
+              const meta = await safeGetJSON(store, "meta");
+
+              if (!meta?.ready) {
+                return json({
+                  ok: false,
+                  version: "16.0.1",
+                  storage: "netlify-blobs",
+                  error: "Universal product index is not ready yet.",
+                  next: "Run /api/products-v16/rebuild once, then re-check /api/products-v16/health."
+                }, 503);
+              }
+
+              const tokens = queryTokens(q);
+              if (!tokens.length) {
+                return json({
+                  ok: true,
+                  version: "16.0.1",
+                  storage: "netlify-blobs",
+                  query: q,
+                  seller: seller || null,
+                  network: network || null,
+                  totalReturned: 0,
+                  products: []
+                });
+              }
+
+              const bucketNames = [...new Set(tokens.map(tokenBucket))];
+              const bucketPairs = await Promise.all(
+                bucketNames.map(async bucket => [bucket, await safeGetJSON(store, `tokens/${bucket}`)])
+              );
+              const buckets = new Map(bucketPairs);
+
+              const sellerLower = lower(seller);
+              const networkLower = lower(network);
+              const scores = new Map();
+
+              for (const token of tokens) {
+                const bucket = buckets.get(tokenBucket(token)) || {};
+                const rows = Array.isArray(bucket[token]) ? bucket[token] : [];
+
+                for (const row of rows) {
+                  if (!row?.id) continue;
+                  if (sellerLower && row.seller !== sellerLower) continue;
+                  if (networkLower && row.network !== networkLower) continue;
+
+                  const previous = scores.get(row.id) || { score: 0, matches: 0 };
+                  previous.score += Number(row.score || 0);
+                  previous.matches += 1;
+                  scores.set(row.id, previous);
+                }
+              }
+
+              const ranked = [...scores.entries()]
+                .sort((a, b) =>
+                  b[1].matches - a[1].matches ||
+                  b[1].score - a[1].score
+                )
+                .slice(offset, offset + Math.max(limit * 4, 120));
+
+              if (!ranked.length) {
+                return json({
+                  ok: true,
+                  version: "16.0.1",
+                  storage: "netlify-blobs",
+                  query: q,
+                  seller: seller || null,
+                  network: network || null,
+                  totalReturned: 0,
+                  products: []
+                });
+              }
+
+              const docShardNames = [...new Set(ranked.map(([id]) => id.slice(0, 1)))];
+              const docPairs = await Promise.all(
+                docShardNames.map(async shard => [shard, await safeGetJSON(store, `docs/${shard}`)])
+              );
+              const docShards = new Map(docPairs);
+
+              const products = [];
+              const qLower = lower(q);
+
+              for (const [id, rank] of ranked) {
+                const doc = docShards.get(id.slice(0, 1))?.[id];
+                if (!doc) continue;
+
+                const titleLower = lower(doc.title);
+                const brandLower = lower(doc.brand);
+                const categoryLower = lower(doc.category);
+
+                let exactBoost = 0;
+                if (titleLower === qLower) exactBoost = 80;
+                else if (titleLower.startsWith(qLower)) exactBoost = 45;
+                else if (titleLower.includes(qLower)) exactBoost = 30;
+                if (brandLower === qLower) exactBoost += 15;
+                if (categoryLower.includes(qLower)) exactBoost += 10;
+
+                products.push({
+                  ...doc,
+                  url: doc.affiliateUrl || doc.destinationUrl,
+                  image: doc.imageUrl,
+                  matchScore: rank.score + rank.matches * 20 + exactBoost,
+                  matchedTokens: rank.matches
+                });
+              }
+
+              products.sort((a, b) =>
+                b.matchScore - a.matchScore ||
+                b.quality - a.quality ||
+                a.title.localeCompare(b.title)
+              );
+
+              return json({
+                ok: true,
+                version: "16.0.1",
+                storage: "netlify-blobs",
+                query: q,
+                queryTokens: tokens,
+                seller: seller || null,
+                network: network || null,
+                indexedProducts: meta.products || 0,
+                totalReturned: Math.min(limit, products.length),
+                products: products.slice(0, limit)
+              });
+            } catch (error) {
+              console.error("TrendPilot V16 Blobs search failed", error);
+              return json({
+                ok: false,
+                version: "16.0.1",
+                storage: "netlify-blobs",
+                error: "Universal product search failed.",
+                detail: String(error?.message || error).slice(0, 500)
+              }, 503);
+            }
+          }
+
+          export const config = {
+            path: "/api/products-v16",
+            method: "GET"
+          };
+          JS
+
+          cat > netlify/functions/products-v16-health.mjs <<'JS'
+          import { getStore } from "@netlify/blobs";
+          import { STORE_NAME } from "./products-v16-lib.mjs";
+
+          const json = (body, status = 200) =>
+            new Response(JSON.stringify(body), {
+              status,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store",
+                "x-content-type-options": "nosniff"
+              }
+            });
+
+          export default async function handler(request) {
+            if (request.method !== "GET") {
+              return json({ ok: false, error: "Method not allowed" }, 405);
+            }
+
+            try {
+              const store = getStore({ name: STORE_NAME, consistency: "strong" });
+              const meta = await store.get("meta", { type: "json" });
+
+              if (!meta) {
+                return json({
+                  ok: true,
+                  version: "16.0.1",
+                  storage: "netlify-blobs",
+                  ready: false,
+                  products: 0,
+                  message: "Storage is available. The first rebuild has not completed yet."
+                });
+              }
+
+              return json({
+                ok: true,
+                version: "16.0.1",
+                storage: "netlify-blobs",
+                ...meta
+              });
+            } catch (error) {
+              console.error("TrendPilot V16 Blobs health failed", error);
+              return json({
+                ok: false,
+                version: "16.0.1",
+                storage: "netlify-blobs",
+                ready: false,
+                detail: String(error?.message || error).slice(0, 500)
+              }, 503);
+            }
+          }
+
+          export const config = {
+            path: "/api/products-v16/health",
+            method: "GET"
+          };
+          JS
+
+          cat > netlify/functions/products-v16-rebuild.mjs <<'JS'
+          import { getStore } from "@netlify/blobs";
+          import {
+            STORE_NAME,
+            extractProducts,
+            collectCatalogJsonPaths,
+            buildIndex,
+            tokenBucket
+          } from "./products-v16-lib.mjs";
+
+          async function fetchJson(url, timeoutMs = 40000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+              const res = await fetch(url, {
+                headers: { accept: "application/json" },
+                signal: controller.signal
+              });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              return await res.json();
+            } finally {
+              clearTimeout(timer);
+            }
+          }
+
+          async function runLimited(items, concurrency, fn) {
+            const results = new Array(items.length);
+            let next = 0;
+
+            async function worker() {
+              while (true) {
+                const index = next++;
+                if (index >= items.length) return;
+                try {
+                  results[index] = { status: "fulfilled", value: await fn(items[index], index) };
+                } catch (error) {
+                  results[index] = { status: "rejected", reason: error };
+                }
+              }
+            }
+
+            await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+            return results;
+          }
+
+          export default async function handler(request) {
+            const store = getStore({ name: STORE_NAME, consistency: "strong" });
+            const origin = new URL(request.url).origin;
+            const startedAt = new Date().toISOString();
+
+            await store.setJSON("meta", {
+              ready: false,
+              version: "16.0.1",
+              storage: "netlify-blobs",
+              status: "building",
+              startedAt
+            });
+
+            try {
+              const seeds = [
+                "/data/search-catalog/manifest.json",
+                "/data/product-discovery-v15.json",
+                "/data/admitad-products-new-account-v15-3-2.json",
+                "/data/cj-products.json",
+                "/data/seller-coverage-v15-1.json"
+              ];
+
+              const byId = new Map();
+              const sourceStats = {};
+              const discoveredPaths = new Set();
+
+              for (const path of seeds) {
+                try {
+                  const payload = await fetchJson(origin + path, 45000);
+                  const rows = extractProducts(payload, path, 50000);
+                  sourceStats[path] = rows.length;
+
+                  for (const row of rows) byId.set(row.id, row);
+
+                  if (path.endsWith("/manifest.json")) {
+                    for (const extra of collectCatalogJsonPaths(payload, 250)) discoveredPaths.add(extra);
+                  }
+
+                  console.log("V16.0.1 seed", path, "products", rows.length);
+                } catch (error) {
+                  sourceStats[path] = `error:${String(error?.message || error).slice(0, 120)}`;
+                  console.warn("V16.0.1 seed failed", path, String(error?.message || error));
+                }
+              }
+
+              const extras = [...discoveredPaths].filter(path => !seeds.includes(path)).slice(0, 250);
+              const settled = await runLimited(extras, 6, async path => {
+                const payload = await fetchJson(origin + path, 35000);
+                return { path, rows: extractProducts(payload, path, 50000) };
+              });
+
+              for (const result of settled) {
+                if (result.status !== "fulfilled") continue;
+                sourceStats[result.value.path] = result.value.rows.length;
+                for (const row of result.value.rows) byId.set(row.id, row);
+              }
+
+              const products = [...byId.values()];
+              const { docs, postings, sellers, networks } = buildIndex(products);
+
+              const docBuckets = new Map();
+              for (const [id, product] of docs) {
+                const shard = id.slice(0, 1);
+                if (!docBuckets.has(shard)) docBuckets.set(shard, {});
+                docBuckets.get(shard)[id] = product;
+              }
+
+              const tokenBuckets = new Map();
+              for (const [token, byProduct] of postings) {
+                const bucket = tokenBucket(token);
+                if (!tokenBuckets.has(bucket)) tokenBuckets.set(bucket, {});
+
+                const rows = [...byProduct.values()]
+                  .sort((a, b) => b.score - a.score)
+                  .slice(0, 1800);
+
+                tokenBuckets.get(bucket)[token] = rows;
+              }
+
+              const old = await store.list();
+              const oldKeys = new Set(old.blobs?.map(blob => blob.key) || []);
+
+              const writes = [];
+
+              for (const [shard, value] of docBuckets) {
+                const key = `docs/${shard}`;
+                oldKeys.delete(key);
+                writes.push([key, value]);
+              }
+
+              for (const [bucket, value] of tokenBuckets) {
+                const key = `tokens/${bucket}`;
+                oldKeys.delete(key);
+                writes.push([key, value]);
+              }
+
+              await runLimited(writes, 6, async ([key, value]) => {
+                await store.setJSON(key, value);
+                return key;
+              });
+
+              for (const keep of ["meta"]) oldKeys.delete(keep);
+
+              const stale = [...oldKeys].filter(key => key.startsWith("docs/") || key.startsWith("tokens/"));
+              await runLimited(stale, 6, async key => {
+                await store.delete(key);
+                return key;
+              });
+
+              const sellerRows = [...sellers.entries()]
+                .map(([seller, count]) => ({ seller, products: count }))
+                .sort((a, b) => b.products - a.products || a.seller.localeCompare(b.seller))
+                .slice(0, 100);
+
+              const networkRows = [...networks.entries()]
+                .map(([network, count]) => ({ network, products: count }))
+                .sort((a, b) => b.products - a.products || a.network.localeCompare(b.network));
+
+              const meta = {
+                ready: true,
+                version: "16.0.1",
+                storage: "netlify-blobs",
+                status: "ready",
+                products: products.length,
+                tokens: postings.size,
+                sellers: sellers.size,
+                networks: networks.size,
+                documentShards: docBuckets.size,
+                tokenShards: tokenBuckets.size,
+                catalogFilesDiscovered: extras.length,
+                topSellers: sellerRows,
+                networkCounts: networkRows,
+                sourceStats,
+                startedAt,
+                completedAt: new Date().toISOString()
+              };
+
+              await store.setJSON("meta", meta);
+
+              console.log("TrendPilot V16.0.1 Blobs rebuild completed", meta);
+            } catch (error) {
+              console.error("TrendPilot V16.0.1 Blobs rebuild failed", error);
+
+              await store.setJSON("meta", {
+                ready: false,
+                version: "16.0.1",
+                storage: "netlify-blobs",
+                status: "failed",
+                startedAt,
+                failedAt: new Date().toISOString(),
+                detail: String(error?.message || error).slice(0, 1200)
+              });
+
+              throw error;
+            }
+          }
+
+          export const config = {
+            path: "/api/products-v16/rebuild",
+            method: "GET",
+            background: true,
+            rateLimit: {
+              action: "rate_limit",
+              aggregateBy: ["domain", "ip"],
+              windowSize: 3600,
+              windowLimit: 2
+            }
+          };
+          JS
+
+          cat > V16-UNIVERSAL-PRODUCT-INDEX.md <<'MD'
+          # TrendPilot V16 Universal Product Index
+
+          ## V16.0.1 — Netlify Blobs architecture
+
+          The project's current Netlify account returned:
+          `403 database feature not available for this account`
+          when V16.0 attempted to provision Netlify Database.
+
+          V16.0.1 therefore uses Netlify Blobs, which requires no database provisioning.
+
+          ### Architecture
+
+          - Site-wide Blob store: `trendpilot-products-v16`
+          - Generic search endpoint: `/api/products-v16?q=...`
+          - Health endpoint: `/api/products-v16/health`
+          - Background rebuild endpoint: `/api/products-v16/rebuild`
+          - Products are normalized from existing TrendPilot catalog JSON.
+          - Product documents are split into 16 stable shards.
+          - Search tokens are stored in hash-partitioned inverted-index blobs.
+          - Search can filter by seller or network.
+          - The current public V15 finder is not replaced yet.
+          - GEO/serviceable-area filtering is not introduced.
+
+          ### Rollout
+
+          1. Deploy V16.0.1.
+          2. Verify `/api/products-v16/health`.
+          3. Trigger `/api/products-v16/rebuild` once.
+          4. Re-check `/api/products-v16/health`.
+          5. Test generic queries such as `phone`, `watch`, `dog food`, `dress`, `laptop`.
+          6. After data-quality verification, V16.1 will connect the public finder to this index with live-source fallback/write-through caching.
+          MD
+
+      - name: Validate V16.0.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check netlify/functions/products-v16-lib.mjs
+          node --check netlify/functions/products-v16.mjs
+          node --check netlify/functions/products-v16-health.mjs
+          node --check netlify/functions/products-v16-rebuild.mjs
+
+          node - <<'NODE'
+          const pkg = require("./package.json");
+          if (!pkg.dependencies || !pkg.dependencies["@netlify/blobs"]) {
+            throw new Error("@netlify/blobs dependency is missing");
+          }
+          if (pkg.dependencies["@netlify/database"]) {
+            throw new Error("@netlify/database should have been removed");
+          }
+          console.log("@netlify/blobs:", pkg.dependencies["@netlify/blobs"]);
+          NODE
+
+          test ! -f netlify/database/migrations/20260809160400_create_trendpilot_product_index.sql
+
+          grep -q 'STORE_NAME = "trendpilot-products-v16"' netlify/functions/products-v16-lib.mjs
+          grep -q 'path: "/api/products-v16"' netlify/functions/products-v16.mjs
+          grep -q 'path: "/api/products-v16/health"' netlify/functions/products-v16-health.mjs
+          grep -q 'background: true' netlify/functions/products-v16-rebuild.mjs
+          grep -q 'getStore' netlify/functions/products-v16-rebuild.mjs
+
+          git diff --check
+
+          echo "V16.0.1 Netlify Blobs validation passed."
+
+      - name: Publish V16.0.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A \
+            package.json \
+            package-lock.json \
+            netlify \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.0.1 is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: replace unavailable Netlify Database with Blobs product index"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.0.1"
+            echo "- removed Netlify Database provisioning that returned HTTP 403"
+            echo "- switched universal product storage to Netlify Blobs"
+            echo "- added sharded product documents and inverted token index"
+            echo "- kept generic product search, health, and background rebuild APIs"
+            echo "- public V15 finder remains unchanged until V16 index is verified"
+          } >> "$GITHUB_STEP_SUMMARY"
