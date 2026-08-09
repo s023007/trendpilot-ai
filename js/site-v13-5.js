@@ -10,7 +10,7 @@
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
 
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "15.8.6";
+  const TP_CJ_GUARD_VERSION = "15.8.9";
   const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203", "7563286"]);
   const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal", "tiktokshopus"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal", "tiktokshopus", "tiktok", "tiktokshop"]);
@@ -277,7 +277,7 @@ function tpPublicSellerAllowed(p) {
     ["mens-underwear", /\b(men'?s underwear|boxers?|boxer briefs?)\b/i],
     ["womens-underwear", /\b(women'?s underwear|lingerie|bras?|panties)\b/i],
     ["laptops", /\b(laptops?|notebook computers?|thinkpad|ideapad|thinkbook|yoga|legion|lenovo loq|loq)\b/i],
-    ["smartphones", /\b(smartphones?|mobile phones?|iphone)\b/i],
+    ["smartphones", /\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy|google pixel|motorola(?: moto)?|moto g\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\b/i],
     ["tablets", /\b(tablets?|ipad)\b/i],
     ["power-banks", /\b(power banks?|portable battery chargers?)\b/i],
     ["earbuds", /\b(earbuds?|tws|in[- ]ear headphones?|earphones?)\b/i],
@@ -305,7 +305,7 @@ function tpPublicSellerAllowed(p) {
   const state = {
     manifest: null, query: "", plan: null, segments: [], segmentState: new Map(), products: [], exact: [], alternatives: [],
     shown: 24, activeTab: "exact", loading: false, scope: "", couponExpanded: false,
-    originalQuery: "", queryCorrected: false
+    originalQuery: "", queryCorrected: false, selectedSeller: "" // TP_SELECTED_SELLER_V15_8_9
   };
   const compareStore = "trendpilot-v13-compare";
   const savedStore = "trendpilot-v13-saved";
@@ -512,6 +512,47 @@ function normalizeProduct(p) {
     }
   }
   // TP_CJ_LIVE_SEARCH_V15_7_1_END
+  // TP_TIKTOK_LIVE_SELLER_V15_8_9_START
+  function tpLiveSellerQueriesV15_8_9(query,seller){
+    const q=lower(query||"").trim();
+    const canonical=tpCanonicalSellerV15_1(seller)||clean(seller);
+    if(canonical==="TikTok Shop US" && /^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones)$/i.test(q)){
+      return ["smartphone","unlocked smartphone","android smartphone","mobile phone","iphone"];
+    }
+    return [clean(query)].filter(Boolean);
+  }
+
+  function tpPrepareLiveSellerRowsV15_8_9(rows,seller,query){
+    const canonical=tpCanonicalSellerV15_1(seller)||clean(seller);
+    const q=lower(query||"").trim();
+    let out=Array.isArray(rows)?rows.filter(Boolean):[];
+    if(canonical==="TikTok Shop US" && /^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones)$/i.test(q)){
+      const accessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod)\b/i;
+      const device=/\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\s+[a-z0-9+.-]+)?|google pixel(?:\s+[a-z0-9+.-]+)?|motorola(?:\s+moto)?|moto\s+g\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\b/i;
+      out=out.filter(p=>{
+        const text=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
+        return device.test(text) && !accessory.test(text);
+      }).map(p=>Object.assign({},p,{group:"phones-tablets",family:"smartphones"}));
+    }
+    const seen=new Set();
+    return out.filter(p=>{
+      const key=clean(p.clusterKey||p.id||p.url||p.name);
+      if(!key || seen.has(key))return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  async function tpLoadSelectedLiveSellerV15_8_9(seller,query=state.query){
+    const queries=tpLiveSellerQueriesV15_8_9(query,seller);
+    const settled=await Promise.allSettled(queries.map(q=>tpLoadCjLiveProductsV15_7_1(q,seller)));
+    const rows=[];
+    settled.forEach(result=>{
+      if(result.status==="fulfilled" && Array.isArray(result.value))rows.push(...result.value);
+    });
+    return tpPrepareLiveSellerRowsV15_8_9(rows,seller,query);
+  }
+  // TP_TIKTOK_LIVE_SELLER_V15_8_9_END
 
   // TP_CJ_SEARCH_BRIDGE_START
   let tpCjProductsPromise = null;
@@ -980,9 +1021,13 @@ function normalizeProduct(p) {
     if(plan.family==="makeup" || plan.families?.some(f=>/makeup/.test(f))) {
       if(/\b(t[- ]?shirts?|shirts?|hoodies?|dresses?|posters?|stickers?|wall art|phone cases?|makeup bags?|cosmetic bags?)\b/i.test(text))return false;
     }
+    // TP_SMARTPHONE_GUARD_V15_8_9
     if(plan.families?.includes("smartphones")) {
-      if(!/\b(?:phones?|smartphones?|mobile phones?|android phones?|iphones?)\b/i.test(text))return false;
-      if(/\b(?:case|cover|screen protector|charger|cable|mount|holder|stand|strap|lanyard|grip|dock|adapter|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack)\b/i.test(text))return false;
+      const tpPhoneText=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
+      const tpPhoneAccessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod)\b/i;
+      const tpRealPhone=/\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\s+[a-z0-9+.-]+)?|google pixel(?:\s+[a-z0-9+.-]+)?|motorola(?:\s+moto)?|moto\s+g\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\b/i;
+      if(tpPhoneAccessory.test(tpPhoneText))return false;
+      if(!tpRealPhone.test(tpPhoneText) && p.family!=="smartphones")return false;
     }
     if(plan.families?.includes("laptops") && /\b(bag|sleeve|stand|charger|keyboard cover|skin sticker)\b/i.test(text))return false;
     if(plan.families?.includes("office-printers") && /\b(ink|toner|cartridge|paper|label|printer head)\b/i.test(text))return false;
@@ -1286,7 +1331,7 @@ function normalizeProduct(p) {
   function filters() {
     return {
       group:$('[data-filter-group]')?.value||"", family:$('[data-filter-family]')?.value||"", audience:$('[data-filter-audience]')?.value||"",
-      merchant:$('[data-filter-merchant]')?.value||"", price:$('[data-filter-price]')?.value||"", sort:$('[data-filter-sort]')?.value||"smart",
+      merchant:$('[data-filter-merchant]')?.value||state.selectedSeller||"", price:$('[data-filter-price]')?.value||"", sort:$('[data-filter-sort]')?.value||"smart",
       coupon:$('[data-filter-coupon]')?.checked||false, rare:$('[data-filter-rare]')?.checked||false
     };
   }
@@ -1328,7 +1373,7 @@ function normalizeProduct(p) {
     if(audience)audience.value=audience.value||state.plan.audience||"";
     // TP_CJ_DROPDOWN_13_8_13
     if(merchant){
-      const current=tpCanonicalSellerV15_1(merchant.value)||merchant.value;
+      const current=state.selectedSeller||tpCanonicalSellerV15_1(merchant.value)||merchant.value;
       const matchedRows=uniqProducts([...(state.exact||[]),...(state.alternatives||[])]);
       const counts=new Map(TP_PRODUCT_SELLERS_V15_1.map(name=>[name,0]));
       matchedRows.forEach(p=>{
@@ -1400,12 +1445,15 @@ function normalizeProduct(p) {
   async function performSearch(query,push=true,scope=""){
   // TP_PRESERVE_SELLER_V15_6_5
   const merchantBeforeSearch=$('[data-filter-merchant]');
-  const preservedSeller=tpCanonicalSellerV15_1(merchantBeforeSearch?.value)||merchantBeforeSearch?.value||"";
+  const preservedSeller=state.selectedSeller||tpCanonicalSellerV15_1(merchantBeforeSearch?.value)||merchantBeforeSearch?.value||"";
+  state.selectedSeller=preservedSeller;
   const normalized=normalizeQuery(query);
   state.originalQuery=normalized.original; state.query=normalized.query; state.queryCorrected=normalized.corrected;
   state.scope=scope||""; state.shown=24; state.activeTab="exact"; state.products=[]; state.exact=[]; state.alternatives=[]; state.segmentState.clear(); state.loading=true;
   const cjLiveQueryV15_7_1=state.query;
-  const cjLivePromiseV15_7_1=tpLoadCjLiveProductsV15_7_1(cjLiveQueryV15_7_1,preservedSeller);
+  const cjLivePromiseV15_7_1=(preservedSeller && TP_CJ_LIVE_SELLERS_V15_7_1.has(preservedSeller))
+    ? tpLoadSelectedLiveSellerV15_8_9(preservedSeller,cjLiveQueryV15_7_1)
+    : tpLoadCjLiveProductsV15_7_1(cjLiveQueryV15_7_1,preservedSeller);
   resetFilterControls();
   const grid=$('[data-tp-product-grid]');
   if(grid)grid.innerHTML='<div class="tp-empty"><h3>Checking matching products…</h3><p>TrendPilot is loading the most relevant catalogue records.</p></div>';
@@ -1596,27 +1644,35 @@ function normalizeProduct(p) {
     $('[data-tp-load-more]')?.addEventListener('click',showMore);
     $$('[data-filter-group],[data-filter-family],[data-filter-audience],[data-filter-merchant],[data-filter-price],[data-filter-sort],[data-filter-coupon],[data-filter-rare]').forEach(x=>x.addEventListener('change',async()=>{
       if(x.matches('[data-filter-group]'))populateFilters();
-      if(x.matches('[data-filter-merchant]')&&x.value&&typeof tpLoadSellerSpecificV15_1==="function"){
-        const selected=x.value;
-        state.loading=true;
-        renderFinder();
-        await tpLoadSellerSpecificV15_1(selected);
-        state.loading=false;
-        populateFilters();
-        const merchant=$('[data-filter-merchant]');
-        if(merchant)merchant.value=selected;
+      if(x.matches('[data-filter-merchant]')){
+        const selected=tpCanonicalSellerV15_1(x.value)||clean(x.value);
+        state.selectedSeller=selected;
+        if(selected){
+          state.loading=true;
+          renderFinder();
+          if(TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)){
+            const liveRows=await tpLoadSelectedLiveSellerV15_8_9(selected,state.query);
+            if(liveRows.length)mergeProducts(liveRows);
+          }else if(typeof tpLoadSellerSpecificV15_1==="function"){
+            await tpLoadSellerSpecificV15_1(selected);
+          }
+          state.loading=false;
+          populateFilters();
+          const merchant=$('[data-filter-merchant]');
+          if(merchant)merchant.value=selected;
+        }
       }
       state.shown=24;
       renderFinder();
     }));
-    $('[data-reset-filters]')?.addEventListener('click',()=>{$$('[data-filter-panel] select').forEach(x=>x.value='');$$('[data-filter-panel] input[type="checkbox"]').forEach(x=>x.checked=false);state.shown=24;renderFinder();});
+    $('[data-reset-filters]')?.addEventListener('click',()=>{state.selectedSeller='';$$('[data-filter-panel] select').forEach(x=>x.value='');$$('[data-filter-panel] input[type="checkbox"]').forEach(x=>x.checked=false);state.shown=24;renderFinder();});
     $('[data-tp-filter-toggle]')?.addEventListener('click',e=>{const p=$('[data-tp-filter-panel]');p?.classList.toggle('is-expanded');e.currentTarget.setAttribute('aria-expanded',String(p?.classList.contains('is-expanded')));});
     const params=new URLSearchParams(location.search);performSearch(params.get('q')||"popular products",false,params.get('scope')||'');
   }
 
   function initEvents(){
     d.addEventListener('click',e=>{
-      const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){const merchant=$('[data-filter-merchant]');if(merchant)merchant.value="";state.shown=24;renderFinder();return;}
+      const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){state.selectedSeller='';const merchant=$('[data-filter-merchant]');if(merchant)merchant.value="";state.shown=24;renderFinder();return;}
       const quick=e.target.closest('[data-quick-view-id]');if(quick){e.preventDefault();openQuickView(quick.dataset.quickViewId);return;}
       const close=e.target.closest('[data-quick-close]');if(close){e.preventDefault();closeQuickView();return;}
       const detail=e.target.closest('[data-product-detail-id]');if(detail){const p=findProduct(detail.dataset.productDetailId);if(p)cacheProduct(normalizeProduct(p));trackEvent("product_detail_click",{productId:detail.dataset.productDetailId});return;}
