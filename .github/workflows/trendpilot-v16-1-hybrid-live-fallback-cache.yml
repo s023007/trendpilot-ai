@@ -1,0 +1,736 @@
+name: TrendPilot V16.1 Hybrid Live Fallback Cache
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-1-hybrid-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-hybrid-search:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Create V16.1 hybrid search endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > netlify/functions/products-v16-hybrid.mjs <<'JS'
+          import { getStore } from "@netlify/blobs";
+          import {
+            STORE_NAME,
+            clean,
+            lower,
+            queryTokens,
+            normalizeProduct,
+            hashHex
+          } from "./products-v16-lib.mjs";
+
+          const VERSION = "16.1.0";
+          const CORE_MIN = 20;
+          const STRONG_CORE_MIN = 12;
+          const QUERY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+          const MANIFEST_MEMORY_TTL_MS = 10 * 60 * 1000;
+          const CJ_LIVE_SELLERS = new Set([
+            "Temu",
+            "PandaHall",
+            "FragranceShop.com",
+            "Karaca EU",
+            "TikTok Shop US"
+          ]);
+
+          const accessoryWords = new Set([
+            "case","cases","cover","covers","protector","protectors",
+            "charger","chargers","charging","cable","cables",
+            "holder","holders","stand","stands","mount","mounts",
+            "repair","replacement","part","parts","tool","tools","kit","kits",
+            "accessory","accessories","adapter","adapters","dock","docks",
+            "screen","screens","stylus","pen","pens","strap","straps",
+            "band","bands","sleeve","sleeves","pouch","pouches",
+            "feeder","feeders","feeding","bowl","bowls","toy","toys",
+            "storage","container","containers","dispenser","dispensers",
+            "frame","frames","shell","shells","housing","housings",
+            "battery","batteries","lock","locks","box","boxes",
+            "spoon","spoons","scoop","scoops","scooper","scoopers",
+            "organizer","organizers","bracket","brackets","clip","clips",
+            "tripod","tripods","timer","timers","sticker","stickers",
+            "skin","skins","decal","decals","film","films","memory",
+            "card","cards","flash","drive","drives","ring","light","lights",
+            "microphone","microphones","speaker","speakers","headset","headsets",
+            "earphone","earphones","keyboard","keyboards","mouse","mice",
+            "gamepad","gamepads","controller","controllers","remote","remotes",
+            "lens","lenses","module","modules","sensor","sensors",
+            "bag","bags","wallet","wallets","bumper","bumpers"
+          ]);
+
+          let manifestMemory = { savedAt: 0, value: null };
+
+          const json = (body, status = 200) =>
+            new Response(JSON.stringify(body), {
+              status,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "public, max-age=0, s-maxage=30, stale-while-revalidate=120",
+                "x-content-type-options": "nosniff"
+              }
+            });
+
+          const words = value =>
+            lower(value).normalize("NFKC").match(/[\p{L}\p{N}]+/gu) || [];
+
+          const unique = rows => {
+            const seen = new Set();
+            return rows.filter(row => {
+              const key = clean(
+                row?.id ||
+                row?.sourceProductId ||
+                row?.affiliateUrl ||
+                row?.destinationUrl ||
+                row?.url ||
+                `${lower(row?.seller || row?.advertiser)}|${lower(row?.title || row?.name)}`
+              );
+              if (!key || seen.has(key)) return false;
+              seen.add(key);
+              return true;
+            });
+          };
+
+          async function fetchJson(url, timeoutMs = 5000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+              const response = await fetch(url, {
+                headers: { accept: "application/json" },
+                signal: controller.signal
+              });
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              return await response.json();
+            } finally {
+              clearTimeout(timer);
+            }
+          }
+
+          async function runLimited(items, concurrency, fn) {
+            if (!items.length) return [];
+            const output = new Array(items.length);
+            let next = 0;
+
+            async function worker() {
+              while (true) {
+                const index = next++;
+                if (index >= items.length) return;
+                try {
+                  output[index] = { status: "fulfilled", value: await fn(items[index], index) };
+                } catch (error) {
+                  output[index] = { status: "rejected", reason: error };
+                }
+              }
+            }
+
+            await Promise.all(
+              Array.from({ length: Math.min(concurrency, items.length) }, () => worker())
+            );
+            return output;
+          }
+
+          function intentRank(product, query, tokens) {
+            const title = lower(product?.title || product?.name);
+            const category = lower(
+              `${product?.category || ""} ${product?.subcategory || ""} ` +
+              `${product?.group || ""} ${product?.family || ""}`
+            );
+            const description = lower(product?.description || "").slice(0, 1000);
+
+            const titleWords = words(title);
+            const categoryWords = words(category);
+            const titleSet = new Set(titleWords);
+            const categorySet = new Set(categoryWords);
+
+            const allInTitle = tokens.length > 0 && tokens.every(t =>
+              titleSet.has(t) || (t.length >= 4 && title.includes(t))
+            );
+            const allInCategory = tokens.length > 0 && tokens.every(t =>
+              categorySet.has(t) || (t.length >= 4 && category.includes(t))
+            );
+            const titleHits = tokens.filter(t =>
+              titleSet.has(t) || (t.length >= 4 && title.includes(t))
+            ).length;
+            const categoryHits = tokens.filter(t =>
+              categorySet.has(t) || (t.length >= 4 && category.includes(t))
+            ).length;
+            const descriptionHits = tokens.filter(t => description.includes(t)).length;
+
+            const phraseInTitle = Boolean(query && title.includes(query));
+            const phraseAtStart = Boolean(
+              query &&
+              (title === query || title.startsWith(query + " ") || title.startsWith(query + "-"))
+            );
+
+            const queryLooksAccessory = tokens.some(t => accessoryWords.has(t));
+            const titleHasAccessory = titleWords.some(t => accessoryWords.has(t));
+            const categoryHasAccessory = categoryWords.some(t => accessoryWords.has(t));
+
+            let intentTier = 0;
+
+            if (queryLooksAccessory) {
+              if (phraseInTitle && allInTitle) intentTier = 5;
+              else if (allInTitle) intentTier = 4;
+              else if (phraseInTitle) intentTier = 3;
+              else if (allInCategory) intentTier = 2;
+              else intentTier = 1;
+            } else {
+              const cleanTitleCore = allInTitle && !titleHasAccessory;
+              const cleanPhraseCore = phraseInTitle && !titleHasAccessory;
+              const cleanCategoryCore = allInCategory && !categoryHasAccessory;
+
+              if ((cleanPhraseCore && phraseAtStart) || (cleanPhraseCore && cleanCategoryCore)) {
+                intentTier = 5;
+              } else if (cleanTitleCore || cleanCategoryCore) {
+                intentTier = 4;
+              } else if (cleanPhraseCore) {
+                intentTier = 3;
+              } else if (allInTitle || phraseInTitle) {
+                intentTier = 2;
+              } else if (allInCategory || titleHits > 0) {
+                intentTier = 1;
+              }
+            }
+
+            let score =
+              intentTier * 1000 +
+              titleHits * 90 +
+              categoryHits * 65 +
+              Math.min(descriptionHits, 2) * 8 +
+              Number(product?.quality || 0);
+
+            if (phraseInTitle) score += 180;
+            if (phraseAtStart) score += 120;
+            if (!queryLooksAccessory && titleHasAccessory) score -= 280;
+            if (!queryLooksAccessory && categoryHasAccessory && !allInCategory) score -= 120;
+
+            return { intentTier, score };
+          }
+
+          function rankedNormalize(rows, sourceHint, query, tokens, sellerFilter = "", networkFilter = "") {
+            const sellerLower = lower(sellerFilter);
+            const networkLower = lower(networkFilter);
+
+            return rows
+              .map(row => {
+                const normalized = normalizeProduct(row, sourceHint);
+                if (!normalized) return null;
+
+                if (sellerLower && lower(normalized.seller) !== sellerLower) return null;
+                if (
+                  networkLower &&
+                  lower(normalized.network) !== networkLower &&
+                  lower(row?.network) !== networkLower
+                ) return null;
+
+                const rank = intentRank(normalized, query, tokens);
+
+                return {
+                  ...normalized,
+                  name: normalized.title,
+                  image: normalized.imageUrl,
+                  url: normalized.affiliateUrl || normalized.destinationUrl,
+                  advertiser: normalized.seller,
+                  matchScore: rank.score,
+                  intentTier: rank.intentTier,
+                  fallbackSource: sourceHint
+                };
+              })
+              .filter(Boolean)
+              .sort((a, b) =>
+                b.intentTier - a.intentTier ||
+                b.matchScore - a.matchScore ||
+                b.quality - a.quality
+              );
+          }
+
+          async function loadBaseIndex(origin, query, seller, network) {
+            const params = new URLSearchParams({
+              q: query,
+              limit: "100",
+              test: "161"
+            });
+            if (seller) params.set("seller", seller);
+            if (network) params.set("network", network);
+
+            return fetchJson(`${origin}/api/products-v16?${params.toString()}`, 6000);
+          }
+
+          async function getManifest(origin) {
+            const now = Date.now();
+            if (
+              manifestMemory.value &&
+              now - manifestMemory.savedAt < MANIFEST_MEMORY_TTL_MS
+            ) {
+              return manifestMemory.value;
+            }
+
+            const manifest = await fetchJson(
+              `${origin}/data/search-catalog/manifest.json?v=16-1`,
+              7000
+            );
+
+            if (!manifest || !Array.isArray(manifest.segments)) {
+              throw new Error("Catalog manifest has no segments");
+            }
+
+            manifestMemory = { savedAt: now, value: manifest };
+            return manifest;
+          }
+
+          function routeSegmentKeys(manifest, tokens) {
+            const keys = [];
+            const seen = new Set();
+
+            for (const token of tokens) {
+              for (const key of manifest?.tokenRoutes?.[token] || []) {
+                if (!seen.has(key)) {
+                  seen.add(key);
+                  keys.push(key);
+                }
+              }
+            }
+
+            if (keys.length) return keys.slice(0, 18);
+
+            const scored = (manifest.segments || [])
+              .map(segment => {
+                const text = lower(
+                  `${segment?.key || ""} ${segment?.group || ""} ` +
+                  `${segment?.family || ""} ${segment?.audience || ""}`
+                );
+                const score = tokens.filter(t => text.includes(t)).length;
+                return { key: segment?.key, score };
+              })
+              .filter(row => row.key && row.score > 0)
+              .sort((a, b) => b.score - a.score)
+              .map(row => row.key);
+
+            return [...new Set(scored)].slice(0, 18);
+          }
+
+          function roundRobinFiles(manifest, segmentKeys, maxFiles = 24) {
+            const byKey = new Map(
+              (manifest.segments || []).map(segment => [segment.key, segment])
+            );
+            const rows = segmentKeys
+              .map(key => byKey.get(key))
+              .filter(Boolean)
+              .map(segment => ({
+                key: segment.key,
+                files: Array.isArray(segment.files) ? segment.files.slice(0, 3) : []
+              }));
+
+            const output = [];
+            for (let page = 0; page < 3 && output.length < maxFiles; page++) {
+              for (const row of rows) {
+                const file = row.files[page];
+                if (!file) continue;
+                output.push({ key: row.key, file });
+                if (output.length >= maxFiles) break;
+              }
+            }
+            return output;
+          }
+
+          async function loadCatalogFallback(origin, query, tokens, seller, network) {
+            const manifest = await getManifest(origin);
+            const segmentKeys = routeSegmentKeys(manifest, tokens);
+            const files = roundRobinFiles(manifest, segmentKeys, 24);
+
+            const settled = await runLimited(files, 6, async item => {
+              const payload = await fetchJson(
+                new URL(item.file, origin).toString(),
+                4500
+              );
+              return Array.isArray(payload?.products) ? payload.products : [];
+            });
+
+            const raw = settled
+              .filter(result => result.status === "fulfilled")
+              .flatMap(result => result.value);
+
+            const ranked = rankedNormalize(
+              raw,
+              "catalog-live-router",
+              query,
+              tokens,
+              seller,
+              network
+            );
+
+            return {
+              products: unique(ranked).slice(0, 140),
+              segmentKeys,
+              filesTried: files.length,
+              filesLoaded: settled.filter(x => x.status === "fulfilled").length
+            };
+          }
+
+          async function loadCjFallback(origin, query, tokens, seller, network) {
+            if (network && lower(network) !== "cj" && lower(network) !== "catalog") {
+              return { products: [], attempted: false };
+            }
+
+            if (seller && !CJ_LIVE_SELLERS.has(seller)) {
+              return { products: [], attempted: false };
+            }
+
+            const params = new URLSearchParams({ q: query });
+            if (seller) params.set("seller", seller);
+
+            const payload = await fetchJson(
+              `${origin}/api/cj-live-products?${params.toString()}`,
+              9500
+            );
+
+            const rows = Array.isArray(payload?.products) ? payload.products : [];
+            const ranked = rankedNormalize(
+              rows,
+              "cj-live",
+              query,
+              tokens,
+              seller,
+              ""
+            );
+
+            return {
+              products: unique(ranked).slice(0, 120),
+              attempted: true,
+              coverage: payload?.coverage || []
+            };
+          }
+
+          function queryCacheKey(query, seller, network) {
+            return `query-cache/${hashHex(
+              `${lower(query)}|${lower(seller)}|${lower(network)}|16.1`
+            ).slice(0, 40)}`;
+          }
+
+          async function readQueryCache(store, key) {
+            try {
+              const cached = await store.get(key, { type: "json" });
+              if (
+                cached &&
+                Array.isArray(cached.products) &&
+                Date.now() - Number(cached.savedAt || 0) < QUERY_CACHE_TTL_MS
+              ) {
+                return cached;
+              }
+            } catch {}
+            return null;
+          }
+
+          async function saveQueryCache(store, key, value) {
+            try {
+              await store.setJSON(key, value);
+              return true;
+            } catch (error) {
+              console.warn("V16.1 query cache write failed", error?.message || error);
+              return false;
+            }
+          }
+
+          function mergeAndRank(baseProducts, fallbackProducts, query, tokens, limit, offset) {
+            const rows = unique([
+              ...(baseProducts || []),
+              ...(fallbackProducts || [])
+            ]).map(product => {
+              const rank = intentRank(product, query, tokens);
+              return {
+                ...product,
+                name: clean(product?.name || product?.title),
+                image: clean(product?.image || product?.imageUrl),
+                url: clean(
+                  product?.url ||
+                  product?.affiliateUrl ||
+                  product?.destinationUrl
+                ),
+                matchScore: Math.max(
+                  Number(product?.matchScore || 0),
+                  rank.score
+                ),
+                intentTier: Math.max(
+                  Number(product?.intentTier || 0),
+                  rank.intentTier
+                )
+              };
+            });
+
+            rows.sort((a, b) =>
+              b.intentTier - a.intentTier ||
+              b.matchScore - a.matchScore ||
+              Number(b.quality || 0) - Number(a.quality || 0)
+            );
+
+            const coreCandidates = rows.filter(p => p.intentTier >= 4).length;
+            const strongCoreCandidates = rows.filter(p => p.intentTier >= 5).length;
+
+            return {
+              rows,
+              coreCandidates,
+              strongCoreCandidates,
+              paged: rows.slice(offset, offset + limit)
+            };
+          }
+
+          export default async function handler(request) {
+            if (request.method !== "GET") {
+              return json({ ok: false, error: "Method not allowed" }, 405);
+            }
+
+            try {
+              const url = new URL(request.url);
+              const origin = url.origin;
+              const query = clean(url.searchParams.get("q") || "").slice(0, 160);
+              const seller = clean(url.searchParams.get("seller") || "").slice(0, 140);
+              const network = clean(url.searchParams.get("network") || "").slice(0, 100);
+              const limit = Math.max(
+                1,
+                Math.min(100, Number(url.searchParams.get("limit") || 48) || 48)
+              );
+              const offset = Math.max(
+                0,
+                Math.min(1000, Number(url.searchParams.get("offset") || 0) || 0)
+              );
+
+              if (query.length < 2) {
+                return json({
+                  ok: true,
+                  version: VERSION,
+                  query,
+                  products: [],
+                  totalReturned: 0,
+                  fallbackUsed: false
+                });
+              }
+
+              const tokens = queryTokens(query);
+              const base = await loadBaseIndex(origin, query, seller, network);
+              const baseProducts = Array.isArray(base?.products) ? base.products : [];
+              const baseCore = Number(base?.coreCandidates || 0);
+              const baseStrong = Number(base?.strongCoreCandidates || 0);
+
+              const fallbackNeeded =
+                baseStrong < STRONG_CORE_MIN ||
+                baseCore < CORE_MIN;
+
+              const store = getStore({
+                name: STORE_NAME,
+                consistency: "strong"
+              });
+
+              const cacheKey = queryCacheKey(query, seller, network);
+              let cacheStatus = "not-needed";
+              let cachedProducts = [];
+              let liveProducts = [];
+              let catalogInfo = null;
+              let cjInfo = null;
+              let savedToBlobs = false;
+              const fallbackSources = [];
+
+              if (fallbackNeeded) {
+                const cached = await readQueryCache(store, cacheKey);
+
+                if (cached) {
+                  cacheStatus = "hit";
+                  cachedProducts = cached.products;
+                  fallbackSources.push("netlify-blobs-query-cache");
+                } else {
+                  cacheStatus = "miss";
+
+                  const [catalogResult, cjResult] = await Promise.allSettled([
+                    loadCatalogFallback(origin, query, tokens, seller, network),
+                    loadCjFallback(origin, query, tokens, seller, network)
+                  ]);
+
+                  if (catalogResult.status === "fulfilled") {
+                    catalogInfo = catalogResult.value;
+                    liveProducts.push(...catalogResult.value.products);
+                    if (catalogResult.value.products.length) {
+                      fallbackSources.push("catalog-live-router");
+                    }
+                  }
+
+                  if (cjResult.status === "fulfilled") {
+                    cjInfo = cjResult.value;
+                    liveProducts.push(...cjResult.value.products);
+                    if (cjResult.value.products.length) {
+                      fallbackSources.push("cj-live");
+                    }
+                  }
+
+                  liveProducts = unique(liveProducts).slice(0, 180);
+
+                  if (liveProducts.length) {
+                    savedToBlobs = await saveQueryCache(store, cacheKey, {
+                      version: VERSION,
+                      savedAt: Date.now(),
+                      query,
+                      seller: seller || null,
+                      network: network || null,
+                      products: liveProducts,
+                      sources: fallbackSources
+                    });
+                  }
+                }
+              }
+
+              const fallbackProducts = cachedProducts.length
+                ? cachedProducts
+                : liveProducts;
+
+              const merged = mergeAndRank(
+                baseProducts,
+                fallbackProducts,
+                lower(query),
+                tokens,
+                limit,
+                offset
+              );
+
+              return json({
+                ok: true,
+                version: VERSION,
+                storage: "netlify-blobs",
+                mode: "index-first-hybrid",
+                query,
+                queryTokens: tokens,
+                seller: seller || null,
+                network: network || null,
+                indexedProducts: Number(base?.indexedProducts || 0),
+                baseCoreCandidates: baseCore,
+                baseStrongCoreCandidates: baseStrong,
+                fallbackNeeded,
+                fallbackUsed: fallbackProducts.length > 0,
+                fallbackSources,
+                fallbackAdded: fallbackProducts.length,
+                cacheStatus,
+                savedToBlobs,
+                coreCandidates: merged.coreCandidates,
+                strongCoreCandidates: merged.strongCoreCandidates,
+                totalCandidates: merged.rows.length,
+                totalReturned: merged.paged.length,
+                catalogFallback: catalogInfo ? {
+                  segmentKeys: catalogInfo.segmentKeys,
+                  filesTried: catalogInfo.filesTried,
+                  filesLoaded: catalogInfo.filesLoaded
+                } : null,
+                cjFallback: cjInfo ? {
+                  attempted: cjInfo.attempted,
+                  coverage: cjInfo.coverage
+                } : null,
+                products: merged.paged
+              });
+            } catch (error) {
+              console.error("TrendPilot V16.1 hybrid search failed", error);
+              return json({
+                ok: false,
+                version: VERSION,
+                error: "Hybrid product search failed.",
+                detail: String(error?.message || error).slice(0, 600)
+              }, 503);
+            }
+          }
+
+          export const config = {
+            path: "/api/products-v16-hybrid",
+            method: "GET",
+            rateLimit: {
+              action: "rate_limit",
+              aggregateBy: ["domain", "ip"],
+              windowSize: 60,
+              windowLimit: 30
+            }
+          };
+          JS
+
+          cat >> V16-UNIVERSAL-PRODUCT-INDEX.md <<'MD'
+
+          ## V16.1 — hybrid fallback and write-through query cache
+
+          V16.1 adds a safe parallel endpoint without replacing the stable V16.0.6 API.
+
+          Search flow:
+
+          1. Query the 49k+ Netlify Blobs index first.
+          2. If core results are insufficient, route the query through the full
+             search-catalog manifest and load relevant shard pages on demand.
+          3. In parallel, use the existing CJ Live Product API where applicable.
+          4. Merge and re-rank results by core-product intent.
+          5. Persist fallback results in Netlify Blobs for six hours so repeat
+             searches do not need to reload the same external/catalog sources.
+
+          Endpoint:
+
+          `/api/products-v16-hybrid?q=QUERY&limit=48`
+
+          The public finder remains unchanged until this endpoint is verified.
+          MD
+
+      - name: Validate V16.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check netlify/functions/products-v16-hybrid.mjs
+          git diff --check
+
+          grep -q 'const VERSION = "16.1.0"' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'path: "/api/products-v16-hybrid"' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'catalog-live-router' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'cj-live' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'query-cache/' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'savedToBlobs' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'baseStrongCoreCandidates' netlify/functions/products-v16-hybrid.mjs
+
+          echo "V16.1 hybrid endpoint validation passed."
+
+      - name: Publish V16.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            netlify/functions/products-v16-hybrid.mjs \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.1 hybrid endpoint already installed."
+            exit 0
+          fi
+
+          git commit -m "feat: add V16.1 index-first hybrid product search"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.1 Hybrid Search"
+            echo "- index-first search remains primary"
+            echo "- low-core queries use targeted catalog shard fallback"
+            echo "- CJ Live API runs in parallel where applicable"
+            echo "- fallback results are persisted in Netlify Blobs query cache"
+            echo "- public finder is unchanged until endpoint verification"
+            echo "- no full index rebuild required"
+          } >> "$GITHUB_STEP_SUMMARY"
