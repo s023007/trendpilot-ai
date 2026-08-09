@@ -1,6 +1,7 @@
-import { getDatabase } from "@netlify/database";
+import { getStore } from "@netlify/blobs";
+import { STORE_NAME } from "./products-v16-lib.mjs";
 
-const response = (body, status = 200) =>
+const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
     headers: {
@@ -12,52 +13,37 @@ const response = (body, status = 200) =>
 
 export default async function handler(request) {
   if (request.method !== "GET") {
-    return response({ ok: false, error: "Method not allowed" }, 405);
+    return json({ ok: false, error: "Method not allowed" }, 405);
   }
 
   try {
-    const db = getDatabase();
+    const store = getStore({ name: STORE_NAME, consistency: "strong" });
+    const meta = await store.get("meta", { type: "json" });
 
-    const totals = await db.sql`
-      SELECT
-        COUNT(*)::int AS products,
-        COUNT(DISTINCT NULLIF(seller, ''))::int AS sellers,
-        COUNT(DISTINCT NULLIF(network, ''))::int AS networks,
-        MAX(last_seen_at) AS last_indexed_at
-      FROM tp_products_v16
-      WHERE active = TRUE
-    `;
+    if (!meta) {
+      return json({
+        ok: true,
+        version: "16.0.1",
+        storage: "netlify-blobs",
+        ready: false,
+        products: 0,
+        message: "Storage is available. The first rebuild has not completed yet."
+      });
+    }
 
-    const sellers = await db.sql`
-      SELECT seller, network, COUNT(*)::int AS products
-      FROM tp_products_v16
-      WHERE active = TRUE
-      GROUP BY seller, network
-      ORDER BY COUNT(*) DESC, seller ASC
-      LIMIT 40
-    `;
-
-    const jobs = await db.sql`
-      SELECT id, job_type, status, started_at, completed_at, rows_seen, rows_written, detail
-      FROM tp_index_jobs_v16
-      ORDER BY id DESC
-      LIMIT 5
-    `;
-
-    return response({
+    return json({
       ok: true,
-      version: "16.0.0",
-      database: "ready",
-      totals: totals[0] || { products: 0, sellers: 0, networks: 0, last_indexed_at: null },
-      sellers,
-      recentJobs: jobs
+      version: "16.0.1",
+      storage: "netlify-blobs",
+      ...meta
     });
   } catch (error) {
-    console.error("TrendPilot V16 health failed", error);
-    return response({
+    console.error("TrendPilot V16 Blobs health failed", error);
+    return json({
       ok: false,
-      version: "16.0.0",
-      database: "not-ready",
+      version: "16.0.1",
+      storage: "netlify-blobs",
+      ready: false,
       detail: String(error?.message || error).slice(0, 500)
     }, 503);
   }

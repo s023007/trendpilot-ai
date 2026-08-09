@@ -1,6 +1,11 @@
-import { getDatabase } from "@netlify/database";
-
-const clean = value => String(value ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+import { getStore } from "@netlify/blobs";
+import {
+  STORE_NAME,
+  clean,
+  lower,
+  queryTokens,
+  tokenBucket
+} from "./products-v16-lib.mjs";
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -12,6 +17,14 @@ const json = (body, status = 200) =>
     }
   });
 
+const safeGetJSON = async (store, key) => {
+  try {
+    return await store.get(key, { type: "json" });
+  } catch {
+    return null;
+  }
+};
+
 export default async function handler(request) {
   if (request.method !== "GET") {
     return json({ ok: false, error: "Method not allowed" }, 405);
@@ -19,114 +32,143 @@ export default async function handler(request) {
 
   try {
     const url = new URL(request.url);
-    const q = clean(url.searchParams.get("q") || "").slice(0, 160);
-    const seller = clean(url.searchParams.get("seller") || "").slice(0, 120);
-    const network = clean(url.searchParams.get("network") || "").slice(0, 80);
+    const q = clean(url.searchParams.get("q") || "").slice(0, 180);
+    const seller = clean(url.searchParams.get("seller") || "").slice(0, 140);
+    const network = clean(url.searchParams.get("network") || "").slice(0, 100);
     const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") || 48) || 48));
-    const offset = Math.max(0, Math.min(5000, Number(url.searchParams.get("offset") || 0) || 0));
+    const offset = Math.max(0, Math.min(1000, Number(url.searchParams.get("offset") || 0) || 0));
 
-    const where = ["active = TRUE"];
-    const params = [];
-    let p = 1;
+    const store = getStore({ name: STORE_NAME, consistency: "strong" });
+    const meta = await safeGetJSON(store, "meta");
 
-    if (q) {
-      params.push(q);
-      const qp = p++;
-      where.push(`(
-        search_document @@ websearch_to_tsquery('simple', $${qp})
-        OR lower(title) LIKE '%' || lower($${qp}) || '%'
-        OR lower(brand) LIKE '%' || lower($${qp}) || '%'
-        OR lower(category) LIKE '%' || lower($${qp}) || '%'
-        OR lower(description) LIKE '%' || lower($${qp}) || '%'
-      )`);
+    if (!meta?.ready) {
+      return json({
+        ok: false,
+        version: "16.0.1",
+        storage: "netlify-blobs",
+        error: "Universal product index is not ready yet.",
+        next: "Run /api/products-v16/rebuild once, then re-check /api/products-v16/health."
+      }, 503);
     }
 
-    if (seller) {
-      params.push(seller);
-      where.push(`lower(seller) = lower($${p++})`);
+    const tokens = queryTokens(q);
+    if (!tokens.length) {
+      return json({
+        ok: true,
+        version: "16.0.1",
+        storage: "netlify-blobs",
+        query: q,
+        seller: seller || null,
+        network: network || null,
+        totalReturned: 0,
+        products: []
+      });
     }
 
-    if (network) {
-      params.push(network);
-      where.push(`lower(network) = lower($${p++})`);
+    const bucketNames = [...new Set(tokens.map(tokenBucket))];
+    const bucketPairs = await Promise.all(
+      bucketNames.map(async bucket => [bucket, await safeGetJSON(store, `tokens/${bucket}`)])
+    );
+    const buckets = new Map(bucketPairs);
+
+    const sellerLower = lower(seller);
+    const networkLower = lower(network);
+    const scores = new Map();
+
+    for (const token of tokens) {
+      const bucket = buckets.get(tokenBucket(token)) || {};
+      const rows = Array.isArray(bucket[token]) ? bucket[token] : [];
+
+      for (const row of rows) {
+        if (!row?.id) continue;
+        if (sellerLower && row.seller !== sellerLower) continue;
+        if (networkLower && row.network !== networkLower) continue;
+
+        const previous = scores.get(row.id) || { score: 0, matches: 0 };
+        previous.score += Number(row.score || 0);
+        previous.matches += 1;
+        scores.set(row.id, previous);
+      }
     }
 
-    params.push(limit);
-    const limitParam = p++;
-    params.push(offset);
-    const offsetParam = p++;
+    const ranked = [...scores.entries()]
+      .sort((a, b) =>
+        b[1].matches - a[1].matches ||
+        b[1].score - a[1].score
+      )
+      .slice(offset, offset + Math.max(limit * 4, 120));
 
-    const rankSql = q
-      ? `ts_rank_cd(search_document, websearch_to_tsquery('simple', $1)) DESC,
-         CASE
-           WHEN lower(title) = lower($1) THEN 5
-           WHEN lower(title) LIKE lower($1) || '%' THEN 4
-           WHEN lower(title) LIKE '%' || lower($1) || '%' THEN 3
-           WHEN lower(brand) = lower($1) THEN 2
-           ELSE 0
-         END DESC,`
-      : "";
+    if (!ranked.length) {
+      return json({
+        ok: true,
+        version: "16.0.1",
+        storage: "netlify-blobs",
+        query: q,
+        seller: seller || null,
+        network: network || null,
+        totalReturned: 0,
+        products: []
+      });
+    }
 
-    const sql = `
-      SELECT
-        source_key, source, network, seller, advertiser_id, source_product_id,
-        title, description, brand, category, subcategory,
-        price, currency, image_url, affiliate_url, destination_url,
-        condition_text, availability, quality, last_seen_at
-      FROM tp_products_v16
-      WHERE ${where.join(" AND ")}
-      ORDER BY
-        ${rankSql}
-        quality DESC,
-        last_seen_at DESC,
-        id DESC
-      LIMIT $${limitParam}
-      OFFSET $${offsetParam}
-    `;
+    const docShardNames = [...new Set(ranked.map(([id]) => id.slice(0, 1)))];
+    const docPairs = await Promise.all(
+      docShardNames.map(async shard => [shard, await safeGetJSON(store, `docs/${shard}`)])
+    );
+    const docShards = new Map(docPairs);
 
-    const db = getDatabase();
-    const rows = await db.sql.unsafe(sql, params);
+    const products = [];
+    const qLower = lower(q);
+
+    for (const [id, rank] of ranked) {
+      const doc = docShards.get(id.slice(0, 1))?.[id];
+      if (!doc) continue;
+
+      const titleLower = lower(doc.title);
+      const brandLower = lower(doc.brand);
+      const categoryLower = lower(doc.category);
+
+      let exactBoost = 0;
+      if (titleLower === qLower) exactBoost = 80;
+      else if (titleLower.startsWith(qLower)) exactBoost = 45;
+      else if (titleLower.includes(qLower)) exactBoost = 30;
+      if (brandLower === qLower) exactBoost += 15;
+      if (categoryLower.includes(qLower)) exactBoost += 10;
+
+      products.push({
+        ...doc,
+        url: doc.affiliateUrl || doc.destinationUrl,
+        image: doc.imageUrl,
+        matchScore: rank.score + rank.matches * 20 + exactBoost,
+        matchedTokens: rank.matches
+      });
+    }
+
+    products.sort((a, b) =>
+      b.matchScore - a.matchScore ||
+      b.quality - a.quality ||
+      a.title.localeCompare(b.title)
+    );
 
     return json({
       ok: true,
-      version: "16.0.0",
+      version: "16.0.1",
+      storage: "netlify-blobs",
       query: q,
+      queryTokens: tokens,
       seller: seller || null,
       network: network || null,
-      totalReturned: rows.length,
-      products: rows.map(row => ({
-        id: row.source_key,
-        sourceKey: row.source_key,
-        source: row.source,
-        network: row.network,
-        advertiser: row.seller,
-        advertiserId: row.advertiser_id,
-        sourceProductId: row.source_product_id,
-        name: row.title,
-        title: row.title,
-        description: row.description,
-        brand: row.brand,
-        category: row.category,
-        subcategory: row.subcategory,
-        price: row.price === null ? 0 : Number(row.price),
-        currency: row.currency,
-        image: row.image_url,
-        imageUrl: row.image_url,
-        url: row.affiliate_url || row.destination_url,
-        affiliateUrl: row.affiliate_url,
-        destinationUrl: row.destination_url,
-        condition: row.condition_text,
-        availability: row.availability,
-        quality: row.quality,
-        indexedAt: row.last_seen_at
-      }))
+      indexedProducts: meta.products || 0,
+      totalReturned: Math.min(limit, products.length),
+      products: products.slice(0, limit)
     });
   } catch (error) {
-    console.error("TrendPilot V16 product search failed", error);
+    console.error("TrendPilot V16 Blobs search failed", error);
     return json({
       ok: false,
-      version: "16.0.0",
-      error: "Product index is not ready yet.",
+      version: "16.0.1",
+      storage: "netlify-blobs",
+      error: "Universal product search failed.",
       detail: String(error?.message || error).slice(0, 500)
     }, 503);
   }

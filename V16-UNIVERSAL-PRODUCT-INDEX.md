@@ -1,21 +1,31 @@
 # TrendPilot V16 Universal Product Index
 
-V16 introduces a server-side universal product index backed by Netlify Database.
+## V16.0.1 — Netlify Blobs architecture
 
-## V16.0 foundation
+The project's current Netlify account returned:
+`403 database feature not available for this account`
+when V16.0 attempted to provision Netlify Database.
 
-- Creates a Postgres product table with full-text search.
-- Adds `/api/products-v16` for generic product search.
-- Adds `/api/products-v16/health` for index statistics.
-- Adds `/api/products-v16/rebuild` as an idempotent background importer.
-- Seeds from trusted existing TrendPilot catalog files.
-- Does not replace the public search UI yet. V15 remains the live fallback until V16 data quality is verified.
-- Keeps global catalog behavior; no GEO/serviceable-area import filtering is introduced.
+V16.0.1 therefore uses Netlify Blobs, which requires no database provisioning.
 
-## Rollout
+### Architecture
 
-1. Deploy V16.0 and let Netlify provision/apply the database migration.
+- Site-wide Blob store: `trendpilot-products-v16`
+- Generic search endpoint: `/api/products-v16?q=...`
+- Health endpoint: `/api/products-v16/health`
+- Background rebuild endpoint: `/api/products-v16/rebuild`
+- Products are normalized from existing TrendPilot catalog JSON.
+- Product documents are split into 16 stable shards.
+- Search tokens are stored in hash-partitioned inverted-index blobs.
+- Search can filter by seller or network.
+- The current public V15 finder is not replaced yet.
+- GEO/serviceable-area filtering is not introduced.
+
+### Rollout
+
+1. Deploy V16.0.1.
 2. Verify `/api/products-v16/health`.
 3. Trigger `/api/products-v16/rebuild` once.
 4. Re-check `/api/products-v16/health`.
-5. In V16.1, connect the public finder to database-first search with live-source fallback and write-through caching.
+5. Test generic queries such as `phone`, `watch`, `dog food`, `dress`, `laptop`.
+6. After data-quality verification, V16.1 will connect the public finder to this index with live-source fallback/write-through caching.
