@@ -10,7 +10,7 @@
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
 
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "15.8.9";
+  const TP_CJ_GUARD_VERSION = "15.9.1";
   const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203", "7563286"]);
   const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal", "tiktokshopus"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal", "tiktokshopus", "tiktok", "tiktokshop"]);
@@ -487,7 +487,7 @@ function normalizeProduct(p) {
     if(seller) params.set("seller",seller);
 
     const controller=new AbortController();
-    const timer=setTimeout(()=>controller.abort(),5000);
+    const timer=setTimeout(()=>controller.abort(),10000);
 
     try{
       const response=await fetch(`/api/cj-live-products?${params.toString()}`,{
@@ -517,7 +517,7 @@ function normalizeProduct(p) {
     const q=lower(query||"").trim();
     const canonical=tpCanonicalSellerV15_1(seller)||clean(seller);
     if(canonical==="TikTok Shop US" && /^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones)$/i.test(q)){
-      return ["smartphone","unlocked smartphone","android smartphone","mobile phone","iphone"];
+      return ["smartphone","unlocked phone","android phone","mobile phone","cell phone","iphone","samsung galaxy","google pixel","5g phone"];
     }
     return [clean(query)].filter(Boolean);
   }
@@ -1331,7 +1331,7 @@ function normalizeProduct(p) {
   function filters() {
     return {
       group:$('[data-filter-group]')?.value||"", family:$('[data-filter-family]')?.value||"", audience:$('[data-filter-audience]')?.value||"",
-      merchant:$('[data-filter-merchant]')?.value||state.selectedSeller||"", price:$('[data-filter-price]')?.value||"", sort:$('[data-filter-sort]')?.value||"smart",
+      merchant:($('[data-filter-merchant]')?clean($('[data-filter-merchant]').value):(state.selectedSeller||"")), price:$('[data-filter-price]')?.value||"", sort:$('[data-filter-sort]')?.value||"smart",
       coupon:$('[data-filter-coupon]')?.checked||false, rare:$('[data-filter-rare]')?.checked||false
     };
   }
@@ -1660,6 +1660,11 @@ function normalizeProduct(p) {
           populateFilters();
           const merchant=$('[data-filter-merchant]');
           if(merchant)merchant.value=selected;
+        }else{
+          state.selectedSeller="";
+          state.shown=24;
+          await performSearch(state.query,false,state.scope);
+          return;
         }
       }
       state.shown=24;
@@ -1672,7 +1677,7 @@ function normalizeProduct(p) {
 
   function initEvents(){
     d.addEventListener('click',e=>{
-      const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){state.selectedSeller='';const merchant=$('[data-filter-merchant]');if(merchant)merchant.value="";state.shown=24;renderFinder();return;}
+      const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){state.selectedSeller='';const merchant=$('[data-filter-merchant]');if(merchant)merchant.value="";state.shown=24;performSearch(state.query,false,state.scope);return;}
       const quick=e.target.closest('[data-quick-view-id]');if(quick){e.preventDefault();openQuickView(quick.dataset.quickViewId);return;}
       const close=e.target.closest('[data-quick-close]');if(close){e.preventDefault();closeQuickView();return;}
       const detail=e.target.closest('[data-product-detail-id]');if(detail){const p=findProduct(detail.dataset.productDetailId);if(p)cacheProduct(normalizeProduct(p));trackEvent("product_detail_click",{productId:detail.dataset.productDetailId});return;}

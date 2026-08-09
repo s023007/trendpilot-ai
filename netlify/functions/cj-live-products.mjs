@@ -153,7 +153,7 @@ function buildSelection(alias, seller, query) {
       companyId: ${COMPANY_ID}
       adIds: [${adIds}]
       keywords: [${safeQuery}]
-      limit: 40
+      limit: ${seller === "TikTok Shop US" ? 80 : 40}
     ) {
       totalCount
       count
@@ -188,7 +188,7 @@ async function queryCj(query, sellers, token) {
     return buildSelection(alias, seller, query);
   }).join("\n");
 
-  const graphql = `query TrendPilotLiveSearchV1585 {\n${selections}\n}`;
+  const graphql = `query TrendPilotLiveSearchV1591 {\n${selections}\n}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8500);
 
@@ -199,7 +199,7 @@ async function queryCj(query, sellers, token) {
         "authorization": `Bearer ${token}`,
         "content-type": "application/json",
         "accept": "application/json",
-        "user-agent": "TrendPilot-CJ-Live-Search/15.8.5"
+        "user-agent": "TrendPilot-CJ-Live-Search/15.9.1"
       },
       body: JSON.stringify({ query: graphql }),
       signal: controller.signal
@@ -324,7 +324,7 @@ async function loadSellerTrackingLinks(seller, token) {
       headers: {
         "authorization": `Bearer ${token}`,
         "accept": "application/xml, text/xml;q=0.9, */*;q=0.5",
-        "user-agent": "TrendPilot-CJ-Link-Fallback/15.8.5"
+        "user-agent": "TrendPilot-CJ-Link-Fallback/15.9.1"
       },
       signal: controller.signal
     });
@@ -454,7 +454,7 @@ function normalizeRows(result, seller, query, trackingFallback) {
       return rank(b.trackingStatus) - rank(a.trackingStatus) ||
         b.liveScore - a.liveScore;
     })
-    .slice(0, 28);
+    .slice(0, seller === "TikTok Shop US" ? 60 : 28);
 }
 
 export default async (request) => {
@@ -494,7 +494,7 @@ export default async (request) => {
   ) {
     return jsonResponse({
       ok: true,
-      version: "15.8.5",
+      version: "15.9.1",
       products: [],
       total: 0,
       coverage: []
@@ -505,7 +505,7 @@ export default async (request) => {
     ? [requestedSeller]
     : Object.keys(SELLERS);
 
-  const cacheKey = `${query.toLowerCase()}|${requestedSeller || "all"}|15.8.5`;
+  const cacheKey = `${query.toLowerCase()}|${requestedSeller || "all"}|15.9.1`;
   const cached = productCache.get(cacheKey);
 
   if (cached && Date.now() - cached.savedAt < 180_000) {
@@ -576,7 +576,7 @@ export default async (request) => {
 
     const body = {
       ok: true,
-      version: "15.8.5",
+      version: "15.9.1",
       query,
       requestedSeller: requestedSeller || null,
       products: unique,
@@ -600,7 +600,7 @@ export default async (request) => {
 
     return jsonResponse(body);
   } catch (error) {
-    console.error("TrendPilot CJ live search V15.8.5 failed", {
+    console.error("TrendPilot CJ live search V15.9.1 failed", {
       message: error?.message,
       query,
       seller: requestedSeller || "all"
@@ -608,7 +608,7 @@ export default async (request) => {
 
     return jsonResponse({
       ok: false,
-      version: "15.8.5",
+      version: "15.9.1",
       error: "CJ live search is temporarily unavailable.",
       detail: String(error?.message || "").slice(0, 500)
     }, 502);

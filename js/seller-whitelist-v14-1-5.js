@@ -39,19 +39,24 @@
     return "";
   }
 
+  function signatureName(value){
+    const raw=clean(value).replace(/\s*\(\d+\)\s*$/," ").trim();
+    if(low(raw)==="all sellers") return "All sellers";
+    return canon(raw)||raw;
+  }
   function desiredSignature(){
-    return ["All sellers",...allowed].join("|");
+    return ["All sellers",...allowed].map(signatureName).sort((a,b)=>a.localeCompare(b)).join("|");
   }
 
   function currentSignature(s){
-    return [...s.options].map(o=>clean(o.textContent)).join("|");
+    return [...s.options].map(o=>signatureName(o.value||o.textContent)).sort((a,b)=>a.localeCompare(b)).join("|");
   }
 
   function fix(s){
     if(!isSeller(s)||!allowed.length) return;
     if(currentSignature(s)===desiredSignature()) return;
 
-    const selected=canon(s.options[s.selectedIndex]?.textContent||s.value);
+    const selected=canon(s.value)||canon(clean(s.options[s.selectedIndex]?.textContent||"").replace(/\s*\(\d+\)\s*$/,""));
     const oldValues=new Map();
     for(const o of [...s.options]){
       const c=canon(o.textContent||o.value);
@@ -67,7 +72,7 @@
         const opt=[...s.options].find(o=>canon(o.textContent)===selected);
         if(opt) s.value=opt.value;
       }
-      s.dataset.tpApprovedSellers="15.8.6";
+      s.dataset.tpApprovedSellers="15.9.1";
     } finally {
       applying=false;
     }
@@ -80,7 +85,7 @@
 
   async function init(){
     try{
-      const r=await fetch(`/data/approved-product-sellers-v14-1-5.json?v=15.8.6`,{cache:"force-cache"});
+      const r=await fetch(`/data/approved-product-sellers-v14-1-5.json?v=15.9.1`,{cache:"force-cache"});
       const j=r.ok?await r.json():{};
       allowed=Array.isArray(j.approvedProductSellers)?j.approvedProductSellers:[];
     }catch{
