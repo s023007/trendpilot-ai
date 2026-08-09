@@ -1,6 +1,6 @@
 {
   "version": "13.8.9",
-  "generatedAt": "2026-08-08T04:37:11.076135+00:00",
+  "generatedAt": "2026-08-09T04:45:45.755437+00:00",
   "status": "exact-seven-hotfix-installed",
   "approvedAdvertiserCount": 7,
   "approvedAdvertisers": [
@@ -34,11 +34,12 @@
     }
   ],
   "knownCjSellerKeysDiscovered": 25,
-  "cjEvidenceRecordsScanned": 2256,
+  "cjEvidenceRecordsScanned": 2257,
   "evidenceFiles": [
     "data/cj-link-catalog.json",
     "data/cj-offers.json",
     "data/cj-products.json",
+    "data/diagnostics/diecast-expansion-v15-6-6.json",
     "data/source-ingestion-report.json",
     "js/cj-joined-sellers.js"
   ],
@@ -69,7 +70,7 @@
     }
   ],
   "manifestCacheKeyUpdated": true,
-  "htmlFilesCacheBusted": 3,
+  "htmlFilesCacheBusted": 1,
   "important": [
     "The public CJ allowlist is no longer built from local active/approved labels.",
     "Only the seven confirmed CIDs and their name aliases are accepted.",
