@@ -66,3 +66,23 @@ V16.0.1 therefore uses Netlify Blobs, which requires no database provisioning.
 - Core-product candidate counts are exposed for the future live fallback.
 - Explicit accessory searches remain supported.
 - Search-only release; the 49k-product Blob index does not require rebuild.
+
+## V16.1 — hybrid fallback and write-through query cache
+
+V16.1 adds a safe parallel endpoint without replacing the stable V16.0.6 API.
+
+Search flow:
+
+1. Query the 49k+ Netlify Blobs index first.
+2. If core results are insufficient, route the query through the full
+   search-catalog manifest and load relevant shard pages on demand.
+3. In parallel, use the existing CJ Live Product API where applicable.
+4. Merge and re-rank results by core-product intent.
+5. Persist fallback results in Netlify Blobs for six hours so repeat
+   searches do not need to reload the same external/catalog sources.
+
+Endpoint:
+
+`/api/products-v16-hybrid?q=QUERY&limit=48`
+
+The public finder remains unchanged until this endpoint is verified.
