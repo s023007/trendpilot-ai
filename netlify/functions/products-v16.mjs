@@ -7,7 +7,7 @@ import {
   tokenBucket
 } from "./products-v16-lib.mjs";
 
-const VERSION = "16.0.3";
+const VERSION = "16.0.4";
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -44,7 +44,11 @@ const accessoryWords = new Set([
   "feeder","feeders","feeding","bowl","bowls","toy","toys",
   "storage","container","containers","dispenser","dispensers",
   "remover","tester","testing","fixture","fixtures",
-  "frame","frames","shell","shells","housing","housings"
+  "frame","frames","shell","shells","housing","housings",
+  "battery","batteries","lock","locks","box","boxes",
+  "spoon","spoons","scoop","scoops","scooper","scoopers",
+  "organizer","organizers","bracket","brackets","clip","clips",
+  "tripod","tripods","lunch","timer","timers"
 ]);
 
 function tokenSet(value) {
@@ -65,9 +69,11 @@ function relevanceFor(doc, q, tokens, baseRank) {
   const category = lower(`${doc.category || ""} ${doc.subcategory || ""}`);
   const description = lower(doc.description || "").slice(0, 1200);
 
-  const titleSet = tokenSet(title);
+  const titleWords = words(title);
+  const categoryWords = words(category);
+  const titleSet = new Set(titleWords);
   const brandSet = tokenSet(brand);
-  const categorySet = tokenSet(category);
+  const categorySet = new Set(categoryWords);
   const descriptionSet = tokenSet(description);
 
   const titleCoverage = countCoverage(tokens, titleSet, title);
@@ -78,60 +84,99 @@ function relevanceFor(doc, q, tokens, baseRank) {
   const allInTitle = tokens.length > 0 && titleCoverage >= tokens.length;
   const allInCategory = tokens.length > 0 && categoryCoverage >= tokens.length;
   const phraseInTitle = Boolean(q && title.includes(q));
-  const phraseAtStart = Boolean(q && (title === q || title.startsWith(q + " ") || title.startsWith(q + "-")));
+  const phraseAtStart = Boolean(
+    q && (title === q || title.startsWith(q + " ") || title.startsWith(q + "-"))
+  );
+
   const queryLooksAccessory = tokens.some(t => accessoryWords.has(t));
+  const titleHasAccessory = titleWords.some(w => accessoryWords.has(w));
+  const categoryHasAccessory = categoryWords.some(w => accessoryWords.has(w));
 
   let score = Number(baseRank.score || 0) + Number(baseRank.matches || 0) * 18;
 
-  if (title === q) score += 220;
-  else if (phraseAtStart) score += 120;
-  else if (phraseInTitle) score += 80;
+  if (title === q) score += 260;
+  else if (phraseAtStart) score += 145;
+  else if (phraseInTitle) score += 95;
 
-  if (allInTitle) score += 105;
-  else score += titleCoverage * 32;
+  if (allInTitle) score += 115;
+  else score += titleCoverage * 34;
 
-  if (allInCategory) score += 115;
-  else score += categoryCoverage * 40;
+  if (allInCategory) score += 120;
+  else score += categoryCoverage * 42;
 
-  score += brandCoverage * 20;
-  score += Math.min(descriptionCoverage, 2) * 5;
+  score += brandCoverage * 22;
+  score += Math.min(descriptionCoverage, 2) * 4;
 
-  if (brand === q) score += 50;
+  if (brand === q) score += 55;
+
+  // A clean title that contains the requested product phrase, without
+  // accessory/repair intent, receives a strong generic "core product"
+  // boost. This is why "smart watch" beats "watch repair tool", and
+  // actual dog food can beat bowls/feeders.
+  const cleanCoreMatch =
+    phraseInTitle &&
+    !titleHasAccessory &&
+    (!categoryHasAccessory || allInCategory);
+
+  if (cleanCoreMatch) score += 165;
+  if (phraseAtStart && cleanCoreMatch) score += 70;
 
   let penalty = 0;
+
   if (!queryLooksAccessory && q) {
     const qPattern = escapeRegex(q).replace(/\s+/g, "\\s+");
     const accessoryPattern =
       "(?:case|cover|protector|charger|charging|cable|holder|stand|mount|" +
       "repair|replacement|parts?|tools?|kits?|accessor(?:y|ies)|adapter|dock|" +
       "screen|stylus|strap|band|sleeve|pouch|feeder|feeding|bowl|toy|storage|" +
-      "container|dispenser|remover|tester|testing|fixture|frame|shell|housing)";
+      "container|dispenser|remover|tester|testing|fixture|frame|shell|housing|" +
+      "batter(?:y|ies)|locks?|boxes?|spoons?|scoops?|scoopers?|organizers?|" +
+      "brackets?|clips?|tripods?|lunch|timers?)";
 
+    // Query followed by an accessory:
+    //   phone battery, dog food spoon, watch repair tool
     const queryThenAccessory = new RegExp(
-      qPattern + ".{0,45}\\b" + accessoryPattern + "\\b",
+      qPattern + ".{0,55}\\b" + accessoryPattern + "\\b",
       "i"
     );
+
+    // Accessory before the query:
+    //   bowl ... dog food, protective case for watch
+    const accessoryThenQuery = new RegExp(
+      "\\b" + accessoryPattern + "\\b.{0,70}" + qPattern,
+      "i"
+    );
+
+    // Explicit relation:
+    //   case for phone, compatible with watch
     const accessoryForQuery = new RegExp(
-      "\\b(?:for|compatible\\s+with|replacement\\s+for|used\\s+for)\\s+" + qPattern,
+      "\\b" + accessoryPattern +
+      "\\b.{0,25}\\b(?:for|compatible\\s+with|replacement\\s+for|used\\s+for)\\s+" +
+      qPattern,
       "i"
     );
 
-    if (queryThenAccessory.test(title)) penalty += 170;
-    if (accessoryForQuery.test(title)) penalty += 160;
+    if (queryThenAccessory.test(title)) penalty += 270;
+    if (accessoryThenQuery.test(title)) penalty += 250;
+    if (accessoryForQuery.test(title)) penalty += 290;
 
-    const titleHasAccessory = words(title).some(w => accessoryWords.has(w));
-    const categoryHasAccessory = words(category).some(w => accessoryWords.has(w));
+    // Any accessory language in a title that also contains the core
+    // query is weaker evidence than a clean core-product title.
+    if (phraseInTitle && titleHasAccessory) penalty += 105;
+    if (phraseInTitle && categoryHasAccessory) penalty += 65;
 
-    if (titleHasAccessory && categoryCoverage == 0) penalty += 55;
-    if (categoryHasAccessory && categoryCoverage == 0) penalty += 45;
+    // Description-only or incidental matches should not outrank core
+    // products merely because the word appears somewhere.
+    if (titleHasAccessory && titleCoverage == 0) penalty += 85;
+    if (categoryHasAccessory && titleCoverage == 0) penalty += 55;
   }
 
   if (titleCoverage == 0 && categoryCoverage == 0 && brandCoverage == 0) {
-    score -= 140;
+    score -= 180;
   }
 
   if (titleCoverage == 0 && descriptionCoverage > 0) {
-    score -= 60;
+    score -= 80;
   }
 
   score -= penalty;
@@ -144,6 +189,7 @@ function relevanceFor(doc, q, tokens, baseRank) {
       brandCoverage,
       phraseInTitle,
       phraseAtStart,
+      cleanCoreMatch,
       accessoryPenalty: penalty
     }
   };
@@ -216,7 +262,7 @@ export default async function handler(request) {
       }
     }
 
-    const candidateLimit = Math.min(1800, Math.max(1000, limit * 25));
+    const candidateLimit = 1800;
     const ranked = [...scores.entries()]
       .sort((a, b) =>
         b[1].matches - a[1].matches ||
@@ -286,7 +332,7 @@ export default async function handler(request) {
       products: paged
     });
   } catch (error) {
-    console.error("TrendPilot V16.0.3 search failed", error);
+    console.error("TrendPilot V16.0.4 search failed", error);
     return json({
       ok: false,
       version: VERSION,

@@ -43,3 +43,17 @@ V16.0.1 therefore uses Netlify Blobs, which requires no database provisioning.
 - Catalog shard selection is balanced across top-level product groups
   instead of taking only the first paths found in the manifest.
 - Catalog shard file paths no longer appear as affiliate network names.
+
+
+## V16.0.4 — core product intent ranking
+
+- Search-only update; no catalog rebuild required.
+- Strong generic boost for clean core-product titles.
+- Stronger down-ranking for accessories, repair tools and containers
+  when the visitor asks for the core product.
+- Symmetric accessory detection catches both `phone battery` and
+  `case for phone` style titles.
+- Explicit accessory queries such as `phone battery`, `watch case`
+  and `dog food bowl` remain valid and are not penalized.
+- Candidate rescoring now scans the full 1,800-entry token posting
+  window before returning the top results.
