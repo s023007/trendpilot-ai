@@ -1,0 +1,353 @@
+name: TrendPilot V16.2.4 Soft Intent Recovery
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-2-4-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  soft-intent-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Replace hard Exact gate with soft hybrid relevance
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js = Path("js/site-v13-5.js")
+          finder = Path("find/index.html")
+          docs = Path("V16-UNIVERSAL-PRODUCT-INDEX.md")
+
+          if not js.exists():
+              raise SystemExit("Missing js/site-v13-5.js")
+          if not finder.exists():
+              raise SystemExit("Missing find/index.html")
+
+          s = js.read_text(encoding="utf-8")
+
+          # ------------------------------------------------------------
+          # 1) Replace strictProductMatch with a SOFT hybrid gate.
+          #    V16.2.3 used a hard tier>=4 rule, which can remove genuine
+          #    products when titles include words such as screen/battery/card.
+          # ------------------------------------------------------------
+          strict_start = s.find("  function strictProductMatch(p, plan) {")
+          strict_end = s.find("  function relatedMatch(p, plan) {", strict_start)
+
+          if strict_start < 0 or strict_end < 0:
+              raise SystemExit("strictProductMatch boundaries not found.")
+
+          old_strict = s[strict_start:strict_end]
+
+          # Preserve the original non-hybrid matching body while removing
+          # the V16.2.3 hard early-return block if present.
+          body = old_strict
+
+          body = re.sub(
+              r'''(?ms)^\s*// TP_HYBRID_EXACT_GATE_V16_2_3\s*\n
+                  \s*if\(p\._tpHybridV16_2_1\)\{\s*\n
+                  \s*return Number\(p\.intentTier\|\|0\) >= 4;\s*\n
+                  \s*\}\s*\n''',
+              "",
+              body,
+              count=1
+          )
+
+          # Remove any older equivalent hard gate too.
+          body = re.sub(
+              r'''(?ms)^\s*// TP_HYBRID_EXACT_GATE_V16_2_2\s*\n
+                  \s*if\(p\._tpHybridV16_2_1\)\{\s*\n
+                  \s*return Number\(p\.intentTier\|\|0\) >= 4;\s*\n
+                  \s*\}\s*\n''',
+              "",
+              body,
+              count=1
+          )
+
+          if not body.startswith("  function strictProductMatch(p, plan) {"):
+              raise SystemExit("Unexpected strictProductMatch structure.")
+
+          original_inside = body[len("  function strictProductMatch(p, plan) {\n"):]
+
+          helper_and_strict = r'''  function tpHybridRelatedSignalV16_2_4(p, plan) {
+            if(!p?._tpHybridV16_2_1)return false;
+
+            const title=lower(p.name||p.title||"");
+            const ws=(title.match(/[a-z0-9]+/g)||[]);
+            const tokens=(plan?.intentTokens||[]).filter(Boolean);
+
+            if(!tokens.length)return false;
+
+            const supportWords=new Set([
+              "case","cover","protector","charger","charging","cable","connector",
+              "holder","stand","mount","adapter","dock","repair","tool","kit",
+              "screen","lcd","digitizer","module","replacement","part","parts",
+              "feeder","feeding","bowl","dispenser","container","storage",
+              "mat","placemat","tray","mold","mould","bead","beads",
+              "projector","speaker","microphone","headset","earphone",
+              "solar","panel","socket","pcb"
+            ]);
+
+            const relationWords=new Set([
+              "for","compatible","fits","fit","replacement","repair",
+              "adapter","accessory","accessories"
+            ]);
+
+            const hitIndexes=[];
+            ws.forEach((w,i)=>{
+              if(tokens.some(t=>w===t || (t.length>=4 && w.includes(t)))){
+                hitIndexes.push(i);
+              }
+            });
+
+            if(!hitIndexes.length)return false;
+
+            // "projector for phone", "replacement screen for phone", etc.
+            for(const i of hitIndexes){
+              const before=ws.slice(Math.max(0,i-5),i);
+              if(before.some(w=>relationWords.has(w)))return true;
+            }
+
+            // A support/accessory noun immediately beside the query is usually
+            // a related product, not the requested core product.
+            for(const i of hitIndexes){
+              const near=ws.slice(Math.max(0,i-2),Math.min(ws.length,i+4));
+              if(near.some(w=>supportWords.has(w)))return true;
+            }
+
+            // Multi-word searches: separated query words are weaker than the
+            // actual phrase. This removes patterns such as "dog paw ... food".
+            if(tokens.length>=2){
+              const positions=tokens.map(t=>{
+                let found=-1;
+                for(let i=0;i<ws.length;i++){
+                  if(ws[i]===t || (t.length>=4 && ws[i].includes(t))){
+                    found=i; break;
+                  }
+                }
+                return found;
+              });
+              if(positions.every(i=>i>=0)){
+                const span=Math.max(...positions)-Math.min(...positions)+1;
+                if(span>tokens.length+1)return true;
+              }
+            }
+
+            return false;
+          }
+
+          function strictProductMatch(p, plan) {
+            // TP_HYBRID_SOFT_GATE_V16_2_4
+            // Never hide all results only because a genuine item received a
+            // low intent tier. Use the tier as ranking evidence and reject only
+            // products that also carry a strong generic "related product" signal.
+            if(p?._tpHybridV16_2_1){
+              const tier=Number(p.intentTier||0);
+              if(tier>=4)return true;
+              if(tpHybridRelatedSignalV16_2_4(p,plan))return false;
+            }
+          '''
+
+          # Append the original strict matcher logic after the new hybrid pre-check.
+          # Strip the old function opener and final closing brace remains in original_inside.
+          new_strict = helper_and_strict + original_inside
+          s = s[:strict_start] + new_strict + s[strict_end:]
+
+          # ------------------------------------------------------------
+          # 2) Rebuild mergeProducts so Exact can use ALL merged sources again.
+          #    Hybrid tiers boost ranking, but they are not an absolute cutoff.
+          # ------------------------------------------------------------
+          merge_start = s.find("  function mergeProducts(rows) {")
+          merge_end = s.find("  function currency(", merge_start)
+
+          if merge_start < 0 or merge_end < 0:
+              raise SystemExit("mergeProducts boundaries not found.")
+
+          new_merge = r'''  function mergeProducts(rows) {
+            rows=(rows||[]).filter(tpCjPublicAllowed);
+
+            const map=new Map(
+              state.products
+                .filter(tpCjPublicAllowed)
+                .map(p=>[p.clusterKey||p.id,p])
+            );
+
+            rows.forEach(p=>{
+              const key=p.clusterKey||p.id;
+              if(
+                !map.has(key) ||
+                score(p,state.plan)>score(map.get(key),state.plan)
+              ){
+                map.set(key,p);
+              }
+            });
+
+            state.products=[...map.values()].filter(tpCjPublicAllowed);
+
+            // TP_HYBRID_SOFT_EXACT_POOL_V16_2_4
+            // Do not restrict Exact to hybrid rows only. The hybrid engine ranks
+            // the best rows first, while legacy/catalogue rows can safely fill
+            // gaps after passing strictProductMatch.
+            const rankedExact=state.products
+              .filter(p=>strictProductMatch(p,state.plan))
+              .sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+
+            state.exact=typeof tpDiversifySellersV15_1==="function"
+              ? tpDiversifySellersV15_1(rankedExact)
+              : rankedExact;
+
+            const exactKeys=new Set(
+              rankedExact.map(p=>p.clusterKey||p.id)
+            );
+
+            state.alternatives=state.products
+              .filter(p=>{
+                const key=p.clusterKey||p.id;
+                if(exactKeys.has(key))return false;
+
+                if(p._tpHybridV16_2_1){
+                  return true;
+                }
+
+                return relatedMatch(p,state.plan);
+              })
+              .sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+          }
+
+          '''
+
+          s = s[:merge_start] + new_merge + s[merge_end:]
+
+          # ------------------------------------------------------------
+          # 3) Restore minimum-result filling and remote Show More.
+          #    V16.2.3 disabled them whenever hybridMeta existed, which could
+          #    leave the page empty after a strict classification.
+          # ------------------------------------------------------------
+          s = s.replace(
+              "    if(state.exact.length<24 && !state.hybridMeta){",
+              "    if(state.exact.length<24){"
+          )
+
+          s = s.replace(
+              'const moreRemote=state.activeTab==="exact"&&!state.hybridMeta&&!candidatePagesExhausted();',
+              'const moreRemote=state.activeTab==="exact"&&!candidatePagesExhausted();'
+          )
+
+          s = s.replace(
+              'if(state.activeTab!=="exact"||state.hybridMeta||candidatePagesExhausted()||state.loading)return;',
+              'if(state.activeTab!=="exact"||candidatePagesExhausted()||state.loading)return;'
+          )
+
+          js.write_text(s, encoding="utf-8")
+
+          # ------------------------------------------------------------
+          # 4) Browser cache bust.
+          # ------------------------------------------------------------
+          h = finder.read_text(encoding="utf-8")
+          h2,n = re.subn(
+              r'/js/site-v13-5\.js\?v=[^"\']+',
+              '/js/site-v13-5.js?v=16.2.4',
+              h,
+              count=1
+          )
+
+          if n!=1:
+              raise SystemExit(f"Finder JS tag not found uniquely: matches={n}")
+
+          finder.write_text(h2, encoding="utf-8")
+
+          # ------------------------------------------------------------
+          # 5) Documentation.
+          # ------------------------------------------------------------
+          d = docs.read_text(encoding="utf-8") if docs.exists() else "# TrendPilot V16 Universal Product Index\n"
+
+          if "## V16.2.4 — soft intent recovery" not in d:
+              d += r'''
+
+          ## V16.2.4 — soft intent recovery
+
+          - Removes the V16.2.3 hard `intentTier >= 4` requirement that could
+            hide genuine products.
+          - Keeps hybrid intent tiers as ranking evidence rather than an
+            all-or-nothing visibility gate.
+          - Adds a generic related-product detector for patterns such as
+            `projector for phone`, repair parts, feeders, bowls and dispensers.
+          - Exact can again be filled from all merged catalogues after the
+            relevance checks pass.
+          - Restores minimum-result loading and remote Show More.
+          - No product-index rebuild is required.
+          '''
+
+          docs.write_text(d, encoding="utf-8")
+
+          print("V16.2.4 soft intent recovery applied.")
+          PY
+
+      - name: Validate V16.2.4
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          grep -q 'TP_HYBRID_SOFT_GATE_V16_2_4' js/site-v13-5.js
+          grep -q 'tpHybridRelatedSignalV16_2_4' js/site-v13-5.js
+          grep -q 'TP_HYBRID_SOFT_EXACT_POOL_V16_2_4' js/site-v13-5.js
+          grep -q '/js/site-v13-5.js?v=16.2.4' find/index.html
+
+          if grep -q 'TP_HYBRID_EXACT_GATE_V16_2_3' js/site-v13-5.js; then
+            echo "Old hard V16.2.3 gate still exists."
+            exit 1
+          fi
+
+          echo "V16.2.4 validation passed."
+
+      - name: Publish V16.2.4
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            js/site-v13-5.js \
+            find/index.html \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.2.4 is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: restore results with soft hybrid intent ranking"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.2.4"
+            echo "- fixes empty All sellers results introduced by the hard V16.2.3 gate"
+            echo "- keeps V16 intent ranking without requiring tier 4 for visibility"
+            echo "- filters strong related/accessory patterns generically"
+            echo "- restores minimum-result filling and Show More"
+            echo "- no product-index rebuild required"
+          } >> "$GITHUB_STEP_SUMMARY"
