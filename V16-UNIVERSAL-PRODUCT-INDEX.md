@@ -97,3 +97,15 @@ The public finder remains unchanged until this endpoint is verified.
   such as `grade`, `style`, `theme`, `pattern`, `mold`, or `label`.
 - Uses a new query-cache namespace for clean verification.
 - No full Blob index rebuild is required.
+
+
+## V16.2.3 — robust hybrid exact intent gate
+
+- Replaces fragile whitespace-sensitive patch anchors with function-boundary edits.
+- Hybrid Exact accepts only intent tier 4 or 5.
+- Related machines/accessories/parts remain under Related alternatives.
+- Adds generic relation demotion for "for", "compatible with", "replacement for", etc.
+- Tightens multi-word proximity for searches such as "dog food".
+- Prevents category metadata from promoting accessory titles to core products.
+- Freshly reranks merged products instead of preserving stale old intent tiers.
+- No full product-index rebuild is required.

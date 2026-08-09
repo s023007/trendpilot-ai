@@ -8,7 +8,7 @@ import {
   hashHex
 } from "./products-v16-lib.mjs";
 
-const VERSION = "16.1.1";
+const VERSION = "16.1.3";
 const CORE_MIN = 20;
 const STRONG_CORE_MIN = 12;
 const QUERY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -42,7 +42,8 @@ const accessoryWords = new Set([
   "earphone","earphones","keyboard","keyboards","mouse","mice",
   "gamepad","gamepads","controller","controllers","remote","remotes",
   "lens","lenses","module","modules","sensor","sensors",
-  "bag","bags","wallet","wallets","bumper","bumpers"
+  "bag","bags","wallet","wallets","bumper","bumpers",
+  "mat","mats","placemat","placemats","tray","trays"
 ]);
 
 let manifestMemory = { savedAt: 0, value: null };
@@ -184,6 +185,39 @@ function querySpanInfo(titleWords, query, tokens) {
   };
 }
 
+function relationBeforeQueryV16_1_3(titleWords, tokens) {
+  if (!tokens.length || !titleWords.length) return false;
+
+  const directRelations = new Set([
+    "for","fits","fit","compatible","replacement","repair",
+    "adapter","accessory","accessories"
+  ]);
+
+  for (let i = 0; i < titleWords.length; i++) {
+    const word = titleWords[i];
+    const queryHit = tokens.some(token =>
+      word === token ||
+      (token.length >= 4 && word.includes(token))
+    );
+    if (!queryHit) continue;
+
+    const before = titleWords.slice(Math.max(0, i - 5), i);
+    if (before.some(w => directRelations.has(w))) return true;
+
+    const joined = before.join(" ");
+    if (
+      joined.includes("compatible with") ||
+      joined.includes("replacement for") ||
+      joined.includes("used with") ||
+      joined.includes("works with") ||
+      joined.includes("designed for") ||
+      joined.includes("made for")
+    ) return true;
+  }
+
+  return false;
+}
+
 function intentRank(product, query, tokens) {
   const title = lower(product?.title || product?.name);
   const category = lower(
@@ -200,6 +234,7 @@ function intentRank(product, query, tokens) {
   const allInTitle = tokens.length > 0 && tokens.every(t =>
     titleSet.has(t) || (t.length >= 4 && title.includes(t))
   );
+
   const allInCategory = tokens.length > 0 && tokens.every(t =>
     categorySet.has(t) || (t.length >= 4 && category.includes(t))
   );
@@ -220,7 +255,9 @@ function intentRank(product, query, tokens) {
   const phraseInTitle = phrase.exactPhrase;
   const phraseAtStart = Boolean(
     query &&
-    (title === query || title.startsWith(query + " ") || title.startsWith(query + "-"))
+    (title === query ||
+     title.startsWith(query + " ") ||
+     title.startsWith(query + "-"))
   );
 
   const queryLooksAccessory = tokens.some(t => accessoryWords.has(t));
@@ -228,20 +265,35 @@ function intentRank(product, query, tokens) {
   const categoryHasAccessory = categoryWords.some(t => accessoryWords.has(t));
 
   const multiWordQuery = tokens.length >= 2;
-  const tightTokenSpan =
-    !multiWordQuery || phrase.minSpan <= Math.max(tokens.length + 2, 4);
-  const looseTokenSpan =
-    multiWordQuery && phrase.minSpan > Math.max(tokens.length + 4, 6);
 
-  // An exact phrase followed immediately by words such as "grade",
-  // "style", "theme", "pattern" or "mold" is often a descriptor rather
-  // than the requested product itself. Example pattern:
-  //   <query> grade silicone ...
-  // This rule is generic and applies to any multi-word query.
+  // For two-word searches such as "dog food", "dog paw print food"
+  // must not be treated like the exact product phrase.
+  const tightTokenSpan =
+    !multiWordQuery ||
+    phrase.minSpan <= Math.max(tokens.length + 1, 3);
+
+  const looseTokenSpan =
+    multiWordQuery &&
+    phrase.minSpan > Math.max(tokens.length + 3, 5);
+
   const misleadingExactPhrase =
     multiWordQuery &&
     phraseInTitle &&
     phrase.misleadingTail;
+
+  // Examples: "dog food bowl", "phone case", "dog food dispenser".
+  // When the requested phrase is immediately followed by an
+  // accessory/product-support word, it is related rather than core.
+  const accessoryPhraseTail =
+    phraseInTitle &&
+    !queryLooksAccessory &&
+    accessoryWords.has(phrase.nextWord);
+
+  // Examples: "projector for phone", "speaker for mobile phone",
+  // "replacement screen for iPhone".
+  const relationBeforeQuery =
+    !queryLooksAccessory &&
+    relationBeforeQueryV16_1_3(titleWords, tokens);
 
   let intentTier = 0;
 
@@ -256,16 +308,24 @@ function intentRank(product, query, tokens) {
       allInTitle &&
       !titleHasAccessory &&
       tightTokenSpan &&
-      !misleadingExactPhrase;
+      !misleadingExactPhrase &&
+      !accessoryPhraseTail &&
+      !relationBeforeQuery;
 
     const cleanPhraseCore =
       phraseInTitle &&
       !titleHasAccessory &&
-      !misleadingExactPhrase;
+      !misleadingExactPhrase &&
+      !accessoryPhraseTail &&
+      !relationBeforeQuery;
 
+    // Category is supporting evidence only. It must never promote
+    // an accessory title back to a core product.
     const cleanCategoryCore =
       allInCategory &&
-      !categoryHasAccessory;
+      !categoryHasAccessory &&
+      !titleHasAccessory &&
+      !relationBeforeQuery;
 
     if (
       (cleanPhraseCore && phraseAtStart) ||
@@ -279,7 +339,9 @@ function intentRank(product, query, tokens) {
     } else if (
       (allInTitle || phraseInTitle) &&
       !looseTokenSpan &&
-      !misleadingExactPhrase
+      !misleadingExactPhrase &&
+      !accessoryPhraseTail &&
+      !relationBeforeQuery
     ) {
       intentTier = 2;
     } else if (
@@ -290,6 +352,11 @@ function intentRank(product, query, tokens) {
     }
   }
 
+  // Hard caps for derived/related products.
+  if (accessoryPhraseTail) intentTier = Math.min(intentTier, 2);
+  if (relationBeforeQuery) intentTier = Math.min(intentTier, 1);
+  if (misleadingExactPhrase) intentTier = Math.min(intentTier, 1);
+
   let score =
     intentTier * 1000 +
     titleHits * 90 +
@@ -297,16 +364,22 @@ function intentRank(product, query, tokens) {
     Math.min(descriptionHits, 2) * 8 +
     Number(product?.quality || 0);
 
-  if (phraseInTitle && !misleadingExactPhrase) score += 180;
-  if (phraseAtStart && !misleadingExactPhrase) score += 120;
+  if (phraseInTitle && !misleadingExactPhrase && !accessoryPhraseTail) {
+    score += 180;
+  }
+  if (phraseAtStart && !misleadingExactPhrase && !accessoryPhraseTail) {
+    score += 120;
+  }
 
   if (tightTokenSpan && multiWordQuery) score += 70;
-  if (looseTokenSpan) score -= 220;
-  if (misleadingExactPhrase) score -= 650;
+  if (looseTokenSpan) score -= 260;
+  if (misleadingExactPhrase) score -= 700;
+  if (accessoryPhraseTail) score -= 620;
+  if (relationBeforeQuery) score -= 760;
 
-  if (!queryLooksAccessory && titleHasAccessory) score -= 280;
+  if (!queryLooksAccessory && titleHasAccessory) score -= 320;
   if (!queryLooksAccessory && categoryHasAccessory && !allInCategory) {
-    score -= 120;
+    score -= 140;
   }
 
   return {
@@ -316,7 +389,9 @@ function intentRank(product, query, tokens) {
       exactPhrase: phrase.exactPhrase,
       minSpan: phrase.minSpan,
       nextWord: phrase.nextWord,
-      misleadingTail: phrase.misleadingTail
+      misleadingTail: phrase.misleadingTail,
+      accessoryPhraseTail,
+      relationBeforeQuery
     }
   };
 }
@@ -517,7 +592,7 @@ async function loadCjFallback(origin, query, tokens, seller, network) {
 
 function queryCacheKey(query, seller, network) {
   return `query-cache/${hashHex(
-    `${lower(query)}|${lower(seller)}|${lower(network)}|16.1.1`
+    `${lower(query)}|${lower(seller)}|${lower(network)}|16.1.3`
   ).slice(0, 40)}`;
 }
 
@@ -560,14 +635,8 @@ function mergeAndRank(baseProducts, fallbackProducts, query, tokens, limit, offs
         product?.affiliateUrl ||
         product?.destinationUrl
       ),
-      matchScore: Math.max(
-        Number(product?.matchScore || 0),
-        rank.score
-      ),
-      intentTier: Math.max(
-        Number(product?.intentTier || 0),
-        rank.intentTier
-      )
+      matchScore: rank.score,
+      intentTier: rank.intentTier
     };
   });
 
@@ -737,7 +806,7 @@ export default async function handler(request) {
       products: merged.paged
     });
   } catch (error) {
-    console.error("TrendPilot V16.1.1 hybrid search failed", error);
+    console.error("TrendPilot V16.1.3 hybrid search failed", error);
     return json({
       ok: false,
       version: VERSION,

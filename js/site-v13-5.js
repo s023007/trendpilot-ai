@@ -1150,6 +1150,10 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     return true;
   }
   function strictProductMatch(p, plan) {
+    // TP_HYBRID_EXACT_GATE_V16_2_3
+  if(p._tpHybridV16_2_1){
+    return Number(p.intentTier||0) >= 4;
+  }
     if (plan.groups.length && !plan.groups.includes(p.group)) return false;
     if (plan.families?.length && !plan.families.includes(p.family)) return false;
     if (plan.audience && p.audience !== plan.audience) return false;
@@ -1168,6 +1172,12 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
   }
   function score(p, plan) {
     let n = p.quality / 10 + (p.image ? 6 : 0) + (p.price ? 4 : 0) + Math.min(8,p.rating) + Math.min(8,Math.log10(p.reviews + 1) * 2);
+    // TP_HYBRID_SCORE_V16_2_3
+    if(p._tpHybridV16_2_1){
+      const tier=Math.max(0,Number(p.intentTier||0));
+      const hs=Number(p.hybridMatchScore||0);
+      n += tier*1000 + Math.max(-900,Math.min(900,hs/8));
+    }
     const title = lower(p.name), q = plan.q;
     if (q && title.includes(q)) n += 100;
     plan.intentTokens.forEach(t => { if (title.includes(t)) n += 22; else if (lower(`${p.brand} ${p.category}`).includes(t)) n += 8; });
@@ -1178,14 +1188,55 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     return n;
   }
   function mergeProducts(rows) {
-    rows = (rows || []).filter(tpCjPublicAllowed);
-    const map = new Map(state.products.filter(tpCjPublicAllowed).map(p => [p.clusterKey || p.id,p]));
-    rows.forEach(p => { const key=p.clusterKey||p.id; if (!map.has(key) || score(p,state.plan)>score(map.get(key),state.plan)) map.set(key,p); });
-    state.products = [...map.values()].filter(tpCjPublicAllowed);
-    const rankedExact = state.products.filter(p => strictProductMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
-    state.exact = typeof tpDiversifySellersV15_1 === "function" ? tpDiversifySellersV15_1(rankedExact) : rankedExact;
-    state.alternatives = state.products.filter(p => relatedMatch(p,state.plan)).sort((a,b)=>score(b,state.plan)-score(a,state.plan));
-  }
+  rows = (rows || []).filter(tpCjPublicAllowed);
+
+  const map = new Map(
+    state.products
+      .filter(tpCjPublicAllowed)
+      .map(p => [p.clusterKey || p.id,p])
+  );
+
+  rows.forEach(p => {
+    const key=p.clusterKey||p.id;
+    if(
+      !map.has(key) ||
+      score(p,state.plan)>score(map.get(key),state.plan)
+    ){
+      map.set(key,p);
+    }
+  });
+
+  state.products = [...map.values()].filter(tpCjPublicAllowed);
+
+  // TP_HYBRID_EXACT_POOL_V16_2_3
+  const hybridRows=state.products.filter(p=>p._tpHybridV16_2_1);
+  const exactSource=hybridRows.length ? hybridRows : state.products;
+
+  const rankedExact=exactSource
+    .filter(p=>strictProductMatch(p,state.plan))
+    .sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+
+  state.exact=typeof tpDiversifySellersV15_1==="function"
+    ? tpDiversifySellersV15_1(rankedExact)
+    : rankedExact;
+
+  const exactKeys=new Set(
+    rankedExact.map(p=>p.clusterKey||p.id)
+  );
+
+  state.alternatives=state.products
+    .filter(p=>{
+      const key=p.clusterKey||p.id;
+      if(exactKeys.has(key))return false;
+
+      if(p._tpHybridV16_2_1){
+        return Number(p.intentTier||0)<4;
+      }
+
+      return relatedMatch(p,state.plan);
+    })
+    .sort((a,b)=>score(b,state.plan)-score(a,state.plan));
+}
 
   function currency(p) { return clean(p.currency || "USD"); }
   function money(value, code="USD") { if (!Number(value)) return "Price not supplied"; try { return new Intl.NumberFormat(undefined,{style:"currency",currency:code,maximumFractionDigits:2}).format(value); } catch { return `${code} ${Number(value).toFixed(2)}`; } }
@@ -1549,7 +1600,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     }
     const more=$('[data-tp-load-more]'); if(more){
       const moreLoaded=renderRows.length>state.shown;
-      const moreRemote=state.activeTab==="exact"&&!candidatePagesExhausted();
+      const moreRemote=state.activeTab==="exact"&&!state.hybridMeta&&!candidatePagesExhausted();
       more.hidden=!(moreLoaded||moreRemote);
       more.textContent=state.loading?"Checking more products…":moreLoaded?`Show ${Math.min(24,renderRows.length-state.shown)} more`:"Check more catalogue pages";
     }
@@ -1617,7 +1668,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
       ...admitadRows
     ]);
 
-    if(state.exact.length<24){
+    if(state.exact.length<24 && !state.hybridMeta){
       await Promise.race([
         ensureMinimumExact(24),
         new Promise(resolve=>setTimeout(resolve,6500))
@@ -1659,7 +1710,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
   async function showMore(){
     let rows=filterProducts(activeProducts());
     if(rows.length>state.shown){state.shown+=24;renderFinder();return;}
-    if(state.activeTab!=="exact"||candidatePagesExhausted()||state.loading)return;
+    if(state.activeTab!=="exact"||state.hybridMeta||candidatePagesExhausted()||state.loading)return;
     state.loading=true;renderFinder();
     const target=state.exact.length+24;
     await ensureMinimumExact(target);
