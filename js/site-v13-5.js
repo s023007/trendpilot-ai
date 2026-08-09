@@ -10,7 +10,7 @@
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
 
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "15.9.1";
+  const TP_CJ_GUARD_VERSION = "15.9.2";
   const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203", "7563286"]);
   const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal", "tiktokshopus"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal", "tiktokshopus", "tiktok", "tiktokshop"]);
@@ -305,7 +305,7 @@ function tpPublicSellerAllowed(p) {
   const state = {
     manifest: null, query: "", plan: null, segments: [], segmentState: new Map(), products: [], exact: [], alternatives: [],
     shown: 24, activeTab: "exact", loading: false, scope: "", couponExpanded: false,
-    originalQuery: "", queryCorrected: false, selectedSeller: "" // TP_SELECTED_SELLER_V15_8_9
+    originalQuery: "", queryCorrected: false, selectedSeller: "" // TP_SELECTED_SELLER_V15_9_2
   };
   const compareStore = "trendpilot-v13-compare";
   const savedStore = "trendpilot-v13-saved";
@@ -527,7 +527,7 @@ function normalizeProduct(p) {
     const q=lower(query||"").trim();
     let out=Array.isArray(rows)?rows.filter(Boolean):[];
     if(canonical==="TikTok Shop US" && /^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones)$/i.test(q)){
-      const accessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod)\b/i;
+      const accessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds)\b/i;
       const device=/\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\s+[a-z0-9+.-]+)?|google pixel(?:\s+[a-z0-9+.-]+)?|motorola(?:\s+moto)?|moto\s+g\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\b/i;
       out=out.filter(p=>{
         const text=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
@@ -869,24 +869,36 @@ function normalizeProduct(p) {
     return (await Promise.all(jobs)).flat();
   }
   async function tpLoadSellerSpecificV15_1(seller) {
-    seller=tpCanonicalSellerV15_1(seller)||seller;
-    if (!seller) return;
-    const index=await tpLoadSellerCoverageV15_1();
-    const keys=tpPlanRelevantSellerKeysV15_1(seller,index).slice(0,18);
-    let rounds=0;
-    for (const key of keys) {
-      const meta=segmentMeta(key);
-      if (!meta) continue;
-      for (let page=1; page<=Math.min(meta.pages||1,3); page++) {
-        const rows=await loadSegmentPage(key,page);
-        if (rows.length) mergeProducts(rows);
-        const count=state.exact.filter(p=>tpCanonicalSellerV15_1(p.advertiser)===seller).length;
-        if (count>=36) return;
-      }
-      rounds++;
-      if (rounds>=18) break;
+  seller=tpCanonicalSellerV15_1(seller)||seller;
+  if (!seller) return;
+  const index=await tpLoadSellerCoverageV15_1();
+  const sellerKeys=(index?.sellers?.[seller]?.segmentKeys||[]).filter(Boolean);
+  const direct=tpPlanRelevantSellerKeysV15_1(seller,index);
+  const familySet=new Set(state.plan?.families||[]);
+  const groupSet=new Set(state.plan?.groups||[]);
+  const familyKeys=sellerKeys.filter(key=>{const meta=segmentMeta(key);return meta&&familySet.has(meta.family);});
+  const groupKeys=sellerKeys.filter(key=>{const meta=segmentMeta(key);return meta&&groupSet.has(meta.group);});
+  const keys=uniq([...direct,...familyKeys,...groupKeys]).slice(0,24);
+  const target=48;
+  const maxPagesPerKey=12;
+  const maxNewPageLoads=24;
+  let newPageLoads=0;
+  for (const key of keys) {
+    const meta=segmentMeta(key);
+    if (!meta) continue;
+    const pageLimit=Math.min(meta.pages||1,maxPagesPerKey);
+    for (let page=1; page<=pageLimit && newPageLoads<maxNewPageLoads; page++) {
+      const before=state.segmentState.get(key);
+      const alreadyLoaded=Boolean(before?.loaded?.has(page));
+      const rows=await loadSegmentPage(key,page);
+      if(!alreadyLoaded)newPageLoads++;
+      if (rows.length) mergeProducts(rows);
+      const count=state.exact.filter(p=>tpCanonicalSellerV15_1(p.advertiser)===seller).length;
+      if (count>=target) return;
     }
+    if(newPageLoads>=maxNewPageLoads)break;
   }
+}
   function tpDiversifySellersV15_1(rows) {
     const buckets=new Map();
     for (const p of rows) {
@@ -1021,10 +1033,10 @@ function normalizeProduct(p) {
     if(plan.family==="makeup" || plan.families?.some(f=>/makeup/.test(f))) {
       if(/\b(t[- ]?shirts?|shirts?|hoodies?|dresses?|posters?|stickers?|wall art|phone cases?|makeup bags?|cosmetic bags?)\b/i.test(text))return false;
     }
-    // TP_SMARTPHONE_GUARD_V15_8_9
+    // TP_SMARTPHONE_GUARD_V15_9_2
     if(plan.families?.includes("smartphones")) {
       const tpPhoneText=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
-      const tpPhoneAccessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod)\b/i;
+      const tpPhoneAccessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds)\b/i;
       const tpRealPhone=/\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\s+[a-z0-9+.-]+)?|google pixel(?:\s+[a-z0-9+.-]+)?|motorola(?:\s+moto)?|moto\s+g\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\b/i;
       if(tpPhoneAccessory.test(tpPhoneText))return false;
       if(!tpRealPhone.test(tpPhoneText) && p.family!=="smartphones")return false;
