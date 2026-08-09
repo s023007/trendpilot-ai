@@ -1,0 +1,410 @@
+name: TrendPilot V16.2.1 Connect Hybrid Finder Robust
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-2-1-finder-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  connect-hybrid-finder:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Connect V16.1 hybrid API to public finder robustly
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js = Path("js/site-v13-5.js")
+          finder = Path("find/index.html")
+
+          if not js.exists():
+              raise SystemExit("Missing js/site-v13-5.js")
+          if not finder.exists():
+              raise SystemExit("Missing find/index.html")
+
+          s = js.read_text(encoding="utf-8")
+
+          # ------------------------------------------------------------
+          # 1) Install reusable V16 hybrid bridge.
+          # ------------------------------------------------------------
+          if "// TP_V16_2_1_HYBRID_FINDER_START" not in s:
+              anchor = "  // TP_CJ_SEARCH_BRIDGE_START"
+              pos = s.find(anchor)
+              if pos < 0:
+                  raise SystemExit("CJ search bridge anchor not found.")
+
+              block = r'''  // TP_V16_2_1_HYBRID_FINDER_START
+          async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
+            const q=clean(query);
+            const seller=tpCanonicalSellerV15_1(requestedSeller)||clean(requestedSeller);
+
+            if(q.length<2 || lower(q)==="popular products"){
+              return {rows:[],meta:null};
+            }
+
+            const params=new URLSearchParams({
+              q,
+              limit:"100",
+              test:"1621"
+            });
+
+            if(seller)params.set("seller",seller);
+
+            const controller=new AbortController();
+            const timer=setTimeout(()=>controller.abort(),12000);
+
+            try{
+              const response=await fetch(`/api/products-v16-hybrid?${params.toString()}`,{
+                cache:"no-store",
+                signal:controller.signal,
+                headers:{"accept":"application/json"}
+              });
+
+              if(!response.ok)return {rows:[],meta:null};
+
+              const payload=await response.json();
+
+              if(!payload?.ok || !Array.isArray(payload.products)){
+                return {rows:[],meta:payload||null};
+              }
+
+              const rows=payload.products
+                .map(row=>{
+                  const source={...row};
+
+                  source.name=clean(
+                    source.name ||
+                    source.title ||
+                    source.productName ||
+                    source.product_name
+                  );
+
+                  source.url=clean(
+                    source.url ||
+                    source.affiliateUrl ||
+                    source.affiliate_url ||
+                    source.destinationUrl ||
+                    source.destination_url ||
+                    source.productUrl ||
+                    source.product_url
+                  );
+
+                  source.image=clean(
+                    source.image ||
+                    source.imageUrl ||
+                    source.image_url
+                  );
+
+                  source.advertiser=clean(
+                    source.advertiser ||
+                    source.seller ||
+                    source.merchant ||
+                    source.network
+                  );
+
+                  let p=normalizeProduct(source);
+
+                  if(typeof tpEnrichCjTaxonomyV15_6_4==="function"){
+                    p=tpEnrichCjTaxonomyV15_6_4(p);
+                  }
+
+                  p._tpHybridV16_2_1=true;
+                  p.intentTier=Number(row.intentTier||0)||0;
+                  p.hybridMatchScore=Number(row.matchScore||0)||0;
+                  p.hybridFallbackSource=clean(
+                    row.fallbackSource ||
+                    (Array.isArray(payload.fallbackSources)
+                      ? payload.fallbackSources.join(", ")
+                      : "") ||
+                    "v16-index"
+                  );
+
+                  return p;
+                })
+                .filter(tpCjPublicAllowed)
+                .filter(tpPublicSellerAllowed);
+
+              return {rows,meta:payload};
+            }catch(error){
+              if(error?.name!=="AbortError"){
+                console.warn("TrendPilot V16.2.1 hybrid finder unavailable",error);
+              }
+              return {rows:[],meta:null};
+            }finally{
+              clearTimeout(timer);
+            }
+          }
+          // TP_V16_2_1_HYBRID_FINDER_END
+
+          '''
+              s = s[:pos] + block + s[pos:]
+
+          # ------------------------------------------------------------
+          # 2) Preserve hybrid intent ranking inside the existing UI score.
+          # ------------------------------------------------------------
+          if "p._tpHybridV16_2_1" not in s:
+              score_pattern = re.compile(
+                  r'(?m)^(\s*)let n = p\.quality / 10 \+ \(p\.image \? 6 : 0\) '
+                  r'\+ \(p\.price \? 4 : 0\) \+ Math\.min\(8,p\.rating\) '
+                  r'\+ Math\.min\(8,Math\.log10\(p\.reviews \+ 1\) \* 2\);$'
+              )
+
+              def score_repl(m):
+                  i=m.group(1)
+                  return (
+                      m.group(0) + "\n" +
+                      i + 'if(p._tpHybridV16_2_1){\n' +
+                      i + '  const tier=Math.max(0,Number(p.intentTier||0));\n' +
+                      i + '  const hybridScore=Math.max(0,Number(p.hybridMatchScore||0));\n' +
+                      i + '  n += tier*900 + Math.min(850,hybridScore/8);\n' +
+                      i + '}'
+                  )
+
+              s2,n=score_pattern.subn(score_repl,s,count=1)
+              if n!=1:
+                  raise SystemExit(f"Score anchor not found uniquely: matches={n}")
+              s=s2
+
+          # ------------------------------------------------------------
+          # 3) Add hybrid search as the primary all-seller source.
+          # ------------------------------------------------------------
+          if "hybridPromiseV16_2_1" not in s:
+              ps=s.find("  async function performSearch(query,push=true,scope=\"\"){")
+              if ps<0:
+                  raise SystemExit("performSearch start not found.")
+
+              pe=s.find("  function toggleCompare(",ps)
+              if pe<0:
+                  raise SystemExit("performSearch end boundary not found.")
+
+              part=s[ps:pe]
+
+              live_pattern=re.compile(
+                  r'  const cjLiveQueryV15_7_1=state\.query;\s*'
+                  r'  const cjLivePromiseV15_7_1=\(preservedSeller && TP_CJ_LIVE_SELLERS_V15_7_1\.has\(preservedSeller\)\)\s*'
+                  r'\? tpLoadSelectedLiveSellerV15_8_9\(preservedSeller,cjLiveQueryV15_7_1\)\s*'
+                  r': tpLoadCjLiveProductsV15_7_1\(cjLiveQueryV15_7_1,preservedSeller\);',
+                  re.S
+              )
+
+              live_repl=r'''  const cjLiveQueryV15_7_1=state.query;
+
+              // V16.2.1: hybrid owns all-seller live fallback.
+              // Keep direct CJ only for an explicitly selected CJ seller.
+              const cjLivePromiseV15_7_1=(preservedSeller && TP_CJ_LIVE_SELLERS_V15_7_1.has(preservedSeller))
+                ? tpLoadSelectedLiveSellerV15_8_9(preservedSeller,cjLiveQueryV15_7_1)
+                : Promise.resolve([]);
+
+              const hybridPromiseV16_2_1=tpLoadHybridProductsV16_2_1(
+                state.query,
+                preservedSeller
+              );'''
+
+              part2,n=live_pattern.subn(live_repl,part,count=1)
+              if n!=1:
+                  raise SystemExit(f"performSearch live promise block not found uniquely: matches={n}")
+              part=part2
+
+              merge_start=part.find("    const results=await Promise.allSettled([")
+              if merge_start<0:
+                  raise SystemExit("performSearch result source block start not found.")
+
+              old_end_line="    await Promise.race([ensureMinimumExact(24),new Promise(resolve=>setTimeout(resolve,6500))]);"
+              merge_end=part.find(old_end_line,merge_start)
+              if merge_end<0:
+                  raise SystemExit("performSearch result source block end not found.")
+              merge_end += len(old_end_line)
+
+              new_merge=r'''    const results=await Promise.allSettled([
+                hybridPromiseV16_2_1,
+                state.manifest.version==="fallback"?Promise.resolve(state.products):loadInitialSegments(),
+                loadCjProducts(),
+                typeof tpLoadBalancedSellerRowsV15_1==="function"?tpLoadBalancedSellerRowsV15_1():Promise.resolve([]),
+                loadAdmitadProductsV15_4()
+              ]);
+
+              const hybridPayload=results[0].status==="fulfilled"
+                ? results[0].value
+                : {rows:[],meta:null};
+
+              const rows=results[1].status==="fulfilled"?results[1].value:[];
+              const cjRows=results[2].status==="fulfilled"?results[2].value:[];
+              const balancedRows=results[3].status==="fulfilled"?results[3].value:[];
+              const admitadRows=results[4].status==="fulfilled"?results[4].value:[];
+
+              state.hybridMeta=hybridPayload?.meta||null;
+
+              mergeProducts([
+                ...(hybridPayload?.rows||[]),
+                ...rows,
+                ...cjRows,
+                ...balancedRows,
+                ...admitadRows
+              ]);
+
+              if(state.exact.length<24){
+                await Promise.race([
+                  ensureMinimumExact(24),
+                  new Promise(resolve=>setTimeout(resolve,6500))
+                ]);
+              }'''
+
+              part=part[:merge_start]+new_merge+part[merge_end:]
+              s=s[:ps]+part+s[pe:]
+
+          # ------------------------------------------------------------
+          # 4) Selected seller: robust position-based replacement.
+          # ------------------------------------------------------------
+          if "hybridSellerResultV16_2_1" not in s:
+              merchant_start=s.find("      if(x.matches('[data-filter-merchant]')){")
+              if merchant_start<0:
+                  raise SystemExit("Merchant change handler not found.")
+
+              selected_if=s.find("        if(selected){",merchant_start)
+              if selected_if<0:
+                  raise SystemExit("Selected-seller if block start not found.")
+
+              selected_else=s.find("        }else{",selected_if)
+              if selected_else<0:
+                  raise SystemExit("Selected-seller else block not found.")
+
+              new_selected=r'''        if(selected){
+                  state.loading=true;
+                  renderFinder();
+
+                  const hybridSellerResultV16_2_1=await tpLoadHybridProductsV16_2_1(
+                    state.query,
+                    selected
+                  );
+
+                  if(hybridSellerResultV16_2_1?.rows?.length){
+                    state.hybridMeta=hybridSellerResultV16_2_1.meta||state.hybridMeta;
+                    mergeProducts(hybridSellerResultV16_2_1.rows);
+                  }else if(TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)){
+                    const liveRows=await tpLoadSelectedLiveSellerV15_8_9(selected,state.query);
+                    if(liveRows.length)mergeProducts(liveRows);
+                  }else if(typeof tpLoadSellerSpecificV15_1==="function"){
+                    await tpLoadSellerSpecificV15_1(selected);
+                  }
+
+                  state.loading=false;
+                  populateFilters();
+                  const merchant=$('[data-filter-merchant]');
+                  if(merchant)merchant.value=selected;
+              '''
+
+              s=s[:selected_if]+new_selected+s[selected_else:]
+
+          # ------------------------------------------------------------
+          # 5) Add a small hybrid status hint.
+          # ------------------------------------------------------------
+          if "hybridStatusV16_2_1" not in s:
+              status_pattern=re.compile(
+                  r'(?m)^(\s*)status\.textContent=`\$\{correction\}Showing '
+                  r'\$\{fmt\.format\(visible\.length\)\} of \$\{fmt\.format\(renderRows\.length\)\} '
+                  r'\$\{selectedSeller&&renderRows!==rows\?"seller matches":noun\}\. '
+                  r'\$\{fmt\.format\(scan\)\} candidates checked\. \$\{progress\}`;$'
+              )
+
+              def status_repl(m):
+                  i=m.group(1)
+                  return (
+                      i+'const hybridStatusV16_2_1=state.hybridMeta\n'+
+                      i+'  ? (state.hybridMeta.fallbackUsed\n'+
+                      i+'      ? " Wider live/catalogue sources were added."\n'+
+                      i+'      : " V16 hybrid index active.")\n'+
+                      i+'  : "";\n'+
+                      i+'status.textContent=`${correction}Showing ${fmt.format(visible.length)} of ${fmt.format(renderRows.length)} ${selectedSeller&&renderRows!==rows?"seller matches":noun}. ${fmt.format(scan)} candidates checked. ${progress}${hybridStatusV16_2_1}`;'
+                  )
+
+              s2,n=status_pattern.subn(status_repl,s,count=1)
+              if n!=1:
+                  raise SystemExit(f"Finder status line not found uniquely: matches={n}")
+              s=s2
+
+          js.write_text(s,encoding="utf-8")
+
+          # ------------------------------------------------------------
+          # 6) Bust browser cache on /find/.
+          # ------------------------------------------------------------
+          h=finder.read_text(encoding="utf-8")
+          h2,n=re.subn(
+              r'/js/site-v13-5\.js\?v=[^"\']+',
+              '/js/site-v13-5.js?v=16.2.1',
+              h,
+              count=1
+          )
+          if n!=1:
+              raise SystemExit(f"Finder site-v13-5 script tag not found uniquely: matches={n}")
+          finder.write_text(h2,encoding="utf-8")
+
+          print("V16.2.1 public finder bridge installed.")
+          PY
+
+      - name: Validate V16.2.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          grep -q 'TP_V16_2_1_HYBRID_FINDER_START' js/site-v13-5.js
+          grep -q '/api/products-v16-hybrid' js/site-v13-5.js
+          grep -q 'hybridPromiseV16_2_1' js/site-v13-5.js
+          grep -q 'hybridSellerResultV16_2_1' js/site-v13-5.js
+          grep -q 'p._tpHybridV16_2_1' js/site-v13-5.js
+          grep -q 'V16 hybrid index active' js/site-v13-5.js
+          grep -q '/js/site-v13-5.js?v=16.2.1' find/index.html
+
+          echo "V16.2.1 finder integration validation passed."
+
+      - name: Publish V16.2.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            js/site-v13-5.js \
+            find/index.html
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.2.1 finder integration is already installed."
+            exit 0
+          fi
+
+          git commit -m "feat: robustly connect V16 hybrid search to public finder"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.2.1 Public Finder"
+            echo "- fixed the selected-seller patch anchor that broke V16.2"
+            echo "- connected the verified V16.1.1 hybrid endpoint to /find/"
+            echo "- hybrid intent tiers participate in the existing UI ranking"
+            echo "- selected seller and All sellers keep their current behavior"
+            echo "- legacy catalogue/CJ/Admitad loaders remain safety fallbacks"
+            echo "- no product-index rebuild required"
+          } >> "$GITHUB_STEP_SUMMARY"
