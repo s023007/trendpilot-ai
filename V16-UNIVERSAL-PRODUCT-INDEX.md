@@ -109,3 +109,16 @@ The public finder remains unchanged until this endpoint is verified.
 - Prevents category metadata from promoting accessory titles to core products.
 - Freshly reranks merged products instead of preserving stale old intent tiers.
 - No full product-index rebuild is required.
+
+
+## V16.2.5 — robust result recovery
+
+- Removes the V16.2.3 hard intent-tier cutoff that blanked All sellers.
+- Uses a soft Hybrid gate: high tiers get priority, obvious related
+  products are rejected, and uncertain rows continue through the
+  existing family/title checks.
+- Restores all merged catalogues to the Exact candidate pool.
+- Restores minimum-result filling and Check more catalogue pages.
+- Uses exact current-main replacements instead of the failed V16.2.4
+  validation assumption.
+- No product-index rebuild is required.

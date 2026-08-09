@@ -1149,10 +1149,73 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     if(plan.families?.includes("digital-cameras") && /\b(camera bag|lens cap|tripod|gimbal|battery charger)\b/i.test(text))return false;
     return true;
   }
+  function tpHybridClearlyRelatedV16_2_5(p, plan) {
+  if(!p?._tpHybridV16_2_1)return false;
+
+  const title=lower(p.name||p.title||"");
+  const ws=(title.match(/[a-z0-9]+/g)||[]);
+  const tokens=(plan?.intentTokens||[]).filter(Boolean);
+
+  if(!tokens.length)return false;
+
+  const supportWords=new Set([
+    "case","cover","protector","charger","charging","cable","connector",
+    "holder","stand","mount","adapter","dock","repair","tool","kit",
+    "replacement","part","parts","feeder","feeding","bowl","dispenser",
+    "container","storage","mat","placemat","tray","mold","mould",
+    "bead","beads","projector","speaker","microphone","headset",
+    "earphone","solar","panel","socket","pcb"
+  ]);
+
+  const relationWords=new Set([
+    "for","compatible","fits","fit","replacement","repair",
+    "adapter","accessory","accessories"
+  ]);
+
+  const hitIndexes=[];
+  ws.forEach((w,i)=>{
+    if(tokens.some(t=>w===t || (t.length>=4 && w.includes(t)))){
+      hitIndexes.push(i);
+    }
+  });
+
+  if(!hitIndexes.length)return false;
+
+  for(const i of hitIndexes){
+    const before=ws.slice(Math.max(0,i-5),i);
+    if(before.some(w=>relationWords.has(w)))return true;
+  }
+
+  const q=lower(plan?.q||"");
+  if(q && title.includes(q)){
+    const idx=title.indexOf(q);
+    const tail=title.slice(idx+q.length).trim().split(/\s+/).slice(0,3);
+    if(tail.some(w=>supportWords.has(w)))return true;
+  }
+
+  if(tokens.length>=2){
+    const positions=tokens.map(t=>{
+      for(let i=0;i<ws.length;i++){
+        if(ws[i]===t || (t.length>=4 && ws[i].includes(t)))return i;
+      }
+      return -1;
+    });
+
+    if(positions.every(i=>i>=0)){
+      const span=Math.max(...positions)-Math.min(...positions)+1;
+      if(span>tokens.length+1)return true;
+    }
+  }
+
+  return false;
+}
+
   function strictProductMatch(p, plan) {
-    // TP_HYBRID_EXACT_GATE_V16_2_3
-  if(p._tpHybridV16_2_1){
-    return Number(p.intentTier||0) >= 4;
+  // TP_HYBRID_SOFT_GATE_V16_2_5
+  if(p?._tpHybridV16_2_1){
+    const tier=Number(p.intentTier||0);
+    if(tier>=4)return true;
+    if(tpHybridClearlyRelatedV16_2_5(p,plan))return false;
   }
     if (plan.groups.length && !plan.groups.includes(p.group)) return false;
     if (plan.families?.length && !plan.families.includes(p.family)) return false;
@@ -1208,11 +1271,8 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
 
   state.products = [...map.values()].filter(tpCjPublicAllowed);
 
-  // TP_HYBRID_EXACT_POOL_V16_2_3
-  const hybridRows=state.products.filter(p=>p._tpHybridV16_2_1);
-  const exactSource=hybridRows.length ? hybridRows : state.products;
-
-  const rankedExact=exactSource
+  // TP_HYBRID_SOFT_EXACT_POOL_V16_2_5
+const rankedExact=state.products
     .filter(p=>strictProductMatch(p,state.plan))
     .sort((a,b)=>score(b,state.plan)-score(a,state.plan));
 
@@ -1600,7 +1660,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     }
     const more=$('[data-tp-load-more]'); if(more){
       const moreLoaded=renderRows.length>state.shown;
-      const moreRemote=state.activeTab==="exact"&&!state.hybridMeta&&!candidatePagesExhausted();
+      const moreRemote=state.activeTab==="exact"&&!candidatePagesExhausted();
       more.hidden=!(moreLoaded||moreRemote);
       more.textContent=state.loading?"Checking more products…":moreLoaded?`Show ${Math.min(24,renderRows.length-state.shown)} more`:"Check more catalogue pages";
     }
@@ -1668,7 +1728,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
       ...admitadRows
     ]);
 
-    if(state.exact.length<24 && !state.hybridMeta){
+    if(state.exact.length<24){
       await Promise.race([
         ensureMinimumExact(24),
         new Promise(resolve=>setTimeout(resolve,6500))
@@ -1710,7 +1770,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
   async function showMore(){
     let rows=filterProducts(activeProducts());
     if(rows.length>state.shown){state.shown+=24;renderFinder();return;}
-    if(state.activeTab!=="exact"||state.hybridMeta||candidatePagesExhausted()||state.loading)return;
+    if(state.activeTab!=="exact"||candidatePagesExhausted()||state.loading)return;
     state.loading=true;renderFinder();
     const target=state.exact.length+24;
     await ensureMinimumExact(target);
