@@ -13,6 +13,7 @@
   "karaca eu":["karaca eu","karaca europe","karaca"],
   "mfi medical":["mfi medical","mfimedical","mfi"],
   "pandahall":["pandahall","panda hall"],
+  "tiktok shop us":["tiktok shop us","tiktok shop","tiktok","tiktokshop"],
   "temu":["temu","temu.com","shop temu"],
   "filamentpro eu cps":["filamentpro eu cps","filamentpro"],
   "govee many geos":["govee many geos","govee"],
@@ -66,7 +67,7 @@
         const opt=[...s.options].find(o=>canon(o.textContent)===selected);
         if(opt) s.value=opt.value;
       }
-      s.dataset.tpApprovedSellers="15.2.0";
+      s.dataset.tpApprovedSellers="15.8.6";
     } finally {
       applying=false;
     }
@@ -79,11 +80,11 @@
 
   async function init(){
     try{
-      const r=await fetch(`/data/approved-product-sellers-v14-1-5.json?v=15.2.0`,{cache:"force-cache"});
+      const r=await fetch(`/data/approved-product-sellers-v14-1-5.json?v=15.8.6`,{cache:"force-cache"});
       const j=r.ok?await r.json():{};
       allowed=Array.isArray(j.approvedProductSellers)?j.approvedProductSellers:[];
     }catch{
-      allowed=["AliExpress","Alibaba","Geekbuying","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"];
+      allowed=["AliExpress","Alibaba","Geekbuying","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US","Temu"];
     }
     apply();
     new MutationObserver(mutations=>{

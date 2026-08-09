@@ -10,10 +10,10 @@
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
 
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "13.8.9";
+  const TP_CJ_GUARD_VERSION = "15.8.6";
   const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203", "7563286"]);
   const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal", "tiktokshopus"]);
-  const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal", "tiktokshopus"]);
+  const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tripcom", "tripcomglobal", "tiktokshopus", "tiktok", "tiktokshop"]);
   const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
   const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
 
@@ -664,6 +664,9 @@ function normalizeProduct(p) {
     return new RegExp(`(^|[^a-z0-9])${a}([^a-z0-9]|$)`,"i").test(lower(text));
   }
   function inferFamily(q, manifest=state.manifest) {
+    // TP_PHONE_INTENT_V15_8_6
+    const plainPhoneQuery=lower(q).trim();
+    if(/^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones|android phone|android phones|iphone|iphones)$/i.test(plainPhoneQuery)) return "smartphones";
     const staticHit=(FAMILY_ROUTES.find(([, re]) => re.test(q)) || [""])[0];
     if(staticHit)return staticHit;
     const aliases=manifest?.familyAliases||{};
@@ -787,7 +790,7 @@ function normalizeProduct(p) {
     const terms=tpExpandedTermsV15_1(plan?.q||"");
     if (!terms.length) return false;
     const text=lower(`${p.name||""} ${p.brand||""} ${p.category||""} ${p.family||""} ${p.description||""}`);
-    return terms.some(term=>text.includes(term));
+    return terms.some(term=>aliasBoundaryMatch(text,term));
   }
   let tpSellerCoveragePromiseV15_1=null;
   async function tpLoadSellerCoverageV15_1() {
@@ -977,7 +980,10 @@ function normalizeProduct(p) {
     if(plan.family==="makeup" || plan.families?.some(f=>/makeup/.test(f))) {
       if(/\b(t[- ]?shirts?|shirts?|hoodies?|dresses?|posters?|stickers?|wall art|phone cases?|makeup bags?|cosmetic bags?)\b/i.test(text))return false;
     }
-    if(plan.families?.includes("smartphones") && /\b(case|cover|screen protector|charger|cable|mount|holder)\b/i.test(text))return false;
+    if(plan.families?.includes("smartphones")) {
+      if(!/\b(?:phones?|smartphones?|mobile phones?|android phones?|iphones?)\b/i.test(text))return false;
+      if(/\b(?:case|cover|screen protector|charger|cable|mount|holder|stand|strap|lanyard|grip|dock|adapter|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack)\b/i.test(text))return false;
+    }
     if(plan.families?.includes("laptops") && /\b(bag|sleeve|stand|charger|keyboard cover|skin sticker)\b/i.test(text))return false;
     if(plan.families?.includes("office-printers") && /\b(ink|toner|cartridge|paper|label|printer head)\b/i.test(text))return false;
     if(plan.families?.includes("digital-cameras") && /\b(camera bag|lens cap|tripod|gimbal|battery charger)\b/i.test(text))return false;

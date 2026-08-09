@@ -143,7 +143,7 @@
     panel.hidden=data.length===0;
   }
 
-  const selector='input[data-tp-finder-input],.tp-search-input input[type="search"]';
+  const selector='.tp-search-input input[type="search"]:not([data-tp-finder-input])';
 
   d.addEventListener("input",e=>{
     if(e.target.matches(selector)) render(e.target);
