@@ -1,0 +1,835 @@
+name: TrendPilot V16.0 Universal Product Index Foundation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-0-universal-index-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-v16-foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Netlify Database package
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ ! -f package.json ]; then
+            cat > package.json <<'JSON'
+          {
+            "name": "trendpilot-ai",
+            "private": true,
+            "description": "TrendPilot AI Netlify runtime dependencies"
+          }
+          JSON
+          fi
+
+          npm install --save-exact @netlify/database
+
+      - name: Create V16 universal product index
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p netlify/database/migrations
+          mkdir -p netlify/functions
+
+          cat > netlify/database/migrations/20260809160400_create_trendpilot_product_index.sql <<'SQL'
+          CREATE TABLE IF NOT EXISTS tp_products_v16 (
+            id BIGSERIAL PRIMARY KEY,
+            source_key TEXT NOT NULL UNIQUE,
+            source TEXT NOT NULL DEFAULT '',
+            network TEXT NOT NULL DEFAULT '',
+            seller TEXT NOT NULL DEFAULT '',
+            advertiser_id TEXT NOT NULL DEFAULT '',
+            source_product_id TEXT NOT NULL DEFAULT '',
+            title TEXT NOT NULL,
+            description TEXT NOT NULL DEFAULT '',
+            brand TEXT NOT NULL DEFAULT '',
+            category TEXT NOT NULL DEFAULT '',
+            subcategory TEXT NOT NULL DEFAULT '',
+            price NUMERIC(18,4),
+            currency VARCHAR(12) NOT NULL DEFAULT '',
+            image_url TEXT NOT NULL DEFAULT '',
+            affiliate_url TEXT NOT NULL DEFAULT '',
+            destination_url TEXT NOT NULL DEFAULT '',
+            condition_text TEXT NOT NULL DEFAULT '',
+            availability TEXT NOT NULL DEFAULT '',
+            quality SMALLINT NOT NULL DEFAULT 50,
+            active BOOLEAN NOT NULL DEFAULT TRUE,
+            first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            search_document TSVECTOR GENERATED ALWAYS AS (
+              setweight(to_tsvector('simple'::regconfig, coalesce(title, '')), 'A') ||
+              setweight(to_tsvector('simple'::regconfig, coalesce(brand, '')), 'A') ||
+              setweight(to_tsvector('simple'::regconfig, coalesce(category, '') || ' ' || coalesce(subcategory, '')), 'B') ||
+              setweight(to_tsvector('simple'::regconfig, coalesce(seller, '') || ' ' || coalesce(network, '')), 'B') ||
+              setweight(to_tsvector('simple'::regconfig, coalesce(description, '')), 'C')
+            ) STORED
+          );
+
+          CREATE INDEX IF NOT EXISTS tp_products_v16_search_idx
+            ON tp_products_v16 USING GIN (search_document);
+
+          CREATE INDEX IF NOT EXISTS tp_products_v16_seller_idx
+            ON tp_products_v16 (lower(seller));
+
+          CREATE INDEX IF NOT EXISTS tp_products_v16_network_idx
+            ON tp_products_v16 (lower(network));
+
+          CREATE INDEX IF NOT EXISTS tp_products_v16_seen_idx
+            ON tp_products_v16 (last_seen_at DESC);
+
+          CREATE TABLE IF NOT EXISTS tp_index_jobs_v16 (
+            id BIGSERIAL PRIMARY KEY,
+            job_type TEXT NOT NULL,
+            status TEXT NOT NULL,
+            started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            completed_at TIMESTAMPTZ,
+            rows_seen INTEGER NOT NULL DEFAULT 0,
+            rows_written INTEGER NOT NULL DEFAULT 0,
+            detail TEXT NOT NULL DEFAULT ''
+          );
+
+          CREATE INDEX IF NOT EXISTS tp_index_jobs_v16_started_idx
+            ON tp_index_jobs_v16 (started_at DESC);
+          SQL
+
+          cat > netlify/functions/products-v16.mjs <<'JS'
+          import { getDatabase } from "@netlify/database";
+
+          const clean = value => String(value ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+          const json = (body, status = 200) =>
+            new Response(JSON.stringify(body), {
+              status,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+                "x-content-type-options": "nosniff"
+              }
+            });
+
+          export default async function handler(request) {
+            if (request.method !== "GET") {
+              return json({ ok: false, error: "Method not allowed" }, 405);
+            }
+
+            try {
+              const url = new URL(request.url);
+              const q = clean(url.searchParams.get("q") || "").slice(0, 160);
+              const seller = clean(url.searchParams.get("seller") || "").slice(0, 120);
+              const network = clean(url.searchParams.get("network") || "").slice(0, 80);
+              const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") || 48) || 48));
+              const offset = Math.max(0, Math.min(5000, Number(url.searchParams.get("offset") || 0) || 0));
+
+              const where = ["active = TRUE"];
+              const params = [];
+              let p = 1;
+
+              if (q) {
+                params.push(q);
+                const qp = p++;
+                where.push(`(
+                  search_document @@ websearch_to_tsquery('simple', $${qp})
+                  OR lower(title) LIKE '%' || lower($${qp}) || '%'
+                  OR lower(brand) LIKE '%' || lower($${qp}) || '%'
+                  OR lower(category) LIKE '%' || lower($${qp}) || '%'
+                  OR lower(description) LIKE '%' || lower($${qp}) || '%'
+                )`);
+              }
+
+              if (seller) {
+                params.push(seller);
+                where.push(`lower(seller) = lower($${p++})`);
+              }
+
+              if (network) {
+                params.push(network);
+                where.push(`lower(network) = lower($${p++})`);
+              }
+
+              params.push(limit);
+              const limitParam = p++;
+              params.push(offset);
+              const offsetParam = p++;
+
+              const rankSql = q
+                ? `ts_rank_cd(search_document, websearch_to_tsquery('simple', $1)) DESC,
+                   CASE
+                     WHEN lower(title) = lower($1) THEN 5
+                     WHEN lower(title) LIKE lower($1) || '%' THEN 4
+                     WHEN lower(title) LIKE '%' || lower($1) || '%' THEN 3
+                     WHEN lower(brand) = lower($1) THEN 2
+                     ELSE 0
+                   END DESC,`
+                : "";
+
+              const sql = `
+                SELECT
+                  source_key, source, network, seller, advertiser_id, source_product_id,
+                  title, description, brand, category, subcategory,
+                  price, currency, image_url, affiliate_url, destination_url,
+                  condition_text, availability, quality, last_seen_at
+                FROM tp_products_v16
+                WHERE ${where.join(" AND ")}
+                ORDER BY
+                  ${rankSql}
+                  quality DESC,
+                  last_seen_at DESC,
+                  id DESC
+                LIMIT $${limitParam}
+                OFFSET $${offsetParam}
+              `;
+
+              const db = getDatabase();
+              const rows = await db.sql.unsafe(sql, params);
+
+              return json({
+                ok: true,
+                version: "16.0.0",
+                query: q,
+                seller: seller || null,
+                network: network || null,
+                totalReturned: rows.length,
+                products: rows.map(row => ({
+                  id: row.source_key,
+                  sourceKey: row.source_key,
+                  source: row.source,
+                  network: row.network,
+                  advertiser: row.seller,
+                  advertiserId: row.advertiser_id,
+                  sourceProductId: row.source_product_id,
+                  name: row.title,
+                  title: row.title,
+                  description: row.description,
+                  brand: row.brand,
+                  category: row.category,
+                  subcategory: row.subcategory,
+                  price: row.price === null ? 0 : Number(row.price),
+                  currency: row.currency,
+                  image: row.image_url,
+                  imageUrl: row.image_url,
+                  url: row.affiliate_url || row.destination_url,
+                  affiliateUrl: row.affiliate_url,
+                  destinationUrl: row.destination_url,
+                  condition: row.condition_text,
+                  availability: row.availability,
+                  quality: row.quality,
+                  indexedAt: row.last_seen_at
+                }))
+              });
+            } catch (error) {
+              console.error("TrendPilot V16 product search failed", error);
+              return json({
+                ok: false,
+                version: "16.0.0",
+                error: "Product index is not ready yet.",
+                detail: String(error?.message || error).slice(0, 500)
+              }, 503);
+            }
+          }
+
+          export const config = {
+            path: "/api/products-v16",
+            method: "GET"
+          };
+          JS
+
+          cat > netlify/functions/products-v16-health.mjs <<'JS'
+          import { getDatabase } from "@netlify/database";
+
+          const response = (body, status = 200) =>
+            new Response(JSON.stringify(body), {
+              status,
+              headers: {
+                "content-type": "application/json; charset=utf-8",
+                "cache-control": "no-store",
+                "x-content-type-options": "nosniff"
+              }
+            });
+
+          export default async function handler(request) {
+            if (request.method !== "GET") {
+              return response({ ok: false, error: "Method not allowed" }, 405);
+            }
+
+            try {
+              const db = getDatabase();
+
+              const totals = await db.sql`
+                SELECT
+                  COUNT(*)::int AS products,
+                  COUNT(DISTINCT NULLIF(seller, ''))::int AS sellers,
+                  COUNT(DISTINCT NULLIF(network, ''))::int AS networks,
+                  MAX(last_seen_at) AS last_indexed_at
+                FROM tp_products_v16
+                WHERE active = TRUE
+              `;
+
+              const sellers = await db.sql`
+                SELECT seller, network, COUNT(*)::int AS products
+                FROM tp_products_v16
+                WHERE active = TRUE
+                GROUP BY seller, network
+                ORDER BY COUNT(*) DESC, seller ASC
+                LIMIT 40
+              `;
+
+              const jobs = await db.sql`
+                SELECT id, job_type, status, started_at, completed_at, rows_seen, rows_written, detail
+                FROM tp_index_jobs_v16
+                ORDER BY id DESC
+                LIMIT 5
+              `;
+
+              return response({
+                ok: true,
+                version: "16.0.0",
+                database: "ready",
+                totals: totals[0] || { products: 0, sellers: 0, networks: 0, last_indexed_at: null },
+                sellers,
+                recentJobs: jobs
+              });
+            } catch (error) {
+              console.error("TrendPilot V16 health failed", error);
+              return response({
+                ok: false,
+                version: "16.0.0",
+                database: "not-ready",
+                detail: String(error?.message || error).slice(0, 500)
+              }, 503);
+            }
+          }
+
+          export const config = {
+            path: "/api/products-v16/health",
+            method: "GET"
+          };
+          JS
+
+          cat > netlify/functions/products-v16-rebuild.mjs <<'JS'
+          import { createHash } from "node:crypto";
+          import { getDatabase } from "@netlify/database";
+
+          const clean = value => String(value ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+
+          const pick = (obj, keys) => {
+            for (const key of keys) {
+              const value = obj?.[key];
+              if (value !== undefined && value !== null && clean(value)) return value;
+            }
+            return "";
+          };
+
+          const validUrl = value => {
+            try {
+              const url = new URL(clean(value));
+              return url.protocol === "http:" || url.protocol === "https:";
+            } catch {
+              return false;
+            }
+          };
+
+          const numberValue = value => {
+            if (typeof value === "number" && Number.isFinite(value)) return value;
+            const match = clean(value).replace(/,/g, "").match(/-?\d+(?:\.\d+)?/);
+            return match ? Number(match[0]) : null;
+          };
+
+          function normalizeProduct(obj, sourceHint = "") {
+            if (!obj || typeof obj !== "object" || Array.isArray(obj)) return null;
+
+            const title = clean(pick(obj, [
+              "title", "name", "product_name", "productName", "product_title", "productTitle", "offer_name", "offerName"
+            ]));
+            if (title.length < 2 || title.length > 800) return null;
+
+            const affiliateUrl = clean(pick(obj, [
+              "affiliateUrl", "affiliate_url", "deeplink", "deep_link", "trackingUrl", "tracking_url",
+              "clickUrl", "click_url", "goto", "affiliate_link"
+            ]));
+            const destinationUrl = clean(pick(obj, [
+              "destinationUrl", "destination_url", "productUrl", "product_url", "url", "link", "landing_page", "landingPage"
+            ]));
+            const imageUrl = clean(pick(obj, [
+              "image", "imageUrl", "image_url", "imageLink", "image_link", "picture", "picture_url", "photo"
+            ]));
+
+            if (!validUrl(affiliateUrl) && !validUrl(destinationUrl) && !validUrl(imageUrl)) return null;
+
+            const seller = clean(pick(obj, [
+              "advertiser", "advertiserName", "advertiser_name", "seller", "merchant", "merchantName",
+              "merchant_name", "store", "storeName", "store_name", "shop"
+            ]));
+            const network = clean(pick(obj, [
+              "network", "affiliateNetwork", "affiliate_network", "sourceNetwork", "source_network"
+            ])) || clean(sourceHint).split(":")[0] || "catalog";
+            const source = clean(pick(obj, ["source", "sourceName", "source_name"])) || sourceHint || network;
+            const sourceProductId = clean(pick(obj, [
+              "sourceProductId", "source_product_id", "productId", "product_id", "id", "sku", "offerId", "offer_id"
+            ]));
+            const advertiserId = clean(pick(obj, [
+              "advertiserId", "advertiser_id", "merchantId", "merchant_id", "sellerId", "seller_id"
+            ]));
+
+            const description = clean(pick(obj, [
+              "description", "shortDescription", "short_description", "summary", "product_description"
+            ])).slice(0, 6000);
+            const brand = clean(pick(obj, ["brand", "manufacturer", "vendor"])).slice(0, 300);
+            const category = clean(pick(obj, [
+              "category", "categoryName", "category_name", "group", "department"
+            ])).slice(0, 300);
+            const subcategory = clean(pick(obj, [
+              "subcategory", "subCategory", "subcategoryName", "subcategory_name", "family"
+            ])).slice(0, 300);
+            const currency = clean(pick(obj, [
+              "currency", "currencyCode", "currency_code", "priceCurrency", "price_currency"
+            ])).slice(0, 12);
+            const price = numberValue(pick(obj, [
+              "price", "salePrice", "sale_price", "currentPrice", "current_price", "amount"
+            ]));
+            const conditionText = clean(pick(obj, ["condition", "productCondition", "product_condition"])).slice(0, 120);
+            const availability = clean(pick(obj, ["availability", "stock", "stockStatus", "stock_status"])).slice(0, 160);
+            const qualityRaw = Number(pick(obj, ["quality", "score", "matchScore", "match_score"]));
+            const quality = Number.isFinite(qualityRaw) ? Math.max(1, Math.min(100, Math.round(qualityRaw))) : 60;
+
+            const identity = [
+              network.toLowerCase(),
+              seller.toLowerCase(),
+              sourceProductId || affiliateUrl || destinationUrl || title.toLowerCase()
+            ].join("|");
+            const sourceKey = createHash("sha256").update(identity).digest("hex");
+
+            return {
+              sourceKey,
+              source: source.slice(0, 300),
+              network: network.slice(0, 120),
+              seller: seller.slice(0, 300),
+              advertiserId: advertiserId.slice(0, 120),
+              sourceProductId: sourceProductId.slice(0, 300),
+              title: title.slice(0, 800),
+              description,
+              brand,
+              category,
+              subcategory,
+              price,
+              currency,
+              imageUrl: validUrl(imageUrl) ? imageUrl : "",
+              affiliateUrl: validUrl(affiliateUrl) ? affiliateUrl : "",
+              destinationUrl: validUrl(destinationUrl) ? destinationUrl : "",
+              conditionText,
+              availability,
+              quality
+            };
+          }
+
+          function extractProducts(root, sourceHint, max = 120000) {
+            const found = [];
+            const seenObjects = new Set();
+            const stack = [root];
+
+            while (stack.length && found.length < max) {
+              const value = stack.pop();
+              if (!value || typeof value !== "object") continue;
+              if (seenObjects.has(value)) continue;
+              seenObjects.add(value);
+
+              if (Array.isArray(value)) {
+                for (let i = value.length - 1; i >= 0; i--) stack.push(value[i]);
+                continue;
+              }
+
+              const product = normalizeProduct(value, sourceHint);
+              if (product) found.push(product);
+
+              for (const child of Object.values(value)) {
+                if (child && typeof child === "object") stack.push(child);
+              }
+            }
+
+            return found;
+          }
+
+          function collectCatalogJsonPaths(root, max = 120) {
+            const paths = new Set();
+            const seenObjects = new Set();
+            const stack = [root];
+
+            const add = raw => {
+              let value = clean(raw);
+              if (!value || !/\.json(?:\?|$)/i.test(value)) return;
+
+              try {
+                if (/^https?:\/\//i.test(value)) value = new URL(value).pathname;
+              } catch {}
+
+              value = value.split("?")[0].replace(/^\/+/, "");
+
+              if (value.startsWith("data/search-catalog/")) {
+                paths.add("/" + value);
+              } else if (value.startsWith("search-catalog/")) {
+                paths.add("/data/" + value);
+              } else if (/^(?:shards|product-index)\//.test(value)) {
+                paths.add("/data/search-catalog/" + value);
+              }
+            };
+
+            while (stack.length && paths.size < max) {
+              const value = stack.pop();
+
+              if (typeof value === "string") {
+                add(value);
+                continue;
+              }
+              if (!value || typeof value !== "object") continue;
+              if (seenObjects.has(value)) continue;
+              seenObjects.add(value);
+
+              if (Array.isArray(value)) {
+                for (const child of value) stack.push(child);
+              } else {
+                for (const child of Object.values(value)) {
+                  if (typeof child === "string") add(child);
+                  else if (child && typeof child === "object") stack.push(child);
+                }
+              }
+            }
+
+            return [...paths];
+          }
+
+          async function fetchJson(url, timeoutMs = 30000) {
+            const controller = new AbortController();
+            const timer = setTimeout(() => controller.abort(), timeoutMs);
+            try {
+              const res = await fetch(url, {
+                headers: { "accept": "application/json" },
+                signal: controller.signal
+              });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              return await res.json();
+            } finally {
+              clearTimeout(timer);
+            }
+          }
+
+          async function upsertBatch(client, products) {
+            if (!products.length) return 0;
+
+            const columns = [
+              "source_key", "source", "network", "seller", "advertiser_id", "source_product_id",
+              "title", "description", "brand", "category", "subcategory", "price", "currency",
+              "image_url", "affiliate_url", "destination_url", "condition_text", "availability", "quality"
+            ];
+
+            const params = [];
+            const groups = products.map(product => {
+              const values = [
+                product.sourceKey, product.source, product.network, product.seller, product.advertiserId,
+                product.sourceProductId, product.title, product.description, product.brand, product.category,
+                product.subcategory, product.price, product.currency, product.imageUrl, product.affiliateUrl,
+                product.destinationUrl, product.conditionText, product.availability, product.quality
+              ];
+              const placeholders = values.map(value => {
+                params.push(value);
+                return `$${params.length}`;
+              });
+              return `(${placeholders.join(",")})`;
+            });
+
+            const sql = `
+              INSERT INTO tp_products_v16 (${columns.join(",")})
+              VALUES ${groups.join(",")}
+              ON CONFLICT (source_key) DO UPDATE SET
+                source = EXCLUDED.source,
+                network = EXCLUDED.network,
+                seller = EXCLUDED.seller,
+                advertiser_id = EXCLUDED.advertiser_id,
+                source_product_id = EXCLUDED.source_product_id,
+                title = EXCLUDED.title,
+                description = EXCLUDED.description,
+                brand = EXCLUDED.brand,
+                category = EXCLUDED.category,
+                subcategory = EXCLUDED.subcategory,
+                price = EXCLUDED.price,
+                currency = EXCLUDED.currency,
+                image_url = EXCLUDED.image_url,
+                affiliate_url = EXCLUDED.affiliate_url,
+                destination_url = EXCLUDED.destination_url,
+                condition_text = EXCLUDED.condition_text,
+                availability = EXCLUDED.availability,
+                quality = GREATEST(tp_products_v16.quality, EXCLUDED.quality),
+                active = TRUE,
+                last_seen_at = NOW(),
+                updated_at = NOW()
+            `;
+
+            await client.query(sql, params);
+            return products.length;
+          }
+
+          export default async function handler(request) {
+            const db = getDatabase();
+            const client = await db.pool.connect();
+            let jobId = null;
+            let lockHeld = false;
+
+            try {
+              const lock = await client.query("SELECT pg_try_advisory_lock($1) AS locked", [160016]);
+              lockHeld = Boolean(lock.rows?.[0]?.locked);
+
+              if (!lockHeld) {
+                console.log("TrendPilot V16 rebuild skipped: another rebuild is already running.");
+                return;
+              }
+
+              const recent = await client.query(`
+                SELECT completed_at
+                FROM tp_index_jobs_v16
+                WHERE job_type = 'catalog-rebuild' AND status = 'completed'
+                ORDER BY id DESC
+                LIMIT 1
+              `);
+
+              const completedAt = recent.rows?.[0]?.completed_at ? new Date(recent.rows[0].completed_at).getTime() : 0;
+              if (completedAt && Date.now() - completedAt < 20 * 60 * 1000) {
+                console.log("TrendPilot V16 rebuild skipped: a successful rebuild completed less than 20 minutes ago.");
+                return;
+              }
+
+              const insertedJob = await client.query(
+                "INSERT INTO tp_index_jobs_v16 (job_type, status, detail) VALUES ($1, $2, $3) RETURNING id",
+                ["catalog-rebuild", "running", "V16 trusted static catalog import"]
+              );
+              jobId = insertedJob.rows[0].id;
+
+              const origin = new URL(request.url).origin;
+              const seeds = [
+                "/data/search-catalog/manifest.json",
+                "/data/product-discovery-v15.json",
+                "/data/admitad-products-new-account-v15-3-2.json",
+                "/data/cj-products.json"
+              ];
+
+              const byKey = new Map();
+              const extraPaths = new Set();
+              let rowsSeen = 0;
+
+              for (const path of seeds) {
+                try {
+                  const payload = await fetchJson(origin + path, 45000);
+                  const rows = extractProducts(payload, path);
+                  rowsSeen += rows.length;
+                  for (const row of rows) byKey.set(row.sourceKey, row);
+
+                  if (path.endsWith("/manifest.json") && rows.length < 1000) {
+                    for (const extra of collectCatalogJsonPaths(payload, 120)) extraPaths.add(extra);
+                  }
+                  console.log("V16 seed", path, "products", rows.length);
+                } catch (error) {
+                  console.warn("V16 seed failed", path, String(error?.message || error));
+                }
+              }
+
+              if (byKey.size < 1000 && extraPaths.size) {
+                const paths = [...extraPaths].slice(0, 120);
+                const concurrency = 4;
+
+                for (let i = 0; i < paths.length; i += concurrency) {
+                  const group = paths.slice(i, i + concurrency);
+                  const settled = await Promise.allSettled(
+                    group.map(async path => {
+                      const payload = await fetchJson(origin + path, 30000);
+                      return { path, rows: extractProducts(payload, path, 25000) };
+                    })
+                  );
+
+                  for (const item of settled) {
+                    if (item.status !== "fulfilled") continue;
+                    rowsSeen += item.value.rows.length;
+                    for (const row of item.value.rows) byKey.set(row.sourceKey, row);
+                    console.log("V16 catalog part", item.value.path, "products", item.value.rows.length);
+                  }
+                }
+              }
+
+              const all = [...byKey.values()];
+              let written = 0;
+              const batchSize = 120;
+
+              await client.query("BEGIN");
+              try {
+                for (let i = 0; i < all.length; i += batchSize) {
+                  written += await upsertBatch(client, all.slice(i, i + batchSize));
+                }
+                await client.query("COMMIT");
+              } catch (error) {
+                await client.query("ROLLBACK");
+                throw error;
+              }
+
+              await client.query(
+                `UPDATE tp_index_jobs_v16
+                 SET status = 'completed',
+                     completed_at = NOW(),
+                     rows_seen = $2,
+                     rows_written = $3,
+                     detail = $4
+                 WHERE id = $1`,
+                [jobId, rowsSeen, written, `Unique products indexed: ${all.length}`]
+              );
+
+              console.log("TrendPilot V16 rebuild completed", {
+                rowsSeen,
+                unique: all.length,
+                written
+              });
+            } catch (error) {
+              console.error("TrendPilot V16 rebuild failed", error);
+
+              if (jobId) {
+                try {
+                  await client.query(
+                    `UPDATE tp_index_jobs_v16
+                     SET status = 'failed',
+                         completed_at = NOW(),
+                         detail = $2
+                     WHERE id = $1`,
+                    [jobId, String(error?.message || error).slice(0, 1200)]
+                  );
+                } catch {}
+              }
+
+              throw error;
+            } finally {
+              if (lockHeld) {
+                try { await client.query("SELECT pg_advisory_unlock($1)", [160016]); } catch {}
+              }
+              client.release();
+            }
+          }
+
+          export const config = {
+            path: "/api/products-v16/rebuild",
+            method: "GET",
+            background: true,
+            rateLimit: {
+              action: "rate_limit",
+              aggregateBy: ["domain", "ip"],
+              windowSize: 3600,
+              windowLimit: 2
+            }
+          };
+          JS
+
+          cat > V16-UNIVERSAL-PRODUCT-INDEX.md <<'MD'
+          # TrendPilot V16 Universal Product Index
+
+          V16 introduces a server-side universal product index backed by Netlify Database.
+
+          ## V16.0 foundation
+
+          - Creates a Postgres product table with full-text search.
+          - Adds `/api/products-v16` for generic product search.
+          - Adds `/api/products-v16/health` for index statistics.
+          - Adds `/api/products-v16/rebuild` as an idempotent background importer.
+          - Seeds from trusted existing TrendPilot catalog files.
+          - Does not replace the public search UI yet. V15 remains the live fallback until V16 data quality is verified.
+          - Keeps global catalog behavior; no GEO/serviceable-area import filtering is introduced.
+
+          ## Rollout
+
+          1. Deploy V16.0 and let Netlify provision/apply the database migration.
+          2. Verify `/api/products-v16/health`.
+          3. Trigger `/api/products-v16/rebuild` once.
+          4. Re-check `/api/products-v16/health`.
+          5. In V16.1, connect the public finder to database-first search with live-source fallback and write-through caching.
+          MD
+
+      - name: Validate V16 foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check netlify/functions/products-v16.mjs
+          node --check netlify/functions/products-v16-health.mjs
+          node --check netlify/functions/products-v16-rebuild.mjs
+
+          test -f netlify/database/migrations/20260809160400_create_trendpilot_product_index.sql
+          test -f package.json
+          test -f package-lock.json
+
+          node - <<'NODE'
+          const pkg = require("./package.json");
+          if (!pkg.dependencies || !pkg.dependencies["@netlify/database"]) {
+            throw new Error("@netlify/database dependency is missing");
+          }
+          console.log("@netlify/database:", pkg.dependencies["@netlify/database"]);
+          NODE
+
+          grep -q "CREATE TABLE IF NOT EXISTS tp_products_v16" netlify/database/migrations/20260809160400_create_trendpilot_product_index.sql
+          grep -q 'path: "/api/products-v16"' netlify/functions/products-v16.mjs
+          grep -q 'path: "/api/products-v16/health"' netlify/functions/products-v16-health.mjs
+          grep -q 'background: true' netlify/functions/products-v16-rebuild.mjs
+
+          git diff --check
+
+          echo "V16.0 foundation validation passed."
+
+      - name: Publish V16 foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            package.json \
+            package-lock.json \
+            netlify/database/migrations/20260809160400_create_trendpilot_product_index.sql \
+            netlify/functions/products-v16.mjs \
+            netlify/functions/products-v16-health.mjs \
+            netlify/functions/products-v16-rebuild.mjs \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.0 foundation is already installed."
+            exit 0
+          fi
+
+          git commit -m "feat: add V16 universal Netlify product index foundation"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.0 Universal Product Index"
+            echo "- Netlify Database migration added"
+            echo "- generic product search API added"
+            echo "- health/coverage endpoint added"
+            echo "- idempotent background catalog importer added"
+            echo "- existing public V15 finder remains untouched for safe rollout"
+            echo "- next: deploy, verify health, run initial rebuild, then connect V16.1 frontend"
+          } >> "$GITHUB_STEP_SUMMARY"
