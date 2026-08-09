@@ -5,7 +5,8 @@ const SELLERS = {
   "Temu": { advertiserId: "6293473", adIds: ["15501511"] },
   "PandaHall": { advertiserId: "4295086", adIds: ["15609716"] },
   "FragranceShop.com": { advertiserId: "7287203", adIds: ["16941446"] },
-  "Karaca EU": { advertiserId: "5893489", adIds: ["15171094"] }
+  "Karaca EU": { advertiserId: "5893489", adIds: ["15171094"] },
+  "TikTok Shop US": { advertiserId: "7563286", adIds: ["17099898"], strictProductTracking: true, disableLinkSearch: true }
 };
 
 const COMPANY_ID =
@@ -82,6 +83,7 @@ function canonicalSeller(value) {
   if (["pandahall","panda hall"].includes(raw)) return "PandaHall";
   if (["fragranceshop.com","fragranceshop","fragrance shop","the fragrance shop"].includes(raw)) return "FragranceShop.com";
   if (["karaca eu","karaca europe","karaca"].includes(raw)) return "Karaca EU";
+  if (["tiktok shop us","tiktok shop","tiktok","tiktokshop"].includes(raw)) return "TikTok Shop US";
   return "";
 }
 
@@ -186,7 +188,7 @@ async function queryCj(query, sellers, token) {
     return buildSelection(alias, seller, query);
   }).join("\n");
 
-  const graphql = `query TrendPilotLiveSearchV1573 {\n${selections}\n}`;
+  const graphql = `query TrendPilotLiveSearchV1585 {\n${selections}\n}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 8500);
 
@@ -197,7 +199,7 @@ async function queryCj(query, sellers, token) {
         "authorization": `Bearer ${token}`,
         "content-type": "application/json",
         "accept": "application/json",
-        "user-agent": "TrendPilot-CJ-Live-Search/15.7.3"
+        "user-agent": "TrendPilot-CJ-Live-Search/15.8.5"
       },
       body: JSON.stringify({ query: graphql }),
       signal: controller.signal
@@ -322,7 +324,7 @@ async function loadSellerTrackingLinks(seller, token) {
       headers: {
         "authorization": `Bearer ${token}`,
         "accept": "application/xml, text/xml;q=0.9, */*;q=0.5",
-        "user-agent": "TrendPilot-CJ-Link-Fallback/15.7.3"
+        "user-agent": "TrendPilot-CJ-Link-Fallback/15.8.5"
       },
       signal: controller.signal
     });
@@ -381,6 +383,8 @@ function normalizeRows(result, seller, query, trackingFallback) {
 
       const trackedProductUrl =
         isCjTrackingUrl(productClickUrl) ? productClickUrl : "";
+
+      if (cfg.strictProductTracking && !trackedProductUrl) return null;
 
       const trackedFallbackUrl =
         isCjTrackingUrl(trackingFallback?.clickUrl)
@@ -490,7 +494,7 @@ export default async (request) => {
   ) {
     return jsonResponse({
       ok: true,
-      version: "15.7.3",
+      version: "15.8.5",
       products: [],
       total: 0,
       coverage: []
@@ -501,7 +505,7 @@ export default async (request) => {
     ? [requestedSeller]
     : Object.keys(SELLERS);
 
-  const cacheKey = `${query.toLowerCase()}|${requestedSeller || "all"}|15.7.3`;
+  const cacheKey = `${query.toLowerCase()}|${requestedSeller || "all"}|15.8.5`;
   const cached = productCache.get(cacheKey);
 
   if (cached && Date.now() - cached.savedAt < 180_000) {
@@ -518,6 +522,8 @@ export default async (request) => {
 
         const result = resultAlias ? data?.[resultAlias] : null;
         const rows = Array.isArray(result?.resultList) ? result.resultList : [];
+
+        if (SELLERS[seller]?.disableLinkSearch) return [seller, null];
 
         const hasMissingProductClickUrl = rows.some(
           row => !isCjTrackingUrl(clean(row?.linkCode?.clickUrl))
@@ -570,7 +576,7 @@ export default async (request) => {
 
     const body = {
       ok: true,
-      version: "15.7.3",
+      version: "15.8.5",
       query,
       requestedSeller: requestedSeller || null,
       products: unique,
@@ -594,7 +600,7 @@ export default async (request) => {
 
     return jsonResponse(body);
   } catch (error) {
-    console.error("TrendPilot CJ live search V15.7.3 failed", {
+    console.error("TrendPilot CJ live search V15.8.5 failed", {
       message: error?.message,
       query,
       seller: requestedSeller || "all"
@@ -602,7 +608,7 @@ export default async (request) => {
 
     return jsonResponse({
       ok: false,
-      version: "15.7.3",
+      version: "15.8.5",
       error: "CJ live search is temporarily unavailable.",
       detail: String(error?.message || "").slice(0, 500)
     }, 502);
