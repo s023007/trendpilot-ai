@@ -1,0 +1,250 @@
+name: TrendPilot Products V15.8.7 TikTok Seller Lock and Phone Results
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-8-7-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix-tiktok-selection:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Apply V15.8.7 focused fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js = Path("js/site-v13-5.js")
+          html = Path("find/index.html")
+
+          if not js.exists() or not html.exists():
+              raise SystemExit("Required Finder files are missing.")
+
+          s = js.read_text(encoding="utf-8")
+          h = html.read_text(encoding="utf-8")
+
+          if "selectedSeller:" not in s:
+              old = '    originalQuery: "", queryCorrected: false\n'
+              new = '    originalQuery: "", queryCorrected: false, selectedSeller: ""\n'
+              if old not in s:
+                  raise SystemExit("state insertion anchor not found.")
+              s = s.replace(old, new, 1)
+
+          old = "merchant:$('[data-filter-merchant]')?.value||\"\", price:$('[data-filter-price]')?.value||\"\", sort:$('[data-filter-sort]')?.value||\"smart\","
+          new = "merchant:$('[data-filter-merchant]')?.value||state.selectedSeller||\"\", price:$('[data-filter-price]')?.value||\"\", sort:$('[data-filter-sort]')?.value||\"smart\","
+          if old in s:
+              s = s.replace(old, new, 1)
+
+          old = "      const current=tpCanonicalSellerV15_1(merchant.value)||merchant.value;"
+          new = "      const current=state.selectedSeller||tpCanonicalSellerV15_1(merchant.value)||merchant.value;"
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif new not in s:
+              raise SystemExit("populateFilters seller anchor not found.")
+
+          old = "  const preservedSeller=tpCanonicalSellerV15_1(merchantBeforeSearch?.value)||merchantBeforeSearch?.value||\"\";"
+          new = "  const preservedSeller=state.selectedSeller||tpCanonicalSellerV15_1(merchantBeforeSearch?.value)||merchantBeforeSearch?.value||\"\";\n  state.selectedSeller=preservedSeller;"
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif "state.selectedSeller=preservedSeller;" not in s:
+              raise SystemExit("performSearch seller preservation anchor not found.")
+
+          if "TP_PHONE_DEVICE_INTENT_V15_8_7" not in s:
+              anchor = "  function inferFamily(q, manifest=state.manifest) {\n"
+              if anchor not in s:
+                  raise SystemExit("inferFamily anchor not found.")
+              insertion = (
+                  "  function inferFamily(q, manifest=state.manifest) {\n"
+                  "    // TP_PHONE_DEVICE_INTENT_V15_8_7\n"
+                  "    const plainDeviceQuery=lower(q).trim();\n"
+                  "    if(/^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones|cell phone|cell phones|android phone|android phones|iphone|iphones)$/i.test(plainDeviceQuery)) return \"smartphones\";\n"
+              )
+              s = s.replace(anchor, insertion, 1)
+
+          s = s.replace(
+              '["smartphones", /\\b(smartphones?|mobile phones?|iphone)\\b/i],',
+              '["smartphones", /\\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?)\\b/i],'
+          )
+
+          if "TP_SMARTPHONE_TITLE_GUARD_V15_8_7" not in s:
+              old_guard = '    if(plan.families?.includes("smartphones") && /\\b(case|cover|screen protector|charger|cable|mount|holder)\\b/i.test(text))return false;'
+              new_guard = (
+                  '    // TP_SMARTPHONE_TITLE_GUARD_V15_8_7\n'
+                  '    if(plan.families?.includes("smartphones")) {\n'
+                  '      if(/\\b(?:case|cover|screen protector|charger|charging|cable|mount|holder|stand|strap|lanyard|grip|dock|adapter|cleaning|cleaner|repair kit|replacement part|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack)\\b/i.test(text))return false;\n'
+                  '      if(!/\\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?)\\b/i.test(text) && p.family!=="smartphones")return false;\n'
+                  '    }'
+              )
+              if old_guard not in s:
+                  raise SystemExit("smartphone guard anchor not found.")
+              s = s.replace(old_guard, new_guard, 1)
+
+          if "tpLiveSellerQueriesV15_8_7" not in s:
+              marker = "  // TP_CJ_LIVE_SEARCH_V15_7_1_END\n"
+              if marker not in s:
+                  raise SystemExit("CJ live search end marker not found.")
+              helper = (
+                  "  function tpLiveSellerQueriesV15_8_7(query,seller){\n"
+                  "    const q=lower(query||\"\").trim();\n"
+                  "    if(seller===\"TikTok Shop US\" && /^(?:phone|phones|smartphone|smartphones)$/i.test(q)){\n"
+                  "      return [\"smartphone\",\"mobile phone\",\"android smartphone\",\"unlocked smartphone\"];\n"
+                  "    }\n"
+                  "    return [clean(query)].filter(Boolean);\n"
+                  "  }\n\n"
+                  "  async function tpLoadSelectedLiveSellerV15_8_7(seller){\n"
+                  "    const queries=tpLiveSellerQueriesV15_8_7(state.query,seller);\n"
+                  "    const settled=await Promise.allSettled(queries.map(q=>tpLoadCjLiveProductsV15_7_1(q,seller)));\n"
+                  "    const rows=[];\n"
+                  "    settled.forEach(result=>{\n"
+                  "      if(result.status===\"fulfilled\" && Array.isArray(result.value)) rows.push(...result.value);\n"
+                  "    });\n"
+                  "    if(rows.length) mergeProducts(rows);\n"
+                  "    return rows;\n"
+                  "  }\n"
+              )
+              s = s.replace(marker, marker + helper, 1)
+
+          old_block = "\n".join([
+              "      if(x.matches('[data-filter-merchant]')&&x.value&&typeof tpLoadSellerSpecificV15_1===\"function\"){",
+              "        const selected=x.value;",
+              "        state.loading=true;",
+              "        renderFinder();",
+              "        await tpLoadSellerSpecificV15_1(selected);",
+              "        state.loading=false;",
+              "        populateFilters();",
+              "        const merchant=$('[data-filter-merchant]');",
+              "        if(merchant)merchant.value=selected;",
+              "      }",
+          ])
+          new_block = "\n".join([
+              "      if(x.matches('[data-filter-merchant]')){",
+              "        const selected=tpCanonicalSellerV15_1(x.value)||clean(x.value);",
+              "        state.selectedSeller=selected;",
+              "        state.loading=true;",
+              "        renderFinder();",
+              "        if(selected){",
+              "          if(typeof TP_CJ_LIVE_SELLERS_V15_7_1!==\"undefined\" && TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)){",
+              "            await tpLoadSelectedLiveSellerV15_8_7(selected);",
+              "          }else if(typeof tpLoadSellerSpecificV15_1===\"function\"){",
+              "            await tpLoadSellerSpecificV15_1(selected);",
+              "          }",
+              "        }",
+              "        state.loading=false;",
+              "        populateFilters();",
+              "        const merchant=$('[data-filter-merchant]');",
+              "        if(merchant)merchant.value=selected;",
+              "      }",
+          ])
+          if old_block in s:
+              s = s.replace(old_block, new_block, 1)
+          elif "await tpLoadSelectedLiveSellerV15_8_7(selected);" not in s:
+              raise SystemExit("Seller-change handler patch not installed.")
+
+          old_reset = "$('[data-reset-filters]')?.addEventListener('click',()=>{$$('[data-filter-panel] select').forEach(x=>x.value='');"
+          new_reset = "$('[data-reset-filters]')?.addEventListener('click',()=>{state.selectedSeller='';$$('[data-filter-panel] select').forEach(x=>x.value='');"
+          if old_reset in s:
+              s = s.replace(old_reset, new_reset, 1)
+
+          old_all = "const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){const merchant=$('[data-filter-merchant]');if(merchant)merchant.value=\"\";"
+          new_all = "const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){state.selectedSeller='';const merchant=$('[data-filter-merchant]');if(merchant)merchant.value=\"\";"
+          if old_all in s:
+              s = s.replace(old_all, new_all, 1)
+
+          h = re.sub(r'/js/site-v13-5\.js\?v=[^"]+', '/js/site-v13-5.js?v=15.8.7', h, count=1)
+          s = s.replace('TP_CJ_GUARD_VERSION = "15.8.6"', 'TP_CJ_GUARD_VERSION = "15.8.7"')
+
+          js.write_text(s.rstrip()+"\n", encoding="utf-8")
+          html.write_text(h.rstrip()+"\n", encoding="utf-8")
+
+          print("V15.8.7 focused fixes applied.")
+          PY
+
+      - name: Validate V15.8.7
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          s=Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          h=Path("find/index.html").read_text(encoding="utf-8")
+
+          checks={
+            "Persistent seller state": "selectedSeller:" in s,
+            "Phone device intent": "TP_PHONE_DEVICE_INTENT_V15_8_7" in s,
+            "Smartphone accessory guard": "TP_SMARTPHONE_TITLE_GUARD_V15_8_7" in s,
+            "TikTok targeted live queries": "tpLiveSellerQueriesV15_8_7" in s,
+            "Selected live seller loader": "tpLoadSelectedLiveSellerV15_8_7" in s,
+            "Seller handler uses CJ Live": "await tpLoadSelectedLiveSellerV15_8_7(selected);" in s,
+            "Reset clears persistent seller": "state.selectedSeller='';$$('[data-filter-panel] select')" in s,
+            "All-sellers button clears persistent seller": "if(allSellers){state.selectedSeller='';" in s,
+            "Finder cache bust": "/js/site-v13-5.js?v=15.8.7" in h,
+          }
+
+          failed=[]
+          for name,ok in checks.items():
+              print(("PASS" if ok else "FAIL")+": "+name)
+              if not ok: failed.append(name)
+
+          if failed:
+              raise SystemExit("Validation failed: "+", ".join(failed))
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={"js/site-v13-5.js","find/index.html"}
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected files changed: "+", ".join(sorted(unexpected)))
+
+          print("V15.8.7 validation passed.")
+          PY
+
+      - name: Publish V15.8.7
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add js/site-v13-5.js find/index.html
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.8.7 is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: lock TikTok seller and improve phone live results"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot Products V15.8.7"
+            echo "- Keeps TikTok Shop US selected"
+            echo "- Uses CJ Live API when TikTok is selected"
+            echo "- Expands TikTok phone search into several device-oriented queries"
+            echo "- Rejects obvious phone accessories from smartphone exact matches"
+            echo "- Leaves autocomplete, seller whitelist, Admitad and CPC untouched"
+          } >> "$GITHUB_STEP_SUMMARY"
