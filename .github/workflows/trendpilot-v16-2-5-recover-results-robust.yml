@@ -1,0 +1,285 @@
+name: TrendPilot V16.2.5 Recover Results Robust
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-2-5-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recover-results:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Recover finder results without hard intent cutoff
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js = Path("js/site-v13-5.js")
+          finder = Path("find/index.html")
+          docs = Path("V16-UNIVERSAL-PRODUCT-INDEX.md")
+
+          if not js.exists():
+              raise SystemExit("Missing js/site-v13-5.js")
+          if not finder.exists():
+              raise SystemExit("Missing find/index.html")
+
+          s = js.read_text(encoding="utf-8")
+
+          hard_gate_current = '''    // TP_HYBRID_EXACT_GATE_V16_2_3
+          if(p._tpHybridV16_2_1){
+            return Number(p.intentTier||0) >= 4;
+          }
+          '''
+          hard_gate_alt = '''    // TP_HYBRID_EXACT_GATE_V16_2_3
+            if(p._tpHybridV16_2_1){
+              return Number(p.intentTier||0) >= 4;
+            }
+          '''
+
+          if hard_gate_current in s:
+              s = s.replace(hard_gate_current, "", 1)
+          elif hard_gate_alt in s:
+              s = s.replace(hard_gate_alt, "", 1)
+          else:
+              raise SystemExit("Current V16.2.3 hard gate block not found.")
+
+          strict_anchor = "  function strictProductMatch(p, plan) {"
+
+          if "function tpHybridClearlyRelatedV16_2_5" not in s:
+              pos = s.find(strict_anchor)
+              if pos < 0:
+                  raise SystemExit("strictProductMatch anchor not found.")
+
+              helper = r'''  function tpHybridClearlyRelatedV16_2_5(p, plan) {
+            if(!p?._tpHybridV16_2_1)return false;
+
+            const title=lower(p.name||p.title||"");
+            const ws=(title.match(/[a-z0-9]+/g)||[]);
+            const tokens=(plan?.intentTokens||[]).filter(Boolean);
+
+            if(!tokens.length)return false;
+
+            const supportWords=new Set([
+              "case","cover","protector","charger","charging","cable","connector",
+              "holder","stand","mount","adapter","dock","repair","tool","kit",
+              "replacement","part","parts","feeder","feeding","bowl","dispenser",
+              "container","storage","mat","placemat","tray","mold","mould",
+              "bead","beads","projector","speaker","microphone","headset",
+              "earphone","solar","panel","socket","pcb"
+            ]);
+
+            const relationWords=new Set([
+              "for","compatible","fits","fit","replacement","repair",
+              "adapter","accessory","accessories"
+            ]);
+
+            const hitIndexes=[];
+            ws.forEach((w,i)=>{
+              if(tokens.some(t=>w===t || (t.length>=4 && w.includes(t)))){
+                hitIndexes.push(i);
+              }
+            });
+
+            if(!hitIndexes.length)return false;
+
+            for(const i of hitIndexes){
+              const before=ws.slice(Math.max(0,i-5),i);
+              if(before.some(w=>relationWords.has(w)))return true;
+            }
+
+            const q=lower(plan?.q||"");
+            if(q && title.includes(q)){
+              const idx=title.indexOf(q);
+              const tail=title.slice(idx+q.length).trim().split(/\s+/).slice(0,3);
+              if(tail.some(w=>supportWords.has(w)))return true;
+            }
+
+            if(tokens.length>=2){
+              const positions=tokens.map(t=>{
+                for(let i=0;i<ws.length;i++){
+                  if(ws[i]===t || (t.length>=4 && ws[i].includes(t)))return i;
+                }
+                return -1;
+              });
+
+              if(positions.every(i=>i>=0)){
+                const span=Math.max(...positions)-Math.min(...positions)+1;
+                if(span>tokens.length+1)return true;
+              }
+            }
+
+            return false;
+          }
+
+          '''
+              s = s[:pos] + helper + s[pos:]
+
+          if "TP_HYBRID_SOFT_GATE_V16_2_5" not in s:
+              old_open = "  function strictProductMatch(p, plan) {\n"
+              new_open = r'''  function strictProductMatch(p, plan) {
+            // TP_HYBRID_SOFT_GATE_V16_2_5
+            if(p?._tpHybridV16_2_1){
+              const tier=Number(p.intentTier||0);
+              if(tier>=4)return true;
+              if(tpHybridClearlyRelatedV16_2_5(p,plan))return false;
+            }
+          '''
+              if old_open not in s:
+                  raise SystemExit("strictProductMatch opening not found.")
+              s = s.replace(old_open, new_open, 1)
+
+          old_pool_current = '''  // TP_HYBRID_EXACT_POOL_V16_2_3
+          const hybridRows=state.products.filter(p=>p._tpHybridV16_2_1);
+          const exactSource=hybridRows.length ? hybridRows : state.products;
+
+          const rankedExact=exactSource
+          '''
+          old_pool_alt = '''  // TP_HYBRID_EXACT_POOL_V16_2_3
+            const hybridRows=state.products.filter(p=>p._tpHybridV16_2_1);
+            const exactSource=hybridRows.length ? hybridRows : state.products;
+
+            const rankedExact=exactSource
+          '''
+
+          new_pool = '''  // TP_HYBRID_SOFT_EXACT_POOL_V16_2_5
+          const rankedExact=state.products
+          '''
+
+          if old_pool_current in s:
+              s = s.replace(old_pool_current, new_pool, 1)
+          elif old_pool_alt in s:
+              s = s.replace(old_pool_alt, new_pool, 1)
+          else:
+              raise SystemExit("Current V16.2.3 hybrid-only Exact pool not found.")
+
+          if "if(state.exact.length<24 && !state.hybridMeta){" in s:
+              s = s.replace(
+                  "if(state.exact.length<24 && !state.hybridMeta){",
+                  "if(state.exact.length<24){",
+                  1
+              )
+
+          if 'const moreRemote=state.activeTab==="exact"&&!state.hybridMeta&&!candidatePagesExhausted();' in s:
+              s = s.replace(
+                  'const moreRemote=state.activeTab==="exact"&&!state.hybridMeta&&!candidatePagesExhausted();',
+                  'const moreRemote=state.activeTab==="exact"&&!candidatePagesExhausted();',
+                  1
+              )
+
+          if 'if(state.activeTab!=="exact"||state.hybridMeta||candidatePagesExhausted()||state.loading)return;' in s:
+              s = s.replace(
+                  'if(state.activeTab!=="exact"||state.hybridMeta||candidatePagesExhausted()||state.loading)return;',
+                  'if(state.activeTab!=="exact"||candidatePagesExhausted()||state.loading)return;',
+                  1
+              )
+
+          js.write_text(s, encoding="utf-8")
+
+          h = finder.read_text(encoding="utf-8")
+          h2,n = re.subn(
+              r'/js/site-v13-5\.js\?v=[^"\']+',
+              '/js/site-v13-5.js?v=16.2.5',
+              h,
+              count=1
+          )
+          if n != 1:
+              raise SystemExit(f"Finder script URL not found uniquely: matches={n}")
+          finder.write_text(h2, encoding="utf-8")
+
+          d = docs.read_text(encoding="utf-8") if docs.exists() else "# TrendPilot V16 Universal Product Index\n"
+          if "## V16.2.5 — robust result recovery" not in d:
+              d += r'''
+
+          ## V16.2.5 — robust result recovery
+
+          - Removes the V16.2.3 hard intent-tier cutoff that blanked All sellers.
+          - Uses a soft Hybrid gate: high tiers get priority, obvious related
+            products are rejected, and uncertain rows continue through the
+            existing family/title checks.
+          - Restores all merged catalogues to the Exact candidate pool.
+          - Restores minimum-result filling and Check more catalogue pages.
+          - Uses exact current-main replacements instead of the failed V16.2.4
+            validation assumption.
+          - No product-index rebuild is required.
+          '''
+          docs.write_text(d, encoding="utf-8")
+
+          print("V16.2.5 robust recovery applied.")
+          PY
+
+      - name: Validate V16.2.5
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          grep -q 'TP_HYBRID_SOFT_GATE_V16_2_5' js/site-v13-5.js
+          grep -q 'tpHybridClearlyRelatedV16_2_5' js/site-v13-5.js
+          grep -q 'TP_HYBRID_SOFT_EXACT_POOL_V16_2_5' js/site-v13-5.js
+          grep -q '/js/site-v13-5.js?v=16.2.5' find/index.html
+          grep -q 'if(state.exact.length<24){' js/site-v13-5.js
+
+          if grep -q 'TP_HYBRID_EXACT_GATE_V16_2_3' js/site-v13-5.js; then
+            echo "Old hard V16.2.3 gate still exists."
+            exit 1
+          fi
+
+          if grep -q 'TP_HYBRID_EXACT_POOL_V16_2_3' js/site-v13-5.js; then
+            echo "Old hybrid-only V16.2.3 pool still exists."
+            exit 1
+          fi
+
+          echo "V16.2.5 validation passed."
+
+      - name: Publish V16.2.5
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            js/site-v13-5.js \
+            find/index.html \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.2.5 is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: recover all-seller results with soft hybrid relevance"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.2.5"
+            echo "- fixes V16.2.4 validation failure"
+            echo "- removes the V16.2.3 hard Exact gate"
+            echo "- restores All sellers result filling"
+            echo "- keeps a generic related-product rejection signal"
+            echo "- restores Show More / catalogue-page loading"
+            echo "- no index rebuild required"
+          } >> "$GITHUB_STEP_SUMMARY"
