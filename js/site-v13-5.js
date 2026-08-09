@@ -554,6 +554,109 @@ function normalizeProduct(p) {
   }
   // TP_TIKTOK_LIVE_SELLER_V15_8_9_END
 
+  // TP_V16_2_1_HYBRID_FINDER_START
+async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
+  const q=clean(query);
+  const seller=tpCanonicalSellerV15_1(requestedSeller)||clean(requestedSeller);
+
+  if(q.length<2 || lower(q)==="popular products"){
+    return {rows:[],meta:null};
+  }
+
+  const params=new URLSearchParams({
+    q,
+    limit:"100",
+    test:"1621"
+  });
+
+  if(seller)params.set("seller",seller);
+
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),12000);
+
+  try{
+    const response=await fetch(`/api/products-v16-hybrid?${params.toString()}`,{
+      cache:"no-store",
+      signal:controller.signal,
+      headers:{"accept":"application/json"}
+    });
+
+    if(!response.ok)return {rows:[],meta:null};
+
+    const payload=await response.json();
+
+    if(!payload?.ok || !Array.isArray(payload.products)){
+      return {rows:[],meta:payload||null};
+    }
+
+    const rows=payload.products
+      .map(row=>{
+        const source={...row};
+
+        source.name=clean(
+          source.name ||
+          source.title ||
+          source.productName ||
+          source.product_name
+        );
+
+        source.url=clean(
+          source.url ||
+          source.affiliateUrl ||
+          source.affiliate_url ||
+          source.destinationUrl ||
+          source.destination_url ||
+          source.productUrl ||
+          source.product_url
+        );
+
+        source.image=clean(
+          source.image ||
+          source.imageUrl ||
+          source.image_url
+        );
+
+        source.advertiser=clean(
+          source.advertiser ||
+          source.seller ||
+          source.merchant ||
+          source.network
+        );
+
+        let p=normalizeProduct(source);
+
+        if(typeof tpEnrichCjTaxonomyV15_6_4==="function"){
+          p=tpEnrichCjTaxonomyV15_6_4(p);
+        }
+
+        p._tpHybridV16_2_1=true;
+        p.intentTier=Number(row.intentTier||0)||0;
+        p.hybridMatchScore=Number(row.matchScore||0)||0;
+        p.hybridFallbackSource=clean(
+          row.fallbackSource ||
+          (Array.isArray(payload.fallbackSources)
+            ? payload.fallbackSources.join(", ")
+            : "") ||
+          "v16-index"
+        );
+
+        return p;
+      })
+      .filter(tpCjPublicAllowed)
+      .filter(tpPublicSellerAllowed);
+
+    return {rows,meta:payload};
+  }catch(error){
+    if(error?.name!=="AbortError"){
+      console.warn("TrendPilot V16.2.1 hybrid finder unavailable",error);
+    }
+    return {rows:[],meta:null};
+  }finally{
+    clearTimeout(timer);
+  }
+}
+// TP_V16_2_1_HYBRID_FINDER_END
+
   // TP_CJ_SEARCH_BRIDGE_START
   let tpCjProductsPromise = null;
   async function loadCjProducts() {
@@ -1437,7 +1540,12 @@ function normalizeProduct(p) {
       const scan=scannedCandidateCount();
       const progress=candidatePagesExhausted()?"Catalogue check complete.":"More relevant catalogue pages can still be checked.";
       const correction=state.queryCorrected?`Corrected “${state.originalQuery}” to “${state.query}”. `:"";
-      status.textContent=`${correction}Showing ${fmt.format(visible.length)} of ${fmt.format(renderRows.length)} ${selectedSeller&&renderRows!==rows?"seller matches":noun}. ${fmt.format(scan)} candidates checked. ${progress}`;
+      const hybridStatusV16_2_1=state.hybridMeta
+        ? (state.hybridMeta.fallbackUsed
+            ? " Wider live/catalogue sources were added."
+            : " V16 hybrid index active.")
+        : "";
+      status.textContent=`${correction}Showing ${fmt.format(visible.length)} of ${fmt.format(renderRows.length)} ${selectedSeller&&renderRows!==rows?"seller matches":noun}. ${fmt.format(scan)} candidates checked. ${progress}${hybridStatusV16_2_1}`;
     }
     const more=$('[data-tp-load-more]'); if(more){
       const moreLoaded=renderRows.length>state.shown;
@@ -1463,9 +1571,17 @@ function normalizeProduct(p) {
   state.originalQuery=normalized.original; state.query=normalized.query; state.queryCorrected=normalized.corrected;
   state.scope=scope||""; state.shown=24; state.activeTab="exact"; state.products=[]; state.exact=[]; state.alternatives=[]; state.segmentState.clear(); state.loading=true;
   const cjLiveQueryV15_7_1=state.query;
-  const cjLivePromiseV15_7_1=(preservedSeller && TP_CJ_LIVE_SELLERS_V15_7_1.has(preservedSeller))
-    ? tpLoadSelectedLiveSellerV15_8_9(preservedSeller,cjLiveQueryV15_7_1)
-    : tpLoadCjLiveProductsV15_7_1(cjLiveQueryV15_7_1,preservedSeller);
+
+    // V16.2.1: hybrid owns all-seller live fallback.
+    // Keep direct CJ only for an explicitly selected CJ seller.
+    const cjLivePromiseV15_7_1=(preservedSeller && TP_CJ_LIVE_SELLERS_V15_7_1.has(preservedSeller))
+      ? tpLoadSelectedLiveSellerV15_8_9(preservedSeller,cjLiveQueryV15_7_1)
+      : Promise.resolve([]);
+
+    const hybridPromiseV16_2_1=tpLoadHybridProductsV16_2_1(
+      state.query,
+      preservedSeller
+    );
   resetFilterControls();
   const grid=$('[data-tp-product-grid]');
   if(grid)grid.innerHTML='<div class="tp-empty"><h3>Checking matching products…</h3><p>TrendPilot is loading the most relevant catalogue records.</p></div>';
@@ -1475,17 +1591,38 @@ function normalizeProduct(p) {
     const input=$('[data-tp-finder-input]');if(input)input.value=state.query;
     const scopeSelect=$('[data-tp-finder-scope]');if(scopeSelect)scopeSelect.value=state.scope;
     const results=await Promise.allSettled([
+      hybridPromiseV16_2_1,
       state.manifest.version==="fallback"?Promise.resolve(state.products):loadInitialSegments(),
       loadCjProducts(),
       typeof tpLoadBalancedSellerRowsV15_1==="function"?tpLoadBalancedSellerRowsV15_1():Promise.resolve([]),
       loadAdmitadProductsV15_4()
     ]);
-    const rows=results[0].status==="fulfilled"?results[0].value:[];
-    const cjRows=results[1].status==="fulfilled"?results[1].value:[];
-    const balancedRows=results[2].status==="fulfilled"?results[2].value:[];
-    const admitadRows=results[3].status==="fulfilled"?results[3].value:[];
-    mergeProducts([...rows,...cjRows,...balancedRows,...admitadRows]);
-    await Promise.race([ensureMinimumExact(24),new Promise(resolve=>setTimeout(resolve,6500))]);
+
+    const hybridPayload=results[0].status==="fulfilled"
+      ? results[0].value
+      : {rows:[],meta:null};
+
+    const rows=results[1].status==="fulfilled"?results[1].value:[];
+    const cjRows=results[2].status==="fulfilled"?results[2].value:[];
+    const balancedRows=results[3].status==="fulfilled"?results[3].value:[];
+    const admitadRows=results[4].status==="fulfilled"?results[4].value:[];
+
+    state.hybridMeta=hybridPayload?.meta||null;
+
+    mergeProducts([
+      ...(hybridPayload?.rows||[]),
+      ...rows,
+      ...cjRows,
+      ...balancedRows,
+      ...admitadRows
+    ]);
+
+    if(state.exact.length<24){
+      await Promise.race([
+        ensureMinimumExact(24),
+        new Promise(resolve=>setTimeout(resolve,6500))
+      ]);
+    }
     populateFilters();
     if(preservedSeller){
       const merchantAfterSearch=$('[data-filter-merchant]');
@@ -1660,19 +1797,29 @@ function normalizeProduct(p) {
         const selected=tpCanonicalSellerV15_1(x.value)||clean(x.value);
         state.selectedSeller=selected;
         if(selected){
-          state.loading=true;
-          renderFinder();
-          if(TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)){
-            const liveRows=await tpLoadSelectedLiveSellerV15_8_9(selected,state.query);
-            if(liveRows.length)mergeProducts(liveRows);
-          }else if(typeof tpLoadSellerSpecificV15_1==="function"){
-            await tpLoadSellerSpecificV15_1(selected);
-          }
-          state.loading=false;
-          populateFilters();
-          const merchant=$('[data-filter-merchant]');
-          if(merchant)merchant.value=selected;
-        }else{
+        state.loading=true;
+        renderFinder();
+
+        const hybridSellerResultV16_2_1=await tpLoadHybridProductsV16_2_1(
+          state.query,
+          selected
+        );
+
+        if(hybridSellerResultV16_2_1?.rows?.length){
+          state.hybridMeta=hybridSellerResultV16_2_1.meta||state.hybridMeta;
+          mergeProducts(hybridSellerResultV16_2_1.rows);
+        }else if(TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)){
+          const liveRows=await tpLoadSelectedLiveSellerV15_8_9(selected,state.query);
+          if(liveRows.length)mergeProducts(liveRows);
+        }else if(typeof tpLoadSellerSpecificV15_1==="function"){
+          await tpLoadSellerSpecificV15_1(selected);
+        }
+
+        state.loading=false;
+        populateFilters();
+        const merchant=$('[data-filter-merchant]');
+        if(merchant)merchant.value=selected;
+            }else{
           state.selectedSeller="";
           state.shown=24;
           await performSearch(state.query,false,state.scope);
