@@ -7,7 +7,7 @@ import {
   tokenBucket
 } from "./products-v16-lib.mjs";
 
-const VERSION = "16.0.4";
+const VERSION = "16.0.6";
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -48,7 +48,15 @@ const accessoryWords = new Set([
   "battery","batteries","lock","locks","box","boxes",
   "spoon","spoons","scoop","scoops","scooper","scoopers",
   "organizer","organizers","bracket","brackets","clip","clips",
-  "tripod","tripods","lunch","timer","timers"
+  "tripod","tripods","lunch","timer","timers",
+  "sticker","stickers","skin","skins","decal","decals","film","films",
+  "memory","card","cards","flash","drive","drives",
+  "ring","light","lights","microphone","microphones",
+  "speaker","speakers","headset","headsets","earphone","earphones",
+  "keyboard","keyboards","mouse","mice","gamepad","gamepads",
+  "controller","controllers","remote","remotes",
+  "lens","lenses","module","modules","sensor","sensors",
+  "bag","bags","wallet","wallets","bumper","bumpers"
 ]);
 
 function tokenSet(value) {
@@ -89,8 +97,48 @@ function relevanceFor(doc, q, tokens, baseRank) {
   );
 
   const queryLooksAccessory = tokens.some(t => accessoryWords.has(t));
-  const titleHasAccessory = titleWords.some(w => accessoryWords.has(w));
-  const categoryHasAccessory = categoryWords.some(w => accessoryWords.has(w));
+  const titleAccessoryWords = titleWords.filter(w => accessoryWords.has(w));
+  const categoryAccessoryWords = categoryWords.filter(w => accessoryWords.has(w));
+  const titleHasAccessory = titleAccessoryWords.length > 0;
+  const categoryHasAccessory = categoryAccessoryWords.length > 0;
+
+  const phraseIndex = q ? title.indexOf(q) : -1;
+  const phraseWordPosition =
+    phraseIndex >= 0 ? words(title.slice(0, phraseIndex)).length : 999;
+  const phraseNearFront = phraseIndex >= 0 && phraseWordPosition <= 7;
+
+  // Tier is sorted before numeric score.
+  // Core products therefore cannot be displaced by a related item
+  // just because that related title repeats the query many times.
+  let intentTier = 0;
+
+  if (queryLooksAccessory) {
+    if (phraseInTitle && allInTitle) intentTier = 5;
+    else if (allInTitle) intentTier = 4;
+    else if (phraseInTitle) intentTier = 3;
+    else if (allInCategory) intentTier = 2;
+    else intentTier = 1;
+  } else {
+    const cleanTitleCore = allInTitle && !titleHasAccessory;
+    const cleanPhraseCore = phraseInTitle && !titleHasAccessory;
+    const cleanCategoryCore = allInCategory && !categoryHasAccessory;
+
+    if (
+      (cleanPhraseCore && phraseNearFront) ||
+      (cleanTitleCore && phraseAtStart) ||
+      (cleanCategoryCore && cleanPhraseCore)
+    ) {
+      intentTier = 5;
+    } else if (cleanTitleCore || cleanCategoryCore) {
+      intentTier = 4;
+    } else if (cleanPhraseCore) {
+      intentTier = 3;
+    } else if (allInTitle || phraseInTitle) {
+      intentTier = 2;
+    } else if (allInCategory || titleCoverage > 0 || brandCoverage > 0) {
+      intentTier = 1;
+    }
+  }
 
   let score = Number(baseRank.score || 0) + Number(baseRank.matches || 0) * 18;
 
@@ -108,18 +156,8 @@ function relevanceFor(doc, q, tokens, baseRank) {
   score += Math.min(descriptionCoverage, 2) * 4;
 
   if (brand === q) score += 55;
-
-  // A clean title that contains the requested product phrase, without
-  // accessory/repair intent, receives a strong generic "core product"
-  // boost. This is why "smart watch" beats "watch repair tool", and
-  // actual dog food can beat bowls/feeders.
-  const cleanCoreMatch =
-    phraseInTitle &&
-    !titleHasAccessory &&
-    (!categoryHasAccessory || allInCategory);
-
-  if (cleanCoreMatch) score += 165;
-  if (phraseAtStart && cleanCoreMatch) score += 70;
+  if (intentTier >= 5) score += 180;
+  else if (intentTier == 4) score += 90;
 
   let penalty = 0;
 
@@ -131,65 +169,57 @@ function relevanceFor(doc, q, tokens, baseRank) {
       "screen|stylus|strap|band|sleeve|pouch|feeder|feeding|bowl|toy|storage|" +
       "container|dispenser|remover|tester|testing|fixture|frame|shell|housing|" +
       "batter(?:y|ies)|locks?|boxes?|spoons?|scoops?|scoopers?|organizers?|" +
-      "brackets?|clips?|tripods?|lunch|timers?)";
+      "brackets?|clips?|tripods?|lunch|timers?|stickers?|skins?|decals?|films?|" +
+      "memory|cards?|flash|drives?|rings?|lights?|microphones?|speakers?|" +
+      "headsets?|earphones?|keyboards?|mouse|mice|gamepads?|controllers?|" +
+      "remotes?|lenses?|modules?|sensors?|bags?|wallets?|bumpers?)";
 
-    // Query followed by an accessory:
-    //   phone battery, dog food spoon, watch repair tool
     const queryThenAccessory = new RegExp(
-      qPattern + ".{0,55}\\b" + accessoryPattern + "\\b",
+      qPattern + ".{0,60}\\b" + accessoryPattern + "\\b",
       "i"
     );
-
-    // Accessory before the query:
-    //   bowl ... dog food, protective case for watch
     const accessoryThenQuery = new RegExp(
-      "\\b" + accessoryPattern + "\\b.{0,70}" + qPattern,
+      "\\b" + accessoryPattern + "\\b.{0,80}" + qPattern,
       "i"
     );
-
-    // Explicit relation:
-    //   case for phone, compatible with watch
     const accessoryForQuery = new RegExp(
       "\\b" + accessoryPattern +
-      "\\b.{0,25}\\b(?:for|compatible\\s+with|replacement\\s+for|used\\s+for)\\s+" +
+      "\\b.{0,30}\\b(?:for|compatible\\s+with|replacement\\s+for|used\\s+for)\\s+" +
       qPattern,
       "i"
     );
 
-    if (queryThenAccessory.test(title)) penalty += 270;
-    if (accessoryThenQuery.test(title)) penalty += 250;
-    if (accessoryForQuery.test(title)) penalty += 290;
-
-    // Any accessory language in a title that also contains the core
-    // query is weaker evidence than a clean core-product title.
-    if (phraseInTitle && titleHasAccessory) penalty += 105;
-    if (phraseInTitle && categoryHasAccessory) penalty += 65;
-
-    // Description-only or incidental matches should not outrank core
-    // products merely because the word appears somewhere.
-    if (titleHasAccessory && titleCoverage == 0) penalty += 85;
-    if (categoryHasAccessory && titleCoverage == 0) penalty += 55;
+    if (queryThenAccessory.test(title)) penalty += 320;
+    if (accessoryThenQuery.test(title)) penalty += 300;
+    if (accessoryForQuery.test(title)) penalty += 340;
+    if (phraseInTitle && titleHasAccessory) penalty += 130;
+    if (phraseInTitle && categoryHasAccessory) penalty += 80;
+    if (titleHasAccessory && titleCoverage == 0) penalty += 100;
+    if (categoryHasAccessory && titleCoverage == 0) penalty += 65;
   }
 
   if (titleCoverage == 0 && categoryCoverage == 0 && brandCoverage == 0) {
-    score -= 180;
+    score -= 190;
   }
-
   if (titleCoverage == 0 && descriptionCoverage > 0) {
-    score -= 80;
+    score -= 90;
   }
 
   score -= penalty;
 
   return {
     score,
+    intentTier,
     signals: {
       titleCoverage,
       categoryCoverage,
       brandCoverage,
       phraseInTitle,
       phraseAtStart,
-      cleanCoreMatch,
+      phraseNearFront,
+      titleHasAccessory,
+      titleAccessoryWords,
+      intentTier,
       accessoryPenalty: penalty
     }
   };
@@ -303,7 +333,8 @@ export default async function handler(request) {
         url: doc.affiliateUrl || doc.destinationUrl,
         image: doc.imageUrl,
         matchScore: relevance.score,
-        matchedTokens: rank.matches
+        matchedTokens: rank.matches,
+        intentTier: relevance.intentTier
       };
 
       if (debug) result.relevance = relevance.signals;
@@ -311,10 +342,15 @@ export default async function handler(request) {
     }
 
     products.sort((a, b) =>
+      b.intentTier - a.intentTier ||
       b.matchScore - a.matchScore ||
       b.quality - a.quality ||
       a.title.localeCompare(b.title)
     );
+
+    const coreCandidates = products.filter(p => p.intentTier >= 4).length;
+
+    const strongCoreCandidates = products.filter(p => p.intentTier >= 5).length;
 
     const paged = products.slice(offset, offset + limit);
 
@@ -328,11 +364,13 @@ export default async function handler(request) {
       network: network || null,
       indexedProducts: meta.products || 0,
       totalCandidates: products.length,
+      coreCandidates,
+      strongCoreCandidates,
       totalReturned: paged.length,
       products: paged
     });
   } catch (error) {
-    console.error("TrendPilot V16.0.4 search failed", error);
+    console.error("TrendPilot V16.0.6 search failed", error);
     return json({
       ok: false,
       version: VERSION,

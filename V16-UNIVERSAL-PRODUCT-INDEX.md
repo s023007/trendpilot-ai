@@ -57,3 +57,12 @@ V16.0.1 therefore uses Netlify Blobs, which requires no database provisioning.
   and `dog food bowl` remain valid and are not penalized.
 - Candidate rescoring now scans the full 1,800-entry token posting
   window before returning the top results.
+
+
+## V16.0.6 — robust intent tiers
+
+- Replaces fragile exact-string workflow anchors with regex-based edits.
+- Results sort by core-product intent tier before numeric relevance.
+- Core-product candidate counts are exposed for the future live fallback.
+- Explicit accessory searches remain supported.
+- Search-only release; the 49k-product Blob index does not require rebuild.
