@@ -1,0 +1,322 @@
+name: TrendPilot TikTok Shop US Live Integration V15.8.3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-tiktok-shop-us-live-v15-8-3-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integrate-tiktok-shop:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Integrate TikTok Shop US safely
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          fn = Path("netlify/functions/cj-live-products.mjs")
+          js = Path("js/site-v13-5.js")
+          joined = Path("js/cj-joined-sellers.js")
+          html = Path("find/index.html")
+
+          for p in (fn, js, joined, html):
+              if not p.exists():
+                  raise SystemExit(f"Missing required file: {p}")
+
+          f = fn.read_text(encoding="utf-8")
+          s = js.read_text(encoding="utf-8")
+          j = joined.read_text(encoding="utf-8")
+          h = html.read_text(encoding="utf-8")
+
+          # 1) Netlify CJ live function
+          if '"TikTok Shop US"' not in f:
+              anchor = '  "Karaca EU": { advertiserId: "5893489", adIds: ["15171094"] }\n'
+              if anchor not in f:
+                  raise SystemExit("CJ seller config anchor not found.")
+              f = f.replace(
+                  anchor,
+                  anchor + '  ,"TikTok Shop US": { advertiserId: "7563286", adIds: ["17099898"], strictProductTracking: true, disableLinkSearch: true }\n',
+                  1
+              )
+
+          if 'return "TikTok Shop US"' not in f:
+              anchor = '  if (["karaca eu","karaca europe","karaca"].includes(raw)) return "Karaca EU";\n'
+              if anchor not in f:
+                  raise SystemExit("CJ canonical seller anchor not found.")
+              f = f.replace(
+                  anchor,
+                  anchor + '  if (["tiktok shop us","tiktok shop","tiktok","tiktokshop"].includes(raw)) return "TikTok Shop US";\n',
+                  1
+              )
+
+          strict_marker = 'const requiresProductTracking = Boolean(cfg.strictProductTracking);'
+          if strict_marker not in f:
+              anchor = '''      const trackedProductUrl =
+                isCjTrackingUrl(productClickUrl) ? productClickUrl : "";
+          '''
+              if anchor not in f:
+                  raise SystemExit("CJ trackedProductUrl anchor not found.")
+              f = f.replace(
+                  anchor,
+                  anchor + '''
+                const requiresProductTracking = Boolean(cfg.strictProductTracking);
+                if (requiresProductTracking && !trackedProductUrl) return null;
+          ''',
+                  1
+              )
+
+          disable_marker = 'if (SELLERS[seller]?.disableLinkSearch) return [seller, null];'
+          if disable_marker not in f:
+              anchor = '''        const rows = Array.isArray(result?.resultList) ? result.resultList : [];
+
+                const hasMissingProductClickUrl = rows.some(
+          '''
+              if anchor not in f:
+                  raise SystemExit("CJ fallback routing anchor not found.")
+              f = f.replace(
+                  anchor,
+                  '''        const rows = Array.isArray(result?.resultList) ? result.resultList : [];
+
+                if (SELLERS[seller]?.disableLinkSearch) return [seller, null];
+
+                const hasMissingProductClickUrl = rows.some(
+          ''',
+                  1
+              )
+
+          f = f.replace("TrendPilotLiveSearchV1573", "TrendPilotLiveSearchV1583")
+          f = f.replace("TrendPilot-CJ-Live-Search/15.7.3", "TrendPilot-CJ-Live-Search/15.8.3")
+          f = f.replace("TrendPilot-CJ-Link-Fallback/15.7.3", "TrendPilot-CJ-Link-Fallback/15.8.3")
+          f = f.replace('"15.7.3"', '"15.8.3"')
+          f = f.replace("|15.7.3`", "|15.8.3`")
+          f = f.replace("V15.7.3 failed", "V15.8.3 failed")
+
+          # 2) Products UI seller/approval/live routing
+          m = re.search(r'const TP_CJ_APPROVED_IDS = new Set\(\[(.*?)\]\);', s)
+          if not m:
+              raise SystemExit("Approved CJ IDs set not found.")
+          if '"7563286"' not in m.group(1):
+              s = s[:m.start(1)] + m.group(1).rstrip() + ', "7563286"' + s[m.end(1):]
+
+          m = re.search(r'const TP_CJ_APPROVED_NAMES = new Set\(\[(.*?)\]\);', s)
+          if not m:
+              raise SystemExit("Approved CJ names set not found.")
+          if '"tiktokshopus"' not in m.group(1):
+              s = s[:m.start(1)] + m.group(1).rstrip() + ', "tiktok", "tiktokshop", "tiktokshopus"' + s[m.end(1):]
+
+          m = re.search(r'const TP_CJ_KNOWN_NAMES = new Set\(\[(.*?)\]\);', s)
+          if not m:
+              raise SystemExit("Known CJ names set not found.")
+          if '"tiktokshopus"' not in m.group(1):
+              s = s[:m.start(1)] + m.group(1).rstrip() + ', "tiktok", "tiktokshop", "tiktokshopus"' + s[m.end(1):]
+
+          old = 'const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"];'
+          new = 'const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US","Temu"];'
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif '"TikTok Shop US"' not in s[s.find("TP_PRODUCT_SELLERS_V15_1"):s.find("TP_PRODUCT_SELLERS_V15_1")+500]:
+              raise SystemExit("Product seller array anchor changed unexpectedly.")
+
+          if '"tiktok shop us":"TikTok Shop US"' not in s:
+              anchor = '    "temu":"Temu","temu.com":"Temu","shop temu":"Temu"\n'
+              if anchor not in s:
+                  raise SystemExit("Seller alias anchor not found.")
+              s = s.replace(
+                  anchor,
+                  '    "tiktok":"TikTok Shop US","tiktok shop":"TikTok Shop US","tiktok shop us":"TikTok Shop US","tiktokshop":"TikTok Shop US",\n' + anchor,
+                  1
+              )
+
+          old = 'const TP_CJ_LIVE_SELLERS_V15_7_1 = new Set(["Temu","PandaHall","FragranceShop.com","Karaca EU"]);'
+          new = 'const TP_CJ_LIVE_SELLERS_V15_7_1 = new Set(["Temu","PandaHall","FragranceShop.com","Karaca EU","TikTok Shop US"]);'
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif '"TikTok Shop US"' not in s[s.find("TP_CJ_LIVE_SELLERS_V15_7_1"):s.find("TP_CJ_LIVE_SELLERS_V15_7_1")+400]:
+              raise SystemExit("CJ live seller set anchor changed unexpectedly.")
+
+          if '"TikTok Shop US":[]' not in s:
+              anchor = '    "Temu":[],\n'
+              if anchor not in s:
+                  raise SystemExit("Seller specialty anchor not found.")
+              s = s.replace(anchor, '    "TikTok Shop US":[],\n' + anchor, 1)
+
+          old_change = '''      if(x.matches('[data-filter-merchant]')&&x.value&&typeof tpLoadSellerSpecificV15_1==="function"){
+                const selected=x.value;
+                state.loading=true;
+                renderFinder();
+                await tpLoadSellerSpecificV15_1(selected);
+                state.loading=false;
+                populateFilters();
+                const merchant=$('[data-filter-merchant]');
+                if(merchant)merchant.value=selected;
+              }
+          '''
+          new_change = '''      if(x.matches('[data-filter-merchant]')&&x.value&&typeof tpLoadSellerSpecificV15_1==="function"){
+                const selected=tpCanonicalSellerV15_1(x.value)||x.value;
+                state.loading=true;
+                renderFinder();
+                if(TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)){
+                  const liveRows=await tpLoadCjLiveProductsV15_7_1(state.query,selected);
+                  if(Array.isArray(liveRows)&&liveRows.length)mergeProducts(liveRows);
+                }else{
+                  await tpLoadSellerSpecificV15_1(selected);
+                }
+                state.loading=false;
+                populateFilters();
+                const merchant=$('[data-filter-merchant]');
+                if(merchant)merchant.value=selected;
+              }
+          '''
+          if old_change in s:
+              s = s.replace(old_change, new_change, 1)
+          elif "TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)" not in s:
+              raise SystemExit("Seller change handler anchor not found.")
+
+          # 3) Joined seller directory
+          m = re.search(r'window\.TRENDPILOT_CJ_JOINED_SELLERS=\[(.*?)\];', j)
+          if not m:
+              raise SystemExit("Joined seller list not found.")
+          if '"TikTok Shop US"' not in m.group(1):
+              j = j[:m.start(1)] + m.group(1).rstrip() + ',"TikTok Shop US"' + j[m.end(1):]
+
+          m = re.search(r'window\.TRENDPILOT_CJ_KNOWN_SELLERS=\[(.*?)\];', j)
+          if not m:
+              raise SystemExit("Known seller list not found.")
+          if '"tiktok shop us"' not in m.group(1).lower():
+              j = j[:m.start(1)] + m.group(1).rstrip() + ',"tiktok","tiktok shop","tiktok shop us","tiktokshop"' + j[m.end(1):]
+
+          # 4) Finder cache-bust + wording
+          h = re.sub(r'/js/site-v13-5\.js\?v=[^"]+', '/js/site-v13-5.js?v=15.8.3', h, count=1)
+          h = re.sub(r'/js/cj-joined-sellers\.js\?v=[^"]+', '/js/cj-joined-sellers.js?v=15.8.3', h, count=1)
+          h = h.replace(
+              "Six product sellers, including the Temu marketplace.",
+              "Connected CJ product sellers with genuine product-level evidence."
+          )
+
+          fn.write_text(f.rstrip() + "\n", encoding="utf-8")
+          js.write_text(s.rstrip() + "\n", encoding="utf-8")
+          joined.write_text(j.rstrip() + "\n", encoding="utf-8")
+          html.write_text(h.rstrip() + "\n", encoding="utf-8")
+
+          print("TikTok Shop US V15.8.3 integration patch applied.")
+          PY
+
+      - name: Validate V15.8.3
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check netlify/functions/cj-live-products.mjs
+          node --check js/site-v13-5.js
+          node --check js/cj-joined-sellers.js
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          fn=Path("netlify/functions/cj-live-products.mjs").read_text(encoding="utf-8")
+          js=Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          joined=Path("js/cj-joined-sellers.js").read_text(encoding="utf-8")
+          html=Path("find/index.html").read_text(encoding="utf-8")
+
+          checks = {
+              "TikTok advertiser ID": '"7563286"' in fn and '"7563286"' in js,
+              "TikTok main feed adId": '"17099898"' in fn,
+              "TikTok strict tracking": "strictProductTracking: true" in fn,
+              "TikTok Link Search disabled": "disableLinkSearch: true" in fn,
+              "TikTok untracked rows rejected": "requiresProductTracking && !trackedProductUrl" in fn,
+              "TikTok seller alias": '"tiktok shop us":"TikTok Shop US"' in js,
+              "TikTok live seller": '"TikTok Shop US"' in js[js.find("TP_CJ_LIVE_SELLERS_V15_7_1"):js.find("TP_CJ_LIVE_SELLERS_V15_7_1")+400],
+              "TikTok approved guard": '"tiktokshopus"' in js,
+              "Live fetch on seller selection": "TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)" in js,
+              "Joined directory": '"TikTok Shop US"' in joined,
+              "Finder cache-bust": "/js/site-v13-5.js?v=15.8.3" in html,
+          }
+
+          failed=[name for name,ok in checks.items() if not ok]
+          for name,ok in checks.items():
+              print(f"{'PASS' if ok else 'FAIL'}: {name}")
+          if failed:
+              raise SystemExit("Validation failed: "+", ".join(failed))
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={
+              "netlify/functions/cj-live-products.mjs",
+              "js/site-v13-5.js",
+              "js/cj-joined-sellers.js",
+              "find/index.html",
+          }
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected files changed: "+", ".join(sorted(unexpected)))
+
+          print("")
+          print("Safety guarantees:")
+          print("- TikTok Shop US uses advertiser 7563286 / feed 17099898.")
+          print("- Only CJ-tracked linkCode.clickUrl products are published for TikTok.")
+          print("- No direct untracked TikTok URL fallback is allowed.")
+          print("- TikTok does not use CJ Link Search fallback.")
+          print("- Admitad catalog and CPC routing are untouched.")
+          PY
+
+      - name: Publish V15.8.3
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add             netlify/functions/cj-live-products.mjs             js/site-v13-5.js             js/cj-joined-sellers.js             find/index.html
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.8.3 is already installed."
+            exit 0
+          fi
+
+          git commit -m "feat: add tracked TikTok Shop US products"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot TikTok Shop US V15.8.3"
+            echo ""
+            echo "TikTok Shop US is now connected to live Products search."
+            echo ""
+            echo "- Advertiser: 7563286"
+            echo "- Main feed: 17099898"
+            echo "- Audited catalog: 138,744 products"
+            echo "- Only verified CJ-tracked linkCode rows are allowed"
+            echo "- Direct untracked TikTok URLs are rejected"
+            echo "- Seller selection now triggers live CJ search"
+            echo "- Admitad and CPC routing were not changed"
+            echo ""
+            echo "After Netlify publishes, test:"
+            echo "https://trendpilotchoice.com/api/cj-live-products?q=phone&seller=TikTok%20Shop%20US"
+            echo ""
+            echo "Expected:"
+            echo "- requestedSeller = TikTok Shop US"
+            echo "- total > 0 for queries with tracked products"
+            echo "- tracking.productLinkCode > 0"
+            echo "- tracking.destinationOnly = 0"
+          } >> "$GITHUB_STEP_SUMMARY"
