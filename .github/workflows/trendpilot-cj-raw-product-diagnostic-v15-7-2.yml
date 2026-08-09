@@ -1,0 +1,100 @@
+name: TrendPilot CJ Raw Product Diagnostic V15.7.2
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-cj-raw-diagnostic-v15-7-2-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  install-cj-raw-diagnostic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Install diagnostic Netlify Function only
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p netlify/functions
+          echo 'Y29uc3QgQ0pfRU5EUE9JTlQgPSAiaHR0cHM6Ly9hZHMuYXBpLmNqLmNvbS9xdWVyeSI7Cgpjb25zdCBTRUxMRVJTID0gewogICJUZW11IjogeyBhZHZlcnRpc2VySWQ6ICI2MjkzNDczIiwgYWRJZHM6IFsiMTU1MDE1MTEiXSB9LAogICJQYW5kYUhhbGwiOiB7IGFkdmVydGlzZXJJZDogIjQyOTUwODYiLCBhZElkczogWyIxNTYwOTcxNiJdIH0sCiAgIkZyYWdyYW5jZVNob3AuY29tIjogeyBhZHZlcnRpc2VySWQ6ICI3Mjg3MjAzIiwgYWRJZHM6IFsiMTY5NDE0NDYiXSB9LAogICJLYXJhY2EgRVUiOiB7IGFkdmVydGlzZXJJZDogIjU4OTM0ODkiLCBhZElkczogWyIxNTE3MTA5NCJdIH0KfTsKCmNvbnN0IENPTVBBTllfSUQgPQogIHByb2Nlc3MuZW52LkNKX0NPTVBBTllfSUQgfHwKICBwcm9jZXNzLmVudi5DSl9DSUQgfHwKICBwcm9jZXNzLmVudi5DSl9QVUJMSVNIRVJfQ0lEIHx8CiAgIjU5MTc5NjUiOwoKY29uc3QgUElEID0KICBwcm9jZXNzLmVudi5DSl9XRUJTSVRFX1BJRCB8fAogIHByb2Nlc3MuZW52LkNKX1BJRCB8fAogIHByb2Nlc3MuZW52LkNKX1dFQlNJVEVfSUQgfHwKICAiMTAwNjU1Mzk0IjsKCmZ1bmN0aW9uIGNsZWFuKHYpIHsKICByZXR1cm4gU3RyaW5nKHYgPz8gIiIpLnRyaW0oKTsKfQoKZnVuY3Rpb24gdG9rZW4oKSB7CiAgcmV0dXJuICgKICAgIHByb2Nlc3MuZW52LkNKX0FQSV9UT0tFTiB8fAogICAgcHJvY2Vzcy5lbnYuQ0pfVE9LRU4gfHwKICAgIHByb2Nlc3MuZW52LkNKX1BBVCB8fAogICAgcHJvY2Vzcy5lbnYuQ0pfUEVSU09OQUxfQUNDRVNTX1RPS0VOIHx8CiAgICAiIgogICkudHJpbSgpOwp9CgpmdW5jdGlvbiBjYW5vbmljYWxTZWxsZXIodmFsdWUpIHsKICBjb25zdCByYXcgPSBjbGVhbih2YWx1ZSkudG9Mb3dlckNhc2UoKTsKICBpZiAoWyJ0ZW11IiwidGVtdS5jb20iXS5pbmNsdWRlcyhyYXcpKSByZXR1cm4gIlRlbXUiOwogIGlmIChbInBhbmRhaGFsbCIsInBhbmRhIGhhbGwiXS5pbmNsdWRlcyhyYXcpKSByZXR1cm4gIlBhbmRhSGFsbCI7CiAgaWYgKFsiZnJhZ3JhbmNlc2hvcC5jb20iLCJmcmFncmFuY2VzaG9wIiwiZnJhZ3JhbmNlIHNob3AiXS5pbmNsdWRlcyhyYXcpKSByZXR1cm4gIkZyYWdyYW5jZVNob3AuY29tIjsKICBpZiAoWyJrYXJhY2EgZXUiLCJrYXJhY2EiXS5pbmNsdWRlcyhyYXcpKSByZXR1cm4gIkthcmFjYSBFVSI7CiAgcmV0dXJuICIiOwp9CgpmdW5jdGlvbiByZXNwb25zZShib2R5LCBzdGF0dXM9MjAwKSB7CiAgcmV0dXJuIG5ldyBSZXNwb25zZShKU09OLnN0cmluZ2lmeShib2R5LCBudWxsLCAyKSwgewogICAgc3RhdHVzLAogICAgaGVhZGVyczogewogICAgICAiY29udGVudC10eXBlIjogImFwcGxpY2F0aW9uL2pzb247IGNoYXJzZXQ9dXRmLTgiLAogICAgICAiY2FjaGUtY29udHJvbCI6ICJuby1zdG9yZSIsCiAgICAgICJ4LWNvbnRlbnQtdHlwZS1vcHRpb25zIjogIm5vc25pZmYiCiAgICB9CiAgfSk7Cn0KCmV4cG9ydCBkZWZhdWx0IGFzeW5jIChyZXF1ZXN0KSA9PiB7CiAgaWYgKHJlcXVlc3QubWV0aG9kICE9PSAiR0VUIikgewogICAgcmV0dXJuIHJlc3BvbnNlKHtvazpmYWxzZSxlcnJvcjoiR0VUIG9ubHkifSw0MDUpOwogIH0KCiAgY29uc3QgYXV0aCA9IHRva2VuKCk7CiAgaWYgKCFhdXRoKSB7CiAgICByZXR1cm4gcmVzcG9uc2Uoe29rOmZhbHNlLGVycm9yOiJDSl9BUElfVE9LRU4gaXMgbm90IGF2YWlsYWJsZSB0byBOZXRsaWZ5IEZ1bmN0aW9ucyJ9LDUwMyk7CiAgfQoKICBjb25zdCB1cmwgPSBuZXcgVVJMKHJlcXVlc3QudXJsKTsKICBjb25zdCBxID0gY2xlYW4odXJsLnNlYXJjaFBhcmFtcy5nZXQoInEiKSB8fCAicG93ZXIgYmFuayIpOwogIGNvbnN0IHNlbGxlciA9IGNhbm9uaWNhbFNlbGxlcih1cmwuc2VhcmNoUGFyYW1zLmdldCgic2VsbGVyIikgfHwgIlRlbXUiKSB8fCAiVGVtdSI7CiAgY29uc3QgY2ZnID0gU0VMTEVSU1tzZWxsZXJdOwoKICBpZiAocS5sZW5ndGggPCAyIHx8IHEubGVuZ3RoID4gMTIwKSB7CiAgICByZXR1cm4gcmVzcG9uc2Uoe29rOmZhbHNlLGVycm9yOiJRdWVyeSBtdXN0IGJlIDItMTIwIGNoYXJhY3RlcnMifSw0MDApOwogIH0KCiAgY29uc3QgZ3FsID0gYAogICAgcXVlcnkgVHJlbmRQaWxvdFJhd1Byb2R1Y3REaWFnbm9zdGljIHsKICAgICAgc2hvcHBpbmdQcm9kdWN0cygKICAgICAgICBjb21wYW55SWQ6ICR7Q09NUEFOWV9JRH0KICAgICAgICBhZElkczogWyR7Y2ZnLmFkSWRzLmpvaW4oIiwgIil9XQogICAgICAgIGtleXdvcmRzOiBbJHtKU09OLnN0cmluZ2lmeShxKX1dCiAgICAgICAgbGltaXQ6IDIwCiAgICAgICkgewogICAgICAgIHRvdGFsQ291bnQKICAgICAgICBjb3VudAogICAgICAgIHJlc3VsdExpc3QgewogICAgICAgICAgYWR2ZXJ0aXNlcklkCiAgICAgICAgICBjYXRhbG9nSWQKICAgICAgICAgIGlkCiAgICAgICAgICB0aXRsZQogICAgICAgICAgZGVzY3JpcHRpb24KICAgICAgICAgIGltYWdlTGluawogICAgICAgICAgYnJhbmQKICAgICAgICAgIGF2YWlsYWJpbGl0eQogICAgICAgICAgY29uZGl0aW9uCiAgICAgICAgICBwcmljZSB7CiAgICAgICAgICAgIGFtb3VudAogICAgICAgICAgICBjdXJyZW5jeQogICAgICAgICAgfQogICAgICAgICAgbGlua0NvZGUocGlkOiAke0pTT04uc3RyaW5naWZ5KFBJRCl9KSB7CiAgICAgICAgICAgIGNsaWNrVXJsCiAgICAgICAgICB9CiAgICAgICAgfQogICAgICB9CiAgICB9CiAgYDsKCiAgY29uc3QgY29udHJvbGxlciA9IG5ldyBBYm9ydENvbnRyb2xsZXIoKTsKICBjb25zdCB0aW1lciA9IHNldFRpbWVvdXQoKCkgPT4gY29udHJvbGxlci5hYm9ydCgpLCAxMDAwMCk7CgogIHRyeSB7CiAgICBjb25zdCByID0gYXdhaXQgZmV0Y2goQ0pfRU5EUE9JTlQsIHsKICAgICAgbWV0aG9kOiJQT1NUIiwKICAgICAgaGVhZGVyczp7CiAgICAgICAgImF1dGhvcml6YXRpb24iOmBCZWFyZXIgJHthdXRofWAsCiAgICAgICAgImNvbnRlbnQtdHlwZSI6ImFwcGxpY2F0aW9uL2pzb24iLAogICAgICAgICJhY2NlcHQiOiJhcHBsaWNhdGlvbi9qc29uIiwKICAgICAgICAidXNlci1hZ2VudCI6IlRyZW5kUGlsb3QtQ0otUmF3LURpYWdub3N0aWMvMTUuNy4yIgogICAgICB9LAogICAgICBib2R5OkpTT04uc3RyaW5naWZ5KHtxdWVyeTpncWx9KSwKICAgICAgc2lnbmFsOmNvbnRyb2xsZXIuc2lnbmFsCiAgICB9KTsKCiAgICBjb25zdCByYXcgPSBhd2FpdCByLnRleHQoKTsKICAgIGxldCBwYXlsb2FkOwogICAgdHJ5IHsKICAgICAgcGF5bG9hZCA9IEpTT04ucGFyc2UocmF3KTsKICAgIH0gY2F0Y2ggewogICAgICByZXR1cm4gcmVzcG9uc2UoewogICAgICAgIG9rOmZhbHNlLAogICAgICAgIHN0YWdlOiJwYXJzZS1jai1yZXNwb25zZSIsCiAgICAgICAgY2pIdHRwU3RhdHVzOnIuc3RhdHVzLAogICAgICAgIHJlc3BvbnNlUHJldmlldzpyYXcuc2xpY2UoMCwxMDAwKQogICAgICB9LDUwMik7CiAgICB9CgogICAgaWYgKCFyLm9rIHx8IHBheWxvYWQuZXJyb3JzPy5sZW5ndGgpIHsKICAgICAgcmV0dXJuIHJlc3BvbnNlKHsKICAgICAgICBvazpmYWxzZSwKICAgICAgICBzdGFnZToiY2otZ3JhcGhxbCIsCiAgICAgICAgY2pIdHRwU3RhdHVzOnIuc3RhdHVzLAogICAgICAgIGVycm9yczpwYXlsb2FkLmVycm9ycyB8fCBbXSwKICAgICAgICBkYXRhOnBheWxvYWQuZGF0YSB8fCBudWxsCiAgICAgIH0sNTAyKTsKICAgIH0KCiAgICBjb25zdCBibG9jayA9IHBheWxvYWQ/LmRhdGE/LnNob3BwaW5nUHJvZHVjdHMgfHwge307CiAgICBjb25zdCByb3dzID0gQXJyYXkuaXNBcnJheShibG9jay5yZXN1bHRMaXN0KSA/IGJsb2NrLnJlc3VsdExpc3QgOiBbXTsKCiAgICBjb25zdCBmaWVsZFN0YXRzID0gewogICAgICByYXdSb3dzOiByb3dzLmxlbmd0aCwKICAgICAgdGl0bGVQcmVzZW50OiAwLAogICAgICBpbWFnZUxpbmtQcmVzZW50OiAwLAogICAgICBpbWFnZUxpbmtIdHRwOiAwLAogICAgICBjbGlja1VybFByZXNlbnQ6IDAsCiAgICAgIGNsaWNrVXJsSHR0cDogMCwKICAgICAgcHJpY2VQcmVzZW50OiAwLAogICAgICBicmFuZFByZXNlbnQ6IDAsCiAgICAgIGFkdmVydGlzZXJJZE1hdGNoZXNFeHBlY3RlZDogMAogICAgfTsKCiAgICBmb3IgKGNvbnN0IHAgb2Ygcm93cykgewogICAgICBjb25zdCB0aXRsZSA9IGNsZWFuKHA/LnRpdGxlKTsKICAgICAgY29uc3QgaW1hZ2UgPSBjbGVhbihwPy5pbWFnZUxpbmspOwogICAgICBjb25zdCBjbGljayA9IGNsZWFuKHA/LmxpbmtDb2RlPy5jbGlja1VybCk7CiAgICAgIGNvbnN0IGJyYW5kID0gY2xlYW4ocD8uYnJhbmQpOwogICAgICBjb25zdCBhbW91bnQgPSBOdW1iZXIocD8ucHJpY2U/LmFtb3VudCB8fCAwKTsKCiAgICAgIGlmICh0aXRsZSkgZmllbGRTdGF0cy50aXRsZVByZXNlbnQrKzsKICAgICAgaWYgKGltYWdlKSBmaWVsZFN0YXRzLmltYWdlTGlua1ByZXNlbnQrKzsKICAgICAgaWYgKC9eaHR0cHM/OlwvXC8vaS50ZXN0KGltYWdlKSkgZmllbGRTdGF0cy5pbWFnZUxpbmtIdHRwKys7CiAgICAgIGlmIChjbGljaykgZmllbGRTdGF0cy5jbGlja1VybFByZXNlbnQrKzsKICAgICAgaWYgKC9eaHR0cHM/OlwvXC8vaS50ZXN0KGNsaWNrKSkgZmllbGRTdGF0cy5jbGlja1VybEh0dHArKzsKICAgICAgaWYgKE51bWJlci5pc0Zpbml0ZShhbW91bnQpICYmIGFtb3VudCA+IDApIGZpZWxkU3RhdHMucHJpY2VQcmVzZW50Kys7CiAgICAgIGlmIChicmFuZCkgZmllbGRTdGF0cy5icmFuZFByZXNlbnQrKzsKICAgICAgaWYgKGNsZWFuKHA/LmFkdmVydGlzZXJJZCkgPT09IGNmZy5hZHZlcnRpc2VySWQpIGZpZWxkU3RhdHMuYWR2ZXJ0aXNlcklkTWF0Y2hlc0V4cGVjdGVkKys7CiAgICB9CgogICAgY29uc3QgZmlyc3RGaXZlID0gcm93cy5zbGljZSgwLDUpLm1hcCgocCxpbmRleCkgPT4gKHsKICAgICAgaW5kZXg6aW5kZXgrMSwKICAgICAgYWR2ZXJ0aXNlcklkOnA/LmFkdmVydGlzZXJJZCA/PyBudWxsLAogICAgICBjYXRhbG9nSWQ6cD8uY2F0YWxvZ0lkID8/IG51bGwsCiAgICAgIGlkOnA/LmlkID8/IG51bGwsCiAgICAgIHRpdGxlOnA/LnRpdGxlID8/IG51bGwsCiAgICAgIGltYWdlTGluazpwPy5pbWFnZUxpbmsgPz8gbnVsbCwKICAgICAgYnJhbmQ6cD8uYnJhbmQgPz8gbnVsbCwKICAgICAgYXZhaWxhYmlsaXR5OnA/LmF2YWlsYWJpbGl0eSA/PyBudWxsLAogICAgICBjb25kaXRpb246cD8uY29uZGl0aW9uID8/IG51bGwsCiAgICAgIHByaWNlOnA/LnByaWNlID8/IG51bGwsCiAgICAgIGxpbmtDb2RlOnA/LmxpbmtDb2RlID8/IG51bGwsCiAgICAgIGRpYWdub3N0aWNzOnsKICAgICAgICB0aXRsZVByZXNlbnQ6Qm9vbGVhbihjbGVhbihwPy50aXRsZSkpLAogICAgICAgIGltYWdlUHJlc2VudDpCb29sZWFuKGNsZWFuKHA/LmltYWdlTGluaykpLAogICAgICAgIGltYWdlSXNIdHRwOi9eaHR0cHM/OlwvXC8vaS50ZXN0KGNsZWFuKHA/LmltYWdlTGluaykpLAogICAgICAgIGNsaWNrVXJsUHJlc2VudDpCb29sZWFuKGNsZWFuKHA/LmxpbmtDb2RlPy5jbGlja1VybCkpLAogICAgICAgIGNsaWNrVXJsSXNIdHRwOi9eaHR0cHM/OlwvXC8vaS50ZXN0KGNsZWFuKHA/LmxpbmtDb2RlPy5jbGlja1VybCkpLAogICAgICAgIHByaWNlUG9zaXRpdmU6TnVtYmVyKHA/LnByaWNlPy5hbW91bnQgfHwgMCkgPiAwCiAgICAgIH0KICAgIH0pKTsKCiAgICBsZXQgbGlrZWx5Q2F1c2UgPSAiTm8gb2J2aW91cyBtaXNzaW5nIGZpZWxkIGRldGVjdGVkIjsKICAgIGlmIChyb3dzLmxlbmd0aCA9PT0gMCkgewogICAgICBsaWtlbHlDYXVzZSA9ICJDSiByZXBvcnRzIG1hdGNoZXMgYnV0IHJldHVybmVkIG5vIHJlc3VsdExpc3Qgcm93cyI7CiAgICB9IGVsc2UgaWYgKGZpZWxkU3RhdHMuY2xpY2tVcmxIdHRwID09PSAwKSB7CiAgICAgIGxpa2VseUNhdXNlID0gIlYxNS43LjEgZmlsdGVycyBldmVyeSByb3cgYmVjYXVzZSBsaW5rQ29kZS5jbGlja1VybCBpcyBtaXNzaW5nIG9yIG5vdCBhbiBodHRwKHMpIFVSTCI7CiAgICB9IGVsc2UgaWYgKGZpZWxkU3RhdHMuaW1hZ2VMaW5rSHR0cCA9PT0gMCkgewogICAgICBsaWtlbHlDYXVzZSA9ICJWMTUuNy4xIGZpbHRlcnMgZXZlcnkgcm93IGJlY2F1c2UgaW1hZ2VMaW5rIGlzIG1pc3Npbmcgb3Igbm90IGFuIGh0dHAocykgVVJMIjsKICAgIH0gZWxzZSBpZiAoZmllbGRTdGF0cy50aXRsZVByZXNlbnQgPT09IDApIHsKICAgICAgbGlrZWx5Q2F1c2UgPSAiUHJvZHVjdCB0aXRsZSBpcyBtaXNzaW5nIjsKICAgIH0KCiAgICByZXR1cm4gcmVzcG9uc2UoewogICAgICBvazp0cnVlLAogICAgICB2ZXJzaW9uOiIxNS43LjIiLAogICAgICBkaWFnbm9zdGljT25seTp0cnVlLAogICAgICBzZWxsZXIsCiAgICAgIGFkdmVydGlzZXJJZDpjZmcuYWR2ZXJ0aXNlcklkLAogICAgICBhZElkczpjZmcuYWRJZHMsCiAgICAgIHF1ZXJ5OnEsCiAgICAgIGNvbXBhbnlJZFVzZWQ6U3RyaW5nKENPTVBBTllfSUQpLnJlcGxhY2UoL1xkKD89XGR7M30pL2csIioiKSwKICAgICAgcGlkVXNlZDpTdHJpbmcoUElEKS5yZXBsYWNlKC9cZCg/PVxkezN9KS9nLCIqIiksCiAgICAgIGNqOnsKICAgICAgICB0b3RhbENvdW50Ok51bWJlcihibG9jay50b3RhbENvdW50IHx8IDApLAogICAgICAgIGNvdW50Ok51bWJlcihibG9jay5jb3VudCB8fCAwKQogICAgICB9LAogICAgICBmaWVsZFN0YXRzLAogICAgICBsaWtlbHlDYXVzZSwKICAgICAgZmlyc3RGaXZlCiAgICB9KTsKICB9IGNhdGNoIChlKSB7CiAgICByZXR1cm4gcmVzcG9uc2UoewogICAgICBvazpmYWxzZSwKICAgICAgc3RhZ2U6InJlcXVlc3QiLAogICAgICBlcnJvcjpTdHJpbmcoZT8ubWVzc2FnZSB8fCBlKQogICAgfSw1MDIpOwogIH0gZmluYWxseSB7CiAgICBjbGVhclRpbWVvdXQodGltZXIpOwogIH0KfTsKCmV4cG9ydCBjb25zdCBjb25maWcgPSB7CiAgcGF0aDogIi9hcGkvY2otcmF3LWRlYnVnLXYxNS03LTIiCn07Cg==' | base64 -d > netlify/functions/cj-raw-debug-v15-7-2.mjs
+
+      - name: Validate diagnostic
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check netlify/functions/cj-raw-debug-v15-7-2.mjs
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          p=Path("netlify/functions/cj-raw-debug-v15-7-2.mjs")
+          text=p.read_text(encoding="utf-8")
+
+          required=[
+            'shoppingProducts(',
+            'keywords:',
+            'imageLink',
+            'linkCode(pid:',
+            'fieldStats',
+            'likelyCause',
+            'firstFive',
+            'path: "/api/cj-raw-debug-v15-7-2"'
+          ]
+          missing=[x for x in required if x not in text]
+          if missing:
+              raise SystemExit("Missing diagnostic markers: "+", ".join(missing))
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={"netlify/functions/cj-raw-debug-v15-7-2.mjs"}
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected files changed: "+", ".join(sorted(unexpected)))
+
+          print("V15.7.2 diagnostic validation passed.")
+          print("Only one new diagnostic Netlify Function is changed.")
+          print("Products UI, Admitad, seller routing, static CJ data, and V15.7.1 are untouched.")
+          PY
+
+      - name: Publish diagnostic only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add netlify/functions/cj-raw-debug-v15-7-2.mjs
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.7.2 diagnostic is already installed."
+            exit 0
+          fi
+
+          git commit -m "diagnostic: inspect raw CJ live product fields"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot CJ Raw Product Diagnostic V15.7.2"
+            echo ""
+            echo "No live Products UI code was changed."
+            echo ""
+            echo "After Netlify publishes, open:"
+            echo 'https://trendpilotchoice.com/api/cj-raw-debug-v15-7-2?q=power%20bank&seller=Temu'
+            echo ""
+            echo "Send the JSON result back for the final V15.7.3 fix."
+          } >> "$GITHUB_STEP_SUMMARY"
