@@ -29,3 +29,17 @@ V16.0.1 therefore uses Netlify Blobs, which requires no database provisioning.
 4. Re-check `/api/products-v16/health`.
 5. Test generic queries such as `phone`, `watch`, `dog food`, `dress`, `laptop`.
 6. After data-quality verification, V16.1 will connect the public finder to this index with live-source fallback/write-through caching.
+
+
+## V16.0.3 — relevance and catalog balance
+
+- Wider candidate rescoring before the final result list.
+- Strong boosts for direct title/category product matches.
+- Generic down-ranking of repair tools, cases, stands, feeders,
+  containers, replacement parts and other accessory-intent results
+  when the visitor searched for the core product itself.
+- Accessory searches remain supported: a query such as `phone case`
+  is not penalized for containing `case`.
+- Catalog shard selection is balanced across top-level product groups
+  instead of taking only the first paths found in the manifest.
+- Catalog shard file paths no longer appear as affiliate network names.

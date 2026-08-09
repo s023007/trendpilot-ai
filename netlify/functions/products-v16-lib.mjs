@@ -144,12 +144,16 @@ export function normalizeProduct(obj, sourceHint = "") {
     "merchantName", "merchant_name", "store", "storeName", "store_name", "shop"
   ])).slice(0, 300);
 
+  const explicitNetwork = clean(pick(obj, [
+    "network", "affiliateNetwork", "affiliate_network", "sourceNetwork", "source_network"
+  ])).slice(0, 120);
+
   const network =
-    clean(pick(obj, [
-      "network", "affiliateNetwork", "affiliate_network", "sourceNetwork", "source_network"
-    ])).slice(0, 120) ||
-    clean(sourceHint).split(":")[0].slice(0, 120) ||
-    "catalog";
+    explicitNetwork &&
+    !explicitNetwork.includes("/") &&
+    !/\.json(?:$|\?)/i.test(explicitNetwork)
+      ? explicitNetwork
+      : "catalog";
 
   const source =
     clean(pick(obj, ["source", "sourceName", "source_name"])).slice(0, 300) ||

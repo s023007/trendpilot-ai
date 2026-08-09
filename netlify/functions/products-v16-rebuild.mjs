@@ -42,6 +42,47 @@ async function runLimited(items, concurrency, fn) {
   return results;
 }
 
+
+function balancedCatalogPaths(paths, max = 360) {
+  const groups = new Map();
+
+  for (const path of paths) {
+    const match = String(path).match(/\/shards\/([^/]+)\//i);
+    const group = match?.[1] || "other";
+    if (!groups.has(group)) groups.set(group, []);
+    groups.get(group).push(path);
+  }
+
+  for (const rows of groups.values()) {
+    rows.sort((a, b) => {
+      const aAll = /\/all\/|\/all\d|\/all\./i.test(a) ? 0 : 1;
+      const bAll = /\/all\/|\/all\d|\/all\./i.test(b) ? 0 : 1;
+      return aAll - bAll || a.localeCompare(b);
+    });
+  }
+
+  const names = [...groups.keys()].sort();
+  const out = [];
+  let round = 0;
+
+  while (out.length < max) {
+    let added = false;
+
+    for (const name of names) {
+      const row = groups.get(name)?.[round];
+      if (!row) continue;
+      out.push(row);
+      added = true;
+      if (out.length >= max) break;
+    }
+
+    if (!added) break;
+    round++;
+  }
+
+  return out;
+}
+
 export default async function handler(request) {
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
   const origin = new URL(request.url).origin;
@@ -49,7 +90,7 @@ export default async function handler(request) {
 
   await store.setJSON("meta", {
     ready: false,
-    version: "16.0.1",
+    version: "16.0.3",
     storage: "netlify-blobs",
     status: "building",
     startedAt
@@ -77,17 +118,17 @@ export default async function handler(request) {
         for (const row of rows) byId.set(row.id, row);
 
         if (path.endsWith("/manifest.json")) {
-          for (const extra of collectCatalogJsonPaths(payload, 250)) discoveredPaths.add(extra);
+          for (const extra of collectCatalogJsonPaths(payload, 3000)) discoveredPaths.add(extra);
         }
 
-        console.log("V16.0.1 seed", path, "products", rows.length);
+        console.log("V16.0.3 seed", path, "products", rows.length);
       } catch (error) {
         sourceStats[path] = `error:${String(error?.message || error).slice(0, 120)}`;
-        console.warn("V16.0.1 seed failed", path, String(error?.message || error));
+        console.warn("V16.0.3 seed failed", path, String(error?.message || error));
       }
     }
 
-    const extras = [...discoveredPaths].filter(path => !seeds.includes(path)).slice(0, 250);
+    const extras = balancedCatalogPaths([...discoveredPaths].filter(path => !seeds.includes(path)), 360);
     const settled = await runLimited(extras, 6, async path => {
       const payload = await fetchJson(origin + path, 35000);
       return { path, rows: extractProducts(payload, path, 50000) };
@@ -162,7 +203,7 @@ export default async function handler(request) {
 
     const meta = {
       ready: true,
-      version: "16.0.1",
+      version: "16.0.3",
       storage: "netlify-blobs",
       status: "ready",
       products: products.length,
@@ -181,13 +222,13 @@ export default async function handler(request) {
 
     await store.setJSON("meta", meta);
 
-    console.log("TrendPilot V16.0.1 Blobs rebuild completed", meta);
+    console.log("TrendPilot V16.0.3 Blobs rebuild completed", meta);
   } catch (error) {
-    console.error("TrendPilot V16.0.1 Blobs rebuild failed", error);
+    console.error("TrendPilot V16.0.3 Blobs rebuild failed", error);
 
     await store.setJSON("meta", {
       ready: false,
-      version: "16.0.1",
+      version: "16.0.3",
       storage: "netlify-blobs",
       status: "failed",
       startedAt,

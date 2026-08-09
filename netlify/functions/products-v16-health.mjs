@@ -23,7 +23,7 @@ export default async function handler(request) {
     if (!meta) {
       return json({
         ok: true,
-        version: "16.0.1",
+        version: "16.0.3",
         storage: "netlify-blobs",
         ready: false,
         products: 0,
@@ -33,7 +33,7 @@ export default async function handler(request) {
 
     return json({
       ok: true,
-      version: "16.0.1",
+      version: "16.0.3",
       storage: "netlify-blobs",
       ...meta
     });
@@ -41,7 +41,7 @@ export default async function handler(request) {
     console.error("TrendPilot V16 Blobs health failed", error);
     return json({
       ok: false,
-      version: "16.0.1",
+      version: "16.0.3",
       storage: "netlify-blobs",
       ready: false,
       detail: String(error?.message || error).slice(0, 500)
