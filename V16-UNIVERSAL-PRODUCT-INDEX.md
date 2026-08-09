@@ -86,3 +86,14 @@ Endpoint:
 `/api/products-v16-hybrid?q=QUERY&limit=48`
 
 The public finder remains unchanged until this endpoint is verified.
+
+
+## V16.1.1 — phrase integrity and fresh rerank
+
+- Freshly re-ranks every merged product instead of preserving older
+  base intent tiers with `Math.max()`.
+- Adds generic multi-word token proximity.
+- Down-ranks misleading exact phrases followed by descriptor tails
+  such as `grade`, `style`, `theme`, `pattern`, `mold`, or `label`.
+- Uses a new query-cache namespace for clean verification.
+- No full Blob index rebuild is required.

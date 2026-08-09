@@ -8,7 +8,7 @@ import {
   hashHex
 } from "./products-v16-lib.mjs";
 
-const VERSION = "16.1.0";
+const VERSION = "16.1.1";
 const CORE_MIN = 20;
 const STRONG_CORE_MIN = 12;
 const QUERY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -115,6 +115,75 @@ async function runLimited(items, concurrency, fn) {
   return output;
 }
 
+
+const misleadingPhraseTails = new Set([
+  "grade","style","styled","theme","themed","pattern","patterns",
+  "shaped","shape","print","printed","design","designed",
+  "mold","mould","molds","moulds","label","labels"
+]);
+
+function querySpanInfo(titleWords, query, tokens) {
+  if (!tokens.length) {
+    return {
+      exactPhrase: false,
+      minSpan: 999,
+      nextWord: "",
+      misleadingTail: false
+    };
+  }
+
+  const exactPhraseWords = words(query);
+  let exactStart = -1;
+
+  if (exactPhraseWords.length) {
+    outer:
+    for (let i = 0; i <= titleWords.length - exactPhraseWords.length; i++) {
+      for (let j = 0; j < exactPhraseWords.length; j++) {
+        if (titleWords[i + j] !== exactPhraseWords[j]) continue outer;
+      }
+      exactStart = i;
+      break;
+    }
+  }
+
+  const nextWord =
+    exactStart >= 0
+      ? (titleWords[exactStart + exactPhraseWords.length] || "")
+      : "";
+
+  let minSpan = 999;
+
+  if (tokens.length === 1) {
+    minSpan = titleWords.includes(tokens[0]) ? 1 : 999;
+  } else {
+    for (let start = 0; start < titleWords.length; start++) {
+      const have = new Set();
+      for (let end = start; end < titleWords.length; end++) {
+        const word = titleWords[end];
+        for (const token of tokens) {
+          if (
+            word === token ||
+            (token.length >= 4 && word.includes(token))
+          ) {
+            have.add(token);
+          }
+        }
+        if (have.size >= tokens.length) {
+          minSpan = Math.min(minSpan, end - start + 1);
+          break;
+        }
+      }
+    }
+  }
+
+  return {
+    exactPhrase: exactStart >= 0,
+    minSpan,
+    nextWord,
+    misleadingTail: misleadingPhraseTails.has(nextWord)
+  };
+}
+
 function intentRank(product, query, tokens) {
   const title = lower(product?.title || product?.name);
   const category = lower(
@@ -134,15 +203,21 @@ function intentRank(product, query, tokens) {
   const allInCategory = tokens.length > 0 && tokens.every(t =>
     categorySet.has(t) || (t.length >= 4 && category.includes(t))
   );
+
   const titleHits = tokens.filter(t =>
     titleSet.has(t) || (t.length >= 4 && title.includes(t))
   ).length;
+
   const categoryHits = tokens.filter(t =>
     categorySet.has(t) || (t.length >= 4 && category.includes(t))
   ).length;
-  const descriptionHits = tokens.filter(t => description.includes(t)).length;
 
-  const phraseInTitle = Boolean(query && title.includes(query));
+  const descriptionHits = tokens.filter(t =>
+    description.includes(t)
+  ).length;
+
+  const phrase = querySpanInfo(titleWords, query, tokens);
+  const phraseInTitle = phrase.exactPhrase;
   const phraseAtStart = Boolean(
     query &&
     (title === query || title.startsWith(query + " ") || title.startsWith(query + "-"))
@@ -152,28 +227,65 @@ function intentRank(product, query, tokens) {
   const titleHasAccessory = titleWords.some(t => accessoryWords.has(t));
   const categoryHasAccessory = categoryWords.some(t => accessoryWords.has(t));
 
+  const multiWordQuery = tokens.length >= 2;
+  const tightTokenSpan =
+    !multiWordQuery || phrase.minSpan <= Math.max(tokens.length + 2, 4);
+  const looseTokenSpan =
+    multiWordQuery && phrase.minSpan > Math.max(tokens.length + 4, 6);
+
+  // An exact phrase followed immediately by words such as "grade",
+  // "style", "theme", "pattern" or "mold" is often a descriptor rather
+  // than the requested product itself. Example pattern:
+  //   <query> grade silicone ...
+  // This rule is generic and applies to any multi-word query.
+  const misleadingExactPhrase =
+    multiWordQuery &&
+    phraseInTitle &&
+    phrase.misleadingTail;
+
   let intentTier = 0;
 
   if (queryLooksAccessory) {
-    if (phraseInTitle && allInTitle) intentTier = 5;
-    else if (allInTitle) intentTier = 4;
+    if (phraseInTitle && allInTitle && !misleadingExactPhrase) intentTier = 5;
+    else if (allInTitle && tightTokenSpan) intentTier = 4;
     else if (phraseInTitle) intentTier = 3;
     else if (allInCategory) intentTier = 2;
     else intentTier = 1;
   } else {
-    const cleanTitleCore = allInTitle && !titleHasAccessory;
-    const cleanPhraseCore = phraseInTitle && !titleHasAccessory;
-    const cleanCategoryCore = allInCategory && !categoryHasAccessory;
+    const cleanTitleCore =
+      allInTitle &&
+      !titleHasAccessory &&
+      tightTokenSpan &&
+      !misleadingExactPhrase;
 
-    if ((cleanPhraseCore && phraseAtStart) || (cleanPhraseCore && cleanCategoryCore)) {
+    const cleanPhraseCore =
+      phraseInTitle &&
+      !titleHasAccessory &&
+      !misleadingExactPhrase;
+
+    const cleanCategoryCore =
+      allInCategory &&
+      !categoryHasAccessory;
+
+    if (
+      (cleanPhraseCore && phraseAtStart) ||
+      (cleanPhraseCore && cleanCategoryCore)
+    ) {
       intentTier = 5;
     } else if (cleanTitleCore || cleanCategoryCore) {
       intentTier = 4;
     } else if (cleanPhraseCore) {
       intentTier = 3;
-    } else if (allInTitle || phraseInTitle) {
+    } else if (
+      (allInTitle || phraseInTitle) &&
+      !looseTokenSpan &&
+      !misleadingExactPhrase
+    ) {
       intentTier = 2;
-    } else if (allInCategory || titleHits > 0) {
+    } else if (
+      allInCategory ||
+      (titleHits > 0 && !looseTokenSpan)
+    ) {
       intentTier = 1;
     }
   }
@@ -185,12 +297,28 @@ function intentRank(product, query, tokens) {
     Math.min(descriptionHits, 2) * 8 +
     Number(product?.quality || 0);
 
-  if (phraseInTitle) score += 180;
-  if (phraseAtStart) score += 120;
-  if (!queryLooksAccessory && titleHasAccessory) score -= 280;
-  if (!queryLooksAccessory && categoryHasAccessory && !allInCategory) score -= 120;
+  if (phraseInTitle && !misleadingExactPhrase) score += 180;
+  if (phraseAtStart && !misleadingExactPhrase) score += 120;
 
-  return { intentTier, score };
+  if (tightTokenSpan && multiWordQuery) score += 70;
+  if (looseTokenSpan) score -= 220;
+  if (misleadingExactPhrase) score -= 650;
+
+  if (!queryLooksAccessory && titleHasAccessory) score -= 280;
+  if (!queryLooksAccessory && categoryHasAccessory && !allInCategory) {
+    score -= 120;
+  }
+
+  return {
+    intentTier,
+    score,
+    phraseIntegrity: {
+      exactPhrase: phrase.exactPhrase,
+      minSpan: phrase.minSpan,
+      nextWord: phrase.nextWord,
+      misleadingTail: phrase.misleadingTail
+    }
+  };
 }
 
 function rankedNormalize(rows, sourceHint, query, tokens, sellerFilter = "", networkFilter = "") {
@@ -389,7 +517,7 @@ async function loadCjFallback(origin, query, tokens, seller, network) {
 
 function queryCacheKey(query, seller, network) {
   return `query-cache/${hashHex(
-    `${lower(query)}|${lower(seller)}|${lower(network)}|16.1`
+    `${lower(query)}|${lower(seller)}|${lower(network)}|16.1.1`
   ).slice(0, 40)}`;
 }
 
@@ -609,7 +737,7 @@ export default async function handler(request) {
       products: merged.paged
     });
   } catch (error) {
-    console.error("TrendPilot V16.1 hybrid search failed", error);
+    console.error("TrendPilot V16.1.1 hybrid search failed", error);
     return json({
       ok: false,
       version: VERSION,
