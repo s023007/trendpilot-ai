@@ -1,0 +1,309 @@
+name: TrendPilot Products V15.8.6 TikTok Visibility and Phone Relevance Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-products-v15-8-6-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fix-products:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Apply V15.8.6 focused fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          site = Path("js/site-v13-5.js")
+          whitelist_js = Path("js/seller-whitelist-v14-1-5.js")
+          whitelist_json = Path("data/approved-product-sellers-v14-1-5.json")
+          discovery_js = Path("js/product-discovery-v15.js")
+          discovery_json = Path("data/product-discovery-v15.json")
+          finder = Path("find/index.html")
+          smart = Path("js/smart-suggestions-v14-1-5.js")
+
+          required = [site, whitelist_js, whitelist_json, discovery_js, discovery_json, finder, smart]
+          for p in required:
+              if not p.exists():
+                  raise SystemExit(f"Missing required file: {p}")
+
+          s = site.read_text(encoding="utf-8")
+          wj = whitelist_js.read_text(encoding="utf-8")
+          dj = discovery_js.read_text(encoding="utf-8")
+          h = finder.read_text(encoding="utf-8")
+          sm = smart.read_text(encoding="utf-8")
+
+          # 1) TikTok Shop US must survive BOTH seller guards.
+          s = re.sub(
+              r'const TP_CJ_GUARD_VERSION = "[^"]+";',
+              'const TP_CJ_GUARD_VERSION = "15.8.6";',
+              s,
+              count=1
+          )
+
+          def add_set_items(text, const_name, items):
+              pat = re.compile(rf'(const {re.escape(const_name)} = new Set\(\[)(.*?)(\]\);)')
+              m = pat.search(text)
+              if not m:
+                  raise SystemExit(f"{const_name} not found")
+              vals = re.findall(r'"([^"]+)"', m.group(2))
+              existing = set(vals)
+              for item in items:
+                  if item not in existing:
+                      vals.append(item)
+                      existing.add(item)
+              replacement = m.group(1) + ", ".join(json.dumps(v) for v in vals) + m.group(3)
+              return text[:m.start()] + replacement + text[m.end():]
+
+          s = add_set_items(s, "TP_CJ_APPROVED_IDS", ["7563286"])
+          s = add_set_items(s, "TP_CJ_APPROVED_NAMES", ["tiktokshopus"])
+          s = add_set_items(s, "TP_CJ_KNOWN_NAMES", ["tiktok", "tiktokshop", "tiktokshopus"])
+
+          # 2) Fix phone/phones intent.
+          if "TP_PHONE_INTENT_V15_8_6" not in s:
+              anchor = "  function inferFamily(q, manifest=state.manifest) {\n"
+              if anchor not in s:
+                  raise SystemExit("inferFamily anchor not found")
+              s = s.replace(
+                  anchor,
+                  "  function inferFamily(q, manifest=state.manifest) {\n"
+                  "    // TP_PHONE_INTENT_V15_8_6\n"
+                  "    const plainPhoneQuery=lower(q).trim();\n"
+                  "    if(/^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones|android phone|android phones|iphone|iphones)$/i.test(plainPhoneQuery)) return \"smartphones\";\n",
+                  1
+              )
+
+          old = '    return terms.some(term=>text.includes(term));'
+          new = '    return terms.some(term=>aliasBoundaryMatch(text,term));'
+          if old in s:
+              s = s.replace(old, new, 1)
+          elif new not in s:
+              raise SystemExit("expanded-term matcher anchor not found")
+
+          phone_guard_old = '    if(plan.families?.includes("smartphones") && /\\b(case|cover|screen protector|charger|cable|mount|holder)\\b/i.test(text))return false;\n'
+          phone_guard_new = (
+              '    if(plan.families?.includes("smartphones")) {\n'
+              '      if(!/\\b(?:phones?|smartphones?|mobile phones?|android phones?|iphones?)\\b/i.test(text))return false;\n'
+              '      if(/\\b(?:case|cover|screen protector|charger|cable|mount|holder|stand|strap|lanyard|grip|dock|adapter|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack)\\b/i.test(text))return false;\n'
+              '    }\n'
+          )
+          if phone_guard_old in s:
+              s = s.replace(phone_guard_old, phone_guard_new, 1)
+          elif 'if(plan.families?.includes("smartphones")) {' not in s:
+              raise SystemExit("smartphone title guard anchor not found")
+
+          # 3) Seller whitelist file was overriding the main seller list.
+          if '"tiktok shop us"' not in wj.lower():
+              anchor = '  "pandahall":["pandahall","panda hall"],\n'
+              if anchor not in wj:
+                  raise SystemExit("seller whitelist alias anchor not found")
+              wj = wj.replace(
+                  anchor,
+                  anchor + '  "tiktok shop us":["tiktok shop us","tiktok shop","tiktok","tiktokshop"],\n',
+                  1
+              )
+
+          wj = wj.replace('s.dataset.tpApprovedSellers="15.2.0";',
+                          's.dataset.tpApprovedSellers="15.8.6";')
+          wj = wj.replace(
+              '/data/approved-product-sellers-v14-1-5.json?v=15.2.0',
+              '/data/approved-product-sellers-v14-1-5.json?v=15.8.6'
+          )
+
+          old_fallback = 'allowed=["AliExpress","Alibaba","Geekbuying","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","Temu"];'
+          new_fallback = 'allowed=["AliExpress","Alibaba","Geekbuying","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US","Temu"];'
+          if old_fallback in wj:
+              wj = wj.replace(old_fallback, new_fallback, 1)
+
+          whitelist = json.loads(whitelist_json.read_text(encoding="utf-8"))
+          sellers = list(whitelist.get("approvedProductSellers") or [])
+          if "TikTok Shop US" not in sellers:
+              if "Temu" in sellers:
+                  sellers.insert(sellers.index("Temu"), "TikTok Shop US")
+              else:
+                  sellers.append("TikTok Shop US")
+          whitelist["approvedProductSellers"] = sellers
+          whitelist["version"] = "15.8.6"
+
+          # 4) One autocomplete engine on Finder + useful P suggestions.
+          old_selector = "const selector='input[data-tp-finder-input],.tp-search-input input[type=\"search\"]';"
+          new_selector = "const selector='.tp-search-input input[type=\"search\"]:not([data-tp-finder-input])';"
+          if old_selector in sm:
+              sm = sm.replace(old_selector, new_selector, 1)
+          elif new_selector not in sm:
+              raise SystemExit("smart suggestion selector anchor not found")
+
+          discovery = json.loads(discovery_json.read_text(encoding="utf-8"))
+          by_letter = discovery.setdefault("byLetter", {})
+          p_rows = list(by_letter.get("p") or [])
+
+          priority = [
+              {"value":"phone","kind":"product-type","score":170},
+              {"value":"phones","kind":"product-type","score":169},
+              {"value":"phone cases","kind":"product-type","score":168},
+              {"value":"power bank","kind":"product-type","score":167},
+              {"value":"perfume","kind":"product-type","score":166},
+              {"value":"printers","kind":"product-type","score":165},
+              {"value":"projectors","kind":"product-type","score":164},
+              {"value":"pet supplies","kind":"product-type","score":163},
+          ]
+          priority_keys={x["value"].strip().lower() for x in priority}
+          p_rows=[x for x in p_rows if str(x.get("value","")).strip().lower() not in priority_keys]
+          by_letter["p"] = priority + p_rows
+          discovery["version"] = "15.8.6"
+
+          dj = re.sub(
+              r'/data/product-discovery-v15\.json\?v=[^`"]+',
+              '/data/product-discovery-v15.json?v=15.8.6',
+              dj,
+              count=1
+          )
+
+          h = re.sub(r'/js/site-v13-5\.js\?v=[^"]+', '/js/site-v13-5.js?v=15.8.6', h, count=1)
+          h = re.sub(r'/js/seller-whitelist-v14-1-5\.js\?v=[^"]+', '/js/seller-whitelist-v14-1-5.js?v=15.8.6', h, count=1)
+          h = re.sub(r'/js/product-discovery-v15\.js\?v=[^"]+', '/js/product-discovery-v15.js?v=15.8.6', h, count=1)
+          h = re.sub(r'/js/smart-suggestions-v14-1-5\.js\?v=[^"]+', '/js/smart-suggestions-v14-1-5.js?v=15.8.6', h, count=1)
+
+          site.write_text(s.rstrip()+"\n", encoding="utf-8")
+          whitelist_js.write_text(wj.rstrip()+"\n", encoding="utf-8")
+          whitelist_json.write_text(json.dumps(whitelist, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+          discovery_js.write_text(dj.rstrip()+"\n", encoding="utf-8")
+          discovery_json.write_text(json.dumps(discovery, ensure_ascii=False, indent=2)+"\n", encoding="utf-8")
+          smart.write_text(sm.rstrip()+"\n", encoding="utf-8")
+          finder.write_text(h.rstrip()+"\n", encoding="utf-8")
+
+          print("V15.8.6 focused product fixes applied.")
+          PY
+
+      - name: Validate V15.8.6
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          node --check js/seller-whitelist-v14-1-5.js
+          node --check js/product-discovery-v15.js
+          node --check js/smart-suggestions-v14-1-5.js
+
+          python -m json.tool data/approved-product-sellers-v14-1-5.json >/dev/null
+          python -m json.tool data/product-discovery-v15.json >/dev/null
+          git diff --check
+
+          python - <<'PY'
+          from pathlib import Path
+          import json, subprocess
+
+          site=Path("js/site-v13-5.js").read_text(encoding="utf-8")
+          wj=Path("js/seller-whitelist-v14-1-5.js").read_text(encoding="utf-8")
+          wl=json.loads(Path("data/approved-product-sellers-v14-1-5.json").read_text(encoding="utf-8"))
+          disc=json.loads(Path("data/product-discovery-v15.json").read_text(encoding="utf-8"))
+          smart=Path("js/smart-suggestions-v14-1-5.js").read_text(encoding="utf-8")
+          finder=Path("find/index.html").read_text(encoding="utf-8")
+
+          p=[str(x.get("value","")).lower() for x in disc.get("byLetter",{}).get("p",[])[:8]]
+
+          checks={
+              "TikTok CID in CJ public guard": '"7563286"' in site,
+              "TikTok name in CJ public guard": '"tiktokshopus"' in site,
+              "TikTok in approved seller JSON": "TikTok Shop US" in wl.get("approvedProductSellers",[]),
+              "TikTok in whitelist aliases": '"tiktok shop us"' in wj.lower(),
+              "TikTok in whitelist fallback": '"TikTok Shop US"' in wj,
+              "Plain phone query maps to smartphones": 'TP_PHONE_INTENT_V15_8_6' in site and 'return "smartphones";' in site,
+              "Alias matching uses word boundaries": "terms.some(term=>aliasBoundaryMatch(text,term))" in site,
+              "Smartphone guard active": 'if(plan.families?.includes("smartphones")) {' in site,
+              "P suggestion starts with phone": len(p)>0 and p[0]=="phone",
+              "P suggestions contain phones": "phones" in p,
+              "P suggestions contain phone cases": "phone cases" in p,
+              "Old duplicate finder suggestion disabled": ':not([data-tp-finder-input])' in smart,
+              "Finder site cache bust": "/js/site-v13-5.js?v=15.8.6" in finder,
+              "Finder whitelist cache bust": "/js/seller-whitelist-v14-1-5.js?v=15.8.6" in finder,
+              "Finder discovery cache bust": "/js/product-discovery-v15.js?v=15.8.6" in finder,
+          }
+
+          failed=[]
+          for name,ok in checks.items():
+              print(("PASS" if ok else "FAIL")+": "+name)
+              if not ok: failed.append(name)
+          if failed:
+              raise SystemExit("Validation failed: "+", ".join(failed))
+
+          changed=set(subprocess.check_output(["git","diff","--name-only"],text=True).splitlines())
+          allowed={
+              "js/site-v13-5.js",
+              "js/seller-whitelist-v14-1-5.js",
+              "data/approved-product-sellers-v14-1-5.json",
+              "js/product-discovery-v15.js",
+              "data/product-discovery-v15.json",
+              "js/smart-suggestions-v14-1-5.js",
+              "find/index.html",
+          }
+          unexpected=changed-allowed
+          if unexpected:
+              raise SystemExit("Unexpected files changed: "+", ".join(sorted(unexpected)))
+
+          print("")
+          print("Expected behavior after deploy:")
+          print("1. TikTok Shop US remains visible in Seller dropdown.")
+          print("2. Typing p shows phone/phones/phone cases among first suggestions.")
+          print("3. Searching phone or phones targets actual smartphones.")
+          print("4. headphone no longer qualifies merely because it contains the letters 'phone'.")
+          print("5. Admitad CPC routing and CJ live API are untouched.")
+          PY
+
+      - name: Publish V15.8.6
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            js/site-v13-5.js \
+            js/seller-whitelist-v14-1-5.js \
+            data/approved-product-sellers-v14-1-5.json \
+            js/product-discovery-v15.js \
+            data/product-discovery-v15.json \
+            js/smart-suggestions-v14-1-5.js \
+            find/index.html
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V15.8.6 is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: TikTok seller visibility and phone relevance"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot Products V15.8.6"
+            echo ""
+            echo "Focused fixes published:"
+            echo "- TikTok Shop US retained by seller whitelist"
+            echo "- TikTok CID accepted by CJ product guard"
+            echo "- Finder uses one autocomplete engine"
+            echo "- P suggestions prioritize phone / phones / phone cases"
+            echo "- phone / phones map to actual smartphone intent"
+            echo "- substring bug such as headphone => phone removed"
+            echo "- Admitad CPC and CJ live API logic untouched"
+          } >> "$GITHUB_STEP_SUMMARY"
