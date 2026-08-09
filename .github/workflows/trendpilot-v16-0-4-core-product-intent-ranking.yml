@@ -1,0 +1,308 @@
+name: TrendPilot V16.0.4 Core Product Intent Ranking
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-0-4-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core-product-ranking:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Apply V16.0.4 search ranking
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          search = Path("netlify/functions/products-v16.mjs")
+          docs = Path("V16-UNIVERSAL-PRODUCT-INDEX.md")
+
+          if not search.exists():
+              raise SystemExit("Missing netlify/functions/products-v16.mjs")
+
+          s = search.read_text(encoding="utf-8")
+
+          if 'const VERSION = "16.0.3";' in s:
+              s = s.replace('const VERSION = "16.0.3";', 'const VERSION = "16.0.4";', 1)
+          elif 'const VERSION = "16.0.4";' not in s:
+              raise SystemExit("Expected V16.0.3 search endpoint was not found.")
+
+          # Expand accessory-intent vocabulary. These terms are NOT blocked.
+          # They are only down-ranked when the visitor did not explicitly ask
+          # for them. Therefore "phone battery", "watch case", etc. still work.
+          acc_start = s.find("const accessoryWords = new Set([")
+          acc_end = s.find("]);", acc_start)
+          if acc_start < 0 or acc_end < 0:
+              raise SystemExit("Accessory word block not found.")
+
+          new_accessories = r'''const accessoryWords = new Set([
+            "case","cases","cover","covers","protector","protectors",
+            "charger","chargers","charging","cable","cables",
+            "holder","holders","stand","stands","mount","mounts",
+            "repair","replacement","part","parts","tool","tools","kit","kits",
+            "accessory","accessories","adapter","adapters","dock","docks",
+            "screen","screens","stylus","pen","pens","strap","straps",
+            "band","bands","sleeve","sleeves","pouch","pouches",
+            "feeder","feeders","feeding","bowl","bowls","toy","toys",
+            "storage","container","containers","dispenser","dispensers",
+            "remover","tester","testing","fixture","fixtures",
+            "frame","frames","shell","shells","housing","housings",
+            "battery","batteries","lock","locks","box","boxes",
+            "spoon","spoons","scoop","scoops","scooper","scoopers",
+            "organizer","organizers","bracket","brackets","clip","clips",
+            "tripod","tripods","lunch","timer","timers"
+          ])'''
+
+          s = s[:acc_start] + new_accessories + s[acc_end+2:]
+
+          # Replace the relevance function only. The catalog/index stays intact,
+          # so V16.0.4 does not need a rebuild.
+          rel_start = s.find("function relevanceFor(doc, q, tokens, baseRank) {")
+          export_pos = s.find("export default async function handler(request)", rel_start)
+          if rel_start < 0 or export_pos < 0:
+              raise SystemExit("Relevance function boundaries not found.")
+
+          rel_end = s.rfind("\n", rel_start, export_pos)
+          if rel_end < rel_start:
+              raise SystemExit("Could not resolve relevance function end.")
+
+          new_relevance = r'''function relevanceFor(doc, q, tokens, baseRank) {
+            const title = lower(doc.title);
+            const brand = lower(doc.brand);
+            const category = lower(`${doc.category || ""} ${doc.subcategory || ""}`);
+            const description = lower(doc.description || "").slice(0, 1200);
+
+            const titleWords = words(title);
+            const categoryWords = words(category);
+            const titleSet = new Set(titleWords);
+            const brandSet = tokenSet(brand);
+            const categorySet = new Set(categoryWords);
+            const descriptionSet = tokenSet(description);
+
+            const titleCoverage = countCoverage(tokens, titleSet, title);
+            const brandCoverage = countCoverage(tokens, brandSet, brand);
+            const categoryCoverage = countCoverage(tokens, categorySet, category);
+            const descriptionCoverage = countCoverage(tokens, descriptionSet, description);
+
+            const allInTitle = tokens.length > 0 && titleCoverage >= tokens.length;
+            const allInCategory = tokens.length > 0 && categoryCoverage >= tokens.length;
+            const phraseInTitle = Boolean(q && title.includes(q));
+            const phraseAtStart = Boolean(
+              q && (title === q || title.startsWith(q + " ") || title.startsWith(q + "-"))
+            );
+
+            const queryLooksAccessory = tokens.some(t => accessoryWords.has(t));
+            const titleHasAccessory = titleWords.some(w => accessoryWords.has(w));
+            const categoryHasAccessory = categoryWords.some(w => accessoryWords.has(w));
+
+            let score = Number(baseRank.score || 0) + Number(baseRank.matches || 0) * 18;
+
+            if (title === q) score += 260;
+            else if (phraseAtStart) score += 145;
+            else if (phraseInTitle) score += 95;
+
+            if (allInTitle) score += 115;
+            else score += titleCoverage * 34;
+
+            if (allInCategory) score += 120;
+            else score += categoryCoverage * 42;
+
+            score += brandCoverage * 22;
+            score += Math.min(descriptionCoverage, 2) * 4;
+
+            if (brand === q) score += 55;
+
+            // A clean title that contains the requested product phrase, without
+            // accessory/repair intent, receives a strong generic "core product"
+            // boost. This is why "smart watch" beats "watch repair tool", and
+            // actual dog food can beat bowls/feeders.
+            const cleanCoreMatch =
+              phraseInTitle &&
+              !titleHasAccessory &&
+              (!categoryHasAccessory || allInCategory);
+
+            if (cleanCoreMatch) score += 165;
+            if (phraseAtStart && cleanCoreMatch) score += 70;
+
+            let penalty = 0;
+
+            if (!queryLooksAccessory && q) {
+              const qPattern = escapeRegex(q).replace(/\s+/g, "\\s+");
+              const accessoryPattern =
+                "(?:case|cover|protector|charger|charging|cable|holder|stand|mount|" +
+                "repair|replacement|parts?|tools?|kits?|accessor(?:y|ies)|adapter|dock|" +
+                "screen|stylus|strap|band|sleeve|pouch|feeder|feeding|bowl|toy|storage|" +
+                "container|dispenser|remover|tester|testing|fixture|frame|shell|housing|" +
+                "batter(?:y|ies)|locks?|boxes?|spoons?|scoops?|scoopers?|organizers?|" +
+                "brackets?|clips?|tripods?|lunch|timers?)";
+
+              // Query followed by an accessory:
+              //   phone battery, dog food spoon, watch repair tool
+              const queryThenAccessory = new RegExp(
+                qPattern + ".{0,55}\\b" + accessoryPattern + "\\b",
+                "i"
+              );
+
+              // Accessory before the query:
+              //   bowl ... dog food, protective case for watch
+              const accessoryThenQuery = new RegExp(
+                "\\b" + accessoryPattern + "\\b.{0,70}" + qPattern,
+                "i"
+              );
+
+              // Explicit relation:
+              //   case for phone, compatible with watch
+              const accessoryForQuery = new RegExp(
+                "\\b" + accessoryPattern +
+                "\\b.{0,25}\\b(?:for|compatible\\s+with|replacement\\s+for|used\\s+for)\\s+" +
+                qPattern,
+                "i"
+              );
+
+              if (queryThenAccessory.test(title)) penalty += 270;
+              if (accessoryThenQuery.test(title)) penalty += 250;
+              if (accessoryForQuery.test(title)) penalty += 290;
+
+              // Any accessory language in a title that also contains the core
+              // query is weaker evidence than a clean core-product title.
+              if (phraseInTitle && titleHasAccessory) penalty += 105;
+              if (phraseInTitle && categoryHasAccessory) penalty += 65;
+
+              // Description-only or incidental matches should not outrank core
+              // products merely because the word appears somewhere.
+              if (titleHasAccessory && titleCoverage == 0) penalty += 85;
+              if (categoryHasAccessory && titleCoverage == 0) penalty += 55;
+            }
+
+            if (titleCoverage == 0 && categoryCoverage == 0 && brandCoverage == 0) {
+              score -= 180;
+            }
+
+            if (titleCoverage == 0 && descriptionCoverage > 0) {
+              score -= 80;
+            }
+
+            score -= penalty;
+
+            return {
+              score,
+              signals: {
+                titleCoverage,
+                categoryCoverage,
+                brandCoverage,
+                phraseInTitle,
+                phraseAtStart,
+                cleanCoreMatch,
+                accessoryPenalty: penalty
+              }
+            };
+          }
+
+          '''
+
+          s = s[:rel_start] + new_relevance + s[rel_end+1:]
+
+          # Scan the full posting window created by the index (max 1800/token),
+          # instead of 1200 candidates for a 48-result request.
+          s = re.sub(
+              r'const candidateLimit = Math\.min\(1800,\s*Math\.max\(1000,\s*limit \* 25\)\);',
+              'const candidateLimit = 1800;',
+              s,
+              count=1
+          )
+
+          s = s.replace(
+              'console.error("TrendPilot V16.0.3 search failed", error);',
+              'console.error("TrendPilot V16.0.4 search failed", error);',
+              1
+          )
+
+          search.write_text(s, encoding="utf-8")
+
+          d = docs.read_text(encoding="utf-8") if docs.exists() else "# TrendPilot V16 Universal Product Index\n"
+          if "## V16.0.4 — core product intent ranking" not in d:
+              d += r'''
+
+          ## V16.0.4 — core product intent ranking
+
+          - Search-only update; no catalog rebuild required.
+          - Strong generic boost for clean core-product titles.
+          - Stronger down-ranking for accessories, repair tools and containers
+            when the visitor asks for the core product.
+          - Symmetric accessory detection catches both `phone battery` and
+            `case for phone` style titles.
+          - Explicit accessory queries such as `phone battery`, `watch case`
+            and `dog food bowl` remain valid and are not penalized.
+          - Candidate rescoring now scans the full 1,800-entry token posting
+            window before returning the top results.
+          '''
+          docs.write_text(d, encoding="utf-8")
+
+          print("V16.0.4 core product intent ranking applied.")
+          PY
+
+      - name: Validate V16.0.4
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check netlify/functions/products-v16.mjs
+          git diff --check
+
+          grep -q 'const VERSION = "16.0.4"' netlify/functions/products-v16.mjs
+          grep -q 'const candidateLimit = 1800;' netlify/functions/products-v16.mjs
+          grep -q 'cleanCoreMatch' netlify/functions/products-v16.mjs
+          grep -q 'accessoryThenQuery' netlify/functions/products-v16.mjs
+          grep -q 'batter(?:y|ies)' netlify/functions/products-v16.mjs
+          grep -q 'spoons?' netlify/functions/products-v16.mjs
+
+          echo "V16.0.4 validation passed."
+
+      - name: Publish V16.0.4
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            netlify/functions/products-v16.mjs \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.0.4 is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: rank core products ahead of accessories in V16 search"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.0.4"
+            echo "- core-product intent ranking improved"
+            echo "- phone battery / repair / lock-box results demoted for bare phone search"
+            echo "- bowls/feeders/spoons demoted for bare dog-food search"
+            echo "- explicit accessory searches remain supported"
+            echo "- no rebuild required"
+          } >> "$GITHUB_STEP_SUMMARY"
