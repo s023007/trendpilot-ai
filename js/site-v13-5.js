@@ -472,6 +472,47 @@ function normalizeProduct(p) {
   }
   // TP_SELLER_SEARCH_REPAIR_V15_6_4_END
 
+
+  // TP_CJ_LIVE_SEARCH_V15_7_1_START
+  const TP_CJ_LIVE_SELLERS_V15_7_1 = new Set(["Temu","PandaHall","FragranceShop.com","Karaca EU"]);
+
+  async function tpLoadCjLiveProductsV15_7_1(query, requestedSeller=""){
+    const seller=tpCanonicalSellerV15_1(requestedSeller)||clean(requestedSeller);
+    if(seller && !TP_CJ_LIVE_SELLERS_V15_7_1.has(seller)) return [];
+
+    const q=clean(query);
+    if(q.length<2 || lower(q)==="popular products") return [];
+
+    const params=new URLSearchParams({q});
+    if(seller) params.set("seller",seller);
+
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),5000);
+
+    try{
+      const response=await fetch(`/api/cj-live-products?${params.toString()}`,{
+        cache:"no-store",
+        signal:controller.signal,
+        headers:{"accept":"application/json"}
+      });
+      if(!response.ok) return [];
+      const payload=await response.json();
+      if(!payload?.ok || !Array.isArray(payload.products)) return [];
+
+      return payload.products
+        .map(normalizeProduct)
+        .map(tpEnrichCjTaxonomyV15_6_4)
+        .filter(tpCjPublicAllowed)
+        .filter(tpPublicSellerAllowed);
+    }catch(error){
+      if(error?.name!=="AbortError") console.warn("TrendPilot CJ live search unavailable",error);
+      return [];
+    }finally{
+      clearTimeout(timer);
+    }
+  }
+  // TP_CJ_LIVE_SEARCH_V15_7_1_END
+
   // TP_CJ_SEARCH_BRIDGE_START
   let tpCjProductsPromise = null;
   async function loadCjProducts() {
@@ -1355,6 +1396,8 @@ function normalizeProduct(p) {
   const normalized=normalizeQuery(query);
   state.originalQuery=normalized.original; state.query=normalized.query; state.queryCorrected=normalized.corrected;
   state.scope=scope||""; state.shown=24; state.activeTab="exact"; state.products=[]; state.exact=[]; state.alternatives=[]; state.segmentState.clear(); state.loading=true;
+  const cjLiveQueryV15_7_1=state.query;
+  const cjLivePromiseV15_7_1=tpLoadCjLiveProductsV15_7_1(cjLiveQueryV15_7_1,preservedSeller);
   resetFilterControls();
   const grid=$('[data-tp-product-grid]');
   if(grid)grid.innerHTML='<div class="tp-empty"><h3>Checking matching products…</h3><p>TrendPilot is loading the most relevant catalogue records.</p></div>';
@@ -1383,6 +1426,19 @@ function normalizeProduct(p) {
       }
     }
     renderFinder();
+
+    cjLivePromiseV15_7_1.then(liveRows=>{
+      if(cjLiveQueryV15_7_1!==state.query || !Array.isArray(liveRows) || !liveRows.length) return;
+      mergeProducts(liveRows);
+      populateFilters();
+      if(preservedSeller){
+        const liveMerchant=$('[data-filter-merchant]');
+        if(liveMerchant && [...liveMerchant.options].some(o=>o.value===preservedSeller)){
+          liveMerchant.value=preservedSeller;
+        }
+      }
+      renderFinder();
+    }).catch(()=>{});
   } catch(error) {
     console.error("TrendPilot product search failed safely",error);
     if(!state.plan){state.plan={q:state.query,groups:[],family:"",families:[],audience:"",segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};}
