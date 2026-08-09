@@ -1,0 +1,375 @@
+name: TrendPilot V16.1.1 Phrase Integrity Fresh Rerank
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-1-1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  phrase-integrity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Apply V16.1.1 hybrid ranking fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          path = Path("netlify/functions/products-v16-hybrid.mjs")
+          docs = Path("V16-UNIVERSAL-PRODUCT-INDEX.md")
+
+          if not path.exists():
+              raise SystemExit("Missing netlify/functions/products-v16-hybrid.mjs")
+
+          s = path.read_text(encoding="utf-8")
+
+          if 'const VERSION = "16.1.0";' in s:
+              s = s.replace('const VERSION = "16.1.0";', 'const VERSION = "16.1.1";', 1)
+          elif 'const VERSION = "16.1.1";' not in s:
+              raise SystemExit("Expected V16.1.0 hybrid endpoint was not found.")
+
+          # Insert generic multi-word phrase integrity helpers before intentRank.
+          if "function querySpanInfo(" not in s:
+              anchor = "function intentRank(product, query, tokens) {"
+              pos = s.find(anchor)
+              if pos < 0:
+                  raise SystemExit("intentRank anchor not found.")
+
+              helpers = r'''
+          const misleadingPhraseTails = new Set([
+            "grade","style","styled","theme","themed","pattern","patterns",
+            "shaped","shape","print","printed","design","designed",
+            "mold","mould","molds","moulds","label","labels"
+          ]);
+
+          function querySpanInfo(titleWords, query, tokens) {
+            if (!tokens.length) {
+              return {
+                exactPhrase: false,
+                minSpan: 999,
+                nextWord: "",
+                misleadingTail: false
+              };
+            }
+
+            const exactPhraseWords = words(query);
+            let exactStart = -1;
+
+            if (exactPhraseWords.length) {
+              outer:
+              for (let i = 0; i <= titleWords.length - exactPhraseWords.length; i++) {
+                for (let j = 0; j < exactPhraseWords.length; j++) {
+                  if (titleWords[i + j] !== exactPhraseWords[j]) continue outer;
+                }
+                exactStart = i;
+                break;
+              }
+            }
+
+            const nextWord =
+              exactStart >= 0
+                ? (titleWords[exactStart + exactPhraseWords.length] || "")
+                : "";
+
+            let minSpan = 999;
+
+            if (tokens.length === 1) {
+              minSpan = titleWords.includes(tokens[0]) ? 1 : 999;
+            } else {
+              for (let start = 0; start < titleWords.length; start++) {
+                const have = new Set();
+                for (let end = start; end < titleWords.length; end++) {
+                  const word = titleWords[end];
+                  for (const token of tokens) {
+                    if (
+                      word === token ||
+                      (token.length >= 4 && word.includes(token))
+                    ) {
+                      have.add(token);
+                    }
+                  }
+                  if (have.size >= tokens.length) {
+                    minSpan = Math.min(minSpan, end - start + 1);
+                    break;
+                  }
+                }
+              }
+            }
+
+            return {
+              exactPhrase: exactStart >= 0,
+              minSpan,
+              nextWord,
+              misleadingTail: misleadingPhraseTails.has(nextWord)
+            };
+          }
+
+          '''
+              s = s[:pos] + helpers + s[pos:]
+
+          # Replace intentRank with a fresh semantic/proximity-aware version.
+          start = s.find("function intentRank(product, query, tokens) {")
+          end = s.find("function rankedNormalize(", start)
+          if start < 0 or end < 0:
+              raise SystemExit("intentRank boundaries not found.")
+
+          new_intent = r'''function intentRank(product, query, tokens) {
+            const title = lower(product?.title || product?.name);
+            const category = lower(
+              `${product?.category || ""} ${product?.subcategory || ""} ` +
+              `${product?.group || ""} ${product?.family || ""}`
+            );
+            const description = lower(product?.description || "").slice(0, 1000);
+
+            const titleWords = words(title);
+            const categoryWords = words(category);
+            const titleSet = new Set(titleWords);
+            const categorySet = new Set(categoryWords);
+
+            const allInTitle = tokens.length > 0 && tokens.every(t =>
+              titleSet.has(t) || (t.length >= 4 && title.includes(t))
+            );
+            const allInCategory = tokens.length > 0 && tokens.every(t =>
+              categorySet.has(t) || (t.length >= 4 && category.includes(t))
+            );
+
+            const titleHits = tokens.filter(t =>
+              titleSet.has(t) || (t.length >= 4 && title.includes(t))
+            ).length;
+
+            const categoryHits = tokens.filter(t =>
+              categorySet.has(t) || (t.length >= 4 && category.includes(t))
+            ).length;
+
+            const descriptionHits = tokens.filter(t =>
+              description.includes(t)
+            ).length;
+
+            const phrase = querySpanInfo(titleWords, query, tokens);
+            const phraseInTitle = phrase.exactPhrase;
+            const phraseAtStart = Boolean(
+              query &&
+              (title === query || title.startsWith(query + " ") || title.startsWith(query + "-"))
+            );
+
+            const queryLooksAccessory = tokens.some(t => accessoryWords.has(t));
+            const titleHasAccessory = titleWords.some(t => accessoryWords.has(t));
+            const categoryHasAccessory = categoryWords.some(t => accessoryWords.has(t));
+
+            const multiWordQuery = tokens.length >= 2;
+            const tightTokenSpan =
+              !multiWordQuery || phrase.minSpan <= Math.max(tokens.length + 2, 4);
+            const looseTokenSpan =
+              multiWordQuery && phrase.minSpan > Math.max(tokens.length + 4, 6);
+
+            // An exact phrase followed immediately by words such as "grade",
+            // "style", "theme", "pattern" or "mold" is often a descriptor rather
+            // than the requested product itself. Example pattern:
+            //   <query> grade silicone ...
+            // This rule is generic and applies to any multi-word query.
+            const misleadingExactPhrase =
+              multiWordQuery &&
+              phraseInTitle &&
+              phrase.misleadingTail;
+
+            let intentTier = 0;
+
+            if (queryLooksAccessory) {
+              if (phraseInTitle && allInTitle && !misleadingExactPhrase) intentTier = 5;
+              else if (allInTitle && tightTokenSpan) intentTier = 4;
+              else if (phraseInTitle) intentTier = 3;
+              else if (allInCategory) intentTier = 2;
+              else intentTier = 1;
+            } else {
+              const cleanTitleCore =
+                allInTitle &&
+                !titleHasAccessory &&
+                tightTokenSpan &&
+                !misleadingExactPhrase;
+
+              const cleanPhraseCore =
+                phraseInTitle &&
+                !titleHasAccessory &&
+                !misleadingExactPhrase;
+
+              const cleanCategoryCore =
+                allInCategory &&
+                !categoryHasAccessory;
+
+              if (
+                (cleanPhraseCore && phraseAtStart) ||
+                (cleanPhraseCore && cleanCategoryCore)
+              ) {
+                intentTier = 5;
+              } else if (cleanTitleCore || cleanCategoryCore) {
+                intentTier = 4;
+              } else if (cleanPhraseCore) {
+                intentTier = 3;
+              } else if (
+                (allInTitle || phraseInTitle) &&
+                !looseTokenSpan &&
+                !misleadingExactPhrase
+              ) {
+                intentTier = 2;
+              } else if (
+                allInCategory ||
+                (titleHits > 0 && !looseTokenSpan)
+              ) {
+                intentTier = 1;
+              }
+            }
+
+            let score =
+              intentTier * 1000 +
+              titleHits * 90 +
+              categoryHits * 65 +
+              Math.min(descriptionHits, 2) * 8 +
+              Number(product?.quality || 0);
+
+            if (phraseInTitle && !misleadingExactPhrase) score += 180;
+            if (phraseAtStart && !misleadingExactPhrase) score += 120;
+
+            if (tightTokenSpan && multiWordQuery) score += 70;
+            if (looseTokenSpan) score -= 220;
+            if (misleadingExactPhrase) score -= 650;
+
+            if (!queryLooksAccessory && titleHasAccessory) score -= 280;
+            if (!queryLooksAccessory && categoryHasAccessory && !allInCategory) {
+              score -= 120;
+            }
+
+            return {
+              intentTier,
+              score,
+              phraseIntegrity: {
+                exactPhrase: phrase.exactPhrase,
+                minSpan: phrase.minSpan,
+                nextWord: phrase.nextWord,
+                misleadingTail: phrase.misleadingTail
+              }
+            };
+          }
+
+          '''
+          s = s[:start] + new_intent + s[end:]
+
+          # IMPORTANT: V16.1.0 preserved the old base tier/score with Math.max().
+          # That locks in earlier misclassifications. V16.1.1 always performs a
+          # fresh hybrid rerank over every merged product.
+          old_score = r'''                matchScore: Math.max(
+                  Number(product?.matchScore || 0),
+                  rank.score
+                ),
+                intentTier: Math.max(
+                  Number(product?.intentTier || 0),
+                  rank.intentTier
+                )'''
+
+          new_score = r'''                matchScore: rank.score,
+                intentTier: rank.intentTier'''
+
+          if old_score in s:
+              s = s.replace(old_score, new_score, 1)
+          elif "matchScore: rank.score" not in s or "intentTier: rank.intentTier" not in s:
+              raise SystemExit("Fresh rerank merge anchor not found.")
+
+          # Version the query-cache key so old 16.1.0 cached ranking pools are
+          # not re-used accidentally during this verification round.
+          s = s.replace(
+              '`${lower(query)}|${lower(seller)}|${lower(network)}|16.1`',
+              '`${lower(query)}|${lower(seller)}|${lower(network)}|16.1.1`',
+              1
+          )
+
+          s = s.replace(
+              'console.error("TrendPilot V16.1 hybrid search failed", error);',
+              'console.error("TrendPilot V16.1.1 hybrid search failed", error);',
+              1
+          )
+
+          path.write_text(s, encoding="utf-8")
+
+          d = docs.read_text(encoding="utf-8") if docs.exists() else "# TrendPilot V16 Universal Product Index\n"
+          if "## V16.1.1 — phrase integrity and fresh rerank" not in d:
+              d += r'''
+
+          ## V16.1.1 — phrase integrity and fresh rerank
+
+          - Freshly re-ranks every merged product instead of preserving older
+            base intent tiers with `Math.max()`.
+          - Adds generic multi-word token proximity.
+          - Down-ranks misleading exact phrases followed by descriptor tails
+            such as `grade`, `style`, `theme`, `pattern`, `mold`, or `label`.
+          - Uses a new query-cache namespace for clean verification.
+          - No full Blob index rebuild is required.
+          '''
+          docs.write_text(d, encoding="utf-8")
+
+          print("V16.1.1 phrase-integrity patch applied.")
+          PY
+
+      - name: Validate V16.1.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check netlify/functions/products-v16-hybrid.mjs
+          git diff --check
+
+          grep -q 'const VERSION = "16.1.1"' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'function querySpanInfo' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'misleadingPhraseTails' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'misleadingExactPhrase' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'matchScore: rank.score' netlify/functions/products-v16-hybrid.mjs
+          grep -q 'intentTier: rank.intentTier' netlify/functions/products-v16-hybrid.mjs
+          grep -q '|16.1.1' netlify/functions/products-v16-hybrid.mjs
+
+          echo "V16.1.1 validation passed."
+
+      - name: Publish V16.1.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            netlify/functions/products-v16-hybrid.mjs \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.1.1 already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: add phrase integrity and fresh hybrid reranking"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.1.1"
+            echo "- fixes stale intentTier/score preservation in hybrid merge"
+            echo "- adds multi-word phrase proximity"
+            echo "- demotes descriptor traps such as '<query> grade ...'"
+            echo "- moves query cache to a clean 16.1.1 namespace"
+            echo "- no full index rebuild required"
+          } >> "$GITHUB_STEP_SUMMARY"
