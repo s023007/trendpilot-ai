@@ -1,10 +1,10 @@
 {
   "version": "0.6.0",
-  "generatedAt": "2026-08-09T04:05:48+00:00",
+  "generatedAt": "2026-08-10T04:18:55+00:00",
   "cache": {
     "path": "automation/cache/offers.jsonl",
     "committed": false,
-    "offerCount": 173129
+    "offerCount": 173673
   },
   "sources": [
     {
@@ -63,7 +63,7 @@
       "adapter": "csv",
       "network": "Admitad",
       "advertiser": "Geekbuying",
-      "offersAccepted": 1367,
+      "offersAccepted": 1372,
       "complianceBlocked": 3,
       "invalidRows": 0
     },
@@ -83,8 +83,8 @@
       "adapter": "xml",
       "network": "Admitad",
       "advertiser": "Joom",
-      "offersAccepted": 98473,
-      "complianceBlocked": 1527,
+      "offersAccepted": 98438,
+      "complianceBlocked": 1562,
       "invalidRows": 0
     },
     {
@@ -113,8 +113,8 @@
       "adapter": "json",
       "network": "CJ",
       "advertiser": "CJ joined advertisers",
-      "offersAccepted": 18669,
-      "complianceBlocked": 1264,
+      "offersAccepted": 19243,
+      "complianceBlocked": 708,
       "invalidRows": 0
     },
     {
@@ -129,9 +129,9 @@
     }
   ],
   "counters": {
-    "offersAccepted": 173129,
-    "complianceBlocked": 3457,
-    "duplicatesWithinSources": 54
+    "offersAccepted": 173673,
+    "complianceBlocked": 2936,
+    "duplicatesWithinSources": 39
   },
   "note": "Private feed URLs are read from GitHub Actions secrets and are never written to reports or the repository."
 }
