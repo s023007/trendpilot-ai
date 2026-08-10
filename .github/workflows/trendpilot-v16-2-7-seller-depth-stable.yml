@@ -1,0 +1,327 @@
+name: TrendPilot V16.2.7 Seller Depth Stable
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-2-7-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  seller-depth-stable:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Apply seller-depth fix using function boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js = Path("js/site-v13-5.js")
+          finder = Path("find/index.html")
+          docs = Path("V16-UNIVERSAL-PRODUCT-INDEX.md")
+
+          if not js.exists():
+              raise SystemExit("Missing js/site-v13-5.js")
+          if not finder.exists():
+              raise SystemExit("Missing find/index.html")
+
+          s = js.read_text(encoding="utf-8")
+
+          def replace_region(text, start_pattern, end_pattern, replacement, label):
+              start = re.search(start_pattern, text, re.M)
+              if not start:
+                  raise SystemExit(f"{label}: start function not found")
+              end = re.search(end_pattern, text[start.end():], re.M)
+              if not end:
+                  raise SystemExit(f"{label}: next function not found")
+              end_pos = start.end() + end.start()
+              return text[:start.start()] + replacement.rstrip() + "\n" + text[end_pos:]
+
+          # ------------------------------------------------------------
+          # 1) TikTok phone live results:
+          #    keep the existing 9-query expansion, but accept practical
+          #    real-phone titles instead of requiring a narrow phrase list.
+          # ------------------------------------------------------------
+          live_prepare = r'''  function tpPrepareLiveSellerRowsV15_8_9(rows,seller,query){
+            // TP_TIKTOK_PHONE_DEPTH_V16_2_7
+            const canonical=tpCanonicalSellerV15_1(seller)||clean(seller);
+            const q=lower(query||"").trim();
+            let out=Array.isArray(rows)?rows.filter(Boolean):[];
+
+            if(
+              canonical==="TikTok Shop US" &&
+              /^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones)$/i.test(q)
+            ){
+              const accessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds|projector|speaker|microphone)\b/i;
+              const directDevice=/\b(?:smart ?phones?|mobile phones?|mobiles? phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\s+[a-z0-9+.-]+)?|google pixel(?:\s+[a-z0-9+.-]+)?|motorola(?:\s+moto)?|moto\s+g\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\b/i;
+              const genericPhone=/\b(?:phones?|mobiles?)\b/i;
+              const hardware=/\b(?:dual sim|single sim|sim card|4g|5g|lte|gsm|cdma|android|ram|rom|octa[- ]?core|quad[- ]?core|snapdragon|mediatek|dimensity|helio|unlocked|imei)\b/i;
+
+              out=out.filter(p=>{
+                const text=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
+                const realPhone=directDevice.test(text)||(genericPhone.test(text)&&hardware.test(text));
+                return realPhone && !accessory.test(text);
+              }).map(p=>Object.assign({},p,{
+                group:"phones-tablets",
+                family:"smartphones"
+              }));
+            }
+
+            const seen=new Set();
+            return out.filter(p=>{
+              const key=clean(p.clusterKey||p.id||p.url||p.name);
+              if(!key || seen.has(key))return false;
+              seen.add(key);
+              return true;
+            });
+          }
+          '''
+
+          s = replace_region(
+              s,
+              r'(?m)^\s*function\s+tpPrepareLiveSellerRowsV15_8_9\s*\(',
+              r'(?m)^\s*async\s+function\s+tpLoadSelectedLiveSellerV15_8_9\s*\(',
+              live_prepare,
+              "TikTok live preparation"
+          )
+
+          # ------------------------------------------------------------
+          # 2) Seller selector:
+          #    Do NOT stop after one/few Hybrid rows.
+          #    For every seller:
+          #      Hybrid first
+          #      + CJ live when available
+          #      + deeper indexed seller pages when still under 24 matches
+          #
+          #    This replaces the whole initFinder() function by boundaries,
+          #    so it does not depend on indentation or old patch text.
+          # ------------------------------------------------------------
+          init_finder = r'''  function initFinder(){
+            // TP_SELLER_DEPTH_STABLE_V16_2_7
+            const form=$('[data-tp-finder-form]');if(!form)return;
+
+            form.addEventListener('submit',e=>{
+              e.preventDefault();
+              const scope=$('[data-tp-finder-scope]')?.value||'';
+              performSearch(
+                $('[data-tp-finder-input]')?.value||scope||'popular products',
+                true,
+                scope
+              );
+            });
+
+            $$('[data-search-suggestion]').forEach(b=>
+              b.addEventListener('click',()=>
+                performSearch(
+                  b.dataset.searchSuggestion,
+                  true,
+                  b.dataset.searchScope||''
+                )
+              )
+            );
+
+            $('[data-tp-load-more]')?.addEventListener('click',showMore);
+
+            $$('[data-filter-group],[data-filter-family],[data-filter-audience],[data-filter-merchant],[data-filter-price],[data-filter-sort],[data-filter-coupon],[data-filter-rare]')
+              .forEach(x=>x.addEventListener('change',async()=>{
+                if(x.matches('[data-filter-group]'))populateFilters();
+
+                if(x.matches('[data-filter-merchant]')){
+                  const selected=tpCanonicalSellerV15_1(x.value)||clean(x.value);
+                  state.selectedSeller=selected;
+
+                  if(selected){
+                    state.loading=true;
+                    renderFinder();
+
+                    const [hybridResult,liveRows]=await Promise.all([
+                      tpLoadHybridProductsV16_2_1(state.query,selected),
+                      TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)
+                        ? tpLoadSelectedLiveSellerV15_8_9(selected,state.query)
+                        : Promise.resolve([])
+                    ]);
+
+                    if(hybridResult?.rows?.length){
+                      state.hybridMeta=hybridResult.meta||state.hybridMeta;
+                      mergeProducts(hybridResult.rows);
+                    }
+
+                    if(Array.isArray(liveRows) && liveRows.length){
+                      mergeProducts(liveRows);
+                    }
+
+                    let sellerCount=state.exact.filter(p=>{
+                      const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
+                      return rowSeller===selected;
+                    }).length;
+
+                    // Hybrid returning even one row must not stop deeper loading.
+                    if(
+                      sellerCount<24 &&
+                      typeof tpLoadSellerSpecificV15_1==="function"
+                    ){
+                      await tpLoadSellerSpecificV15_1(selected);
+                      sellerCount=state.exact.filter(p=>{
+                        const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
+                        return rowSeller===selected;
+                      }).length;
+                    }
+
+                    state.loading=false;
+                    populateFilters();
+
+                    const merchant=$('[data-filter-merchant]');
+                    if(merchant)merchant.value=selected;
+                  }else{
+                    state.selectedSeller="";
+                    state.shown=24;
+                    await performSearch(state.query,false,state.scope);
+                    return;
+                  }
+                }
+
+                state.shown=24;
+                renderFinder();
+              }));
+
+            $('[data-reset-filters]')?.addEventListener('click',()=>{
+              state.selectedSeller='';
+              $$('[data-filter-panel] select').forEach(x=>x.value='');
+              $$('[data-filter-panel] input[type="checkbox"]').forEach(x=>x.checked=false);
+              state.shown=24;
+              renderFinder();
+            });
+
+            $('[data-tp-filter-toggle]')?.addEventListener('click',e=>{
+              const p=$('[data-tp-filter-panel]');
+              p?.classList.toggle('is-expanded');
+              e.currentTarget.setAttribute(
+                'aria-expanded',
+                String(p?.classList.contains('is-expanded'))
+              );
+            });
+
+            const params=new URLSearchParams(location.search);
+            performSearch(
+              params.get('q')||"popular products",
+              false,
+              params.get('scope')||''
+            );
+          }
+          '''
+
+          s = replace_region(
+              s,
+              r'(?m)^\s*function\s+initFinder\s*\(\s*\)\s*\{',
+              r'(?m)^\s*function\s+initEvents\s*\(\s*\)\s*\{',
+              init_finder,
+              "Finder initialization"
+          )
+
+          js.write_text(s,encoding="utf-8")
+
+          # ------------------------------------------------------------
+          # 3) Browser cache bust.
+          # ------------------------------------------------------------
+          h=finder.read_text(encoding="utf-8")
+          h2,n=re.subn(
+              r'/js/site-v13-5\.js\?v=[^"\']+',
+              '/js/site-v13-5.js?v=16.2.7',
+              h,
+              count=1
+          )
+          if n!=1:
+              raise SystemExit(f"Finder script URL not found uniquely: {n}")
+          finder.write_text(h2,encoding="utf-8")
+
+          # ------------------------------------------------------------
+          # 4) Documentation.
+          # ------------------------------------------------------------
+          d=docs.read_text(encoding="utf-8") if docs.exists() else "# TrendPilot V16 Universal Product Index\n"
+          if "## V16.2.7 — seller depth stable" not in d:
+              d += r'''
+
+          ## V16.2.7 — seller depth stable
+
+          - Practical freeze-point patch: no index rebuild and no backend rewrite.
+          - Selecting a seller no longer stops after the first Hybrid result.
+          - Hybrid + CJ live results are merged when available.
+          - If a seller still has fewer than 24 exact matches, its indexed
+            catalogue pages are loaded more deeply.
+          - TikTok phone live results keep the nine expanded phone queries and
+            use a practical real-phone detector rather than the previous narrow
+            title detector.
+          - A small number of imperfect matches is intentionally tolerated to
+            preserve catalogue depth.
+          - Patch installation uses whole-function boundaries rather than exact
+            whitespace-sensitive old code blocks.
+          '''
+          docs.write_text(d,encoding="utf-8")
+
+          print("V16.2.7 seller-depth stable patch applied.")
+          PY
+
+      - name: Validate V16.2.7
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          grep -q 'TP_TIKTOK_PHONE_DEPTH_V16_2_7' js/site-v13-5.js
+          grep -q 'TP_SELLER_DEPTH_STABLE_V16_2_7' js/site-v13-5.js
+          grep -q 'sellerCount<24' js/site-v13-5.js
+          grep -q 'tpLoadSelectedLiveSellerV15_8_9(selected,state.query)' js/site-v13-5.js
+          grep -q 'tpLoadSellerSpecificV15_1(selected)' js/site-v13-5.js
+          grep -q '/js/site-v13-5.js?v=16.2.7' find/index.html
+
+          echo "V16.2.7 validation passed."
+
+      - name: Publish V16.2.7
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            js/site-v13-5.js \
+            find/index.html \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.2.7 is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: deepen selected seller results without brittle anchors"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.2.7 Seller Depth Stable"
+            echo "- function-boundary patching; no exact old-block anchors"
+            echo "- selected sellers no longer stop after one/few Hybrid rows"
+            echo "- combines Hybrid + CJ live + deeper indexed seller pages"
+            echo "- expands practical TikTok phone coverage"
+            echo "- no index rebuild required"
+          } >> "$GITHUB_STEP_SUMMARY"
