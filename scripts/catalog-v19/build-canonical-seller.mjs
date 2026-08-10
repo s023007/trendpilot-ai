@@ -23,7 +23,8 @@ const SELLER_SLUG = args["--slug"];
 const VERSION = args["--version"] || "19.1.1";
 const ROLE = args["--role"] || "canonical-seller-catalog";
 const ROOT = "data/catalog-v19";
-const SOURCE_ROOT = "data/search-catalog/shards";
+const SOURCE_ROOT = args["--source-root"] || "data/search-catalog/shards";
+const SOURCE_MANIFEST = args["--source-manifest"] || "";
 const SELLER_DIR = `${ROOT}/sellers/${SELLER_SLUG}`;
 
 if (!SELLER || !SELLER_SLUG) throw new Error("Missing --seller or --slug.");
@@ -34,7 +35,8 @@ if (PUBLIC_PRODUCT_SELLER_NAMES.includes("Temu") || PUBLIC_PRODUCT_SELLER_NAMES.
   throw new Error("Blocked seller leaked into public policy.");
 }
 if (!fs.existsSync(`${ROOT}/schema-v1.json`)) throw new Error("V19 schema-v1.json is missing.");
-if (!fs.existsSync(SOURCE_ROOT)) throw new Error(`${SOURCE_ROOT} is missing.`);
+if (SOURCE_MANIFEST && !fs.existsSync(SOURCE_MANIFEST)) throw new Error(`${SOURCE_MANIFEST} is missing.`);
+if (!SOURCE_MANIFEST && !fs.existsSync(SOURCE_ROOT)) throw new Error(`${SOURCE_ROOT} is missing.`);
 
 const registry = JSON.parse(fs.readFileSync("data/product-seller-registry-v17.json", "utf8"));
 const registryRow = registry.sellers.find(x => x.name === SELLER && x.public);
@@ -43,13 +45,16 @@ if (!registryRow) throw new Error(`Approved registry row missing for ${SELLER}.`
 fs.mkdirSync(SELLER_DIR, { recursive: true });
 
 const sha = value => crypto.createHash("sha256").update(String(value)).digest("hex");
-const norm = value =>
-  clean(value)
+const norm = value => {
+  const base = clean(value)
     .normalize("NFKC")
     .toLocaleLowerCase("en-US")
-    .replace(/[’'`]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/[’'`]/g, "");
+  const searchable = base
+    .replace(/[^\\p{L}\\p{N}]+/gu, " ")
     .trim();
+  return searchable || base.replace(/\\s+/g, " ").trim();
+};
 const compact = value => norm(value).replace(/\s+/g, "");
 const uniq = values => [...new Set(values.filter(Boolean))];
 
@@ -362,7 +367,10 @@ function taxonomyFrom(raw, normalized) {
   };
 }
 
-const files = walkJson(SOURCE_ROOT);
+const manifestInput = SOURCE_MANIFEST ? JSON.parse(fs.readFileSync(SOURCE_MANIFEST, "utf8")) : null;
+const files = SOURCE_MANIFEST ? [...(manifestInput.qualifiedFiles || [])] : walkJson(SOURCE_ROOT);
+const qualifiedFileSet = new Set(files.map(file => path.normalize(file)));
+if (!files.length) throw new Error(`No qualified source files supplied for ${SELLER}.`);
 const recordsByKey = new Map();
 const sourceFiles = new Set();
 let normalizedRowsForSeller = 0;
@@ -457,7 +465,7 @@ for (const file of files) {
       },
       quality: {
         inputQuality: normalized.quality,
-        sourceQualified: file.startsWith(`${SOURCE_ROOT}/`),
+        sourceQualified: qualifiedFileSet.has(path.normalize(file)),
         hasStableSellerId: Boolean(ids.sellerProductId || ids.sku),
         hasBrand: Boolean(brand),
         hasModel: Boolean(ids.model),
@@ -504,13 +512,13 @@ if (records.some(x => ["Temu","Joom"].includes(x.seller.name))) throw new Error(
 const indexes = {
   version: VERSION,
   seller: SELLER,
-  byGlobalId: {},
-  bySellerProductId: {},
-  bySku: {},
-  byBrandModel: {},
-  byModel: {},
-  byExactName: {},
-  byCompactName: {}
+  byGlobalId: Object.create(null),
+  bySellerProductId: Object.create(null),
+  bySku: Object.create(null),
+  byBrandModel: Object.create(null),
+  byModel: Object.create(null),
+  byExactName: Object.create(null),
+  byCompactName: Object.create(null)
 };
 
 function pushIndex(obj, key, productKey) {
@@ -584,45 +592,50 @@ const fillRates = Object.fromEntries(
     .map(([key,value]) => [key,{count:value,percent:pct(value)}])
 );
 
-function resolve(query) {
-  const qn = norm(query);
-  const qc = compact(query);
-
-  for (const [kind, bucket, key] of [
-    ["exact-name", indexes.byExactName, qn],
-    ["compact-name", indexes.byCompactName, qc],
-    ["model", indexes.byModel, qc],
-    ["seller-product-id", indexes.bySellerProductId, qc],
-    ["sku", indexes.bySku, qc]
-  ]) {
-    const values = bucket[key] || [];
-    if (values.length) return {kind, productKeys:values};
-  }
-
-  const candidates = records.filter(r => r.name.normalized.includes(qn)).slice(0,20);
-  return {kind:candidates.length ? "name-contains" : "not-found", productKeys:candidates.map(x=>x.productKey)};
-}
-
 const roundTripSamples = [];
+
 for (const record of records.filter(x => x.identifiers.model).slice(0,20)) {
-  const result = resolve(record.identifiers.model);
+  const indexKey = compact(record.identifiers.model);
+  const productKeys = indexes.byModel[indexKey] || [];
   roundTripSamples.push({
     query:record.identifiers.model,
+    indexKey,
     expectedProductKey:record.productKey,
-    resolutionKind:result.kind,
-    resolved:result.productKeys.includes(record.productKey),
-    resultCount:result.productKeys.length
+    resolutionKind:"model-index",
+    resolved:productKeys.includes(record.productKey),
+    resultCount:productKeys.length
   });
 }
+
 for (const record of records.filter(x => x.identifiers.sellerProductId).slice(0,20)) {
-  const result = resolve(record.identifiers.sellerProductId);
+  const indexKey = compact(record.identifiers.sellerProductId);
+  const productKeys = indexes.bySellerProductId[indexKey] || [];
   roundTripSamples.push({
     query:record.identifiers.sellerProductId,
+    indexKey,
     expectedProductKey:record.productKey,
-    resolutionKind:result.kind,
-    resolved:result.productKeys.includes(record.productKey),
-    resultCount:result.productKeys.length
+    resolutionKind:"seller-product-id-index",
+    resolved:productKeys.includes(record.productKey),
+    resultCount:productKeys.length
   });
+}
+
+for (const record of records.slice(0,20)) {
+  const indexKey = record.name.normalized;
+  const productKeys = indexes.byExactName[indexKey] || [];
+  roundTripSamples.push({
+    query:record.name.display,
+    indexKey,
+    expectedProductKey:record.productKey,
+    resolutionKind:"exact-name-index",
+    resolved:productKeys.includes(record.productKey),
+    resultCount:productKeys.length
+  });
+}
+
+const failedRoundTrips = roundTripSamples.filter(x => !x.resolved);
+if (failedRoundTrips.length) {
+  throw new Error(`Canonical seller index round-trip failures: ${JSON.stringify(failedRoundTrips.slice(0,10))}`);
 }
 
 const manifest = {
@@ -675,7 +688,8 @@ const audit = {
   fillRates,
   conflicts,
   roundTripSamples,
-  sourceLeak:records.some(x => !x.source.sourceFile.startsWith(`${SOURCE_ROOT}/`)),
+  sourceManifest: SOURCE_MANIFEST,
+  sourceLeak:records.some(x => !qualifiedFileSet.has(path.normalize(x.source.sourceFile))),
   blockedSellerLeak:records.some(x => ["Temu","Joom"].includes(x.seller.name)),
   duplicateProductKeys:records.length !== new Set(records.map(x=>x.productKey)).size
 };

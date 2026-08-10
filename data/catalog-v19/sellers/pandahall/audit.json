@@ -1,0 +1,528 @@
+{
+  "version": "19.3.3",
+  "seller": "PandaHall",
+  "generatedAt": "2026-08-10T19:05:09.745Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/cj-products.json",
+      "data/search-catalog/shards/jewelry-watches/bracelets/all/002.json",
+      "data/search-catalog/shards/other/other/all/006.json",
+      "data/search-catalog/shards/other/other/all/007.json",
+      "data/search-catalog/shards/other/other/all/008.json",
+      "data/search-catalog/shards/other/other/all/009.json",
+      "data/search-catalog/shards/other/other/all/010.json",
+      "data/search-catalog/shards/other/other/all/011.json"
+    ],
+    "normalizedRowsForSeller": 127
+  },
+  "metrics": {
+    "totalProducts": 127,
+    "sourceFiles": 8,
+    "stableSellerId": 127,
+    "brand": 127,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 0,
+    "price": 127,
+    "image": 127,
+    "link": 127,
+    "variants": 0,
+    "sourceQualified": 127
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 127,
+      "percent": 100
+    },
+    "brand": {
+      "count": 127,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "price": {
+      "count": 127,
+      "percent": 100
+    },
+    "image": {
+      "count": 127,
+      "percent": 100
+    },
+    "link": {
+      "count": 127,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 127,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [
+      {
+        "key": "p",
+        "productKeys": [
+          "pandahall:b921cf769d0a8eea884bdbcc",
+          "pandahall:08b5f68ccb6e7e0633ed6712",
+          "pandahall:150dee62af3a5c0daea7e0ac",
+          "pandahall:373c757b1ae7c0c8383e0275",
+          "pandahall:7896201b2e571c7921b29158",
+          "pandahall:dfda4b1b76b6882414936b26",
+          "pandahall:1ce4ee21cd4115ec1b3f12a1",
+          "pandahall:3e2584fe841d11a05d7f0a02",
+          "pandahall:739f6af772c11f993ceee79c",
+          "pandahall:7449fe87267187ba69efe357",
+          "pandahall:b740ae209e8a83aa8c3f3e1e",
+          "pandahall:61c0ea3da68f622347cf8559",
+          "pandahall:6f555a24485aa452ac37e5c0",
+          "pandahall:d12e9d49ce2d2ea740a86744",
+          "pandahall:0c1d6909fff4324200fb8734",
+          "pandahall:1dc18edb47df199d35924a0b",
+          "pandahall:45e0b3975c27d773990a3f1b",
+          "pandahall:57fb007fb6124e21d06a668e",
+          "pandahall:7ac04782f2167c8d9713e884",
+          "pandahall:921d7b0ce8c92fe6589491f8",
+          "pandahall:a238a2e0d940950c9de83624",
+          "pandahall:d56ca1ac5eb4d6ec0761315a",
+          "pandahall:1d6178bacb1a6b50fac15285",
+          "pandahall:13cdc17ad3aa21849f87735f",
+          "pandahall:14aed49106ad5cfd3d129ddf",
+          "pandahall:18380963c8d6b51ddd7258a2",
+          "pandahall:1b71b1ff940bd0ff960579f5",
+          "pandahall:1f938f832f8be6b2cfcb38f1",
+          "pandahall:23514fce0d15075a86bf7e0b",
+          "pandahall:2422206bd977ea5ab63ed9b6",
+          "pandahall:2b537dfba1a31f2ded334566",
+          "pandahall:316fa085f920e8fff3a375aa",
+          "pandahall:32d49844732e2c364bac008c",
+          "pandahall:34a3d1c73cae780b55cdc9b1",
+          "pandahall:3608366edbbfcab075b86acc",
+          "pandahall:39fbbbb31af5e15081356671",
+          "pandahall:453538021444531576930599",
+          "pandahall:4a6324156be9e2976d797d5e",
+          "pandahall:5166aba227f7f60560ecb14b",
+          "pandahall:51a24fbe03e6a320128760d7",
+          "pandahall:5588c91e26852d60ac6a7805",
+          "pandahall:55aca0809d6298925a909c6e",
+          "pandahall:56277898f0c37d5c7d352c36",
+          "pandahall:5e0d2b0da4e53f705ca4dc95",
+          "pandahall:6037977c2d25d14e2eaaa5a7",
+          "pandahall:70d00585ee3ca6c9fe19e610",
+          "pandahall:7743f553cc33127c1de98703",
+          "pandahall:8538e96ea7a11daea6039fe6",
+          "pandahall:8ad2b0714f17cae609b57789",
+          "pandahall:8c1768c2c900292a30b9c2ab",
+          "pandahall:8ff528e7b1eb75e10d6c546c",
+          "pandahall:9445e3d0b9abeb1f69133e72",
+          "pandahall:95490633af6ec21fc864ed7e",
+          "pandahall:985100c0af2d02fdcd016bb9",
+          "pandahall:a7c10f591e3c337826b442fe",
+          "pandahall:b1037eee0f4453c843531670",
+          "pandahall:b55c8c4e1952b3ca02f0c548",
+          "pandahall:b7c9620555c5c16d0d600632",
+          "pandahall:cddd26c25577b4c6c4c34581",
+          "pandahall:e01f0c088068156c366fd89c",
+          "pandahall:eb3c0fe10a4398da9dccfbf3",
+          "pandahall:ec3f674e82818fbf27defd7f",
+          "pandahall:ec795c1ddb631ba3466845a7",
+          "pandahall:f7266c29581976249162465e",
+          "pandahall:f76f187f9fd24089f551af9b",
+          "pandahall:035a47ff0e7b69b241645431",
+          "pandahall:075c532fad7dc7f4ce030fe5",
+          "pandahall:1cb3870e2a47801dcac3bef3",
+          "pandahall:1e80f7f0d8ad5fd8d781ddbe",
+          "pandahall:27ffe45e5627612986e40454",
+          "pandahall:3a574f1266ee888462d67453",
+          "pandahall:3f44b4e4f2a6cde07201081e",
+          "pandahall:4f8e4df542f21ec4286d2fb9",
+          "pandahall:60413ade75478132286e4377",
+          "pandahall:74c45952c849f9099f922f7c",
+          "pandahall:768ac6b0b5cf6b221f243d8f",
+          "pandahall:9ef3bf4368b485b7f90c73a5",
+          "pandahall:a5ff2c0654735466222709cf",
+          "pandahall:adc7e66cb1f4e5c819f160f5",
+          "pandahall:b1c580d6617cb2620cd74e8a",
+          "pandahall:bb94efa65ad74a06913e5192",
+          "pandahall:cef817b67f0be5834f7ce88d",
+          "pandahall:dea4402262c38d317128ce1c",
+          "pandahall:248218fbc8131b2aad5a7686",
+          "pandahall:98e470f9ba5742062711b8ca",
+          "pandahall:cc1e32ed5467ac40b6ff3e69",
+          "pandahall:da85f34460c4b43d78794108",
+          "pandahall:ffb4a8143ca24896f3649fd6",
+          "pandahall:2100ff4333b779412e0354b3",
+          "pandahall:40a31c263e06adf3bedb51e2",
+          "pandahall:5cb1369c5d0aa0e57e22035d",
+          "pandahall:b54bd9f82fe0c9042e2ea6ee",
+          "pandahall:ec0cbf97edc27b64d2d7688f",
+          "pandahall:0cad302699fd7fa20b776b4c",
+          "pandahall:0ed81156caaa92e05d74438c",
+          "pandahall:4a21fac3c2425425edc5f046",
+          "pandahall:6516c8e14b17f4ea89b5ae7e",
+          "pandahall:78a65a6f67d91e70289242db",
+          "pandahall:b5f57b3612b2a09772a9c81b",
+          "pandahall:ba36a9e88a4e49b14b30ec0b"
+        ]
+      }
+    ],
+    "sku": [],
+    "brandModel": []
+  },
+  "roundTripSamples": [
+    {
+      "query": "22b06601b7fd707ed6",
+      "indexKey": "22b06601b7fd707ed6",
+      "expectedProductKey": "pandahall:559da777a1b621bec0732f4c",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "cj-product-14fb45e67eefaf1d123cce8b",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:b921cf769d0a8eea884bdbcc",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-e9a455ef9b66b7a7756af27c",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:08b5f68ccb6e7e0633ed6712",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-31d548a20417d84fd2234a3b",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:150dee62af3a5c0daea7e0ac",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-6ddca797616372c5d998db24",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:373c757b1ae7c0c8383e0275",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-d41672dd93369c565d94eece",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:7896201b2e571c7921b29158",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-2f7fee0be60065586cf3bee6",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:dfda4b1b76b6882414936b26",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "ca1f83150e25c00fa4",
+      "indexKey": "ca1f83150e25c00fa4",
+      "expectedProductKey": "pandahall:7281a590ae616de9afc6850c",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "cj-product-b9ce7ee3f4dd8e5347deb72c",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:1ce4ee21cd4115ec1b3f12a1",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-83cf5450cd334544b2e5bd3d",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:3e2584fe841d11a05d7f0a02",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "b200758af54e738b05",
+      "indexKey": "b200758af54e738b05",
+      "expectedProductKey": "pandahall:0aa296525b24e40bb240f703",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "cj-product-146e3d2530d3b886619e22a6",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:739f6af772c11f993ceee79c",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "4dab216baf9d69d08a",
+      "indexKey": "4dab216baf9d69d08a",
+      "expectedProductKey": "pandahall:628b69eea931e64d7a984681",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "cj-product-5a4e714ed490455ee0e1d8d2",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:7449fe87267187ba69efe357",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-990706805c7c6af34784397f",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:b740ae209e8a83aa8c3f3e1e",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "d14ae361183ffb81db",
+      "indexKey": "d14ae361183ffb81db",
+      "expectedProductKey": "pandahall:72c8d79010fb9c38b18356c6",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "cj-product-75d39f01c5d1ccefdde1c933",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:61c0ea3da68f622347cf8559",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-d750935a9ac387d6af5d6b6f",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:6f555a24485aa452ac37e5c0",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-42c2e169e4087fdaaa8fc870",
+      "indexKey": "p",
+      "expectedProductKey": "pandahall:d12e9d49ce2d2ea740a86744",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "66acb6d82f78a723f5",
+      "indexKey": "66acb6d82f78a723f5",
+      "expectedProductKey": "pandahall:4cc87a74d3c9508a17806034",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "304 Stainless Steel Enamel Charms",
+      "indexKey": "304 stainless steel enamel charms",
+      "expectedProductKey": "pandahall:559da777a1b621bec0732f4c",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "6/0 Glass Seed Beads Small Beads",
+      "indexKey": "6/0 glass seed beads small beads",
+      "expectedProductKey": "pandahall:b921cf769d0a8eea884bdbcc",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:08b5f68ccb6e7e0633ed6712",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 5
+    },
+    {
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:150dee62af3a5c0daea7e0ac",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 5
+    },
+    {
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:373c757b1ae7c0c8383e0275",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 5
+    },
+    {
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:7896201b2e571c7921b29158",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 5
+    },
+    {
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:dfda4b1b76b6882414936b26",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 5
+    },
+    {
+      "query": "Alloy Enamel Beads",
+      "indexKey": "alloy enamel beads",
+      "expectedProductKey": "pandahall:7281a590ae616de9afc6850c",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Brass with Cubic Zirconia Beads Beads",
+      "indexKey": "brass with cubic zirconia beads beads",
+      "expectedProductKey": "pandahall:1ce4ee21cd4115ec1b3f12a1",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 2
+    },
+    {
+      "query": "Brass with Cubic Zirconia Beads Beads",
+      "indexKey": "brass with cubic zirconia beads beads",
+      "expectedProductKey": "pandahall:3e2584fe841d11a05d7f0a02",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 2
+    },
+    {
+      "query": "Breloques en laiton",
+      "indexKey": "breloques en laiton",
+      "expectedProductKey": "pandahall:0aa296525b24e40bb240f703",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Bubble Beads",
+      "indexKey": "bubble beads",
+      "expectedProductKey": "pandahall:739f6af772c11f993ceee79c",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Cadenas de bordillo de latón esmaltado",
+      "indexKey": "cadenas de bordillo de latón esmaltado",
+      "expectedProductKey": "pandahall:628b69eea931e64d7a984681",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Christmas Tree Square DIY Melty Beads Fuse Beads Sets: Fuse Beads",
+      "indexKey": "christmas tree square diy melty beads fuse beads sets: fuse beads",
+      "expectedProductKey": "pandahall:7449fe87267187ba69efe357",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Cinnabar Beads",
+      "indexKey": "cinnabar beads",
+      "expectedProductKey": "pandahall:b740ae209e8a83aa8c3f3e1e",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Cmолы европейские шарики",
+      "indexKey": "cmолы европейские шарики",
+      "expectedProductKey": "pandahall:72c8d79010fb9c38b18356c6",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "DIY Melty Beads Fuse Beads Sets: Fuse Beads",
+      "indexKey": "diy melty beads fuse beads sets: fuse beads",
+      "expectedProductKey": "pandahall:61c0ea3da68f622347cf8559",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 3
+    },
+    {
+      "query": "DIY Melty Beads Fuse Beads Sets: Fuse Beads",
+      "indexKey": "diy melty beads fuse beads sets: fuse beads",
+      "expectedProductKey": "pandahall:6f555a24485aa452ac37e5c0",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 3
+    },
+    {
+      "query": "DIY Melty Beads Fuse Beads Sets: Fuse Beads",
+      "indexKey": "diy melty beads fuse beads sets: fuse beads",
+      "expectedProductKey": "pandahall:d12e9d49ce2d2ea740a86744",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 3
+    },
+    {
+      "query": "Fabrication de bracelet en fil de nylon",
+      "indexKey": "fabrication de bracelet en fil de nylon",
+      "expectedProductKey": "pandahall:4cc87a74d3c9508a17806034",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    }
+  ],
+  "sourceManifest": "data/catalog-v19/source-manifests/pandahall.json",
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}

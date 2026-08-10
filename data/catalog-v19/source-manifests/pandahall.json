@@ -1,0 +1,148 @@
+{
+  "version": "19.3.3",
+  "seller": "PandaHall",
+  "slug": "pandahall",
+  "generatedAt": "2026-08-10T19:04:44.318Z",
+  "policy": {
+    "purpose": "Discover all repository product-feed sources for one approved seller before building its canonical V19 catalog.",
+    "productCatalogOnly": true,
+    "couponsAndPromotionsExcluded": true,
+    "auditsAndGeneratedAnalysisExcluded": true
+  },
+  "candidateFiles": 10,
+  "qualifiedFileCount": 8,
+  "discoveredUniqueProductsAcrossAllCandidateFiles": 336,
+  "qualifiedUniqueProducts": 127,
+  "qualifiedFiles": [
+    "data/cj-products.json",
+    "data/search-catalog/shards/jewelry-watches/bracelets/all/002.json",
+    "data/search-catalog/shards/other/other/all/006.json",
+    "data/search-catalog/shards/other/other/all/007.json",
+    "data/search-catalog/shards/other/other/all/008.json",
+    "data/search-catalog/shards/other/other/all/009.json",
+    "data/search-catalog/shards/other/other/all/010.json",
+    "data/search-catalog/shards/other/other/all/011.json"
+  ],
+  "files": [
+    {
+      "file": "data/cj-products.json",
+      "rows": 100,
+      "uniqueProducts": 100,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/search-catalog/shards/other/other/all/010.json",
+      "rows": 6,
+      "uniqueProducts": 6,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": true,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/search-catalog/shards/other/other/all/008.json",
+      "rows": 5,
+      "uniqueProducts": 5,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": true,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/search-catalog/shards/other/other/all/009.json",
+      "rows": 5,
+      "uniqueProducts": 5,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": true,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/search-catalog/shards/other/other/all/011.json",
+      "rows": 4,
+      "uniqueProducts": 4,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": true,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/search-catalog/shards/other/other/all/006.json",
+      "rows": 3,
+      "uniqueProducts": 3,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": true,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/search-catalog/shards/other/other/all/007.json",
+      "rows": 3,
+      "uniqueProducts": 3,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": true,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/search-catalog/shards/jewelry-watches/bracelets/all/002.json",
+      "rows": 1,
+      "uniqueProducts": 1,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": true,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/cj-link-catalog.json",
+      "rows": 182,
+      "uniqueProducts": 179,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 0,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "no-price-or-image-signal"
+    },
+    {
+      "file": "data/cj-offers.json",
+      "rows": 30,
+      "uniqueProducts": 30,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 0,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "no-price-or-image-signal"
+    }
+  ]
+}

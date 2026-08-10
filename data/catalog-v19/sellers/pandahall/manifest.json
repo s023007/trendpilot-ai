@@ -1,0 +1,105 @@
+{
+  "version": "19.3.3",
+  "architecture": "seller-catalog-first",
+  "seller": {
+    "name": "PandaHall",
+    "slug": "pandahall",
+    "network": "CJ",
+    "mode": "catalog+live",
+    "role": "fourth-canonical-catalog"
+  },
+  "generatedAt": "2026-08-10T19:05:09.745Z",
+  "schema": "../../schema-v1.json",
+  "sourcePolicy": "../../source-policy-v1.json",
+  "files": {
+    "products": "products.ndjson",
+    "identityIndex": "identity-index.json",
+    "categoryIndex": "category-index.json",
+    "audit": "audit.json"
+  },
+  "metrics": {
+    "totalProducts": 127,
+    "sourceFiles": 8,
+    "stableSellerId": 127,
+    "brand": 127,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 0,
+    "price": 127,
+    "image": 127,
+    "link": 127,
+    "variants": 0,
+    "sourceQualified": 127
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 127,
+      "percent": 100
+    },
+    "brand": {
+      "count": 127,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "price": {
+      "count": 127,
+      "percent": 100
+    },
+    "image": {
+      "count": 127,
+      "percent": 100
+    },
+    "link": {
+      "count": 127,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 127,
+      "percent": 100
+    }
+  },
+  "identityPolicy": {
+    "exactMergeAllowedBy": [
+      "GTIN/EAN/UPC/ISBN exact match",
+      "brand + explicit MPN exact match",
+      "brand + explicit model exact match"
+    ],
+    "neverAutoMergeBy": [
+      "title alone",
+      "price alone",
+      "image alone",
+      "title-inferred model alone",
+      "semantic clusterKey alone"
+    ]
+  }
+}

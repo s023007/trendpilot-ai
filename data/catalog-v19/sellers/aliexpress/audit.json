@@ -1,7 +1,7 @@
 {
-  "version": "19.1.1",
+  "version": "19.3.3",
   "seller": "AliExpress",
-  "generatedAt": "2026-08-10T18:01:14.586Z",
+  "generatedAt": "2026-08-10T19:04:59.027Z",
   "input": {
     "sourceRoot": "data/search-catalog/shards",
     "sourceFilesContainingSeller": [
@@ -340,7 +340,7 @@
     "totalProducts": 16206,
     "sourceFiles": 328,
     "stableSellerId": 16206,
-    "brand": 107,
+    "brand": 14930,
     "modelAny": 5,
     "modelExplicit": 0,
     "modelInferred": 5,
@@ -359,8 +359,8 @@
       "percent": 100
     },
     "brand": {
-      "count": 107,
-      "percent": 0.7
+      "count": 14930,
+      "percent": 92.1
     },
     "modelAny": {
       "count": 5,
@@ -411,185 +411,380 @@
     "globalId": [],
     "sellerProductId": [],
     "sku": [],
-    "brandModel": []
+    "brandModel": [
+      {
+        "key": "brand-model:p:p",
+        "productKeys": [
+          "aliexpress:cb5c42bef3ace582126237b4",
+          "aliexpress:c34d35de37c39f5ccaf3061d",
+          "aliexpress:66f2d022a0e6174e4bfbec1f"
+        ]
+      }
+    ]
   },
   "roundTripSamples": [
     {
-      "query": "Iphone 16",
-      "expectedProductKey": "aliexpress:66f2d022a0e6174e4bfbec1f",
-      "resolutionKind": "model",
+      "query": "Thinkpad x1",
+      "indexKey": "p",
+      "expectedProductKey": "aliexpress:cb5c42bef3ace582126237b4",
+      "resolutionKind": "model-index",
       "resolved": true,
-      "resultCount": 1
+      "resultCount": 3
     },
     {
-      "query": "Thinkpad x1",
-      "expectedProductKey": "aliexpress:cb5c42bef3ace582126237b4",
-      "resolutionKind": "model",
+      "query": "Thinkpad T14S",
+      "indexKey": "p",
+      "expectedProductKey": "aliexpress:c34d35de37c39f5ccaf3061d",
+      "resolutionKind": "model-index",
       "resolved": true,
-      "resultCount": 1
+      "resultCount": 3
+    },
+    {
+      "query": "Iphone 16",
+      "indexKey": "p",
+      "expectedProductKey": "aliexpress:66f2d022a0e6174e4bfbec1f",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 3
     },
     {
       "query": "Honor Guard",
+      "indexKey": "honorguard",
       "expectedProductKey": "aliexpress:8a9cf07fc16b998f54fcc373",
-      "resolutionKind": "model",
+      "resolutionKind": "model-index",
       "resolved": true,
       "resultCount": 1
     },
     {
       "query": "Creality Ender",
+      "indexKey": "crealityender",
       "expectedProductKey": "aliexpress:357ea3e421c38f014ad022ce",
-      "resolutionKind": "model",
+      "resolutionKind": "model-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "Thinkpad T14S",
-      "expectedProductKey": "aliexpress:c34d35de37c39f5ccaf3061d",
-      "resolutionKind": "model",
+      "query": "3d72f404549eadf154",
+      "indexKey": "3d72f404549eadf154",
+      "expectedProductKey": "aliexpress:c09e3d7e5d811a0d16a5c922",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "0fefad63310b37694b",
-      "expectedProductKey": "aliexpress:8749c5db71b5640ad04ad869",
-      "resolutionKind": "seller-product-id",
+      "query": "cf92c6770c5bb3a0d4",
+      "indexKey": "cf92c6770c5bb3a0d4",
+      "expectedProductKey": "aliexpress:017b3dab41836bfd66977cd4",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "e9de9d2259812a1206",
-      "expectedProductKey": "aliexpress:da409f551eb8c1de799c29b9",
-      "resolutionKind": "seller-product-id",
+      "query": "c3dc6649150978b49e",
+      "indexKey": "c3dc6649150978b49e",
+      "expectedProductKey": "aliexpress:ed7149e791a82348310c432f",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "c2993a25e73b332682",
-      "expectedProductKey": "aliexpress:754ecd9ff6091175a793cad9",
-      "resolutionKind": "seller-product-id",
+      "query": "e6502b9ad2a67b595f",
+      "indexKey": "e6502b9ad2a67b595f",
+      "expectedProductKey": "aliexpress:3bb33a0b956b0b2dc18d91d4",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "db7411c11e31a9fbc0",
-      "expectedProductKey": "aliexpress:cd5baa3044983c24914686bc",
-      "resolutionKind": "seller-product-id",
+      "query": "629bea136983edfb82",
+      "indexKey": "629bea136983edfb82",
+      "expectedProductKey": "aliexpress:2ea7dbbdcf94356677d36ba9",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "3ceb5055a4566e55f9",
-      "expectedProductKey": "aliexpress:7d97b3c3f9110eb5cb800cdb",
-      "resolutionKind": "seller-product-id",
+      "query": "1a8c4ca60cb60bea92",
+      "indexKey": "1a8c4ca60cb60bea92",
+      "expectedProductKey": "aliexpress:61c657a45e4fa758b3155509",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "718b725791598d864f",
-      "expectedProductKey": "aliexpress:40844b8a38da57f711176cc7",
-      "resolutionKind": "seller-product-id",
+      "query": "43f82599a7531f0d50",
+      "indexKey": "43f82599a7531f0d50",
+      "expectedProductKey": "aliexpress:a8225c9ec407a29e41b76975",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "ae3025137f7ab8732d",
-      "expectedProductKey": "aliexpress:acbdb9921cbafe015dd2478e",
-      "resolutionKind": "seller-product-id",
-      "resolved": true,
-      "resultCount": 1
-    },
-    {
-      "query": "f69c86f6580a719272",
-      "expectedProductKey": "aliexpress:1c94c5707b37eb6d8923dabb",
-      "resolutionKind": "seller-product-id",
-      "resolved": true,
-      "resultCount": 1
-    },
-    {
-      "query": "3d1b2ffaa327ef5be0",
-      "expectedProductKey": "aliexpress:077c9fde65a6e982aef932d7",
-      "resolutionKind": "seller-product-id",
-      "resolved": true,
-      "resultCount": 1
-    },
-    {
-      "query": "98139e5783ea75218f",
-      "expectedProductKey": "aliexpress:c3e6f4872ccb0058745c9a2b",
-      "resolutionKind": "seller-product-id",
-      "resolved": true,
-      "resultCount": 1
-    },
-    {
-      "query": "9f7027f5ecfe9c503e",
-      "expectedProductKey": "aliexpress:401afc63b42304f64e1209c3",
-      "resolutionKind": "seller-product-id",
+      "query": "ed0461a890bd32cc3e",
+      "indexKey": "ed0461a890bd32cc3e",
+      "expectedProductKey": "aliexpress:d7977ddc234b9f9632b4a265",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
       "query": "0dd4bef4c97e6f16be",
+      "indexKey": "0dd4bef4c97e6f16be",
       "expectedProductKey": "aliexpress:9a65572185879a60a321670b",
-      "resolutionKind": "seller-product-id",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "028f59f4663d0f1267",
-      "expectedProductKey": "aliexpress:54d2cfaae8df1bef1c43af0b",
-      "resolutionKind": "seller-product-id",
+      "query": "c2993a25e73b332682",
+      "indexKey": "c2993a25e73b332682",
+      "expectedProductKey": "aliexpress:754ecd9ff6091175a793cad9",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "e5f552af4d3f2b4d99",
-      "expectedProductKey": "aliexpress:b17a855f25bb1483123c0eb2",
-      "resolutionKind": "seller-product-id",
-      "resolved": true,
-      "resultCount": 1
-    },
-    {
-      "query": "1f96f8c81729ca1758",
-      "expectedProductKey": "aliexpress:5f97597d9fa4ca37ca4df959",
-      "resolutionKind": "seller-product-id",
-      "resolved": true,
-      "resultCount": 1
-    },
-    {
-      "query": "d2386a0fd9ab9bf6e6",
-      "expectedProductKey": "aliexpress:d666c1de7f7f1c3da292c911",
-      "resolutionKind": "seller-product-id",
-      "resolved": true,
-      "resultCount": 1
-    },
-    {
-      "query": "72a7cfc7b20f5a5cb6",
-      "expectedProductKey": "aliexpress:69dff1dc9b9ac5839ee29fb4",
-      "resolutionKind": "seller-product-id",
+      "query": "db7411c11e31a9fbc0",
+      "indexKey": "db7411c11e31a9fbc0",
+      "expectedProductKey": "aliexpress:cd5baa3044983c24914686bc",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
       "query": "6796b408c2ebad25a0",
+      "indexKey": "6796b408c2ebad25a0",
       "expectedProductKey": "aliexpress:62440d2fa5eae8920a219887",
-      "resolutionKind": "seller-product-id",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
       "query": "af4d9ff7c452afd49c",
+      "indexKey": "af4d9ff7c452afd49c",
       "expectedProductKey": "aliexpress:d8c441b97877fe0a172573cd",
-      "resolutionKind": "seller-product-id",
+      "resolutionKind": "seller-product-id-index",
       "resolved": true,
       "resultCount": 1
     },
     {
-      "query": "904f136986305fb523",
-      "expectedProductKey": "aliexpress:a565d72c3276d7c36c2bbcde",
-      "resolutionKind": "seller-product-id",
+      "query": "27bd08691d9a540c22",
+      "indexKey": "27bd08691d9a540c22",
+      "expectedProductKey": "aliexpress:add0d21a409aeb0b1d8ac92c",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "42f88a6819f93dd2b1",
+      "indexKey": "42f88a6819f93dd2b1",
+      "expectedProductKey": "aliexpress:81e10abac3ad9a74b9306f31",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "a9c66af3612c461754",
+      "indexKey": "a9c66af3612c461754",
+      "expectedProductKey": "aliexpress:e8f7d72278a0803ef7ea91f6",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "57337bbf9776c2542b",
+      "indexKey": "57337bbf9776c2542b",
+      "expectedProductKey": "aliexpress:e39a363ea19dcd14f672a146",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "5ed7a0fc856ca60dd7",
+      "indexKey": "5ed7a0fc856ca60dd7",
+      "expectedProductKey": "aliexpress:2affaf1252a99025f4c685cb",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "5b6da59808d7976100",
+      "indexKey": "5b6da59808d7976100",
+      "expectedProductKey": "aliexpress:079bac6ecd0a54dcace416d5",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "ae95cfe9f2ac81bb4f",
+      "indexKey": "ae95cfe9f2ac81bb4f",
+      "expectedProductKey": "aliexpress:641dcdce46eb1e53de493333",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[B17B!】 Side Handle N389651 Side Handle For N389651 Side Handle",
+      "indexKey": "[b17b!】 side handle n389651 side handle for n389651 side handle",
+      "expectedProductKey": "aliexpress:c09e3d7e5d811a0d16a5c922",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[HOT!A34R】 For Ford Edge 15-18 Wire Harness F2GZ13A840J F2GZ-13A840-J",
+      "indexKey": "[hot!a34r】 for ford edge 15-18 wire harness f2gz13a840j f2gz-13a840-j",
+      "expectedProductKey": "aliexpress:017b3dab41836bfd66977cd4",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[NEW!A08R】 Electric Bicycle KT Controller 36V 48V 16A KT KT-16A E-Bike Sine Wave Controller E-Bike Controller",
+      "indexKey": "[new!a08r】 electric bicycle kt controller 36v 48v 16a kt kt-16a e-bike sine wave controller e-bike controller",
+      "expectedProductKey": "aliexpress:ed7149e791a82348310c432f",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "【3-Tier Air Fryer Rack Set】with Heat-Resistant Tongs & 8 Silicone Feet, Stackable Baking Rack for Oven, Grilling, Roasting",
+      "indexKey": "【3-tier air fryer rack set】with heat-resistant tongs & 8 silicone feet, stackable baking rack for oven, grilling, roasting",
+      "expectedProductKey": "aliexpress:3bb33a0b956b0b2dc18d91d4",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "【THANKSGIVING DAY】2 Set 3 Styles DIY Mosaic Craft Set Floral Mosaic Bamboo Coaster Set For Handmade Art Home Decoration",
+      "indexKey": "【thanksgiving day】2 set 3 styles diy mosaic craft set floral mosaic bamboo coaster set for handmade art home decoration",
+      "expectedProductKey": "aliexpress:2ea7dbbdcf94356677d36ba9",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "/Red /For /Multi Angle Adjustable Track Saw Guide Rail Fence For Woodworking Cutting Tool Aviation Aluminum 6061 Alloy",
+      "indexKey": "/red /for /multi angle adjustable track saw guide rail fence for woodworking cutting tool aviation aluminum 6061 alloy",
+      "expectedProductKey": "aliexpress:61c657a45e4fa758b3155509",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Rotary Oil Cylinder Water Collection Box Return Box\\ Water Receiving Box 5 6 8 10 Inch",
+      "indexKey": "\\",
+      "expectedProductKey": "aliexpress:a8225c9ec407a29e41b76975",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "#Wooden Dog Cage House Furniture Small Double Deck Dog House Cat House",
+      "indexKey": "#wooden dog cage house furniture small double deck dog house cat house",
+      "expectedProductKey": "aliexpress:d7977ddc234b9f9632b4a265",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "0-45° adjustable cutting machine stand base, stand, for die-cutting accessories",
+      "indexKey": "0-45° adjustable cutting machine stand base, stand, for die-cutting accessories",
+      "expectedProductKey": "aliexpress:9a65572185879a60a321670b",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "0.03/0.08mm Ultra Thin Flexible Conductive Zinc Sheet",
+      "indexKey": "0.03/0.08mm ultra thin flexible conductive zinc sheet",
+      "expectedProductKey": "aliexpress:754ecd9ff6091175a793cad9",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "0.1-99999Hz Wave Generator With External Board For Frequency Research And Audio Testing Signal Device",
+      "indexKey": "0.1-99999hz wave generator with external board for frequency research and audio testing signal device",
+      "expectedProductKey": "aliexpress:cd5baa3044983c24914686bc",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "001Aluminum Short Shifter Box Fit for Honda Civic B Series D Series B16 B18 B20 D15 D16 D17 CRX EG EK DC2 EF BB-SSA-004",
+      "indexKey": "001aluminum short shifter box fit for honda civic b series d series b16 b18 b20 d15 d16 d17 crx eg ek dc2 ef bb-ssa-004",
+      "expectedProductKey": "aliexpress:62440d2fa5eae8920a219887",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "0061801130A Circuit board motherboard",
+      "indexKey": "0061801130a circuit board motherboard",
+      "expectedProductKey": "aliexpress:d8c441b97877fe0a172573cd",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "02DC Dowel Maker Jig with Carbides Dowel Round Rod Electric Drill Milling Metric 8/10/12/14mm 5/16 3/8 Woodworking",
+      "indexKey": "02dc dowel maker jig with carbides dowel round rod electric drill milling metric 8/10/12/14mm 5/16 3/8 woodworking",
+      "expectedProductKey": "aliexpress:add0d21a409aeb0b1d8ac92c",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "02DC Home Outlet Diagnostic Tool with Wiring Tester and GFCI Check, Branch Line Review Set with Handheld Receiver for Service",
+      "indexKey": "02dc home outlet diagnostic tool with wiring tester and gfci check, branch line review set with handheld receiver for service",
+      "expectedProductKey": "aliexpress:81e10abac3ad9a74b9306f31",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "0AY907554E Rear 4 Motion Controller All Wheel Drive Haldex Control Unit for VW Sharan Tiguan Seat Alhambra 0AY907554 0AY907554C",
+      "indexKey": "0ay907554e rear 4 motion controller all wheel drive haldex control unit for vw sharan tiguan seat alhambra 0ay907554 0ay907554c",
+      "expectedProductKey": "aliexpress:e8f7d72278a0803ef7ea91f6",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "0CK105317 Transmission Flywheel 0CK Automatic Suit for A4 A6 A7",
+      "indexKey": "0ck105317 transmission flywheel 0ck automatic suit for a4 a6 a7",
+      "expectedProductKey": "aliexpress:e39a363ea19dcd14f672a146",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1 2 Vacuum Dust With 360° Level Tool Laser Drilling In Collector Drill Dust Collector Electric Cleaning Dust Detachable Wall",
+      "indexKey": "1 2 vacuum dust with 360° level tool laser drilling in collector drill dust collector electric cleaning dust detachable wall",
+      "expectedProductKey": "aliexpress:2affaf1252a99025f4c685cb",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1.5L Butter Mixer Machine Food Grade Butter MixerGlass Bottle",
+      "indexKey": "1.5l butter mixer machine food grade butter mixerglass bottle",
+      "expectedProductKey": "aliexpress:079bac6ecd0a54dcace416d5",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1/2 inch Hose Reel Swivel for FXF Reels 304 Stainless Steel Heavy Duty Rotating Swivel for Home Industrial Use",
+      "indexKey": "1/2 inch hose reel swivel for fxf reels 304 stainless steel heavy duty rotating swivel for home industrial use",
+      "expectedProductKey": "aliexpress:641dcdce46eb1e53de493333",
+      "resolutionKind": "exact-name-index",
       "resolved": true,
       "resultCount": 1
     }
   ],
+  "sourceManifest": "",
   "sourceLeak": false,
   "blockedSellerLeak": false,
   "duplicateProductKeys": false

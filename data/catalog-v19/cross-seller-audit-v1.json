@@ -1,7 +1,7 @@
 {
-  "version": "19.2.0",
-  "generatedAt": "2026-08-10T18:13:27.759Z",
-  "catalogSetVersion": "19.2.0",
+  "version": "19.3.3",
+  "generatedAt": "2026-08-10T19:05:11.869Z",
+  "catalogSetVersion": "19.3.3",
   "sellers": [
     {
       "name": "Geekbuying",
@@ -14,247 +14,342 @@
     {
       "name": "Alibaba",
       "slug": "alibaba"
+    },
+    {
+      "name": "PandaHall",
+      "slug": "pandahall"
     }
   ],
-  "totalRecords": 38529,
+  "totalRecords": 38656,
   "sellerCounts": {
     "Geekbuying": 1107,
     "AliExpress": 16206,
-    "Alibaba": 21216
+    "Alibaba": 21216,
+    "PandaHall": 127
   },
   "autoExactGroups": 0,
   "autoGroupConflicts": [],
   "exactNameCrossSellerOverlaps": 0,
   "brandModelDiscoveryOverlaps": 2,
+  "insertionFailures": [],
   "roundTrips": [
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "a5c70406110329a1b4",
-      "expectedProductKey": "geekbuying:bc60f93383d28c2fb662b70c",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "kind": "seller-product-id",
       "query": "3098c0e3f37e704c49",
+      "indexKey": "geekbuying:3098c0e3f37e704c49",
       "expectedProductKey": "geekbuying:dc7333babec21467c9a45556",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "781c5986203a1c12ed",
-      "expectedProductKey": "geekbuying:e9e515a9ebaf6f1e93a64676",
+      "query": "c3089fdd619298716f",
+      "indexKey": "geekbuying:c3089fdd619298716f",
+      "expectedProductKey": "geekbuying:e7dc6d996593245bc96f241d",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "fb6b5b17afc70ce963",
-      "expectedProductKey": "geekbuying:6e31b30f8dd62cbe871050b6",
+      "query": "ee4cc1690a324d4c6a",
+      "indexKey": "geekbuying:ee4cc1690a324d4c6a",
+      "expectedProductKey": "geekbuying:bc3fd08cf419494d294f1d32",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "6918b6301c604f5ba4",
-      "expectedProductKey": "geekbuying:7e1ed9a0c0f1067012b278ee",
+      "query": "1885db17ff5be6200f",
+      "indexKey": "geekbuying:1885db17ff5be6200f",
+      "expectedProductKey": "geekbuying:b6e15888433e9012fdd97510",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "4d3dedb9cec27df19e",
-      "expectedProductKey": "geekbuying:1c385ef9e1f2a72d8d7c06c0",
+      "query": "0401ce693f8a8a7166",
+      "indexKey": "geekbuying:0401ce693f8a8a7166",
+      "expectedProductKey": "geekbuying:7385a4cf40c712b3a5ec216c",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "d5e4f44883afe48fc2",
-      "expectedProductKey": "geekbuying:f5ce46f9ca5557428c9e3a7f",
+      "query": "8a577db7bd71ba44fb",
+      "indexKey": "geekbuying:8a577db7bd71ba44fb",
+      "expectedProductKey": "geekbuying:0727539591b54f2153cb83a3",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "d34f9cef36ea6fc83f",
-      "expectedProductKey": "geekbuying:d4f0501a68cb01b31ca40fce",
+      "query": "b400d5d27c43304fc0",
+      "indexKey": "geekbuying:b400d5d27c43304fc0",
+      "expectedProductKey": "geekbuying:0b3ea9186a4359913be55d04",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "03c5642fdaca4ce5d7",
-      "expectedProductKey": "geekbuying:4c55cefb068ee8918cfd29c9",
+      "query": "a4c6fef3f370a44fbc",
+      "indexKey": "geekbuying:a4c6fef3f370a44fbc",
+      "expectedProductKey": "geekbuying:2a7d2279c122df0e4e2ada85",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "36ef71a62a8d290fcb",
-      "expectedProductKey": "geekbuying:703a8c0bbc501ae56a8d1efe",
+      "query": "8c874d947ae68cda7a",
+      "indexKey": "geekbuying:8c874d947ae68cda7a",
+      "expectedProductKey": "geekbuying:724ef3427144c143d947ee99",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "281ff6524e07c35424",
-      "expectedProductKey": "geekbuying:fb18384c9d06c82bd38539eb",
+      "query": "5894ed1badca43c558",
+      "indexKey": "geekbuying:5894ed1badca43c558",
+      "expectedProductKey": "geekbuying:83173227fad8e2bfa9fb9c94",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "9da2627b90d3c377ea",
-      "expectedProductKey": "geekbuying:4f228f687880c81004ce5921",
+      "query": "909a551d32fe70b9d2",
+      "indexKey": "geekbuying:909a551d32fe70b9d2",
+      "expectedProductKey": "geekbuying:5ace72410a133d84c9e0e059",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "e6b61445e7c9907e83",
-      "expectedProductKey": "geekbuying:876feae2f135cdf5e952c889",
+      "query": "61c5c9b09bc4287e70",
+      "indexKey": "geekbuying:61c5c9b09bc4287e70",
+      "expectedProductKey": "geekbuying:8c886032a9b5c61eb7ce8d7d",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "57b034a68da6a674ea",
-      "expectedProductKey": "geekbuying:f43c2bb9283b593678ed90eb",
+      "query": "ae7224cd2a4d6b8444",
+      "indexKey": "geekbuying:ae7224cd2a4d6b8444",
+      "expectedProductKey": "geekbuying:d1c62316657fc990c72e4e48",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "fa5dfed8d9de85e1fa",
-      "expectedProductKey": "geekbuying:6a1b9fca779a00afe710fdad",
+      "query": "4b9c18648467095cc0",
+      "indexKey": "geekbuying:4b9c18648467095cc0",
+      "expectedProductKey": "geekbuying:97810d187368f1062b4bc2b5",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "137a3ad36c985ddaad",
-      "expectedProductKey": "geekbuying:91ad17a480a48bf77a084a67",
+      "query": "ad9639b02400e200d9",
+      "indexKey": "geekbuying:ad9639b02400e200d9",
+      "expectedProductKey": "geekbuying:e2e81f639a20247270572e4c",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "d15bd20ff19328aa1b",
-      "expectedProductKey": "geekbuying:f4b70c6f22fe91f8834753f9",
+      "query": "cbc451a47868094183",
+      "indexKey": "geekbuying:cbc451a47868094183",
+      "expectedProductKey": "geekbuying:c8d2a0f202f54811e0fc71ef",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "9f711d5142b5d4f5fd",
-      "expectedProductKey": "geekbuying:b708f53552c32c0d5cba1d42",
+      "query": "f8c99b72dcce6b51c4",
+      "indexKey": "geekbuying:f8c99b72dcce6b51c4",
+      "expectedProductKey": "geekbuying:f29df086cdbcd10253daec79",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "da2133cba91f2549df",
-      "expectedProductKey": "geekbuying:02a388814b8db395fa66b8d8",
+      "query": "c39ae69b0417bd6a76",
+      "indexKey": "geekbuying:c39ae69b0417bd6a76",
+      "expectedProductKey": "geekbuying:cea7a55dade68a93f553662f",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "seller-product-id",
-      "query": "40b9397e22c4a1c442",
-      "expectedProductKey": "geekbuying:ba174b35830b66c7882c1ec4",
+      "query": "c2ec60816a39dba832",
+      "indexKey": "geekbuying:c2ec60816a39dba832",
+      "expectedProductKey": "geekbuying:69dd4f13aa95b5c01b5df12d",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
-      "kind": "exact-name",
-      "query": "1 Pair Original Anti-Tangle Side Brushes for Narwal Flow 2 / Flow 2 (Compact Station) / Freo Z10 Pro",
-      "expectedProductKey": "geekbuying:bc60f93383d28c2fb662b70c",
+      "kind": "seller-product-id",
+      "query": "61821b54d6e4569b25",
+      "indexKey": "geekbuying:61821b54d6e4569b25",
+      "expectedProductKey": "geekbuying:89f42ebab443b778e131931e",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
       "query": "10*2.25 inch inner tube for KuKirin G3",
+      "indexKey": "10 2 25 inch inner tube for kukirin g3",
       "expectedProductKey": "geekbuying:dc7333babec21467c9a45556",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
-      "query": "10\" Off-Road Tubeless Tire (AOXIN) for Ausom DT2 Pro / F1 Max / L2 Series",
-      "expectedProductKey": "geekbuying:e9e515a9ebaf6f1e93a64676",
+      "query": "48V 20.8Ah Battery for Ausom L2 Max Dual Motor Electric Scooter",
+      "indexKey": "48v 20 8ah battery for ausom l2 max dual motor electric scooter",
+      "expectedProductKey": "geekbuying:e7dc6d996593245bc96f241d",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
-      "query": "100 inch Motorized Floor Rising ALR Projection Screen for Ultra Short Throw Projector",
-      "expectedProductKey": "geekbuying:6e31b30f8dd62cbe871050b6",
+      "query": "4kg Creality CR-ABS Filament - Yellow",
+      "indexKey": "4kg creality cr abs filament yellow",
+      "expectedProductKey": "geekbuying:bc3fd08cf419494d294f1d32",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
-      "query": "120 inch 16:9 Outdoor Projection Screen",
-      "expectedProductKey": "geekbuying:7e1ed9a0c0f1067012b278ee",
+      "query": "ACGAM CG-4746 Gaming Office Chair, Ergonomic Foam Backrest, 360° Swivel, Height Adjustable, Small Version",
+      "indexKey": "acgam cg 4746 gaming office chair ergonomic foam backrest 360 swivel height adjustable small version",
+      "expectedProductKey": "geekbuying:b6e15888433e9012fdd97510",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
-      "query": "120 inch Motorized Floor Rising ALR Projection Screen for Ultra Short Throw Projector",
-      "expectedProductKey": "geekbuying:1c385ef9e1f2a72d8d7c06c0",
+      "query": "ACGAM ET225E Electric Dual-motor Three-stage Legs Standing Desk Frame Workstation, Ergonomic Height Adjustable Desk Base - Black (Frame Only)",
+      "indexKey": "acgam et225e electric dual motor three stage legs standing desk frame workstation ergonomic height adjustable desk base black frame only",
+      "expectedProductKey": "geekbuying:7385a4cf40c712b3a5ec216c",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
-      "query": "2 Pcs Narwal Flow Original Anti-Tangle Side Brush",
-      "expectedProductKey": "geekbuying:f5ce46f9ca5557428c9e3a7f",
+      "query": "ACGAM MDS-1D Articulated Steel Dual-Monitor Mount with Flexible Angle and Installation",
+      "indexKey": "acgam mds 1d articulated steel dual monitor mount with flexible angle and installation",
+      "expectedProductKey": "geekbuying:0727539591b54f2153cb83a3",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
-      "query": "(2025 Upgraded Version) KuKirin G2 Master Electric Scooter, 10\" Off-road Tubeless Tires 1000W*2 Dual Motor 52V 20.8Ah Battery 70km Max Range 60km/h Max Speed, Front & Rear Disc Brake + Hydraulic Shock Absorber",
-      "expectedProductKey": "geekbuying:d4f0501a68cb01b31ca40fce",
+      "query": "Akluer RL-2000A Multi-Functional Arm Trainer, 360° Rotational Full-Body Training, 0–8 Adjustable Resistance Levels, 5 Detachable Resistance Bands, 40–150 cm Stretch Range",
+      "indexKey": "akluer rl 2000a multi functional arm trainer 360 rotational full body training 0 8 adjustable resistance levels 5 detachable resistance bands 40 150 cm stretch range",
+      "expectedProductKey": "geekbuying:0b3ea9186a4359913be55d04",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
-      "query": "2Pcs Creality Magnetic PEI Plate, Double-Sided, 235*235mm - Golden + Black",
-      "expectedProductKey": "geekbuying:4c55cefb068ee8918cfd29c9",
+      "query": "ATOMSTACK F2N Laser Bed, 300×300×13mm",
+      "indexKey": "atomstack f2n laser bed 300 300 13mm",
+      "expectedProductKey": "geekbuying:2a7d2279c122df0e4e2ada85",
       "resolved": true
     },
     {
       "seller": "Geekbuying",
       "kind": "exact-name",
-      "query": "2pcs HEPA Filters for JIMMY BX6 Pro/BD7 Pro Anti Mite Vacuum Cleaner",
-      "expectedProductKey": "geekbuying:703a8c0bbc501ae56a8d1efe",
+      "query": "ATOMSTACK F4N Laser Bed, 400×400×13mm",
+      "indexKey": "atomstack f4n laser bed 400 400 13mm",
+      "expectedProductKey": "geekbuying:724ef3427144c143d947ee99",
+      "resolved": true
+    },
+    {
+      "seller": "Geekbuying",
+      "kind": "exact-name",
+      "query": "ATOMSTACK R6 Rotary Roller with Riser Feet",
+      "indexKey": "atomstack r6 rotary roller with riser feet",
+      "expectedProductKey": "geekbuying:83173227fad8e2bfa9fb9c94",
       "resolved": true
     },
     {
       "seller": "AliExpress",
       "kind": "seller-product-id",
-      "query": "0fefad63310b37694b",
-      "expectedProductKey": "aliexpress:8749c5db71b5640ad04ad869",
+      "query": "3d72f404549eadf154",
+      "indexKey": "aliexpress:3d72f404549eadf154",
+      "expectedProductKey": "aliexpress:c09e3d7e5d811a0d16a5c922",
       "resolved": true
     },
     {
       "seller": "AliExpress",
       "kind": "seller-product-id",
-      "query": "e9de9d2259812a1206",
-      "expectedProductKey": "aliexpress:da409f551eb8c1de799c29b9",
+      "query": "cf92c6770c5bb3a0d4",
+      "indexKey": "aliexpress:cf92c6770c5bb3a0d4",
+      "expectedProductKey": "aliexpress:017b3dab41836bfd66977cd4",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "c3dc6649150978b49e",
+      "indexKey": "aliexpress:c3dc6649150978b49e",
+      "expectedProductKey": "aliexpress:ed7149e791a82348310c432f",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "e6502b9ad2a67b595f",
+      "indexKey": "aliexpress:e6502b9ad2a67b595f",
+      "expectedProductKey": "aliexpress:3bb33a0b956b0b2dc18d91d4",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "629bea136983edfb82",
+      "indexKey": "aliexpress:629bea136983edfb82",
+      "expectedProductKey": "aliexpress:2ea7dbbdcf94356677d36ba9",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "1a8c4ca60cb60bea92",
+      "indexKey": "aliexpress:1a8c4ca60cb60bea92",
+      "expectedProductKey": "aliexpress:61c657a45e4fa758b3155509",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "43f82599a7531f0d50",
+      "indexKey": "aliexpress:43f82599a7531f0d50",
+      "expectedProductKey": "aliexpress:a8225c9ec407a29e41b76975",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "ed0461a890bd32cc3e",
+      "indexKey": "aliexpress:ed0461a890bd32cc3e",
+      "expectedProductKey": "aliexpress:d7977ddc234b9f9632b4a265",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "0dd4bef4c97e6f16be",
+      "indexKey": "aliexpress:0dd4bef4c97e6f16be",
+      "expectedProductKey": "aliexpress:9a65572185879a60a321670b",
       "resolved": true
     },
     {
       "seller": "AliExpress",
       "kind": "seller-product-id",
       "query": "c2993a25e73b332682",
+      "indexKey": "aliexpress:c2993a25e73b332682",
       "expectedProductKey": "aliexpress:754ecd9ff6091175a793cad9",
       "resolved": true
     },
@@ -262,104 +357,15 @@
       "seller": "AliExpress",
       "kind": "seller-product-id",
       "query": "db7411c11e31a9fbc0",
+      "indexKey": "aliexpress:db7411c11e31a9fbc0",
       "expectedProductKey": "aliexpress:cd5baa3044983c24914686bc",
       "resolved": true
     },
     {
       "seller": "AliExpress",
       "kind": "seller-product-id",
-      "query": "3ceb5055a4566e55f9",
-      "expectedProductKey": "aliexpress:7d97b3c3f9110eb5cb800cdb",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "718b725791598d864f",
-      "expectedProductKey": "aliexpress:40844b8a38da57f711176cc7",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "ae3025137f7ab8732d",
-      "expectedProductKey": "aliexpress:acbdb9921cbafe015dd2478e",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "f69c86f6580a719272",
-      "expectedProductKey": "aliexpress:1c94c5707b37eb6d8923dabb",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "3d1b2ffaa327ef5be0",
-      "expectedProductKey": "aliexpress:077c9fde65a6e982aef932d7",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "98139e5783ea75218f",
-      "expectedProductKey": "aliexpress:c3e6f4872ccb0058745c9a2b",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "9f7027f5ecfe9c503e",
-      "expectedProductKey": "aliexpress:401afc63b42304f64e1209c3",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "0dd4bef4c97e6f16be",
-      "expectedProductKey": "aliexpress:9a65572185879a60a321670b",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "028f59f4663d0f1267",
-      "expectedProductKey": "aliexpress:54d2cfaae8df1bef1c43af0b",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "e5f552af4d3f2b4d99",
-      "expectedProductKey": "aliexpress:b17a855f25bb1483123c0eb2",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "1f96f8c81729ca1758",
-      "expectedProductKey": "aliexpress:5f97597d9fa4ca37ca4df959",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "d2386a0fd9ab9bf6e6",
-      "expectedProductKey": "aliexpress:d666c1de7f7f1c3da292c911",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
-      "query": "72a7cfc7b20f5a5cb6",
-      "expectedProductKey": "aliexpress:69dff1dc9b9ac5839ee29fb4",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "seller-product-id",
       "query": "6796b408c2ebad25a0",
+      "indexKey": "aliexpress:6796b408c2ebad25a0",
       "expectedProductKey": "aliexpress:62440d2fa5eae8920a219887",
       "resolved": true
     },
@@ -367,449 +373,628 @@
       "seller": "AliExpress",
       "kind": "seller-product-id",
       "query": "af4d9ff7c452afd49c",
+      "indexKey": "aliexpress:af4d9ff7c452afd49c",
       "expectedProductKey": "aliexpress:d8c441b97877fe0a172573cd",
       "resolved": true
     },
     {
       "seller": "AliExpress",
       "kind": "seller-product-id",
-      "query": "904f136986305fb523",
-      "expectedProductKey": "aliexpress:a565d72c3276d7c36c2bbcde",
+      "query": "27bd08691d9a540c22",
+      "indexKey": "aliexpress:27bd08691d9a540c22",
+      "expectedProductKey": "aliexpress:add0d21a409aeb0b1d8ac92c",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "42f88a6819f93dd2b1",
+      "indexKey": "aliexpress:42f88a6819f93dd2b1",
+      "expectedProductKey": "aliexpress:81e10abac3ad9a74b9306f31",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "a9c66af3612c461754",
+      "indexKey": "aliexpress:a9c66af3612c461754",
+      "expectedProductKey": "aliexpress:e8f7d72278a0803ef7ea91f6",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "57337bbf9776c2542b",
+      "indexKey": "aliexpress:57337bbf9776c2542b",
+      "expectedProductKey": "aliexpress:e39a363ea19dcd14f672a146",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "5ed7a0fc856ca60dd7",
+      "indexKey": "aliexpress:5ed7a0fc856ca60dd7",
+      "expectedProductKey": "aliexpress:2affaf1252a99025f4c685cb",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "5b6da59808d7976100",
+      "indexKey": "aliexpress:5b6da59808d7976100",
+      "expectedProductKey": "aliexpress:079bac6ecd0a54dcace416d5",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "seller-product-id",
+      "query": "ae95cfe9f2ac81bb4f",
+      "indexKey": "aliexpress:ae95cfe9f2ac81bb4f",
+      "expectedProductKey": "aliexpress:641dcdce46eb1e53de493333",
       "resolved": true
     },
     {
       "seller": "AliExpress",
       "kind": "exact-name",
-      "query": "0.001mm Digital Micrometer Head 0-25mm Electronic Measuring Tool Alloy Probe For Metalworking Inspection Instrument",
-      "expectedProductKey": "aliexpress:8749c5db71b5640ad04ad869",
+      "query": "[B17B!】 Side Handle N389651 Side Handle For N389651 Side Handle",
+      "indexKey": "b17b side handle n389651 side handle for n389651 side handle",
+      "expectedProductKey": "aliexpress:c09e3d7e5d811a0d16a5c922",
       "resolved": true
     },
     {
       "seller": "AliExpress",
       "kind": "exact-name",
-      "query": "0.01 Seconds to 9999 Minutes Mute Button Timing Game Computer Instead of Fingers to Assist Artificial KeyboardPhysical Clicker",
-      "expectedProductKey": "aliexpress:da409f551eb8c1de799c29b9",
+      "query": "[HOT!A34R】 For Ford Edge 15-18 Wire Harness F2GZ13A840J F2GZ-13A840-J",
+      "indexKey": "hot a34r for ford edge 15 18 wire harness f2gz13a840j f2gz 13a840 j",
+      "expectedProductKey": "aliexpress:017b3dab41836bfd66977cd4",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "exact-name",
+      "query": "[NEW!A08R】 Electric Bicycle KT Controller 36V 48V 16A KT KT-16A E-Bike Sine Wave Controller E-Bike Controller",
+      "indexKey": "new a08r electric bicycle kt controller 36v 48v 16a kt kt 16a e bike sine wave controller e bike controller",
+      "expectedProductKey": "aliexpress:ed7149e791a82348310c432f",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "exact-name",
+      "query": "【3-Tier Air Fryer Rack Set】with Heat-Resistant Tongs & 8 Silicone Feet, Stackable Baking Rack for Oven, Grilling, Roasting",
+      "indexKey": "3 tier air fryer rack set with heat resistant tongs 8 silicone feet stackable baking rack for oven grilling roasting",
+      "expectedProductKey": "aliexpress:3bb33a0b956b0b2dc18d91d4",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "exact-name",
+      "query": "【THANKSGIVING DAY】2 Set 3 Styles DIY Mosaic Craft Set Floral Mosaic Bamboo Coaster Set For Handmade Art Home Decoration",
+      "indexKey": "thanksgiving day 2 set 3 styles diy mosaic craft set floral mosaic bamboo coaster set for handmade art home decoration",
+      "expectedProductKey": "aliexpress:2ea7dbbdcf94356677d36ba9",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "exact-name",
+      "query": "/Red /For /Multi Angle Adjustable Track Saw Guide Rail Fence For Woodworking Cutting Tool Aviation Aluminum 6061 Alloy",
+      "indexKey": "red for multi angle adjustable track saw guide rail fence for woodworking cutting tool aviation aluminum 6061 alloy",
+      "expectedProductKey": "aliexpress:61c657a45e4fa758b3155509",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "exact-name",
+      "query": "Rotary Oil Cylinder Water Collection Box Return Box\\ Water Receiving Box 5 6 8 10 Inch",
+      "indexKey": "rotary oil cylinder water collection box return box water receiving box 5 6 8 10 inch",
+      "expectedProductKey": "aliexpress:a8225c9ec407a29e41b76975",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "exact-name",
+      "query": "#Wooden Dog Cage House Furniture Small Double Deck Dog House Cat House",
+      "indexKey": "wooden dog cage house furniture small double deck dog house cat house",
+      "expectedProductKey": "aliexpress:d7977ddc234b9f9632b4a265",
+      "resolved": true
+    },
+    {
+      "seller": "AliExpress",
+      "kind": "exact-name",
+      "query": "0-45° adjustable cutting machine stand base, stand, for die-cutting accessories",
+      "indexKey": "0 45 adjustable cutting machine stand base stand for die cutting accessories",
+      "expectedProductKey": "aliexpress:9a65572185879a60a321670b",
       "resolved": true
     },
     {
       "seller": "AliExpress",
       "kind": "exact-name",
       "query": "0.03/0.08mm Ultra Thin Flexible Conductive Zinc Sheet",
+      "indexKey": "0 03 0 08mm ultra thin flexible conductive zinc sheet",
       "expectedProductKey": "aliexpress:754ecd9ff6091175a793cad9",
       "resolved": true
     },
     {
-      "seller": "AliExpress",
-      "kind": "exact-name",
-      "query": "0.1-99999Hz Wave Generator With External Board For Frequency Research And Audio Testing Signal Device",
-      "expectedProductKey": "aliexpress:cd5baa3044983c24914686bc",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "exact-name",
-      "query": "0-100% Digital Display Motor Speed Governor 30A DC10-55V Brushless Motor Speed Regulator Forward and Reverse Controller No Hall",
-      "expectedProductKey": "aliexpress:7d97b3c3f9110eb5cb800cdb",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "exact-name",
-      "query": "0.105-0.305mm EDM Wire Guide Diamond Guide M132 M133 For CNC Wire Cutting EDM Equipment",
-      "expectedProductKey": "aliexpress:40844b8a38da57f711176cc7",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "exact-name",
-      "query": "0-13mm 1/2\" Steel Self tightening Keyless B16 Chuck for Lathe Electric Drill Drill Bit Chuck Power Drill Chuck Keyless Chuck",
-      "expectedProductKey": "aliexpress:acbdb9921cbafe015dd2478e",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "exact-name",
-      "query": "0-180/0-320/0-360 Stainless Steel Vernier Protractor Universal Combination Angle Ruler Industrial Measuring Tool",
-      "expectedProductKey": "aliexpress:1c94c5707b37eb6d8923dabb",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "exact-name",
-      "query": "0.1g/3kg Precision Coffee Scale with Timer, Rechargeable, LED Display, Auto Tare, Waterproof Silicone Cover, USB-C",
-      "expectedProductKey": "aliexpress:077c9fde65a6e982aef932d7",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "kind": "exact-name",
-      "query": "0-25.4mm Digital Horizontal Thickness Gauge 0.01mm Jewelry Pearl Ruler Round Diameter Metal Measuring Thickness Meter Micrometer",
-      "expectedProductKey": "aliexpress:c3e6f4872ccb0058745c9a2b",
+      "seller": "Alibaba",
+      "kind": "seller-product-id",
+      "query": "0e7dfa02573a63939b",
+      "indexKey": "alibaba:0e7dfa02573a63939b",
+      "expectedProductKey": "alibaba:60d50dda2b9d7d8fba88dc4e",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "2f7c930f239fab89ca",
-      "expectedProductKey": "alibaba:06ad44e7802627d48b78a442",
+      "query": "43bc93ffa8743803d2",
+      "indexKey": "alibaba:43bc93ffa8743803d2",
+      "expectedProductKey": "alibaba:2152f8b9ef2ab628a1d86019",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "81c52e521f1bf38f3f",
-      "expectedProductKey": "alibaba:85f904153a926266eec6d65a",
+      "query": "9f22440241f6007356",
+      "indexKey": "alibaba:9f22440241f6007356",
+      "expectedProductKey": "alibaba:514c2cac90a89dcba29b643c",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "edab47026ef86c70a1",
-      "expectedProductKey": "alibaba:3adcb084741617667a14da9d",
+      "query": "b140b88ed0214ceda2",
+      "indexKey": "alibaba:b140b88ed0214ceda2",
+      "expectedProductKey": "alibaba:ddaa80c9878b800c5eb6578a",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "0d8970d3e365de2166",
-      "expectedProductKey": "alibaba:4a455a2fbde695630cf4e9a7",
+      "query": "f1795c8e206ef33535",
+      "indexKey": "alibaba:f1795c8e206ef33535",
+      "expectedProductKey": "alibaba:0f76780774422cba73609142",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "d3154673e94bbd9619",
-      "expectedProductKey": "alibaba:48f41b5cec72d9623ba07a36",
+      "query": "cb183d044a1fbec358",
+      "indexKey": "alibaba:cb183d044a1fbec358",
+      "expectedProductKey": "alibaba:6c55f292ce7977112395f045",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "c7486fb67750cbf450",
-      "expectedProductKey": "alibaba:9dc3d3c5ac7abe1e0a88cf3a",
+      "query": "7c688fb96591b964af",
+      "indexKey": "alibaba:7c688fb96591b964af",
+      "expectedProductKey": "alibaba:ca7f7f0946545869ee1d201d",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "c81bafc2ecf866420a",
-      "expectedProductKey": "alibaba:bfb91eb20f1cc9ee0c7e5b4b",
+      "query": "0243d237af0453939e",
+      "indexKey": "alibaba:0243d237af0453939e",
+      "expectedProductKey": "alibaba:e5939823ead4498eb4407084",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "7de31531a4b601aad5",
-      "expectedProductKey": "alibaba:d02567991e9d0c65a0e140a7",
+      "query": "2ac2332aeb5ef2b769",
+      "indexKey": "alibaba:2ac2332aeb5ef2b769",
+      "expectedProductKey": "alibaba:9fadec7806d6f481f380bc66",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "a388db15b405ab4cb9",
-      "expectedProductKey": "alibaba:88d60b258e689871d0ee7b28",
+      "query": "4e142a7fd0fb99c12b",
+      "indexKey": "alibaba:4e142a7fd0fb99c12b",
+      "expectedProductKey": "alibaba:16a2f2432c14926c2ed5153e",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "d9ce85209e1c5ef98f",
-      "expectedProductKey": "alibaba:b1e3360576dd255d9b3093e5",
+      "query": "bf97f2cd2c334c0d7f",
+      "indexKey": "alibaba:bf97f2cd2c334c0d7f",
+      "expectedProductKey": "alibaba:37509c1ea92a5a94eb87428c",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "1f718eb221f8f1e740",
-      "expectedProductKey": "alibaba:f5388c54f7818357d993369f",
+      "query": "2cde67dc01ada941f4",
+      "indexKey": "alibaba:2cde67dc01ada941f4",
+      "expectedProductKey": "alibaba:191dc8bc8f6c7bad21d69603",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "2ee05a3951d931b982",
-      "expectedProductKey": "alibaba:09e9ed7a23a8266c34bd9e2d",
+      "query": "ae4d3c569026425706",
+      "indexKey": "alibaba:ae4d3c569026425706",
+      "expectedProductKey": "alibaba:a3c71ee77457e407b924b8cf",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "63d1a6d9a00088ed47",
-      "expectedProductKey": "alibaba:e9b592bd5b0b1e22a19ee21a",
+      "query": "e1e97e47f608acdfeb",
+      "indexKey": "alibaba:e1e97e47f608acdfeb",
+      "expectedProductKey": "alibaba:3fc8c4b1cc3a30982d8584a7",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "7a5994dc94b7612d37",
-      "expectedProductKey": "alibaba:92e4d51e089a7a90138b18a5",
+      "query": "4902664e402494abe3",
+      "indexKey": "alibaba:4902664e402494abe3",
+      "expectedProductKey": "alibaba:f8fb88e20d1cdbd9a818f1b8",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "cda9fd8f7f10082970",
-      "expectedProductKey": "alibaba:464d111ab962d83cb048ed2e",
+      "query": "d7608407085a8daba6",
+      "indexKey": "alibaba:d7608407085a8daba6",
+      "expectedProductKey": "alibaba:8beef7cee4f4db68be56bc66",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "e5362008b2ebad5daf",
-      "expectedProductKey": "alibaba:bef5e19524b0759754ceeaf8",
+      "query": "3ca38976cd36edde8b",
+      "indexKey": "alibaba:3ca38976cd36edde8b",
+      "expectedProductKey": "alibaba:f8b341c764fb6a061df9bf45",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "90979fd192a8fe0219",
-      "expectedProductKey": "alibaba:fa281ca974c4c7f75287065d",
+      "query": "7464bc9e5caf50f2bd",
+      "indexKey": "alibaba:7464bc9e5caf50f2bd",
+      "expectedProductKey": "alibaba:51f3fa8e5e9b4e2506d0ade8",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "e10a643d84c7c7b168",
-      "expectedProductKey": "alibaba:152f55787db4a9c10c7b05fb",
+      "query": "e237bd2052ec595be8",
+      "indexKey": "alibaba:e237bd2052ec595be8",
+      "expectedProductKey": "alibaba:f32bb141c6c65d58bd60b7ed",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "seller-product-id",
-      "query": "685b058919675b7a45",
-      "expectedProductKey": "alibaba:63a72844bf9bfaffa14391a8",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "kind": "seller-product-id",
-      "query": "ca424283a771dba220",
-      "expectedProductKey": "alibaba:2d012ef7b03fbc86a380884a",
+      "query": "eda175a1cf0bd200a5",
+      "indexKey": "alibaba:eda175a1cf0bd200a5",
+      "expectedProductKey": "alibaba:835338988bfeefc31fb3cbe6",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.18 super thin washable custom logo metal ring finger grip holder for mobile phone, Desktop mobile phone ring holder stand",
-      "expectedProductKey": "alibaba:06ad44e7802627d48b78a442",
+      "query": "2018 hot 1920*1200 full hd videos tablet 10\\\" android 7.0 wifi tablet Octa core RK3368 with metal case",
+      "indexKey": "2018 hot 1920 1200 full hd videos tablet 10 android 7 0 wifi tablet octa core rk3368 with metal case",
+      "expectedProductKey": "alibaba:60d50dda2b9d7d8fba88dc4e",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.33mm 9D tempered glass for iPhone 11 screen protector",
-      "expectedProductKey": "alibaba:85f904153a926266eec6d65a",
+      "query": "1.3 Inch TFT F8 qq reminder smart bracelet fit bit health watch wristband smart bracelet band",
+      "indexKey": "1 3 inch tft f8 qq reminder smart bracelet fit bit health watch wristband smart bracelet band",
+      "expectedProductKey": "alibaba:2152f8b9ef2ab628a1d86019",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.33MM 9H Premium mobile Tempered Glass Screen Protector For iphone 6 7 8 X Xr Xs max for iphone 11 pro max tempered glass",
-      "expectedProductKey": "alibaba:3adcb084741617667a14da9d",
+      "query": "1.3 Inch TFT smart wristband smart watch band smart band",
+      "indexKey": "1 3 inch tft smart wristband smart watch band smart band",
+      "expectedProductKey": "alibaba:514c2cac90a89dcba29b643c",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.33mm 9h tempered glass 3d soft edge crystal clear mobile phone ultra slim soft tpu customized cut matte screen protector",
-      "expectedProductKey": "alibaba:4a455a2fbde695630cf4e9a7",
+      "query": "1.3 Inch Touch Screen Heart Rate Monitor S08 Smart Watch For Woman Man",
+      "indexKey": "1 3 inch touch screen heart rate monitor s08 smart watch for woman man",
+      "expectedProductKey": "alibaba:ddaa80c9878b800c5eb6578a",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.35mm super thin matte keeps original beauty for oneplus 7T pro case, slim fit for oneplus 7T case",
-      "expectedProductKey": "alibaba:48f41b5cec72d9623ba07a36",
+      "query": "1.8m 6ft Game Controller Extension Cable For SEGA MEGADRIVE GENESIS AMIGA ATARI COMMODORE",
+      "indexKey": "1 8m 6ft game controller extension cable for sega megadrive genesis amiga atari commodore",
+      "expectedProductKey": "alibaba:0f76780774422cba73609142",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.3mm 2.5d 9h tempered glass sheet price raw material 9d screen protector for huawei/xiaomi hongmi/samsung/iphone",
-      "expectedProductKey": "alibaba:9dc3d3c5ac7abe1e0a88cf3a",
+      "query": "10 inch Android Kids Tablet for Children Learning",
+      "indexKey": "10 inch android kids tablet for children learning",
+      "expectedProductKey": "alibaba:6c55f292ce7977112395f045",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.3MM 2.5D High Aluminum Silicon Tempered Glass Screen Protector For iPhone X/Xs",
-      "expectedProductKey": "alibaba:bfb91eb20f1cc9ee0c7e5b4b",
+      "query": "10 inch Octa Core 3G / 4G 10.1inch Mediatek Android Tablet",
+      "indexKey": "10 inch octa core 3g 4g 10 1inch mediatek android tablet",
+      "expectedProductKey": "alibaba:ca7f7f0946545869ee1d201d",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.3mm 2.5D Transparent Rear Camera Lens Protector Tempered Glass Film for Xiaomi Redmi Note 7 Pro",
-      "expectedProductKey": "alibaba:d02567991e9d0c65a0e140a7",
+      "query": "100% Authentic Wholesale SanDisk 32GB 64GB 128GB 256GB Flash Micro TF SD Cards A1 Ultra Class 10 U1 U3 A1 Memory Card",
+      "indexKey": "100 authentic wholesale sandisk 32gb 64gb 128gb 256gb flash micro tf sd cards a1 ultra class 10 u1 u3 a1 memory card",
+      "expectedProductKey": "alibaba:e5939823ead4498eb4407084",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.3mm thickness nuglas Tempered glass screen protector for iphone 8 /7/ 6S /6/ Xs / Xr / Xs max",
-      "expectedProductKey": "alibaba:88d60b258e689871d0ee7b28",
+      "query": "100% Genuine Lexar SD633X 32GB SD Card 16G 64GB 256GB 128GB memory Card U3 4K V30 C10 U1 For Camera",
+      "indexKey": "100 genuine lexar sd633x 32gb sd card 16g 64gb 256gb 128gb memory card u3 4k v30 c10 u1 for camera",
+      "expectedProductKey": "alibaba:9fadec7806d6f481f380bc66",
       "resolved": true
     },
     {
       "seller": "Alibaba",
       "kind": "exact-name",
-      "query": "0.45X 2 in 1 Macro Wide Angle Mobile Phone Camera Lens",
-      "expectedProductKey": "alibaba:b1e3360576dd255d9b3093e5",
+      "query": "100% Online activation microsoft office 2019 home and business license key For Windows 10 software digital download",
+      "indexKey": "100 online activation microsoft office 2019 home and business license key for windows 10 software digital download",
+      "expectedProductKey": "alibaba:16a2f2432c14926c2ed5153e",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "22b06601b7fd707ed6",
+      "indexKey": "pandahall:22b06601b7fd707ed6",
+      "expectedProductKey": "pandahall:559da777a1b621bec0732f4c",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-14fb45e67eefaf1d123cce8b",
+      "indexKey": "pandahall:cjproduct14fb45e67eefaf1d123cce8b",
+      "expectedProductKey": "pandahall:b921cf769d0a8eea884bdbcc",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-e9a455ef9b66b7a7756af27c",
+      "indexKey": "pandahall:cjproducte9a455ef9b66b7a7756af27c",
+      "expectedProductKey": "pandahall:08b5f68ccb6e7e0633ed6712",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-31d548a20417d84fd2234a3b",
+      "indexKey": "pandahall:cjproduct31d548a20417d84fd2234a3b",
+      "expectedProductKey": "pandahall:150dee62af3a5c0daea7e0ac",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-6ddca797616372c5d998db24",
+      "indexKey": "pandahall:cjproduct6ddca797616372c5d998db24",
+      "expectedProductKey": "pandahall:373c757b1ae7c0c8383e0275",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-d41672dd93369c565d94eece",
+      "indexKey": "pandahall:cjproductd41672dd93369c565d94eece",
+      "expectedProductKey": "pandahall:7896201b2e571c7921b29158",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-2f7fee0be60065586cf3bee6",
+      "indexKey": "pandahall:cjproduct2f7fee0be60065586cf3bee6",
+      "expectedProductKey": "pandahall:dfda4b1b76b6882414936b26",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "ca1f83150e25c00fa4",
+      "indexKey": "pandahall:ca1f83150e25c00fa4",
+      "expectedProductKey": "pandahall:7281a590ae616de9afc6850c",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-b9ce7ee3f4dd8e5347deb72c",
+      "indexKey": "pandahall:cjproductb9ce7ee3f4dd8e5347deb72c",
+      "expectedProductKey": "pandahall:1ce4ee21cd4115ec1b3f12a1",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-83cf5450cd334544b2e5bd3d",
+      "indexKey": "pandahall:cjproduct83cf5450cd334544b2e5bd3d",
+      "expectedProductKey": "pandahall:3e2584fe841d11a05d7f0a02",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "b200758af54e738b05",
+      "indexKey": "pandahall:b200758af54e738b05",
+      "expectedProductKey": "pandahall:0aa296525b24e40bb240f703",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-146e3d2530d3b886619e22a6",
+      "indexKey": "pandahall:cjproduct146e3d2530d3b886619e22a6",
+      "expectedProductKey": "pandahall:739f6af772c11f993ceee79c",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "4dab216baf9d69d08a",
+      "indexKey": "pandahall:4dab216baf9d69d08a",
+      "expectedProductKey": "pandahall:628b69eea931e64d7a984681",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-5a4e714ed490455ee0e1d8d2",
+      "indexKey": "pandahall:cjproduct5a4e714ed490455ee0e1d8d2",
+      "expectedProductKey": "pandahall:7449fe87267187ba69efe357",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-990706805c7c6af34784397f",
+      "indexKey": "pandahall:cjproduct990706805c7c6af34784397f",
+      "expectedProductKey": "pandahall:b740ae209e8a83aa8c3f3e1e",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "d14ae361183ffb81db",
+      "indexKey": "pandahall:d14ae361183ffb81db",
+      "expectedProductKey": "pandahall:72c8d79010fb9c38b18356c6",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-75d39f01c5d1ccefdde1c933",
+      "indexKey": "pandahall:cjproduct75d39f01c5d1ccefdde1c933",
+      "expectedProductKey": "pandahall:61c0ea3da68f622347cf8559",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-d750935a9ac387d6af5d6b6f",
+      "indexKey": "pandahall:cjproductd750935a9ac387d6af5d6b6f",
+      "expectedProductKey": "pandahall:6f555a24485aa452ac37e5c0",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "cj-product-42c2e169e4087fdaaa8fc870",
+      "indexKey": "pandahall:cjproduct42c2e169e4087fdaaa8fc870",
+      "expectedProductKey": "pandahall:d12e9d49ce2d2ea740a86744",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "seller-product-id",
+      "query": "66acb6d82f78a723f5",
+      "indexKey": "pandahall:66acb6d82f78a723f5",
+      "expectedProductKey": "pandahall:4cc87a74d3c9508a17806034",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "304 Stainless Steel Enamel Charms",
+      "indexKey": "304 stainless steel enamel charms",
+      "expectedProductKey": "pandahall:559da777a1b621bec0732f4c",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "6/0 Glass Seed Beads Small Beads",
+      "indexKey": "6 0 glass seed beads small beads",
+      "expectedProductKey": "pandahall:b921cf769d0a8eea884bdbcc",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:08b5f68ccb6e7e0633ed6712",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:150dee62af3a5c0daea7e0ac",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:373c757b1ae7c0c8383e0275",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:7896201b2e571c7921b29158",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "Acrylic Beads",
+      "indexKey": "acrylic beads",
+      "expectedProductKey": "pandahall:dfda4b1b76b6882414936b26",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "Alloy Enamel Beads",
+      "indexKey": "alloy enamel beads",
+      "expectedProductKey": "pandahall:7281a590ae616de9afc6850c",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "Brass with Cubic Zirconia Beads Beads",
+      "indexKey": "brass with cubic zirconia beads beads",
+      "expectedProductKey": "pandahall:1ce4ee21cd4115ec1b3f12a1",
+      "resolved": true
+    },
+    {
+      "seller": "PandaHall",
+      "kind": "exact-name",
+      "query": "Brass with Cubic Zirconia Beads Beads",
+      "indexKey": "brass with cubic zirconia beads beads",
+      "expectedProductKey": "pandahall:3e2584fe841d11a05d7f0a02",
       "resolved": true
     }
   ],
-  "tokenSamples": [
-    {
-      "seller": "Geekbuying",
-      "query": "Narwal Flow",
-      "expectedProductKey": "geekbuying:bc60f93383d28c2fb662b70c",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "KuKirin G3",
-      "expectedProductKey": "geekbuying:dc7333babec21467c9a45556",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "Narwal Flow",
-      "expectedProductKey": "geekbuying:f5ce46f9ca5557428c9e3a7f",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "KuKirin G2",
-      "expectedProductKey": "geekbuying:d4f0501a68cb01b31ca40fce",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "Creality Magnetic",
-      "expectedProductKey": "geekbuying:4c55cefb068ee8918cfd29c9",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "Narwal Flow",
-      "expectedProductKey": "geekbuying:876feae2f135cdf5e952c889",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "Narwal Freo",
-      "expectedProductKey": "geekbuying:f43c2bb9283b593678ed90eb",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "Narwal Freo",
-      "expectedProductKey": "geekbuying:6a1b9fca779a00afe710fdad",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "Narwal Freo",
-      "expectedProductKey": "geekbuying:91ad17a480a48bf77a084a67",
-      "resolved": true
-    },
-    {
-      "seller": "Geekbuying",
-      "query": "Narwal FreoX",
-      "expectedProductKey": "geekbuying:f4b70c6f22fe91f8834753f9",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "query": "Iphone 16",
-      "expectedProductKey": "aliexpress:66f2d022a0e6174e4bfbec1f",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "query": "Thinkpad x1",
-      "expectedProductKey": "aliexpress:cb5c42bef3ace582126237b4",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "query": "Honor Guard",
-      "expectedProductKey": "aliexpress:8a9cf07fc16b998f54fcc373",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "query": "Creality Ender",
-      "expectedProductKey": "aliexpress:357ea3e421c38f014ad022ce",
-      "resolved": true
-    },
-    {
-      "seller": "AliExpress",
-      "query": "Thinkpad T14S",
-      "expectedProductKey": "aliexpress:c34d35de37c39f5ccaf3061d",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "iPhone 11",
-      "expectedProductKey": "alibaba:85f904153a926266eec6d65a",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "iphone 6",
-      "expectedProductKey": "alibaba:3adcb084741617667a14da9d",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "oneplus 7T",
-      "expectedProductKey": "alibaba:48f41b5cec72d9623ba07a36",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "Redmi Note",
-      "expectedProductKey": "alibaba:d02567991e9d0c65a0e140a7",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "iphone 8",
-      "expectedProductKey": "alibaba:88d60b258e689871d0ee7b28",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "iphone 5",
-      "expectedProductKey": "alibaba:464d111ab962d83cb048ed2e",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "Iphone 11 pro max",
-      "expectedProductKey": "alibaba:dfcccfe282932f4ed372d9a0",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "iPhone 5",
-      "expectedProductKey": "alibaba:f224a11375508235212208f1",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "iphone 2",
-      "expectedProductKey": "alibaba:a8d263515f9efb91b59ef83d",
-      "resolved": true
-    },
-    {
-      "seller": "Alibaba",
-      "query": "iPhone 11",
-      "expectedProductKey": "alibaba:d5aaf9e55c5028deacfe0c35",
-      "resolved": true
-    }
-  ],
+  "failedRoundTrips": [],
   "blockedSellerLeak": false,
   "duplicateGlobalProductKeys": false
 }
