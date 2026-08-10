@@ -122,3 +122,19 @@ The public finder remains unchanged until this endpoint is verified.
 - Uses exact current-main replacements instead of the failed V16.2.4
   validation assumption.
 - No product-index rebuild is required.
+
+
+## V16.2.7 — seller depth stable
+
+- Practical freeze-point patch: no index rebuild and no backend rewrite.
+- Selecting a seller no longer stops after the first Hybrid result.
+- Hybrid + CJ live results are merged when available.
+- If a seller still has fewer than 24 exact matches, its indexed
+  catalogue pages are loaded more deeply.
+- TikTok phone live results keep the nine expanded phone queries and
+  use a practical real-phone detector rather than the previous narrow
+  title detector.
+- A small number of imperfect matches is intentionally tolerated to
+  preserve catalogue depth.
+- Patch installation uses whole-function boundaries rather than exact
+  whitespace-sensitive old code blocks.

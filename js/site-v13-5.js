@@ -521,27 +521,39 @@ function normalizeProduct(p) {
     }
     return [clean(query)].filter(Boolean);
   }
-
   function tpPrepareLiveSellerRowsV15_8_9(rows,seller,query){
-    const canonical=tpCanonicalSellerV15_1(seller)||clean(seller);
-    const q=lower(query||"").trim();
-    let out=Array.isArray(rows)?rows.filter(Boolean):[];
-    if(canonical==="TikTok Shop US" && /^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones)$/i.test(q)){
-      const accessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds)\b/i;
-      const device=/\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\s+[a-z0-9+.-]+)?|google pixel(?:\s+[a-z0-9+.-]+)?|motorola(?:\s+moto)?|moto\s+g\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\b/i;
-      out=out.filter(p=>{
-        const text=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
-        return device.test(text) && !accessory.test(text);
-      }).map(p=>Object.assign({},p,{group:"phones-tablets",family:"smartphones"}));
-    }
-    const seen=new Set();
-    return out.filter(p=>{
-      const key=clean(p.clusterKey||p.id||p.url||p.name);
-      if(!key || seen.has(key))return false;
-      seen.add(key);
-      return true;
-    });
+  // TP_TIKTOK_PHONE_DEPTH_V16_2_7
+  const canonical=tpCanonicalSellerV15_1(seller)||clean(seller);
+  const q=lower(query||"").trim();
+  let out=Array.isArray(rows)?rows.filter(Boolean):[];
+
+  if(
+    canonical==="TikTok Shop US" &&
+    /^(?:phone|phones|smartphone|smartphones|mobile phone|mobile phones)$/i.test(q)
+  ){
+    const accessory=/\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds|projector|speaker|microphone)\b/i;
+    const directDevice=/\b(?:smart ?phones?|mobile phones?|mobiles? phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\s+[a-z0-9+.-]+)?|google pixel(?:\s+[a-z0-9+.-]+)?|motorola(?:\s+moto)?|moto\s+g\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\b/i;
+    const genericPhone=/\b(?:phones?|mobiles?)\b/i;
+    const hardware=/\b(?:dual sim|single sim|sim card|4g|5g|lte|gsm|cdma|android|ram|rom|octa[- ]?core|quad[- ]?core|snapdragon|mediatek|dimensity|helio|unlocked|imei)\b/i;
+
+    out=out.filter(p=>{
+      const text=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
+      const realPhone=directDevice.test(text)||(genericPhone.test(text)&&hardware.test(text));
+      return realPhone && !accessory.test(text);
+    }).map(p=>Object.assign({},p,{
+      group:"phones-tablets",
+      family:"smartphones"
+    }));
   }
+
+  const seen=new Set();
+  return out.filter(p=>{
+    const key=clean(p.clusterKey||p.id||p.url||p.name);
+    if(!key || seen.has(key))return false;
+    seen.add(key);
+    return true;
+  });
+}
 
   async function tpLoadSelectedLiveSellerV15_8_9(seller,query=state.query){
     const queries=tpLiveSellerQueriesV15_8_9(query,seller);
@@ -1898,52 +1910,117 @@ const rankedExact=state.products
     }));
   }
   function initFinder(){
-    const form=$('[data-tp-finder-form]');if(!form)return;
-    form.addEventListener('submit',e=>{e.preventDefault();const scope=$('[data-tp-finder-scope]')?.value||'';performSearch($('[data-tp-finder-input]')?.value||scope||'popular products',true,scope);});
-    $$('[data-search-suggestion]').forEach(b=>b.addEventListener('click',()=>performSearch(b.dataset.searchSuggestion,true,b.dataset.searchScope||'')));
-    $('[data-tp-load-more]')?.addEventListener('click',showMore);
-    $$('[data-filter-group],[data-filter-family],[data-filter-audience],[data-filter-merchant],[data-filter-price],[data-filter-sort],[data-filter-coupon],[data-filter-rare]').forEach(x=>x.addEventListener('change',async()=>{
+  // TP_SELLER_DEPTH_STABLE_V16_2_7
+  const form=$('[data-tp-finder-form]');if(!form)return;
+
+  form.addEventListener('submit',e=>{
+    e.preventDefault();
+    const scope=$('[data-tp-finder-scope]')?.value||'';
+    performSearch(
+      $('[data-tp-finder-input]')?.value||scope||'popular products',
+      true,
+      scope
+    );
+  });
+
+  $$('[data-search-suggestion]').forEach(b=>
+    b.addEventListener('click',()=>
+      performSearch(
+        b.dataset.searchSuggestion,
+        true,
+        b.dataset.searchScope||''
+      )
+    )
+  );
+
+  $('[data-tp-load-more]')?.addEventListener('click',showMore);
+
+  $$('[data-filter-group],[data-filter-family],[data-filter-audience],[data-filter-merchant],[data-filter-price],[data-filter-sort],[data-filter-coupon],[data-filter-rare]')
+    .forEach(x=>x.addEventListener('change',async()=>{
       if(x.matches('[data-filter-group]'))populateFilters();
+
       if(x.matches('[data-filter-merchant]')){
         const selected=tpCanonicalSellerV15_1(x.value)||clean(x.value);
         state.selectedSeller=selected;
+
         if(selected){
-        state.loading=true;
-        renderFinder();
+          state.loading=true;
+          renderFinder();
 
-        const hybridSellerResultV16_2_1=await tpLoadHybridProductsV16_2_1(
-          state.query,
-          selected
-        );
+          const [hybridResult,liveRows]=await Promise.all([
+            tpLoadHybridProductsV16_2_1(state.query,selected),
+            TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)
+              ? tpLoadSelectedLiveSellerV15_8_9(selected,state.query)
+              : Promise.resolve([])
+          ]);
 
-        if(hybridSellerResultV16_2_1?.rows?.length){
-          state.hybridMeta=hybridSellerResultV16_2_1.meta||state.hybridMeta;
-          mergeProducts(hybridSellerResultV16_2_1.rows);
-        }else if(TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)){
-          const liveRows=await tpLoadSelectedLiveSellerV15_8_9(selected,state.query);
-          if(liveRows.length)mergeProducts(liveRows);
-        }else if(typeof tpLoadSellerSpecificV15_1==="function"){
-          await tpLoadSellerSpecificV15_1(selected);
-        }
+          if(hybridResult?.rows?.length){
+            state.hybridMeta=hybridResult.meta||state.hybridMeta;
+            mergeProducts(hybridResult.rows);
+          }
 
-        state.loading=false;
-        populateFilters();
-        const merchant=$('[data-filter-merchant]');
-        if(merchant)merchant.value=selected;
-            }else{
+          if(Array.isArray(liveRows) && liveRows.length){
+            mergeProducts(liveRows);
+          }
+
+          let sellerCount=state.exact.filter(p=>{
+            const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
+            return rowSeller===selected;
+          }).length;
+
+          // Hybrid returning even one row must not stop deeper loading.
+          if(
+            sellerCount<24 &&
+            typeof tpLoadSellerSpecificV15_1==="function"
+          ){
+            await tpLoadSellerSpecificV15_1(selected);
+            sellerCount=state.exact.filter(p=>{
+              const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
+              return rowSeller===selected;
+            }).length;
+          }
+
+          state.loading=false;
+          populateFilters();
+
+          const merchant=$('[data-filter-merchant]');
+          if(merchant)merchant.value=selected;
+        }else{
           state.selectedSeller="";
           state.shown=24;
           await performSearch(state.query,false,state.scope);
           return;
         }
       }
+
       state.shown=24;
       renderFinder();
     }));
-    $('[data-reset-filters]')?.addEventListener('click',()=>{state.selectedSeller='';$$('[data-filter-panel] select').forEach(x=>x.value='');$$('[data-filter-panel] input[type="checkbox"]').forEach(x=>x.checked=false);state.shown=24;renderFinder();});
-    $('[data-tp-filter-toggle]')?.addEventListener('click',e=>{const p=$('[data-tp-filter-panel]');p?.classList.toggle('is-expanded');e.currentTarget.setAttribute('aria-expanded',String(p?.classList.contains('is-expanded')));});
-    const params=new URLSearchParams(location.search);performSearch(params.get('q')||"popular products",false,params.get('scope')||'');
-  }
+
+  $('[data-reset-filters]')?.addEventListener('click',()=>{
+    state.selectedSeller='';
+    $$('[data-filter-panel] select').forEach(x=>x.value='');
+    $$('[data-filter-panel] input[type="checkbox"]').forEach(x=>x.checked=false);
+    state.shown=24;
+    renderFinder();
+  });
+
+  $('[data-tp-filter-toggle]')?.addEventListener('click',e=>{
+    const p=$('[data-tp-filter-panel]');
+    p?.classList.toggle('is-expanded');
+    e.currentTarget.setAttribute(
+      'aria-expanded',
+      String(p?.classList.contains('is-expanded'))
+    );
+  });
+
+  const params=new URLSearchParams(location.search);
+  performSearch(
+    params.get('q')||"popular products",
+    false,
+    params.get('scope')||''
+  );
+}
 
   function initEvents(){
     d.addEventListener('click',e=>{
