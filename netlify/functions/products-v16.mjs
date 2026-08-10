@@ -340,6 +340,7 @@ export default async function handler(request) {
       const doc = docShards.get(id.slice(0, 1))?.[id];
       if (!doc) continue;
       if (!publicProductSellerAllowed(doc)) continue;
+      if (!publicProductSellerAllowed(doc)) continue;
 
       const relevance = relevanceFor(doc, qLower, tokens, rank);
 
