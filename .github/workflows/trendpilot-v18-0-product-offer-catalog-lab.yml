@@ -1,0 +1,697 @@
+name: TrendPilot V18.0 Product + Offer Catalog Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v18-0-product-offer-catalog-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  product-offer-catalog-lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Build seller catalogs and canonical product groups
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v18-lab/sellers
+
+          cat > /tmp/v18_catalog_lab.py <<'PY'
+          from __future__ import annotations
+
+          from collections import Counter, defaultdict
+          from pathlib import Path
+          import csv
+          import hashlib
+          import json
+          import re
+          import unicodedata
+
+          ROOT = Path(".")
+          DATA = ROOT / "data"
+          OUT = ROOT / "v18-lab"
+          SELLER_DIR = OUT / "sellers"
+
+          registry_path = DATA / "product-seller-registry-v17.json"
+          if not registry_path.exists():
+              raise SystemExit("Missing data/product-seller-registry-v17.json")
+
+          registry = json.loads(registry_path.read_text(encoding="utf-8"))
+          approved_rows = [x for x in registry.get("sellers", []) if x.get("public")]
+          approved = [str(x.get("name") or "").strip() for x in approved_rows if str(x.get("name") or "").strip()]
+          approved_set = set(approved)
+
+          if "Joom" in approved_set:
+              raise SystemExit("Safety stop: Joom must not be in the approved product seller registry.")
+
+          seller_meta = {x["name"]: x for x in approved_rows}
+
+          ALIASES = {
+              "AliExpress": ["aliexpress","ali express","aliexpress.com","aliexpress ww","aliexpressww"],
+              "Alibaba": ["alibaba","alibaba.com","alibaba ww","alibabaww"],
+              "Geekbuying": ["geekbuying","geek buying","geekbuying ww","geekbuyingww"],
+              "FilamentPRO EU CPS": ["filamentpro","filamentpro eu","filamentpro eu cps"],
+              "Govee Many GEOs": ["govee","govee many geos"],
+              "Harfington Many GEOs": ["harfington","harfington many geos","harrington","harrington many geos"],
+              "Sunsky-online WW": ["sunsky","sunsky online","sunsky-online","sunsky-online ww"],
+              "Lenovo": ["lenovo","lenovo many geos"],
+              "Diecast": ["diecast","diecast.com","diecast models wholesale","diecastmodelswholesale"],
+              "FragranceShop.com": ["fragranceshop.com","fragranceshop","fragrance shop","the fragrance shop"],
+              "Karaca EU": ["karaca","karaca eu","karaca europe"],
+              "MFI Medical": ["mfi","mfi medical","mfimedical"],
+              "PandaHall": ["pandahall","panda hall","pandahall.com"],
+              "TikTok Shop US": ["tiktok","tiktok shop","tiktok shop us","tiktokshop","tiktokshopus"],
+              "Temu": ["temu","temu.com","shop temu","shoptemu"],
+          }
+
+          def clean(value):
+              if value is None:
+                  return ""
+              text = re.sub(r"<script[\s\S]*?</script>", " ", str(value), flags=re.I)
+              text = re.sub(r"<style[\s\S]*?</style>", " ", text, flags=re.I)
+              text = re.sub(r"<[^>]*>", " ", text)
+              return re.sub(r"\s+", " ", text).strip()
+
+          def fold(value):
+              text = unicodedata.normalize("NFKC", clean(value)).casefold()
+              return re.sub(r"[^a-z0-9]+", "", text)
+
+          alias_to_canonical = {}
+          for canonical in approved:
+              alias_to_canonical[fold(canonical)] = canonical
+              for alias in ALIASES.get(canonical, []):
+                  alias_to_canonical[fold(alias)] = canonical
+
+          def canonical_seller(value):
+              return alias_to_canonical.get(fold(value), "")
+
+          def first(obj, keys):
+              if not isinstance(obj, dict):
+                  return ""
+              for key in keys:
+                  value = obj.get(key)
+                  if value not in (None, "", [], {}):
+                      return value
+              return ""
+
+          TITLE_KEYS = ["title","name","product_name","productName","product_title","productTitle","offer_name","offerName","product"]
+          SELLER_KEYS = ["advertiser","advertiserName","advertiser_name","seller","merchant","merchantName","merchant_name","store","storeName","store_name","shop"]
+          NETWORK_KEYS = ["network","affiliateNetwork","affiliate_network","sourceNetwork","source_network","provider","platform"]
+          PRODUCT_ID_KEYS = ["sourceProductId","source_product_id","productId","product_id","id","offerId","offer_id","itemId","item_id"]
+          SKU_KEYS = ["sku","SKU","sellerSku","seller_sku","stockCode","stock_code"]
+          MODEL_KEYS = ["model","modelNumber","model_number","modelNo","model_no","manufacturerModel","manufacturer_model"]
+          MPN_KEYS = ["mpn","MPN","manufacturerPartNumber","manufacturer_part_number","partNumber","part_number"]
+          GTIN_KEYS = ["gtin","GTIN","gtin13","gtin14","globalTradeItemNumber","global_trade_item_number"]
+          EAN_KEYS = ["ean","EAN","ean13","ean_13"]
+          UPC_KEYS = ["upc","UPC","upcA","upc_a"]
+          ISBN_KEYS = ["isbn","ISBN","isbn10","isbn13"]
+          BRAND_KEYS = ["brand","brandName","brand_name","manufacturer","vendor"]
+          CATEGORY_KEYS = ["category","categoryName","category_name","group","department","vertical"]
+          SUBCATEGORY_KEYS = ["subcategory","subCategory","subcategoryName","subcategory_name","family","productFamily","product_family"]
+          DESCRIPTION_KEYS = ["description","shortDescription","short_description","summary","product_description","productDescription"]
+          PRICE_KEYS = ["price","salePrice","sale_price","currentPrice","current_price","amount"]
+          CURRENCY_KEYS = ["currency","currencyCode","currency_code","priceCurrency","price_currency"]
+          IMAGE_KEYS = ["image","imageUrl","image_url","imageLink","image_link","picture","picture_url","photo","mainImage","main_image","thumbnail","thumbnailUrl"]
+          AFFILIATE_KEYS = ["affiliateUrl","affiliate_url","deeplink","deep_link","trackingUrl","tracking_url","clickUrl","click_url","goto","affiliate_link","tracking_link"]
+          DESTINATION_KEYS = ["destinationUrl","destination_url","productUrl","product_url","url","link","landing_page","landingPage","product_link","destination"]
+          CONDITION_KEYS = ["condition","productCondition","product_condition"]
+          AVAILABILITY_KEYS = ["availability","stock","stockStatus","stock_status","delivery"]
+
+          CONTAINER_KEYS = {
+              "products","items","results","offers","records","rows","entries",
+              "productFeed","product_feed","data","catalog","catalogue"
+          }
+
+          def looks_http(value):
+              value = clean(value)
+              return value.startswith("http://") or value.startswith("https://")
+
+          def product_candidates(value):
+              if isinstance(value, list):
+                  for child in value:
+                      yield from product_candidates(child)
+                  return
+              if not isinstance(value, dict):
+                  return
+
+              title = clean(first(value, TITLE_KEYS))
+              url = clean(first(value, AFFILIATE_KEYS + DESTINATION_KEYS))
+              image = clean(first(value, IMAGE_KEYS))
+              pid = clean(first(value, PRODUCT_ID_KEYS + SKU_KEYS))
+              if title and (looks_http(url) or looks_http(image) or pid):
+                  yield value
+
+              for key, child in value.items():
+                  if key in CONTAINER_KEYS and isinstance(child, (dict, list)):
+                      yield from product_candidates(child)
+
+          def numeric_price(value):
+              if isinstance(value, (int, float)):
+                  return float(value)
+              text = clean(value).replace(",", "")
+              match = re.search(r"-?\d+(?:\.\d+)?", text)
+              return float(match.group(0)) if match else None
+
+          def digits_only(value):
+              return re.sub(r"\D", "", clean(value))
+
+          def clean_code(value):
+              text = clean(value).upper()
+              text = re.sub(r"\s+", "", text)
+              return re.sub(r"[^A-Z0-9._/+:-]", "", text)
+
+          def valid_barcode(value):
+              digits = digits_only(value)
+              return digits if 8 <= len(digits) <= 14 else ""
+
+          def slugify(value):
+              s = unicodedata.normalize("NFKD", clean(value)).encode("ascii","ignore").decode("ascii").lower()
+              s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+              return s or "seller"
+
+          def sha(value):
+              return hashlib.sha1(str(value).encode("utf-8","ignore")).hexdigest()
+
+          def tokenize(value):
+              return re.findall(r"[a-z0-9]+", unicodedata.normalize("NFKC", clean(value)).casefold())
+
+          MARKETING_STOP = {
+              "new","sale","best","hot","original","official","store","shop","online",
+              "free","shipping","wholesale","retail","2024","2025","2026",
+              "with","for","and","the","a","an","of","to","from","by"
+          }
+
+          COLOR_WORDS = {
+              "black","white","blue","red","green","pink","purple","gold","silver",
+              "gray","grey","yellow","orange","beige","brown","navy","violet"
+          }
+
+          SPEC_RE = re.compile(
+              r"^(?:\d+(?:\.\d+)?(?:gb|tb|mb|mah|w|kw|v|hz|khz|mhz|ghz|inch|in|cm|mm|ml|l|kg|g|oz|lb|btu)|"
+              r"\d{2,6}mah|\d{3,6}w|\d{3,6}btu)$",
+              re.I
+          )
+
+          def normalized_title_tokens(title, seller=""):
+              seller_tokens = set(tokenize(seller))
+              return [
+                  token for token in tokenize(title)
+                  if token not in MARKETING_STOP and token not in seller_tokens
+              ]
+
+          def title_signature(title, seller=""):
+              tokens = normalized_title_tokens(title, seller)
+              trimmed = [x for x in tokens if x not in COLOR_WORDS]
+              return " ".join(trimmed[:18])
+
+          def model_tokens_from_title(title):
+              tokens = tokenize(title)
+              interesting = []
+              for i, token in enumerate(tokens):
+                  has_alpha = bool(re.search(r"[a-z]", token))
+                  has_digit = bool(re.search(r"\d", token))
+                  spec = bool(SPEC_RE.match(token))
+                  if (has_alpha and has_digit) or spec or token.isdigit():
+                      start = max(0, i - 2)
+                      end = min(len(tokens), i + 3)
+                      interesting.extend(tokens[start:end])
+              seen = []
+              for token in interesting:
+                  if token in MARKETING_STOP or token in COLOR_WORDS:
+                      continue
+                  if token not in seen:
+                      seen.append(token)
+              return seen[:10]
+
+          def explicit_model_key(brand, model, mpn):
+              brand_key = fold(brand)
+              model_code = clean_code(model)
+              mpn_code = clean_code(mpn)
+              if brand_key and mpn_code and len(mpn_code) >= 3:
+                  return f"brand-mpn:{brand_key}:{mpn_code}"
+              if brand_key and model_code and len(model_code) >= 2:
+                  return f"brand-model:{brand_key}:{model_code}"
+              return ""
+
+          def extract_offer(obj, source_file):
+              raw_seller = clean(first(obj, SELLER_KEYS))
+              seller = canonical_seller(raw_seller)
+              if not seller:
+                  return None
+
+              title = clean(first(obj, TITLE_KEYS))
+              if not title:
+                  return None
+
+              network = clean(first(obj, NETWORK_KEYS)) or seller_meta.get(seller, {}).get("network") or "catalog"
+              source_product_id = clean(first(obj, PRODUCT_ID_KEYS))
+              sku = clean(first(obj, SKU_KEYS))
+              model = clean(first(obj, MODEL_KEYS))
+              mpn = clean(first(obj, MPN_KEYS))
+              gtin = valid_barcode(first(obj, GTIN_KEYS))
+              ean = valid_barcode(first(obj, EAN_KEYS))
+              upc = valid_barcode(first(obj, UPC_KEYS))
+              isbn = valid_barcode(first(obj, ISBN_KEYS))
+              brand = clean(first(obj, BRAND_KEYS))
+              category = clean(first(obj, CATEGORY_KEYS))
+              subcategory = clean(first(obj, SUBCATEGORY_KEYS))
+              description = clean(first(obj, DESCRIPTION_KEYS))[:2400]
+              price = numeric_price(first(obj, PRICE_KEYS))
+              currency = clean(first(obj, CURRENCY_KEYS))
+              image = clean(first(obj, IMAGE_KEYS))
+              affiliate_url = clean(first(obj, AFFILIATE_KEYS))
+              destination_url = clean(first(obj, DESTINATION_KEYS))
+              condition = clean(first(obj, CONDITION_KEYS))
+              availability = clean(first(obj, AVAILABILITY_KEYS))
+
+              identity = source_product_id or sku or affiliate_url or destination_url or f"{title}|{price}|{currency}"
+              offer_id = sha(f"{seller}|{identity}")
+
+              hard_identifier = ""
+              for prefix, value in [("gtin",gtin),("ean",ean),("upc",upc),("isbn",isbn)]:
+                  if value:
+                      hard_identifier = f"{prefix}:{value}"
+                      break
+
+              explicit_key = explicit_model_key(brand, model, mpn)
+              title_model_tokens = model_tokens_from_title(title)
+              title_model_key = ""
+              if brand and title_model_tokens:
+                  title_model_key = f"brand-title-model:{fold(brand)}:{'-'.join(title_model_tokens)}"
+
+              return {
+                  "offerId": offer_id,
+                  "seller": seller,
+                  "network": network,
+                  "sourceFile": source_file,
+                  "sourceProductId": source_product_id,
+                  "sku": sku,
+                  "title": title,
+                  "brand": brand,
+                  "model": model,
+                  "mpn": mpn,
+                  "gtin": gtin,
+                  "ean": ean,
+                  "upc": upc,
+                  "isbn": isbn,
+                  "category": category,
+                  "subcategory": subcategory,
+                  "description": description,
+                  "price": price,
+                  "currency": currency,
+                  "image": image if looks_http(image) else "",
+                  "affiliateUrl": affiliate_url if looks_http(affiliate_url) else "",
+                  "destinationUrl": destination_url if looks_http(destination_url) else "",
+                  "condition": condition,
+                  "availability": availability,
+                  "_hardIdentifier": hard_identifier,
+                  "_explicitModelKey": explicit_key,
+                  "_titleModelKey": title_model_key,
+                  "_titleSignature": title_signature(title, seller),
+              }
+
+          seller_offers = defaultdict(dict)
+          raw_product_rows = 0
+          json_files_scanned = 0
+          json_files_failed = 0
+
+          for path in sorted(DATA.rglob("*.json")):
+              json_files_scanned += 1
+              try:
+                  root = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+              except Exception:
+                  json_files_failed += 1
+                  continue
+
+              for obj in product_candidates(root):
+                  raw_product_rows += 1
+                  offer = extract_offer(obj, path.as_posix())
+                  if not offer:
+                      continue
+
+                  current = seller_offers[offer["seller"]].get(offer["offerId"])
+                  if current is None:
+                      seller_offers[offer["seller"]][offer["offerId"]] = offer
+                  else:
+                      def richness(x):
+                          keys = ["image","affiliateUrl","destinationUrl","brand","model","mpn","category","subcategory","currency","availability"]
+                          return sum(bool(x.get(k)) for k in keys) + (1 if x.get("price") is not None else 0)
+                      if richness(offer) > richness(current):
+                          seller_offers[offer["seller"]][offer["offerId"]] = offer
+
+          all_offers = []
+          for seller in approved:
+              all_offers.extend(seller_offers[seller].values())
+
+          if not all_offers:
+              raise SystemExit("No approved seller offers were found in stored data.")
+
+          groups = defaultdict(list)
+          grouping_reason = {}
+
+          for offer in all_offers:
+              if offer["_hardIdentifier"]:
+                  key = "id|" + offer["_hardIdentifier"]
+                  reason = "global_identifier"
+              elif offer["_explicitModelKey"]:
+                  key = "model|" + offer["_explicitModelKey"]
+                  reason = "brand_explicit_model"
+              elif offer["_titleModelKey"]:
+                  key = "titlemodel|" + offer["_titleModelKey"]
+                  reason = "brand_title_model_signature"
+              else:
+                  key = "single|" + offer["offerId"]
+                  reason = "singleton_uncertain"
+
+              groups[key].append(offer)
+              grouping_reason[key] = reason
+
+          canonical_products = []
+          comparisons = []
+
+          def canonical_rank(offer):
+              return (
+                  bool(offer.get("image")) * 8 +
+                  bool(offer.get("brand")) * 6 +
+                  bool(offer.get("model") or offer.get("mpn")) * 7 +
+                  bool(offer.get("category")) * 3 +
+                  bool(offer.get("price") is not None) * 2 +
+                  min(4, len(clean(offer.get("title"))) / 120)
+              )
+
+          for group_key, offers in groups.items():
+              offers = sorted(offers, key=lambda x: (-canonical_rank(x), len(x.get("title","")), x["seller"], x["offerId"]))
+              lead = offers[0]
+              sellers = sorted({x["seller"] for x in offers})
+              product_id = "tp-" + sha(group_key)[:24]
+
+              prices = [
+                  {"seller":x["seller"],"price":x["price"],"currency":x["currency"]}
+                  for x in offers if x["price"] is not None
+              ]
+
+              product = {
+                  "productId": product_id,
+                  "canonicalTitle": lead["title"],
+                  "brand": lead["brand"],
+                  "model": lead["model"] or lead["mpn"],
+                  "category": lead["category"],
+                  "subcategory": lead["subcategory"],
+                  "image": lead["image"],
+                  "groupingReason": grouping_reason[group_key],
+                  "confidence": (
+                      "very_high" if grouping_reason[group_key] == "global_identifier"
+                      else "high" if grouping_reason[group_key] == "brand_explicit_model"
+                      else "medium_high" if grouping_reason[group_key] == "brand_title_model_signature"
+                      else "single"
+                  ),
+                  "offerCount": len(offers),
+                  "sellerCount": len(sellers),
+                  "sellers": sellers,
+                  "offers": [{k:v for k,v in x.items() if not k.startswith("_")} for x in offers],
+                  "prices": prices,
+              }
+              canonical_products.append(product)
+
+              if len(sellers) >= 2:
+                  comparisons.append(product)
+
+          canonical_products.sort(
+              key=lambda x: (-x["sellerCount"], -x["offerCount"], x["canonicalTitle"].casefold(), x["productId"])
+          )
+          comparisons.sort(
+              key=lambda x: (-x["sellerCount"], -x["offerCount"], x["canonicalTitle"].casefold(), x["productId"])
+          )
+
+          seller_summary = []
+          for seller in approved:
+              offers = sorted(
+                  seller_offers[seller].values(),
+                  key=lambda x: (x["title"].casefold(), x["offerId"])
+              )
+              public_offers = [{k:v for k,v in x.items() if not k.startswith("_")} for x in offers]
+              mode = seller_meta.get(seller, {}).get("mode", "catalog")
+              catalog = {
+                  "version": "18.0.0-lab",
+                  "seller": seller,
+                  "network": seller_meta.get(seller, {}).get("network", ""),
+                  "mode": mode,
+                  "storedOfferCount": len(public_offers),
+                  "status": (
+                      "stored_catalog"
+                      if public_offers
+                      else "live_only_needs_persistent_ingestion"
+                      if "live" in str(mode)
+                      else "no_stored_catalog"
+                  ),
+                  "offers": public_offers,
+              }
+              filename = SELLER_DIR / f"{slugify(seller)}.json"
+              filename.write_text(json.dumps(catalog, ensure_ascii=False), encoding="utf-8")
+
+              with_price = sum(x.get("price") is not None for x in offers)
+              with_image = sum(bool(x.get("image")) for x in offers)
+              with_brand = sum(bool(x.get("brand")) for x in offers)
+              with_model_id = sum(bool(x.get("_hardIdentifier") or x.get("_explicitModelKey") or x.get("_titleModelKey")) for x in offers)
+
+              seller_summary.append({
+                  "seller": seller,
+                  "network": seller_meta.get(seller, {}).get("network", ""),
+                  "mode": mode,
+                  "storedOffers": len(offers),
+                  "withPrice": with_price,
+                  "withImage": with_image,
+                  "withBrand": with_brand,
+                  "withComparableIdentity": with_model_id,
+                  "status": catalog["status"],
+                  "catalogFile": filename.as_posix(),
+              })
+
+          with (OUT / "offers.ndjson").open("w", encoding="utf-8") as fh:
+              for offer in sorted(all_offers, key=lambda x:(x["seller"],x["title"].casefold(),x["offerId"])):
+                  fh.write(json.dumps({k:v for k,v in offer.items() if not k.startswith("_")}, ensure_ascii=False) + "\n")
+
+          with (OUT / "canonical-products.ndjson").open("w", encoding="utf-8") as fh:
+              for product in canonical_products:
+                  fh.write(json.dumps(product, ensure_ascii=False) + "\n")
+
+          (OUT / "multi-seller-comparisons.json").write_text(
+              json.dumps(comparisons, ensure_ascii=False),
+              encoding="utf-8"
+          )
+
+          dictionary = []
+          seen_terms = set()
+
+          def add_term(term, kind, product_id="", weight=0):
+              term = clean(term)
+              if len(term) < 2:
+                  return
+              key = (term.casefold(), kind, product_id)
+              if key in seen_terms:
+                  return
+              seen_terms.add(key)
+              dictionary.append({
+                  "term": term,
+                  "kind": kind,
+                  "productId": product_id,
+                  "weight": weight,
+              })
+
+          for product in canonical_products:
+              pid = product["productId"]
+              add_term(product["canonicalTitle"], "product", pid, 100)
+              add_term(product.get("model"), "model", pid, 95)
+              add_term(product.get("brand"), "brand", "", 70)
+              add_term(product.get("subcategory"), "subcategory", "", 55)
+              add_term(product.get("category"), "category", "", 50)
+
+          dictionary.sort(key=lambda x:(-x["weight"], x["term"].casefold(), x["productId"]))
+          (OUT / "search-dictionary.json").write_text(
+              json.dumps(dictionary, ensure_ascii=False),
+              encoding="utf-8"
+          )
+
+          multi2 = sum(1 for x in canonical_products if x["sellerCount"] >= 2)
+          multi3 = sum(1 for x in canonical_products if x["sellerCount"] >= 3)
+          reason_counts = Counter(x["groupingReason"] for x in canonical_products)
+
+          summary = {
+              "version": "18.0.0-lab",
+              "approvedSellerCount": len(approved),
+              "approvedSellers": approved,
+              "joomBlocked": "Joom" not in approved_set,
+              "jsonFilesScanned": json_files_scanned,
+              "jsonFilesFailed": json_files_failed,
+              "rawProductLikeRowsSeen": raw_product_rows,
+              "storedApprovedOffers": len(all_offers),
+              "canonicalProducts": len(canonical_products),
+              "multiSellerProducts2Plus": multi2,
+              "multiSellerProducts3Plus": multi3,
+              "groupingReasons": dict(reason_counts),
+              "sellerCatalogs": seller_summary,
+          }
+          (OUT / "summary.json").write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2),
+              encoding="utf-8"
+          )
+
+          csv_path = OUT / "seller-catalog-summary.csv"
+          with csv_path.open("w", newline="", encoding="utf-8-sig") as fh:
+              writer = csv.DictWriter(fh, fieldnames=list(seller_summary[0].keys()))
+              writer.writeheader()
+              writer.writerows(seller_summary)
+
+          report = []
+          report.append("# TrendPilot V18.0 — Product + Offer Catalog Lab")
+          report.append("")
+          report.append("> Read-only lab. Production search, Netlify Blobs and the live website were not changed.")
+          report.append("")
+          report.append("## Architecture produced")
+          report.append("")
+          report.append("- One stored catalog file per approved seller.")
+          report.append("- One global offer stream (`offers.ndjson`).")
+          report.append("- One canonical product stream (`canonical-products.ndjson`).")
+          report.append("- Multi-seller comparison groups (`multi-seller-comparisons.json`).")
+          report.append("- Product/model/category search dictionary (`search-dictionary.json`).")
+          report.append("- Joom is excluded by the approved-seller registry.")
+          report.append("")
+          report.append("## Totals")
+          report.append("")
+          report.append(f"- Approved sellers: **{len(approved)}**")
+          report.append(f"- Stored approved offers: **{len(all_offers):,}**")
+          report.append(f"- Canonical product groups: **{len(canonical_products):,}**")
+          report.append(f"- Products with offers from 2+ sellers: **{multi2:,}**")
+          report.append(f"- Products with offers from 3+ sellers: **{multi3:,}**")
+          report.append(f"- JSON files scanned: **{json_files_scanned:,}**")
+          report.append(f"- Joom blocked: **{'PASS' if 'Joom' not in approved_set else 'FAIL'}**")
+          report.append("")
+          report.append("## Seller catalogs")
+          report.append("")
+          report.append("| Seller | Mode | Stored offers | Price | Image | Comparable identity | Status |")
+          report.append("|---|---|---:|---:|---:|---:|---|")
+          for row in seller_summary:
+              report.append(
+                  f"| {row['seller']} | {row['mode']} | {row['storedOffers']:,} | "
+                  f"{row['withPrice']:,} | {row['withImage']:,} | "
+                  f"{row['withComparableIdentity']:,} | {row['status']} |"
+              )
+
+          report.append("")
+          report.append("## Matching confidence")
+          report.append("")
+          report.append("| Method | Canonical groups | Meaning |")
+          report.append("|---|---:|---|")
+          labels = {
+              "global_identifier": "GTIN/EAN/UPC/ISBN match — safest cross-seller comparison.",
+              "brand_explicit_model": "Same brand + explicit MPN/model.",
+              "brand_title_model_signature": "Same brand + conservative model/spec signature extracted from title.",
+              "singleton_uncertain": "No safe cross-seller identity; kept separate rather than risk a wrong comparison.",
+          }
+          for key in ["global_identifier","brand_explicit_model","brand_title_model_signature","singleton_uncertain"]:
+              report.append(f"| {key} | {reason_counts.get(key,0):,} | {labels[key]} |")
+
+          report.append("")
+          report.append("## Top multi-seller comparison groups")
+          report.append("")
+          if not comparisons:
+              report.append("No safe multi-seller groups were found yet. Identity fields need enrichment before automatic comparison.")
+          else:
+              report.append("| Product | Sellers | Offers | Confidence |")
+              report.append("|---|---:|---:|---|")
+              for product in comparisons[:40]:
+                  seller_text = ", ".join(product["sellers"])
+                  title = product["canonicalTitle"].replace("|","/")[:110]
+                  report.append(
+                      f"| {title} — {seller_text} | {product['sellerCount']} | "
+                      f"{product['offerCount']} | {product['confidence']} |"
+                  )
+
+          report.append("")
+          report.append("## What happens next")
+          report.append("")
+          report.append("1. Review whether the multi-seller groups are truly the same product.")
+          report.append("2. If grouping quality is good, persist seller catalogs + products + offers to Netlify Blobs.")
+          report.append("3. Build Pagefind over canonical products, not raw seller offers.")
+          report.append("4. Exact model search -> one product page -> offers from every matching seller.")
+          report.append("5. Broad category search -> suggestions and canonical product groups, not accessory noise.")
+          report.append("6. Build persistent ingestion for live-only sellers such as TikTok Shop US.")
+
+          report_text = "\n".join(report) + "\n"
+          (OUT / "report.md").write_text(report_text, encoding="utf-8")
+          print(report_text)
+          PY
+
+          python3 /tmp/v18_catalog_lab.py
+
+      - name: Validate V18 catalog outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          out = Path("v18-lab")
+          summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+
+          assert summary["joomBlocked"] is True
+          assert summary["approvedSellerCount"] == 15
+          assert summary["storedApprovedOffers"] > 1000
+          assert summary["canonicalProducts"] > 1000
+
+          seller_files = list((out / "sellers").glob("*.json"))
+          assert len(seller_files) == 15, len(seller_files)
+
+          for seller_file in seller_files:
+              payload = json.loads(seller_file.read_text(encoding="utf-8"))
+              assert "seller" in payload
+              assert "storedOfferCount" in payload
+              assert isinstance(payload.get("offers"), list)
+
+          assert (out / "offers.ndjson").stat().st_size > 0
+          assert (out / "canonical-products.ndjson").stat().st_size > 0
+          assert (out / "multi-seller-comparisons.json").stat().st_size > 0
+          assert (out / "search-dictionary.json").stat().st_size > 0
+
+          print("V18 catalog validation PASS")
+          print("Stored approved offers:", summary["storedApprovedOffers"])
+          print("Canonical products:", summary["canonicalProducts"])
+          print("2+ seller comparisons:", summary["multiSellerProducts2Plus"])
+          PY
+
+      - name: Publish V18 lab report to GitHub Summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat v18-lab/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload V18 catalog lab artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v18-product-offer-catalog-lab
+          path: |
+            v18-lab/report.md
+            v18-lab/summary.json
+            v18-lab/seller-catalog-summary.csv
+            v18-lab/offers.ndjson
+            v18-lab/canonical-products.ndjson
+            v18-lab/multi-seller-comparisons.json
+            v18-lab/search-dictionary.json
+            v18-lab/sellers/*.json
+          retention-days: 14
+          compression-level: 9
