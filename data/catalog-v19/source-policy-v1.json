@@ -1,0 +1,15 @@
+{
+  "version": "1.0.0",
+  "purpose": "Only qualified product-catalog sources may populate V19 seller catalogs.",
+  "includeRoots": [
+    "data/search-catalog/shards/"
+  ],
+  "explicitExclusions": [
+    "data/coupons.json",
+    "campaign metadata",
+    "promotion feeds",
+    "service affiliates",
+    "archived/unapproved seller rows"
+  ],
+  "rule": "Search and comparison may only consume seller catalogs built from qualified product-catalog shards. Coupons and promotions never become products."
+}

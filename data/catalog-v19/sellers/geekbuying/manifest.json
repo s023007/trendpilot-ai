@@ -1,14 +1,16 @@
 {
-  "version": "19.0.0",
+  "version": "19.1.1",
   "architecture": "seller-catalog-first",
   "seller": {
     "name": "Geekbuying",
     "slug": "geekbuying",
     "network": "Admitad",
+    "mode": "catalog",
     "role": "reference-foundation-catalog"
   },
-  "generatedAt": "2026-08-10T17:33:25.998Z",
+  "generatedAt": "2026-08-10T18:01:05.691Z",
   "schema": "../../schema-v1.json",
+  "sourcePolicy": "../../source-policy-v1.json",
   "files": {
     "products": "products.ndjson",
     "identityIndex": "identity-index.json",
@@ -16,40 +18,42 @@
     "audit": "audit.json"
   },
   "metrics": {
-    "totalProducts": 1238,
-    "sourceFiles": 73,
-    "stableSellerId": 1138,
-    "brand": 1210,
-    "modelAny": 242,
+    "totalProducts": 1107,
+    "sourceFiles": 67,
+    "stableSellerId": 1107,
+    "brand": 1107,
+    "modelAny": 388,
     "modelExplicit": 0,
-    "modelInferred": 242,
+    "modelInferred": 388,
     "comparableExact": 0,
     "structuredSpecs": 0,
-    "price": 1212,
-    "image": 1238,
-    "link": 1238,
-    "variants": 0
+    "derivedSpecs": 619,
+    "price": 1107,
+    "image": 1107,
+    "link": 1107,
+    "variants": 0,
+    "sourceQualified": 1107
   },
   "fillRates": {
     "stableSellerId": {
-      "count": 1138,
-      "percent": 91.9
+      "count": 1107,
+      "percent": 100
     },
     "brand": {
-      "count": 1210,
-      "percent": 97.7
+      "count": 1107,
+      "percent": 100
     },
     "modelAny": {
-      "count": 242,
-      "percent": 19.5
+      "count": 388,
+      "percent": 35
     },
     "modelExplicit": {
       "count": 0,
       "percent": 0
     },
     "modelInferred": {
-      "count": 242,
-      "percent": 19.5
+      "count": 388,
+      "percent": 35
     },
     "comparableExact": {
       "count": 0,
@@ -59,21 +63,29 @@
       "count": 0,
       "percent": 0
     },
+    "derivedSpecs": {
+      "count": 619,
+      "percent": 55.9
+    },
     "price": {
-      "count": 1212,
-      "percent": 97.9
+      "count": 1107,
+      "percent": 100
     },
     "image": {
-      "count": 1238,
+      "count": 1107,
       "percent": 100
     },
     "link": {
-      "count": 1238,
+      "count": 1107,
       "percent": 100
     },
     "variants": {
       "count": 0,
       "percent": 0
+    },
+    "sourceQualified": {
+      "count": 1107,
+      "percent": 100
     }
   },
   "identityPolicy": {
@@ -86,11 +98,8 @@
       "title alone",
       "price alone",
       "image alone",
-      "title-inferred model alone"
-    ],
-    "searchableButNotComparable": [
-      "records without reliable cross-seller identity remain individually searchable",
-      "name matches may return multiple records and are never silently merged"
+      "title-inferred model alone",
+      "semantic clusterKey alone"
     ]
   }
 }

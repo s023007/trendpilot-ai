@@ -1,0 +1,105 @@
+{
+  "version": "19.1.1",
+  "architecture": "seller-catalog-first",
+  "seller": {
+    "name": "AliExpress",
+    "slug": "aliexpress",
+    "network": "Admitad",
+    "mode": "catalog",
+    "role": "second-canonical-catalog"
+  },
+  "generatedAt": "2026-08-10T18:01:14.586Z",
+  "schema": "../../schema-v1.json",
+  "sourcePolicy": "../../source-policy-v1.json",
+  "files": {
+    "products": "products.ndjson",
+    "identityIndex": "identity-index.json",
+    "categoryIndex": "category-index.json",
+    "audit": "audit.json"
+  },
+  "metrics": {
+    "totalProducts": 16206,
+    "sourceFiles": 328,
+    "stableSellerId": 16206,
+    "brand": 107,
+    "modelAny": 5,
+    "modelExplicit": 0,
+    "modelInferred": 5,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 1166,
+    "price": 16206,
+    "image": 16206,
+    "link": 16206,
+    "variants": 0,
+    "sourceQualified": 16206
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 16206,
+      "percent": 100
+    },
+    "brand": {
+      "count": 107,
+      "percent": 0.7
+    },
+    "modelAny": {
+      "count": 5,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 5,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 1166,
+      "percent": 7.2
+    },
+    "price": {
+      "count": 16206,
+      "percent": 100
+    },
+    "image": {
+      "count": 16206,
+      "percent": 100
+    },
+    "link": {
+      "count": 16206,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 16206,
+      "percent": 100
+    }
+  },
+  "identityPolicy": {
+    "exactMergeAllowedBy": [
+      "GTIN/EAN/UPC/ISBN exact match",
+      "brand + explicit MPN exact match",
+      "brand + explicit model exact match"
+    ],
+    "neverAutoMergeBy": [
+      "title alone",
+      "price alone",
+      "image alone",
+      "title-inferred model alone",
+      "semantic clusterKey alone"
+    ]
+  }
+}
