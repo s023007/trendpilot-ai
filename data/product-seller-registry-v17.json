@@ -1,0 +1,117 @@
+{
+  "version": "17.2.0",
+  "policy": "explicit-approved-product-sellers-only",
+  "notes": [
+    "Only explicitly approved product sellers may be indexed or returned by product search.",
+    "Joom is intentionally excluded because the affiliate application was not accepted.",
+    "Service/ticket partners are handled outside the product seller registry.",
+    "Raw archived data may remain on disk without being indexed or exposed."
+  ],
+  "sellers": [
+    {
+      "name": "AliExpress",
+      "network": "Admitad",
+      "mode": "catalog",
+      "public": true,
+      "cpc": true
+    },
+    {
+      "name": "Alibaba",
+      "network": "Admitad",
+      "mode": "catalog",
+      "public": true,
+      "cpc": true
+    },
+    {
+      "name": "Geekbuying",
+      "network": "Admitad",
+      "mode": "catalog",
+      "public": true,
+      "cpc": true
+    },
+    {
+      "name": "FilamentPRO EU CPS",
+      "network": "Admitad",
+      "mode": "catalog",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "Govee Many GEOs",
+      "network": "Admitad",
+      "mode": "catalog",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "Harfington Many GEOs",
+      "network": "Admitad",
+      "mode": "catalog",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "Sunsky-online WW",
+      "network": "Admitad",
+      "mode": "catalog",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "Lenovo",
+      "network": "Admitad",
+      "mode": "catalog/direct",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "Diecast",
+      "network": "CJ",
+      "mode": "catalog",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "FragranceShop.com",
+      "network": "CJ",
+      "mode": "catalog+live",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "Karaca EU",
+      "network": "CJ",
+      "mode": "catalog+live",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "MFI Medical",
+      "network": "CJ",
+      "mode": "catalog",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "PandaHall",
+      "network": "CJ",
+      "mode": "catalog+live",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "TikTok Shop US",
+      "network": "CJ",
+      "mode": "live",
+      "public": true,
+      "cpc": false
+    },
+    {
+      "name": "Temu",
+      "network": "CJ",
+      "mode": "catalog+live",
+      "public": true,
+      "cpc": false
+    }
+  ]
+}

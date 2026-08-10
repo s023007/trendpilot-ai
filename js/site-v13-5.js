@@ -11,8 +11,8 @@
 
   // TP_CJ_EXACT_GUARD_START
   const TP_CJ_GUARD_VERSION = "13.8.8";
-  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203"]);
-  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
+  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203", "6293473"]);
+  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal", "temu", "temucom", "shoptemu"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tiktok", "tiktokshop", "tiktokshopus", "tripcom", "tripcomglobal"]);
   const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
   const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
@@ -105,13 +105,15 @@
   }
   // TP_CJ_EXACT_GUARD_END
 
+// TP_SELLER_POLICY_V17_2
+const TP_PUBLIC_PRODUCT_SELLERS_V17_2 = new Set(["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US","Temu"]);
 // TP_PUBLIC_SELLER_GUARD_START
 function tpPublicSellerAllowed(p) {
   if (!p) return false;
   const title = clean(p.name || p.title);
   const target = clean(p.url || p.affiliateUrl || p.productUrl);
   const seller = typeof tpCanonicalSellerV15_1 === "function" ? tpCanonicalSellerV15_1(p.advertiser || p.seller || p.merchant || "") : "";
-  return Boolean(title && validUrl(target) && seller);
+  return Boolean(title && validUrl(target) && seller && TP_PUBLIC_PRODUCT_SELLERS_V17_2.has(seller));
 }
 // TP_PUBLIC_SELLER_GUARD_END
   const uniq = (arr) => [...new Set(arr.filter(Boolean))];

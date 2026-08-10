@@ -6,8 +6,9 @@ import {
   queryTokens,
   tokenBucket
 } from "./products-v16-lib.mjs";
+import { canonicalProductSeller, publicProductSellerAllowed } from "./product-seller-policy-v17.mjs";
 
-const VERSION = "16.0.6";
+const VERSION = "17.2.0";
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -233,7 +234,20 @@ export default async function handler(request) {
   try {
     const url = new URL(request.url);
     const q = clean(url.searchParams.get("q") || "").slice(0, 180);
-    const seller = clean(url.searchParams.get("seller") || "").slice(0, 140);
+    const requestedSeller = clean(url.searchParams.get("seller") || "").slice(0, 140);
+    const seller = requestedSeller ? canonicalProductSeller(requestedSeller) : "";
+    if (requestedSeller && !seller) {
+      return json({
+        ok: true,
+        version: VERSION,
+        storage: "netlify-blobs",
+        query: q,
+        seller: requestedSeller,
+        totalReturned: 0,
+        products: [],
+        sellerPolicy: "rejected-unapproved-seller"
+      });
+    }
     const network = clean(url.searchParams.get("network") || "").slice(0, 100);
     const limit = Math.max(1, Math.min(100, Number(url.searchParams.get("limit") || 48) || 48));
     const offset = Math.max(0, Math.min(1000, Number(url.searchParams.get("offset") || 0) || 0));
@@ -325,6 +339,7 @@ export default async function handler(request) {
     for (const [id, rank] of ranked) {
       const doc = docShards.get(id.slice(0, 1))?.[id];
       if (!doc) continue;
+      if (!publicProductSellerAllowed(doc)) continue;
 
       const relevance = relevanceFor(doc, qLower, tokens, rank);
 
@@ -370,7 +385,7 @@ export default async function handler(request) {
       products: paged
     });
   } catch (error) {
-    console.error("TrendPilot V16.0.6 search failed", error);
+    console.error("TrendPilot V17.2.0 search failed", error);
     return json({
       ok: false,
       version: VERSION,

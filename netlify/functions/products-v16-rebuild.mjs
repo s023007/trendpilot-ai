@@ -6,6 +6,7 @@ import {
   buildIndex,
   tokenBucket
 } from "./products-v16-lib.mjs";
+import { canonicalizePublicProduct } from "./product-seller-policy-v17.mjs";
 
 async function fetchJson(url, timeoutMs = 40000) {
   const controller = new AbortController();
@@ -90,7 +91,7 @@ export default async function handler(request) {
 
   await store.setJSON("meta", {
     ready: false,
-    version: "16.0.3",
+    version: "17.2.0",
     storage: "netlify-blobs",
     status: "building",
     startedAt
@@ -121,10 +122,10 @@ export default async function handler(request) {
           for (const extra of collectCatalogJsonPaths(payload, 3000)) discoveredPaths.add(extra);
         }
 
-        console.log("V16.0.3 seed", path, "products", rows.length);
+        console.log("V17.2.0 seed", path, "products", rows.length);
       } catch (error) {
         sourceStats[path] = `error:${String(error?.message || error).slice(0, 120)}`;
-        console.warn("V16.0.3 seed failed", path, String(error?.message || error));
+        console.warn("V17.2.0 seed failed", path, String(error?.message || error));
       }
     }
 
@@ -140,7 +141,7 @@ export default async function handler(request) {
       for (const row of result.value.rows) byId.set(row.id, row);
     }
 
-    const products = [...byId.values()];
+    const products = [...byId.values()].map(canonicalizePublicProduct).filter(Boolean);
     const { docs, postings, sellers, networks } = buildIndex(products);
 
     const docBuckets = new Map();
@@ -203,7 +204,7 @@ export default async function handler(request) {
 
     const meta = {
       ready: true,
-      version: "16.0.3",
+      version: "17.2.0",
       storage: "netlify-blobs",
       status: "ready",
       products: products.length,
@@ -222,13 +223,13 @@ export default async function handler(request) {
 
     await store.setJSON("meta", meta);
 
-    console.log("TrendPilot V16.0.3 Blobs rebuild completed", meta);
+    console.log("TrendPilot V17.2.0 Blobs rebuild completed", meta);
   } catch (error) {
-    console.error("TrendPilot V16.0.3 Blobs rebuild failed", error);
+    console.error("TrendPilot V17.2.0 Blobs rebuild failed", error);
 
     await store.setJSON("meta", {
       ready: false,
-      version: "16.0.3",
+      version: "17.2.0",
       storage: "netlify-blobs",
       status: "failed",
       startedAt,

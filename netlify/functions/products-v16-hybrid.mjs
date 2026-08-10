@@ -7,8 +7,9 @@ import {
   normalizeProduct,
   hashHex
 } from "./products-v16-lib.mjs";
+import { canonicalProductSeller, canonicalizePublicProduct } from "./product-seller-policy-v17.mjs";
 
-const VERSION = "16.1.3";
+const VERSION = "17.2.0";
 const CORE_MIN = 20;
 const STRONG_CORE_MIN = 12;
 const QUERY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -402,7 +403,8 @@ function rankedNormalize(rows, sourceHint, query, tokens, sellerFilter = "", net
 
   return rows
     .map(row => {
-      const normalized = normalizeProduct(row, sourceHint);
+      const rawNormalized = normalizeProduct(row, sourceHint);
+      const normalized = canonicalizePublicProduct(rawNormalized);
       if (!normalized) return null;
 
       if (sellerLower && lower(normalized.seller) !== sellerLower) return null;
@@ -592,7 +594,7 @@ async function loadCjFallback(origin, query, tokens, seller, network) {
 
 function queryCacheKey(query, seller, network) {
   return `query-cache/${hashHex(
-    `${lower(query)}|${lower(seller)}|${lower(network)}|16.1.3`
+    `${lower(query)}|${lower(seller)}|${lower(network)}|${VERSION}`
   ).slice(0, 40)}`;
 }
 
@@ -624,7 +626,7 @@ function mergeAndRank(baseProducts, fallbackProducts, query, tokens, limit, offs
   const rows = unique([
     ...(baseProducts || []),
     ...(fallbackProducts || [])
-  ]).map(product => {
+  ]).map(canonicalizePublicProduct).filter(Boolean).map(product => {
     const rank = intentRank(product, query, tokens);
     return {
       ...product,
@@ -666,7 +668,21 @@ export default async function handler(request) {
     const url = new URL(request.url);
     const origin = url.origin;
     const query = clean(url.searchParams.get("q") || "").slice(0, 160);
-    const seller = clean(url.searchParams.get("seller") || "").slice(0, 140);
+    const requestedSeller = clean(url.searchParams.get("seller") || "").slice(0, 140);
+    const seller = requestedSeller ? canonicalProductSeller(requestedSeller) : "";
+    if (requestedSeller && !seller) {
+      return json({
+        ok: true,
+        version: VERSION,
+        storage: "netlify-blobs",
+        mode: "index-first-hybrid",
+        query,
+        seller: requestedSeller,
+        products: [],
+        totalReturned: 0,
+        sellerPolicy: "rejected-unapproved-seller"
+      });
+    }
     const network = clean(url.searchParams.get("network") || "").slice(0, 100);
     const limit = Math.max(
       1,
@@ -806,7 +822,7 @@ export default async function handler(request) {
       products: merged.paged
     });
   } catch (error) {
-    console.error("TrendPilot V16.1.3 hybrid search failed", error);
+    console.error("TrendPilot V17.2.0 hybrid search failed", error);
     return json({
       ok: false,
       version: VERSION,
