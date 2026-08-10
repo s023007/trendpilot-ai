@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://trendpilotchoice.com/schema/catalog-v19-product-v1.json",
+  "title": "TrendPilot Canonical Seller Product",
+  "description": "Stable cross-seller contract. Every seller adapter must emit this shape before products can join the global resolver.",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "catalogId",
+    "productKey",
+    "seller",
+    "identifiers",
+    "identity",
+    "name",
+    "brand",
+    "taxonomy",
+    "specs",
+    "variants",
+    "offer",
+    "media",
+    "links",
+    "source",
+    "quality"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string"
+    },
+    "catalogId": {
+      "type": "string"
+    },
+    "productKey": {
+      "type": "string"
+    },
+    "seller": {
+      "type": "object",
+      "required": [
+        "name",
+        "slug",
+        "network"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "slug": {
+          "type": "string"
+        },
+        "network": {
+          "type": "string"
+        }
+      }
+    },
+    "identifiers": {
+      "type": "object",
+      "required": [
+        "sellerProductId",
+        "sku",
+        "model",
+        "mpn",
+        "gtin",
+        "ean",
+        "upc",
+        "isbn"
+      ],
+      "properties": {
+        "sellerProductId": {
+          "type": "string"
+        },
+        "sku": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "mpn": {
+          "type": "string"
+        },
+        "gtin": {
+          "type": "string"
+        },
+        "ean": {
+          "type": "string"
+        },
+        "upc": {
+          "type": "string"
+        },
+        "isbn": {
+          "type": "string"
+        }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "required": [
+        "modelConfidence",
+        "comparableExact",
+        "keys"
+      ],
+      "properties": {
+        "modelConfidence": {
+          "enum": [
+            "explicit",
+            "title-inferred",
+            "none"
+          ]
+        },
+        "comparableExact": {
+          "type": "boolean"
+        },
+        "keys": {
+          "type": "object"
+        }
+      }
+    },
+    "name": {
+      "type": "object",
+      "required": [
+        "display",
+        "normalized",
+        "compact",
+        "aliases"
+      ],
+      "properties": {
+        "display": {
+          "type": "string"
+        },
+        "normalized": {
+          "type": "string"
+        },
+        "compact": {
+          "type": "string"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "brand": {
+      "type": "string"
+    },
+    "taxonomy": {
+      "type": "object"
+    },
+    "specs": {
+      "type": "object"
+    },
+    "variants": {
+      "type": "array"
+    },
+    "offer": {
+      "type": "object"
+    },
+    "media": {
+      "type": "object"
+    },
+    "links": {
+      "type": "object"
+    },
+    "source": {
+      "type": "object"
+    },
+    "quality": {
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,836 @@
+{
+  "version": "19.0.0",
+  "seller": "Geekbuying",
+  "generatedAt": "2026-08-10T17:33:25.998Z",
+  "input": {
+    "jsonFilesScanned": 1351,
+    "sourceFilesContainingSeller": [
+      "data/admitad-products-new-account-v15-3-2.json",
+      "data/coupons.json",
+      "data/matched-products.json",
+      "data/product-link-validation-report.json",
+      "data/search-catalog/manifest.json",
+      "data/search-catalog/shards/apparel/other-apparel/all/001.json",
+      "data/search-catalog/shards/audio/earbuds/all/002.json",
+      "data/search-catalog/shards/audio/earbuds/all/003.json",
+      "data/search-catalog/shards/audio/headphones/all/001.json",
+      "data/search-catalog/shards/audio/headphones/kids/001.json",
+      "data/search-catalog/shards/audio/microphones/all/001.json",
+      "data/search-catalog/shards/audio/other-audio/all/001.json",
+      "data/search-catalog/shards/audio/soundbars/all/001.json",
+      "data/search-catalog/shards/automotive/car-chargers/all/001.json",
+      "data/search-catalog/shards/automotive/other-automotive/all/001.json",
+      "data/search-catalog/shards/automotive/wireless-carplay-adapter/all/001.json",
+      "data/search-catalog/shards/bags-accessories/belts/all/001.json",
+      "data/search-catalog/shards/bags-accessories/other-bags-accessories/all/001.json",
+      "data/search-catalog/shards/beauty-care/face-makeup/all/001.json",
+      "data/search-catalog/shards/beauty-care/grooming/all/001.json",
+      "data/search-catalog/shards/beauty-care/hair-styling-tools/all/001.json",
+      "data/search-catalog/shards/beauty-care/lip-makeup/all/001.json",
+      "data/search-catalog/shards/cameras/action-cameras/all/001.json",
+      "data/search-catalog/shards/cameras/gimbals-stabilizers/all/001.json",
+      "data/search-catalog/shards/cameras/other-cameras/all/001.json",
+      "data/search-catalog/shards/cameras/tripods/all/001.json",
+      "data/search-catalog/shards/computers/keyboards/all/001.json",
+      "data/search-catalog/shards/computers/laptops/all/001.json",
+      "data/search-catalog/shards/computers/mice/all/001.json",
+      "data/search-catalog/shards/computers/mini-pcs/all/001.json",
+      "data/search-catalog/shards/computers/monitors/all/001.json",
+      "data/search-catalog/shards/computers/motherboards/all/001.json",
+      "data/search-catalog/shards/computers/other-computers/all/001.json",
+      "data/search-catalog/shards/computers/storage-drives/all/001.json",
+      "data/search-catalog/shards/footwear/sneakers/all/001.json",
+      "data/search-catalog/shards/home-kitchen/cleaning/all/001.json",
+      "data/search-catalog/shards/home-kitchen/coffee-tea/all/002.json",
+      "data/search-catalog/shards/home-kitchen/other-home-kitchen/all/014.json",
+      "data/search-catalog/shards/jewelry-watches/other-jewelry-watches/all/001.json",
+      "data/search-catalog/shards/jewelry-watches/watches/all/001.json",
+      "data/search-catalog/shards/other/other/all/002.json",
+      "data/search-catalog/shards/other/other/all/003.json",
+      "data/search-catalog/shards/other/other/all/004.json",
+      "data/search-catalog/shards/other/other/all/005.json",
+      "data/search-catalog/shards/other/tablets/all/001.json",
+      "data/search-catalog/shards/pet-supplies/other-pet-supplies/all/001.json",
+      "data/search-catalog/shards/pet-supplies/pet-litter-box/all/001.json",
+      "data/search-catalog/shards/phones-tablets/other-phones-tablets/all/001.json",
+      "data/search-catalog/shards/phones-tablets/screen-protectors/all/001.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/001.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/002.json",
+      "data/search-catalog/shards/phones-tablets/tablets/all/001.json",
+      "data/search-catalog/shards/printing-3d/3d-filament/all/001.json",
+      "data/search-catalog/shards/printing-3d/3d-printers/all/001.json",
+      "data/search-catalog/shards/printing-3d/other-printing-3d/all/001.json",
+      "data/search-catalog/shards/projectors-tv/other-projectors-tv/all/001.json",
+      "data/search-catalog/shards/projectors-tv/projector-screens/all/001.json",
+      "data/search-catalog/shards/smart-home/other-smart-home/all/001.json",
+      "data/search-catalog/shards/smart-home/robot-vacuum/all/001.json",
+      "data/search-catalog/shards/smart-home/smart-lighting/all/001.json",
+      "data/search-catalog/shards/sports-outdoors/fitness-equipment/all/001.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/all/004.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/all/006.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/all/007.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/kids/001.json",
+      "data/search-catalog/shards/sports-outdoors/racket-sports/all/001.json",
+      "data/search-catalog/shards/sports-outdoors/sports-protection/all/001.json",
+      "data/search-catalog/shards/tools/hand-tools/all/004.json",
+      "data/search-catalog/shards/tools/other-tools/all/001.json",
+      "data/search-catalog/shards/toys-games/game-consoles/all/001.json",
+      "data/search-catalog/shards/toys-games/gaming-accessories/all/002.json",
+      "data/search-catalog/shards/toys-games/other-toys-games/all/001.json",
+      "data/trend-review.json"
+    ],
+    "normalizedRowsSeenForSeller": 1253
+  },
+  "metrics": {
+    "totalProducts": 1238,
+    "sourceFiles": 73,
+    "stableSellerId": 1138,
+    "brand": 1210,
+    "modelAny": 242,
+    "modelExplicit": 0,
+    "modelInferred": 242,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "price": 1212,
+    "image": 1238,
+    "link": 1238,
+    "variants": 0
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 1138,
+      "percent": 91.9
+    },
+    "brand": {
+      "count": 1210,
+      "percent": 97.7
+    },
+    "modelAny": {
+      "count": 242,
+      "percent": 19.5
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 242,
+      "percent": 19.5
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "price": {
+      "count": 1212,
+      "percent": 97.9
+    },
+    "image": {
+      "count": 1238,
+      "percent": 100
+    },
+    "link": {
+      "count": 1238,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [],
+    "sku": [],
+    "brandModel": [
+      {
+        "key": "brand-model:tronsmart:tronsmartsounfii",
+        "productKeys": [
+          "geekbuying:b708f53552c32c0d5cba1d42",
+          "geekbuying:df6588463e99f40dad1ffb1a",
+          "geekbuying:a4a33af7595a17e311bd24f9",
+          "geekbuying:987ae8dd8c229f235daf7c7a",
+          "geekbuying:6e5adab3790e335ebf19abbc",
+          "geekbuying:e8323ebced0f29a52f419eee"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealitycrabs",
+        "productKeys": [
+          "geekbuying:bc3fd08cf419494d294f1d32",
+          "geekbuying:62378294321440adb5766b61"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityhyperpla",
+        "productKeys": [
+          "geekbuying:466dfeda6c5bd6bd12b469ee",
+          "geekbuying:4e2607aab83f12d077521e59",
+          "geekbuying:7b45cf95727a35b7cf7844ba",
+          "geekbuying:53c02bb5a1a96c0be9adc9ed",
+          "geekbuying:050c6aae130def8e21fe77dc",
+          "geekbuying:97656c301c90a96d3d4b99fb",
+          "geekbuying:42bd5d8c8d89909cd5c85863",
+          "geekbuying:d452a27139adefc85e603431"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityhyper",
+        "productKeys": [
+          "geekbuying:b31df031695ac9aeaa097d19",
+          "geekbuying:8f097d953d5f3885933d2ce5",
+          "geekbuying:fe8f3ea055b8d96d0ecca737"
+        ]
+      },
+      {
+        "key": "brand-model:eryone:eryonepetg",
+        "productKeys": [
+          "geekbuying:e480c0003a30353e25d1d7d1",
+          "geekbuying:e4fec9d24a93ac9f37fc986d",
+          "geekbuying:2a790680bc0f15cd85e52bd8"
+        ]
+      },
+      {
+        "key": "brand-model:chuwi:chuwicorebook",
+        "productKeys": [
+          "geekbuying:590edd39111f05f88b775e84",
+          "geekbuying:ca8c88ce6a15b3ea45b6dcca",
+          "geekbuying:05761e6482cbccf85f98fda6",
+          "geekbuying:d5d301207901c3cd9324a288"
+        ]
+      },
+      {
+        "key": "brand-model:creality:creality2w",
+        "productKeys": [
+          "geekbuying:319f1ec8aa7398c7c0a7ea7a",
+          "geekbuying:0961a383b0e6268bc5f1dac6"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealitycfs",
+        "productKeys": [
+          "geekbuying:12f1d12ef7dd931d80dcd043",
+          "geekbuying:e6f294184dcdda704fb806af"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealitycr",
+        "productKeys": [
+          "geekbuying:186eb0059752eca06af1a84c",
+          "geekbuying:a0d8ae3136d6e0d022c55301"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityenderpla",
+        "productKeys": [
+          "geekbuying:d4c3b5b87fdc7cd6db874a78",
+          "geekbuying:8cc0551449ac78473dfbb9f0"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityfalcon",
+        "productKeys": [
+          "geekbuying:d5d6f4353847541c0f2420ae",
+          "geekbuying:1ed317675b6a09f91e60a4b5",
+          "geekbuying:6f45a0285ecff9d028b56fe7",
+          "geekbuying:a4c8c7686e0ad38f18e5a980",
+          "geekbuying:2cb1c32352aea043c09c712a",
+          "geekbuying:72ae74d983916af760c50a5d",
+          "geekbuying:2aa529105e524c7e91ca91b3",
+          "geekbuying:35e365c2d30f3ae2119b70ad",
+          "geekbuying:4bcb4ba8b73d11a52561d902",
+          "geekbuying:104e5004f082894a8af5f0d0",
+          "geekbuying:4960be864672b9e5182f281a",
+          "geekbuying:b1409a5aeb7ccbb2cc8b0796"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityfalcon2",
+        "productKeys": [
+          "geekbuying:96c10b0b3d39baa315dad6fd",
+          "geekbuying:869af89fd50778d0241ddba9",
+          "geekbuying:1767bb65fb59fb5112aada7c"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityk1",
+        "productKeys": [
+          "geekbuying:eb3a29691250d7ad2c1c3b3e",
+          "geekbuying:906a2c9293ef89e3fcb21a03",
+          "geekbuying:614c0478b9910e91609d65d7"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityk2",
+        "productKeys": [
+          "geekbuying:04442ca6631755a5ca7398d0",
+          "geekbuying:f604edaaaf9f29c6fc424fc0",
+          "geekbuying:d777589bb62b8c3b6b2ff5be",
+          "geekbuying:bd6bc6bbb5a85ca28660528a",
+          "geekbuying:b828660027a34162edb58368",
+          "geekbuying:498e51908a5b3fa414df3634",
+          "geekbuying:a4e29f0af6214202478bb6b7",
+          "geekbuying:0e3a1a5000390255069476ee",
+          "geekbuying:7e37b5a659077171d0638d03",
+          "geekbuying:949c394ce415182ee91415f2",
+          "geekbuying:0410d19bee38a2986ceb7efd",
+          "geekbuying:0f79258faebab0a6277baef4",
+          "geekbuying:5dc00944cd25472f06c89b8e",
+          "geekbuying:4354aae6134093a3175cd3f1",
+          "geekbuying:4e855c7e7fd650f9c2b466af",
+          "geekbuying:281ed650cf2ad61f14de33b6"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealitypei",
+        "productKeys": [
+          "geekbuying:07e55b406fc1506f7eb8924c",
+          "geekbuying:5bb0e69e37f2d1e37a1d31bf"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityraptor",
+        "productKeys": [
+          "geekbuying:e974a42b96cd8aa050c64898",
+          "geekbuying:4cd9757a31303438676fec81"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealitylasers",
+        "productKeys": [
+          "geekbuying:70bb8b6030c66608d77eedda",
+          "geekbuying:77962a15b5e0475a3b29de59"
+        ]
+      },
+      {
+        "key": "brand-model:creality:crealityspace",
+        "productKeys": [
+          "geekbuying:efa0a73f5beee50485e8a66f",
+          "geekbuying:8004b0d3973381a4730106e5"
+        ]
+      },
+      {
+        "key": "brand-model:eryone:eryonedual",
+        "productKeys": [
+          "geekbuying:1fe533daff2785579fa31857",
+          "geekbuying:07f03d5fd29e78a52af6f9e8",
+          "geekbuying:3b9c75ba414fe124deef76ab"
+        ]
+      },
+      {
+        "key": "brand-model:eryone:eryonehigh",
+        "productKeys": [
+          "geekbuying:60412e10392a786797c92e0d",
+          "geekbuying:c70743dae66193aa25218d5e",
+          "geekbuying:a86e9ce635c5255ea7fb0649",
+          "geekbuying:835498f64b87c2cecadac69d",
+          "geekbuying:4e30348ad16a11802d262392",
+          "geekbuying:df5ab756391f44dbec0b6fd8",
+          "geekbuying:3561e1cfdbfc102821607ad9"
+        ]
+      },
+      {
+        "key": "brand-model:eryone:eryonesilk",
+        "productKeys": [
+          "geekbuying:16e4a50a96407c3dcfd38e90",
+          "geekbuying:42d132b84ea54ea8cf6e00b9"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotf7200",
+        "productKeys": [
+          "geekbuying:390e9bf6b9d18ecb5e5c17ea",
+          "geekbuying:ae4b06e42af816cef6cc6852",
+          "geekbuying:2aa9d80216b4822ad925fed1",
+          "geekbuying:bfbc4693403d3f8f0884d164"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotdt2",
+        "productKeys": [
+          "geekbuying:651a20aeb5d92d313d966f0a",
+          "geekbuying:96b9c2b167ee5a8c361af265",
+          "geekbuying:3cbba4efcd231c9033ce2263"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotf106",
+        "productKeys": [
+          "geekbuying:51274e5d13d9071b72de8be4",
+          "geekbuying:26a144e71b107eca208e3451"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotf112",
+        "productKeys": [
+          "geekbuying:c2cc8208cd07a89985660adb",
+          "geekbuying:cf603ffc68c85c9867222f6b"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotf1200",
+        "productKeys": [
+          "geekbuying:fd784dd1d4129fa11e5e2d59",
+          "geekbuying:0040201192e93963541bd338",
+          "geekbuying:12d14b530ca5dfa2b112702f",
+          "geekbuying:f5bc9c88d1eec5213f488420"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotf1800",
+        "productKeys": [
+          "geekbuying:44d581c796a58470f2274b61",
+          "geekbuying:e95f4a2381d4c9d5403b128e",
+          "geekbuying:1eaf3d421fddf1da73a989d5"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotf2400",
+        "productKeys": [
+          "geekbuying:51491553cf84c8120a4c5833",
+          "geekbuying:6317d5d3cd416d526f12f8dd",
+          "geekbuying:13ca1e9e5c1e2c2fac9cc598",
+          "geekbuying:820e1aaf6befdcc1b7f9b943",
+          "geekbuying:6cbad40d9f4ce3e365e54b30"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotf3600",
+        "productKeys": [
+          "geekbuying:046acb5c3e3452af6d483dd6",
+          "geekbuying:65de999ab70d8e3832915bdb",
+          "geekbuying:29d118ecbd081c1ce72b7765"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotfbp1200",
+        "productKeys": [
+          "geekbuying:767a5f1579d5baa10a43f372",
+          "geekbuying:98cf380a8051ac43bbb1b89c"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotfolding",
+        "productKeys": [
+          "geekbuying:4a34717c9d82153a1955f01e",
+          "geekbuying:5a6462368d71614bb3ca034e"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotmc4",
+        "productKeys": [
+          "geekbuying:f7aeefaf2c53ce899169e225",
+          "geekbuying:316742fa83937986a3d9bde8"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotsmart",
+        "productKeys": [
+          "geekbuying:7103fdadb6a83f84108b4969",
+          "geekbuying:09821ecccbaef312b5a2b30c"
+        ]
+      },
+      {
+        "key": "brand-model:fossibot:fossibotsp420",
+        "productKeys": [
+          "geekbuying:944f23c9d092969a4d247256",
+          "geekbuying:0c61aac6b1a2a4e6dca52cc8"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixca361",
+        "productKeys": [
+          "geekbuying:8142738ebf2c678c0409f2ab",
+          "geekbuying:ca1bf2fd79363c31e876a7d6"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixca525",
+        "productKeys": [
+          "geekbuying:92fdd6fa371a75daae61c4e8",
+          "geekbuying:fddd0557fbb583e530f93dec"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixcp86",
+        "productKeys": [
+          "geekbuying:84913d41b97c8997bc7ed4b8",
+          "geekbuying:9d392eee22c1855291270748"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixelite",
+        "productKeys": [
+          "geekbuying:7034a1fa75035e18ac59e23c",
+          "geekbuying:57895bbac4b4d470426aca82"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixn512",
+        "productKeys": [
+          "geekbuying:d27da26da7cdac9bb0dec78d",
+          "geekbuying:7e473db54e17ce1ca226101e"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixp1",
+        "productKeys": [
+          "geekbuying:26645b9fbfe51cb85631884b",
+          "geekbuying:18ccc3433fbf99fd55ce5a86"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixp3",
+        "productKeys": [
+          "geekbuying:5a852711d370eee515c306d6",
+          "geekbuying:26aecf386e95087a68ba188b"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixz1500db",
+        "productKeys": [
+          "geekbuying:b3bbf26bffe8bc7943c4429f",
+          "geekbuying:ddd597f3abc62194c61cd21f"
+        ]
+      },
+      {
+        "key": "brand-model:sodi:iphone16pro",
+        "productKeys": [
+          "geekbuying:4dfb559c6cf85ee6700a7052",
+          "geekbuying:3e7cf483efa287cfcd724522"
+        ]
+      },
+      {
+        "key": "brand-model:sodi:iphone16promax",
+        "productKeys": [
+          "geekbuying:eac81a386a324c21a10960a7",
+          "geekbuying:f01ead3d2d78db6f77dbc9dd"
+        ]
+      },
+      {
+        "key": "brand-model:sparin:iphone15",
+        "productKeys": [
+          "geekbuying:99bc9916444750f307989ba9",
+          "geekbuying:78503aeb5187ae319044cb72"
+        ]
+      },
+      {
+        "key": "brand-model:sparin:iphone15plus",
+        "productKeys": [
+          "geekbuying:e868c4e7b7e0779e7b4dee7d",
+          "geekbuying:50e48ef07e34ed8e9f7be8b2"
+        ]
+      },
+      {
+        "key": "brand-model:sparin:iphone15promax",
+        "productKeys": [
+          "geekbuying:d08a22692eddb6a8332cb1a3",
+          "geekbuying:3ecd3e4c9ac08021c5702533"
+        ]
+      },
+      {
+        "key": "brand-model:tronsmart:tronsmarthalo",
+        "productKeys": [
+          "geekbuying:7c25cd4135005a54f06313d9",
+          "geekbuying:e733e568ae8ee7374c7ac331"
+        ]
+      },
+      {
+        "key": "brand-model:tronsmart:tronsmartt8",
+        "productKeys": [
+          "geekbuying:89e88e87d36bd749cf99631a",
+          "geekbuying:00d1cbaa45bdf5f38294a51b",
+          "geekbuying:9f75fef8bf2a4e416b375b75"
+        ]
+      }
+    ]
+  },
+  "roundTripSamples": [
+    {
+      "query": "Creality Magnetic",
+      "expectedProductKey": "geekbuying:4c55cefb068ee8918cfd29c9",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Tronsmart SOUNFII",
+      "expectedProductKey": "geekbuying:b708f53552c32c0d5cba1d42",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 6
+    },
+    {
+      "query": "Creality CR-ABS",
+      "expectedProductKey": "geekbuying:bc3fd08cf419494d294f1d32",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 2
+    },
+    {
+      "query": "Creality Hyper-ABS",
+      "expectedProductKey": "geekbuying:b27e9fc05e458ad4a5f0289a",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Creality Hyper-PLA",
+      "expectedProductKey": "geekbuying:466dfeda6c5bd6bd12b469ee",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 8
+    },
+    {
+      "query": "Creality Hyper-PLA",
+      "expectedProductKey": "geekbuying:4e2607aab83f12d077521e59",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 8
+    },
+    {
+      "query": "Creality Hyper-PLA",
+      "expectedProductKey": "geekbuying:7b45cf95727a35b7cf7844ba",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 8
+    },
+    {
+      "query": "Creality Hyper-PETG",
+      "expectedProductKey": "geekbuying:75c775911a8594b73c81616d",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Creality Hyper",
+      "expectedProductKey": "geekbuying:b31df031695ac9aeaa097d19",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 3
+    },
+    {
+      "query": "ERYONE PETG",
+      "expectedProductKey": "geekbuying:e480c0003a30353e25d1d7d1",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 3
+    },
+    {
+      "query": "ALLIWAVA P16",
+      "expectedProductKey": "geekbuying:f715aaf2beb93ff336824365",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "CHUWI CoreBook",
+      "expectedProductKey": "geekbuying:590edd39111f05f88b775e84",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 4
+    },
+    {
+      "query": "CHUWI CoreBook",
+      "expectedProductKey": "geekbuying:ca8c88ce6a15b3ea45b6dcca",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 4
+    },
+    {
+      "query": "CHUWI CoreBook",
+      "expectedProductKey": "geekbuying:05761e6482cbccf85f98fda6",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 4
+    },
+    {
+      "query": "CHUWI CoreBook",
+      "expectedProductKey": "geekbuying:d5d301207901c3cd9324a288",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 4
+    },
+    {
+      "query": "CHUWI H7",
+      "expectedProductKey": "geekbuying:e5d63e07ef37cdd8021be113",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "CHUWI Magnetic",
+      "expectedProductKey": "geekbuying:c5ae408518899dc7c8e810e1",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "ALLIWAVA GH8",
+      "expectedProductKey": "geekbuying:7c477213a394092a008a1a16",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "ALLIWAVA GH9",
+      "expectedProductKey": "geekbuying:c51b32598dd064a80b5df21e",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "ALLIWAVA H90",
+      "expectedProductKey": "geekbuying:e526567177c930180d2aeaf7",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "a5c70406110329a1b4",
+      "expectedProductKey": "geekbuying:bc60f93383d28c2fb662b70c",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "3098c0e3f37e704c49",
+      "expectedProductKey": "geekbuying:dc7333babec21467c9a45556",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "c8ce0d129bd69588efd5",
+      "expectedProductKey": "geekbuying:bc7c4950d46271c81b1f8aeb",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "5face286608e559edba5",
+      "expectedProductKey": "geekbuying:fb5e9bad3096a3b23961dbcf",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "971a49c07692e33c26c4",
+      "expectedProductKey": "geekbuying:cff3a14088d9b5a1078efac3",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "b9cecf214c947b005a65",
+      "expectedProductKey": "geekbuying:845035b3be06f2e356309360",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "781c5986203a1c12ed",
+      "expectedProductKey": "geekbuying:e9e515a9ebaf6f1e93a64676",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "fb6b5b17afc70ce963",
+      "expectedProductKey": "geekbuying:6e31b30f8dd62cbe871050b6",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "8b78dc2aaaaa729250ba",
+      "expectedProductKey": "geekbuying:0a848282aa3d0de3adc17fbe",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "5b12f76f8466aa6fb1dd",
+      "expectedProductKey": "geekbuying:79625d822bcd7a4126386585",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "b379eee4fd8ef1bbb972",
+      "expectedProductKey": "geekbuying:4a7a7947c051c4389502f14b",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7c0ccd45ffbb3b2c674d",
+      "expectedProductKey": "geekbuying:ae8e69e9a33a2576e5736172",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "6918b6301c604f5ba4",
+      "expectedProductKey": "geekbuying:7e1ed9a0c0f1067012b278ee",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "4d3dedb9cec27df19e",
+      "expectedProductKey": "geekbuying:1c385ef9e1f2a72d8d7c06c0",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "97f4861caca863764a17",
+      "expectedProductKey": "geekbuying:f35e9baa38d85adb16f9e1c4",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "db2edd6170844dbdcd8e",
+      "expectedProductKey": "geekbuying:ccf9ba332a15dac76960c7ec",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "f0b34fb49e8874340ea6",
+      "expectedProductKey": "geekbuying:92e513f09c0d6cbff2440a0e",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "03122159aefab0f5a378",
+      "expectedProductKey": "geekbuying:b3fd03652096142fa25d9270",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "2b5fedbbed7c86e76362",
+      "expectedProductKey": "geekbuying:e4620ffb04ec44c1fd6cc8ac",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "9fa571061f5d152c84f3",
+      "expectedProductKey": "geekbuying:da87b559d6fb527ae4d7b44e",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    }
+  ],
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}
