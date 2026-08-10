@@ -1,0 +1,288 @@
+name: TrendPilot V16.2.6 Final Search Stabilizer
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v16-2-6-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  final-search-stabilizer:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Apply final search stabilization
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          js = Path("js/site-v13-5.js")
+          finder = Path("find/index.html")
+          docs = Path("V16-UNIVERSAL-PRODUCT-INDEX.md")
+
+          if not js.exists():
+              raise SystemExit("Missing js/site-v13-5.js")
+          if not finder.exists():
+              raise SystemExit("Missing find/index.html")
+
+          s = js.read_text(encoding="utf-8")
+
+          # ============================================================
+          # 1) STOP USING HYBRID TIER AS AN EXACT-MATCH BYPASS
+          # ------------------------------------------------------------
+          # V16.2.5 already recovered results, but tier>=4 still bypasses
+          # the proven family/title guards. That is why titles such as
+          # "phone control drone" can return ahead of a real phone.
+          # Keep intentTier only as a ranking signal, not as permission
+          # to bypass product-type checks.
+          # ============================================================
+          old = '''  // TP_HYBRID_SOFT_GATE_V16_2_5
+          if(p?._tpHybridV16_2_1){
+            const tier=Number(p.intentTier||0);
+            if(tier>=4)return true;
+            if(tpHybridClearlyRelatedV16_2_5(p,plan))return false;
+          }
+          '''
+          new = '''  // TP_HYBRID_FINAL_GATE_V16_2_6
+          if(p?._tpHybridV16_2_1){
+            // Hybrid tier still affects score(), but every row must also pass
+            // the normal product-family/title guards below.
+            if(tpHybridClearlyRelatedV16_2_5(p,plan))return false;
+          }
+          '''
+
+          if old not in s:
+              raise SystemExit("V16.2.5 soft gate block not found.")
+          s = s.replace(old, new, 1)
+
+          # ============================================================
+          # 2) PHONE GUARD: RELAX JUST ENOUGH FOR REAL PHONE TITLES
+          # ------------------------------------------------------------
+          # Some feeds call phones "Mobiles Phone" or use only "phone"
+          # plus real device specs. Keep accessories out, while accepting
+          # generic phone wording when real cellular/device signals exist.
+          # ============================================================
+          old_phone = '''      const tpPhoneAccessory=/\\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds)\\b/i;
+              const tpRealPhone=/\\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\\s+[a-z0-9+.-]+)?|google pixel(?:\\s+[a-z0-9+.-]+)?|motorola(?:\\s+moto)?|moto\\s+g\\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\\b/i;
+              if(tpPhoneAccessory.test(tpPhoneText))return false;
+              if(!tpRealPhone.test(tpPhoneText) && p.family!=="smartphones")return false;
+          '''
+
+          new_phone = '''      const tpPhoneAccessory=/\\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds)\\b/i;
+              const tpRealPhone=/\\b(?:smart ?phones?|mobile phones?|mobiles? phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\\s+[a-z0-9+.-]+)?|google pixel(?:\\s+[a-z0-9+.-]+)?|motorola(?:\\s+moto)?|moto\\s+g\\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\\b/i;
+              const tpGenericPhone=/\\b(?:phones?|mobiles?)\\b/i;
+              const tpPhoneHardware=/\\b(?:dual sim|single sim|sim card|4g|5g|lte|gsm|cdma|android|ram|rom|octa[- ]?core|quad[- ]?core|snapdragon|mediatek|dimensity|helio|unlocked|imei)\\b/i;
+              if(tpPhoneAccessory.test(tpPhoneText))return false;
+              if(
+                !tpRealPhone.test(tpPhoneText) &&
+                !(tpGenericPhone.test(tpPhoneText) && tpPhoneHardware.test(tpPhoneText)) &&
+                p.family!=="smartphones"
+              )return false;
+          '''
+
+          if old_phone not in s:
+              raise SystemExit("Current smartphone guard block not found.")
+          s = s.replace(old_phone, new_phone, 1)
+
+          # ============================================================
+          # 3) TIKTOK LIVE PHONE PREP: SAME PRACTICAL PHONE DETECTOR
+          # ------------------------------------------------------------
+          # The old direct-live filter could throw away genuine phones
+          # before they ever reached the main ranking.
+          # ============================================================
+          old_live = '''      const accessory=/\\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds)\\b/i;
+              const device=/\\b(?:smartphones?|mobile phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\\s+[a-z0-9+.-]+)?|google pixel(?:\\s+[a-z0-9+.-]+)?|motorola(?:\\s+moto)?|moto\\s+g\\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\\b/i;
+              out=out.filter(p=>{
+                const text=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
+                return device.test(text) && !accessory.test(text);
+              }).map(p=>Object.assign({},p,{group:"phones-tablets",family:"smartphones"}));
+          '''
+
+          new_live = '''      const accessory=/\\b(?:case|cover|screen protector|protector|charger|charging|cable|mount|holder|stand|strap|lanyard|chain|grip|dock|adapter|cleaning|cleaner|cleaning tool|repair kit|replacement|replacement part|charging port|phone port|accessor(?:y|ies)|headphones?|earbuds?|earphones?|headsets?|power bank|battery pack|wallet|suction cup|tripod|smart ?watch(?:es)?|watch(?:es)?|apple watch|galaxy watch|fitness tracker|fitness band|smart band|wristband|bracelet|wearable|smart ring|tablet|tablets|ipad|stylus|buds)\\b/i;
+              const device=/\\b(?:smart ?phones?|mobile phones?|mobiles? phones?|cell phones?|android phones?|unlocked phones?|iphones?|samsung galaxy(?:\\s+[a-z0-9+.-]+)?|google pixel(?:\\s+[a-z0-9+.-]+)?|motorola(?:\\s+moto)?|moto\\s+g\\d*|oneplus|xiaomi|redmi|oppo|vivo|realme|nothing phone)\\b/i;
+              const genericPhone=/\\b(?:phones?|mobiles?)\\b/i;
+              const hardware=/\\b(?:dual sim|single sim|sim card|4g|5g|lte|gsm|cdma|android|ram|rom|octa[- ]?core|quad[- ]?core|snapdragon|mediatek|dimensity|helio|unlocked|imei)\\b/i;
+              out=out.filter(p=>{
+                const text=lower(`${p.name||""} ${p.category||""} ${p.brand||""}`);
+                const looksLikePhone=device.test(text)||(genericPhone.test(text)&&hardware.test(text));
+                return looksLikePhone && !accessory.test(text);
+              }).map(p=>Object.assign({},p,{group:"phones-tablets",family:"smartphones"}));
+          '''
+
+          if old_live not in s:
+              raise SystemExit("Current TikTok phone preparation block not found.")
+          s = s.replace(old_live, new_live, 1)
+
+          # ============================================================
+          # 4) SELLER SELECTION: ALWAYS DEEPEN, FOR EVERY SELLER
+          # ------------------------------------------------------------
+          # Current behavior stops as soon as Hybrid returns even one row.
+          # Result: TikTok may show 1 phone, AliExpress may show only a few.
+          # New behavior:
+          #   - Hybrid seller search
+          #   - PLUS expanded CJ live queries when available
+          #   - PLUS seller-specific indexed pages only if still <24
+          # This is generic for all sellers and avoids endless manual fixes.
+          # ============================================================
+          old_selected = '''        const hybridSellerResultV16_2_1=await tpLoadHybridProductsV16_2_1(
+                    state.query,
+                    selected
+                  );
+                  if(hybridSellerResultV16_2_1?.rows?.length){
+                    state.hybridMeta=hybridSellerResultV16_2_1.meta||state.hybridMeta;
+                    mergeProducts(hybridSellerResultV16_2_1.rows);
+                  }else if(TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)){
+                    const liveRows=await tpLoadSelectedLiveSellerV15_8_9(selected,state.query);
+                    if(liveRows.length)mergeProducts(liveRows);
+                  }else if(typeof tpLoadSellerSpecificV15_1==="function"){
+                    await tpLoadSellerSpecificV15_1(selected);
+                  }
+          '''
+
+          new_selected = '''        // TP_SELLER_DEPTH_FINAL_V16_2_6
+                  const [hybridSellerResultV16_2_1, liveSellerRowsV16_2_6]=await Promise.all([
+                    tpLoadHybridProductsV16_2_1(state.query,selected),
+                    TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)
+                      ? tpLoadSelectedLiveSellerV15_8_9(selected,state.query)
+                      : Promise.resolve([])
+                  ]);
+
+                  if(hybridSellerResultV16_2_1?.rows?.length){
+                    state.hybridMeta=hybridSellerResultV16_2_1.meta||state.hybridMeta;
+                    mergeProducts(hybridSellerResultV16_2_1.rows);
+                  }
+
+                  if(Array.isArray(liveSellerRowsV16_2_6) && liveSellerRowsV16_2_6.length){
+                    mergeProducts(liveSellerRowsV16_2_6);
+                  }
+
+                  const sellerExactCountV16_2_6=state.exact.filter(p=>{
+                    const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
+                    return rowSeller===selected;
+                  }).length;
+
+                  if(sellerExactCountV16_2_6<24 && typeof tpLoadSellerSpecificV15_1==="function"){
+                    await tpLoadSellerSpecificV15_1(selected);
+                  }
+          '''
+
+          if old_selected not in s:
+              raise SystemExit("Current selected-seller loader block not found.")
+          s = s.replace(old_selected, new_selected, 1)
+
+          js.write_text(s, encoding="utf-8")
+
+          # ============================================================
+          # 5) CACHE BUST
+          # ============================================================
+          h = finder.read_text(encoding="utf-8")
+          h2, n = re.subn(
+              r'/js/site-v13-5\.js\?v=[^"\']+',
+              '/js/site-v13-5.js?v=16.2.6',
+              h,
+              count=1
+          )
+          if n != 1:
+              raise SystemExit(f"Finder script URL not found uniquely: matches={n}")
+          finder.write_text(h2, encoding="utf-8")
+
+          # ============================================================
+          # 6) DOCUMENT THE FREEZE POINT
+          # ============================================================
+          d = docs.read_text(encoding="utf-8") if docs.exists() else "# TrendPilot V16 Universal Product Index\n"
+          if "## V16.2.6 — final search stabilizer" not in d:
+              d += r'''
+
+          ## V16.2.6 — final search stabilizer
+
+          This is the practical freeze point for the product finder.
+
+          - Hybrid intent tier is ranking evidence only; it no longer bypasses
+            normal product-family/title validation.
+          - Real-phone detection accepts common feed wording plus cellular
+            hardware signals while continuing to reject obvious accessories.
+          - TikTok phone live results use the same practical detector.
+          - Selecting any seller now combines Hybrid results, available live
+            results and deeper indexed seller pages when fewer than 24 exact
+            matches are loaded.
+          - This specifically prevents "one TikTok result" / "few AliExpress
+            results" when additional seller inventory exists.
+          - No product-index rebuild is required.
+          - A small number of imperfect edge results is intentionally accepted
+            to avoid over-filtering the catalogue again.
+          '''
+          docs.write_text(d, encoding="utf-8")
+
+          print("V16.2.6 final search stabilization applied.")
+          PY
+
+      - name: Validate V16.2.6
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/site-v13-5.js
+          git diff --check
+
+          grep -q 'TP_HYBRID_FINAL_GATE_V16_2_6' js/site-v13-5.js
+          grep -q 'tpPhoneHardware' js/site-v13-5.js
+          grep -q 'TP_SELLER_DEPTH_FINAL_V16_2_6' js/site-v13-5.js
+          grep -q 'sellerExactCountV16_2_6<24' js/site-v13-5.js
+          grep -q '/js/site-v13-5.js?v=16.2.6' find/index.html
+
+          if grep -q 'if(tier>=4)return true;' js/site-v13-5.js; then
+            echo "Hybrid tier bypass still exists."
+            exit 1
+          fi
+
+          echo "V16.2.6 validation passed."
+
+      - name: Publish V16.2.6
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            js/site-v13-5.js \
+            find/index.html \
+            V16-UNIVERSAL-PRODUCT-INDEX.md
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "V16.2.6 is already installed."
+            exit 0
+          fi
+
+          git commit -m "fix: stabilize search relevance and deepen all seller results"
+          git push origin HEAD:main
+
+          {
+            echo "## TrendPilot V16.2.6 — Final Search Stabilizer"
+            echo "- keeps current V16 index and backend"
+            echo "- stops high hybrid tiers from bypassing family/title guards"
+            echo "- improves practical real-phone detection"
+            echo "- always supplements selected CJ sellers with live results"
+            echo "- deepens every selected seller when fewer than 24 exact matches are loaded"
+            echo "- no rebuild required"
+            echo "- intended as the product-search freeze point so work can move to other pages"
+          } >> "$GITHUB_STEP_SUMMARY"
