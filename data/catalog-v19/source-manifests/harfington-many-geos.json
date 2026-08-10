@@ -1,0 +1,45 @@
+{
+  "version": "19.8.0",
+  "seller": "Harfington Many GEOs",
+  "slug": "harfington-many-geos",
+  "generatedAt": "2026-08-10T23:42:51.229Z",
+  "policy": {
+    "purpose": "Discover all repository product-feed sources for one approved seller before building its canonical V19 catalog.",
+    "productCatalogOnly": true,
+    "couponsAndPromotionsExcluded": true,
+    "auditsAndGeneratedAnalysisExcluded": true
+  },
+  "candidateFiles": 2,
+  "qualifiedFileCount": 1,
+  "discoveredUniqueProductsAcrossAllCandidateFiles": 125,
+  "qualifiedUniqueProducts": 100,
+  "qualifiedFiles": [
+    "data/admitad-products-new-account-v15-3-2.json"
+  ],
+  "files": [
+    {
+      "file": "data/admitad-products-new-account-v15-3-2.json",
+      "rows": 100,
+      "uniqueProducts": 100,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/coupons.json",
+      "rows": 25,
+      "uniqueProducts": 25,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "explicit-metadata-or-commercial-file"
+    }
+  ]
+}

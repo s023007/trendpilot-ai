@@ -1,0 +1,255 @@
+{
+  "version": "19.8.0",
+  "seller": "Harfington Many GEOs",
+  "generatedAt": "2026-08-10T23:42:51.424Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/admitad-products-new-account-v15-3-2.json"
+    ],
+    "normalizedRowsForSeller": 100
+  },
+  "metrics": {
+    "totalProducts": 100,
+    "sourceFiles": 1,
+    "stableSellerId": 0,
+    "brand": 100,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 9,
+    "price": 100,
+    "image": 100,
+    "link": 100,
+    "variants": 0,
+    "sourceQualified": 100
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 0,
+      "percent": 0
+    },
+    "brand": {
+      "count": 100,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 9,
+      "percent": 9
+    },
+    "price": {
+      "count": 100,
+      "percent": 100
+    },
+    "image": {
+      "count": 100,
+      "percent": 100
+    },
+    "link": {
+      "count": 100,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 100,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [],
+    "sku": [],
+    "brandModel": []
+  },
+  "roundTripSamples": [
+    {
+      "query": "10FT 1/16\" 2mm ID 3.5mm Thickness Silicone Vacuum Tubing Hose for Air and Water",
+      "indexKey": "10ft 1/16\" 2mm id 3.5mm thickness silicone vacuum tubing hose for air and water",
+      "expectedProductKey": "harfington-many-geos:26cb3c9b6fc1c05b66f47c96",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "10Ft 1/4\" 6mm ID 2mm Thickness Silicone Vacuum Hose for Air and Water Blue",
+      "indexKey": "10ft 1/4\" 6mm id 2mm thickness silicone vacuum hose for air and water blue",
+      "expectedProductKey": "harfington-many-geos:43df2ef31043cb3a7d64deb0",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "10FT 3/16\" 4mm ID 2.5mm Thickness Silicone Vacuum Hose for Air and Water Clear",
+      "indexKey": "10ft 3/16\" 4mm id 2.5mm thickness silicone vacuum hose for air and water clear",
+      "expectedProductKey": "harfington-many-geos:abc397e97d0831486a70f050",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "15298923 Ignition Lock Switch Cylinder for GMC Yukon Sierra for Chevy Silverado",
+      "indexKey": "15298923 ignition lock switch cylinder for gmc yukon sierra for chevy silverado",
+      "expectedProductKey": "harfington-many-geos:590e316bdc13d13c7bcbc0ab",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "16\" x 16\" Aluminum Return Grille Return Air Vent Cover with Mesh Filter, White",
+      "indexKey": "16\" x 16\" aluminum return grille return air vent cover with mesh filter, white",
+      "expectedProductKey": "harfington-many-geos:abe7f2f9e933b05a3d503b25",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "16x16 Inch Aluminum Vent Cover, Shutter Exhaust Fan Louvered Vent",
+      "indexKey": "16x16 inch aluminum vent cover, shutter exhaust fan louvered vent",
+      "expectedProductKey": "harfington-many-geos:c8bea9ddc86002627b427845",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "3 Set DC 32V 14 AWG Car ATC Blade Style Inline Fuse Holder with 15A Fuse",
+      "indexKey": "3 set dc 32v 14 awg car atc blade style inline fuse holder with 15a fuse",
+      "expectedProductKey": "harfington-many-geos:275aeca1937c201c85ea7203",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "3.3 Ft 1/2\" 12mm ID 3mm Thickness Silicone Vacuum Hose for Air and Water Black",
+      "indexKey": "3.3 ft 1/2\" 12mm id 3mm thickness silicone vacuum hose for air and water black",
+      "expectedProductKey": "harfington-many-geos:6b259064d1e0635a06433e92",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "394mil 10mm 1.35sqft Car Sound Deadening Mat Aluminum Foil Foam Heat Shield Material Universal for Hood Fender and Boat Engine Cover 19.69\"x9.84\"",
+      "indexKey": "394mil 10mm 1.35sqft car sound deadening mat aluminum foil foam heat shield material universal for hood fender and boat engine cover 19.69\"x9.84\"",
+      "expectedProductKey": "harfington-many-geos:423873d259c506ab12b0e1ff",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "394mil 6.4sqft Car Firewall Heat Sound Deadener Insulation Mat 40\" x 24\"",
+      "indexKey": "394mil 6.4sqft car firewall heat sound deadener insulation mat 40\" x 24\"",
+      "expectedProductKey": "harfington-many-geos:7daf6ec59944600d2dd2158a",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Car Key Fob Shell Case MR587983 for Mitsubishi Gallant Lancer 2 Key Button",
+      "indexKey": "car key fob shell case mr587983 for mitsubishi gallant lancer 2 key button",
+      "expectedProductKey": "harfington-many-geos:1b3fdd0ac59ffe8fe023627c",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Keyless Entry Remote Key Fob 313.8Mhz N5F-A04TAA for Honda Odyssey EXL",
+      "indexKey": "keyless entry remote key fob 313.8mhz n5f-a04taa for honda odyssey exl",
+      "expectedProductKey": "harfington-many-geos:5d48f4894c4772d9de38e248",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1 Set NO.0B5325429E Transmission Filter Oil Pan Gasket Kit for Audi A4 A5 RS5",
+      "indexKey": "p",
+      "expectedProductKey": "harfington-many-geos:01cbc13b9e3cf67fea266d93",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 27
+    },
+    {
+      "query": "2pcs Round Cooking Rack 15\" 201 Stainless Steel Barbecue Grill with 20mm Legs",
+      "indexKey": "p",
+      "expectedProductKey": "harfington-many-geos:0c34cba33046e46a3011cb75",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 27
+    },
+    {
+      "query": "31 x 4 Inch Door Air Vent Cover, 1 Pcs Heavy Duty Grille Ventilation",
+      "indexKey": "p",
+      "expectedProductKey": "harfington-many-geos:19b9be35b1cb0dfea4a77d7b",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 27
+    },
+    {
+      "query": "OD 110.1mm to ID 76.1mm Car Wheel Hub Centric Rings Aluminium Alloy 4 Pcs",
+      "indexKey": "p",
+      "expectedProductKey": "harfington-many-geos:1a5dc28ae0b6167348aaf56a",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 27
+    },
+    {
+      "query": "2PCS 8\"x16\" Aluminum Gable Vent Exterior Wall Outlet Vents for Attic, Black",
+      "indexKey": "p",
+      "expectedProductKey": "harfington-many-geos:1cc55e6ef18274d3351c031e",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 27
+    },
+    {
+      "query": "1 Pcs 14mm 0.55\" ID 120mm 4.72\" Lenght 135° Blue Car Silicone Hose Universal",
+      "indexKey": "p",
+      "expectedProductKey": "harfington-many-geos:1f7a90838660741c3f18316d",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 27
+    },
+    {
+      "query": "10pcs 4-14mm Metric Nut Driver Set with 1/4\" Hex Screwdriver Bit Driver Handle",
+      "indexKey": "p",
+      "expectedProductKey": "harfington-many-geos:34b5db14193d9a160a2ee016",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 27
+    },
+    {
+      "query": "20\"x3.2\" Air Vent Cover 2pcs Door Grille Ventilation Louvered for Cabinet Black",
+      "indexKey": "p",
+      "expectedProductKey": "harfington-many-geos:3b1ca7fc1a0af7217b81c1b1",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 27
+    }
+  ],
+  "sourceManifest": "data/catalog-v19/source-manifests/harfington-many-geos.json",
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}
