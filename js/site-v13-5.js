@@ -10,9 +10,9 @@
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
 
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "13.8.8";
-  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203", "6293473"]);
-  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal", "temu", "temucom", "shoptemu"]);
+  const TP_CJ_GUARD_VERSION = "18.1.3";
+  const TP_CJ_APPROVED_IDS = new Set(["2357926","7287203","5893489","7227612","4837117","4295086","7753674","2288710","7563286","4368684"]);
+  const TP_CJ_APPROVED_NAMES = new Set(["diecast","diecastcom","fragranceshop","fragranceshopcom","karaca","karacaeu","karacaeurope","mfi","mfimedical","nordvpn","pandahall","pandahallcom","sportsevents365","ticketnetwork","ticketnetworkcom","tiktok","tiktokshop","tiktokshopus","tripcom","tripcomglobal","thefragranceshop","thefragranceshopcom"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tiktok", "tiktokshop", "tiktokshopus", "tripcom", "tripcomglobal"]);
   const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
   const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
@@ -105,8 +105,8 @@
   }
   // TP_CJ_EXACT_GUARD_END
 
-// TP_SELLER_POLICY_V17_2
-const TP_PUBLIC_PRODUCT_SELLERS_V17_2 = new Set(["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US","Temu"]);
+// TP_SELLER_POLICY_V18_1_3
+const TP_PUBLIC_PRODUCT_SELLERS_V17_2 = new Set(["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US"]);
 // TP_PUBLIC_SELLER_GUARD_START
 function tpPublicSellerAllowed(p) {
   if (!p) return false;
@@ -476,7 +476,7 @@ function normalizeProduct(p) {
 
 
   // TP_CJ_LIVE_SEARCH_V15_7_1_START
-  const TP_CJ_LIVE_SELLERS_V15_7_1 = new Set(["Temu","PandaHall","FragranceShop.com","Karaca EU", "TikTok Shop US"]);
+  const TP_CJ_LIVE_SELLERS_V15_7_1 = new Set(["PandaHall","FragranceShop.com","Karaca EU","TikTok Shop US"]);
 
   async function tpLoadCjLiveProductsV15_7_1(query, requestedSeller=""){
     const seller=tpCanonicalSellerV15_1(requestedSeller)||clean(requestedSeller);
@@ -874,7 +874,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
   }
 
   // TP_V15_1_FEDERATED_START
-  const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US","Temu"];
+  const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US"];
   const TP_CPC_SELLERS_V15_1 = new Set(["AliExpress","Alibaba","Geekbuying"]);
   const TP_SELLER_ALIASES_V15_1 = {
     "aliexpress":"AliExpress","ali express":"AliExpress","aliexpress.com":"AliExpress",
@@ -891,8 +891,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     "mfi":"MFI Medical","mfi medical":"MFI Medical","mfimedical":"MFI Medical",
     "pandahall":"PandaHall","panda hall":"PandaHall",
     "tiktok":"TikTok Shop US","tiktok shop":"TikTok Shop US","tiktok shop us":"TikTok Shop US","tiktokshop":"TikTok Shop US",
-    "temu":"Temu","temu.com":"Temu","shop temu":"Temu"
-  };
+};
   const TP_QUERY_ALIASES_V15_1 = {
     "necklace":["necklace","necklaces","pendant","pendants","chain necklace","chains","choker","chokers","neck jewelry","neck jewellery"],
     "necklaces":["necklace","necklaces","pendant","pendants","chain necklace","chains","choker","chokers","neck jewelry","neck jewellery"],

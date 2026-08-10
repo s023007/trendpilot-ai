@@ -1,9 +1,7 @@
 const CJ_ENDPOINT = "https://ads.api.cj.com/query";
 const CJ_LINK_SEARCH_ENDPOINT = "https://link-search.api.cj.com/v2/link-search";
 
-const SELLERS = {
-  "Temu": { advertiserId: "6293473", adIds: ["15501511"] },
-  "PandaHall": { advertiserId: "4295086", adIds: ["15609716"] },
+const SELLERS = {  "PandaHall": { advertiserId: "4295086", adIds: ["15609716"] },
   "FragranceShop.com": { advertiserId: "7287203", adIds: ["16941446"] },
   "Karaca EU": { advertiserId: "5893489", adIds: ["15171094"] },
   "TikTok Shop US": { advertiserId: "7563286", adIds: ["17099898"], strictProductTracking: true, disableLinkSearch: true }
@@ -78,9 +76,7 @@ function words(value) {
 }
 
 function canonicalSeller(value) {
-  const raw = clean(value).toLowerCase();
-  if (["temu","temu.com","shop temu"].includes(raw)) return "Temu";
-  if (["pandahall","panda hall"].includes(raw)) return "PandaHall";
+  const raw = clean(value).toLowerCase();  if (["pandahall","panda hall"].includes(raw)) return "PandaHall";
   if (["fragranceshop.com","fragranceshop","fragrance shop","the fragrance shop"].includes(raw)) return "FragranceShop.com";
   if (["karaca eu","karaca europe","karaca"].includes(raw)) return "Karaca EU";
   if (["tiktok shop us","tiktok shop","tiktok","tiktokshop"].includes(raw)) return "TikTok Shop US";

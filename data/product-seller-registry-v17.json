@@ -1,10 +1,11 @@
 {
-  "version": "17.2.0",
+  "version": "18.1.3",
   "policy": "explicit-approved-product-sellers-only",
   "notes": [
     "Only explicitly approved product sellers may be indexed or returned by product search.",
-    "Joom is intentionally excluded because the affiliate application was not accepted.",
-    "Service/ticket partners are handled outside the product seller registry.",
+    "Joom is excluded because the affiliate application was not accepted.",
+    "Temu is excluded until it appears as an active/accepted CJ advertiser for this publisher.",
+    "CJ software, travel, and ticket partners are active affiliates but are kept outside product comparison.",
     "Raw archived data may remain on disk without being indexed or exposed."
   ],
   "sellers": [
@@ -103,13 +104,6 @@
       "name": "TikTok Shop US",
       "network": "CJ",
       "mode": "live",
-      "public": true,
-      "cpc": false
-    },
-    {
-      "name": "Temu",
-      "network": "CJ",
-      "mode": "catalog+live",
       "public": true,
       "cpc": false
     }

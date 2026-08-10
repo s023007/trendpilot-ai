@@ -15,7 +15,6 @@ const STRONG_CORE_MIN = 12;
 const QUERY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const MANIFEST_MEMORY_TTL_MS = 10 * 60 * 1000;
 const CJ_LIVE_SELLERS = new Set([
-  "Temu",
   "PandaHall",
   "FragranceShop.com",
   "Karaca EU",
