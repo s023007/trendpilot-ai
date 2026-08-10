@@ -8,7 +8,7 @@ import {
 } from "./products-v16-lib.mjs";
 import { canonicalProductSeller, publicProductSellerAllowed } from "./product-seller-policy-v17.mjs";
 
-const VERSION = "17.2.0";
+const VERSION = "17.3.1";
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -226,6 +226,46 @@ function relevanceFor(doc, q, tokens, baseRank) {
   };
 }
 
+
+function diversifyBySellerWithinTier(rows) {
+  const tiers = new Map();
+  for (const row of rows) {
+    const tier = Number(row?.intentTier || 0);
+    if (!tiers.has(tier)) tiers.set(tier, []);
+    tiers.get(tier).push(row);
+  }
+
+  const out = [];
+  for (const tier of [...tiers.keys()].sort((a, b) => b - a)) {
+    const groups = new Map();
+    for (const row of tiers.get(tier)) {
+      const key = lower(row?.seller || row?.advertiser || "(unknown seller)");
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(row);
+    }
+
+    const keys = [...groups.keys()].sort((a, b) => {
+      const as = Number(groups.get(a)?.[0]?.matchScore || 0);
+      const bs = Number(groups.get(b)?.[0]?.matchScore || 0);
+      return bs - as || a.localeCompare(b);
+    });
+
+    let round = 0;
+    while (true) {
+      let added = false;
+      for (const key of keys) {
+        const row = groups.get(key)?.[round];
+        if (!row) continue;
+        out.push(row);
+        added = true;
+      }
+      if (!added) break;
+      round += 1;
+    }
+  }
+  return out;
+}
+
 export default async function handler(request) {
   if (request.method !== "GET") {
     return json({ ok: false, error: "Method not allowed" }, 405);
@@ -368,7 +408,8 @@ export default async function handler(request) {
 
     const strongCoreCandidates = products.filter(p => p.intentTier >= 5).length;
 
-    const paged = products.slice(offset, offset + limit);
+    const displayProducts = seller ? products : diversifyBySellerWithinTier(products);
+    const paged = displayProducts.slice(offset, offset + limit);
 
     return json({
       ok: true,
@@ -386,7 +427,7 @@ export default async function handler(request) {
       products: paged
     });
   } catch (error) {
-    console.error("TrendPilot V17.2.0 search failed", error);
+    console.error("TrendPilot V17.3.1 search failed", error);
     return json({
       ok: false,
       version: VERSION,

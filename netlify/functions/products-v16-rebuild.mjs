@@ -44,7 +44,7 @@ async function runLimited(items, concurrency, fn) {
 }
 
 
-function balancedCatalogPaths(paths, max = 360) {
+function balancedCatalogPaths(paths, max = 3000) {
   const groups = new Map();
 
   for (const path of paths) {
@@ -84,6 +84,43 @@ function balancedCatalogPaths(paths, max = 360) {
   return out;
 }
 
+
+// V17.3: seller-balanced posting lists. The total cap stays 1800.
+function balancedPostingRows(byProduct, max = 1800) {
+  const groups = new Map();
+  for (const row of byProduct.values()) {
+    const seller = row?.seller || "(unknown seller)";
+    if (!groups.has(seller)) groups.set(seller, []);
+    groups.get(seller).push(row);
+  }
+
+  for (const rows of groups.values()) {
+    rows.sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+  }
+
+  const sellerKeys = [...groups.keys()].sort((a, b) => {
+    const as = Number(groups.get(a)?.[0]?.score || 0);
+    const bs = Number(groups.get(b)?.[0]?.score || 0);
+    return bs - as || a.localeCompare(b);
+  });
+
+  const out = [];
+  let round = 0;
+  while (out.length < max) {
+    let added = false;
+    for (const seller of sellerKeys) {
+      const row = groups.get(seller)?.[round];
+      if (!row) continue;
+      out.push(row);
+      added = true;
+      if (out.length >= max) break;
+    }
+    if (!added) break;
+    round += 1;
+  }
+  return out;
+}
+
 export default async function handler(request) {
   const store = getStore({ name: STORE_NAME, consistency: "strong" });
   const origin = new URL(request.url).origin;
@@ -91,7 +128,7 @@ export default async function handler(request) {
 
   await store.setJSON("meta", {
     ready: false,
-    version: "17.2.0",
+    version: "17.3.1",
     storage: "netlify-blobs",
     status: "building",
     startedAt
@@ -122,15 +159,15 @@ export default async function handler(request) {
           for (const extra of collectCatalogJsonPaths(payload, 3000)) discoveredPaths.add(extra);
         }
 
-        console.log("V17.2.0 seed", path, "products", rows.length);
+        console.log("V17.3.1 seed", path, "products", rows.length);
       } catch (error) {
         sourceStats[path] = `error:${String(error?.message || error).slice(0, 120)}`;
-        console.warn("V17.2.0 seed failed", path, String(error?.message || error));
+        console.warn("V17.3.1 seed failed", path, String(error?.message || error));
       }
     }
 
-    const extras = balancedCatalogPaths([...discoveredPaths].filter(path => !seeds.includes(path)), 360);
-    const settled = await runLimited(extras, 6, async path => {
+    const extras = balancedCatalogPaths([...discoveredPaths].filter(path => !seeds.includes(path)), 3000);
+    const settled = await runLimited(extras, 12, async path => {
       const payload = await fetchJson(origin + path, 35000);
       return { path, rows: extractProducts(payload, path, 50000) };
     });
@@ -156,9 +193,7 @@ export default async function handler(request) {
       const bucket = tokenBucket(token);
       if (!tokenBuckets.has(bucket)) tokenBuckets.set(bucket, {});
 
-      const rows = [...byProduct.values()]
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 1800);
+      const rows = balancedPostingRows(byProduct, 1800);
 
       tokenBuckets.get(bucket)[token] = rows;
     }
@@ -204,7 +239,7 @@ export default async function handler(request) {
 
     const meta = {
       ready: true,
-      version: "17.2.0",
+      version: "17.3.1",
       storage: "netlify-blobs",
       status: "ready",
       products: products.length,
@@ -223,13 +258,13 @@ export default async function handler(request) {
 
     await store.setJSON("meta", meta);
 
-    console.log("TrendPilot V17.2.0 Blobs rebuild completed", meta);
+    console.log("TrendPilot V17.3.1 Blobs rebuild completed", meta);
   } catch (error) {
-    console.error("TrendPilot V17.2.0 Blobs rebuild failed", error);
+    console.error("TrendPilot V17.3.1 Blobs rebuild failed", error);
 
     await store.setJSON("meta", {
       ready: false,
-      version: "17.2.0",
+      version: "17.3.1",
       storage: "netlify-blobs",
       status: "failed",
       startedAt,
@@ -249,6 +284,6 @@ export const config = {
     action: "rate_limit",
     aggregateBy: ["domain", "ip"],
     windowSize: 3600,
-    windowLimit: 2
+    windowLimit: 6
   }
 };

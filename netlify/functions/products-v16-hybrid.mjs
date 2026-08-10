@@ -9,7 +9,7 @@ import {
 } from "./products-v16-lib.mjs";
 import { canonicalProductSeller, canonicalizePublicProduct } from "./product-seller-policy-v17.mjs";
 
-const VERSION = "17.2.0";
+const VERSION = "17.3.1";
 const CORE_MIN = 20;
 const STRONG_CORE_MIN = 12;
 const QUERY_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
@@ -622,7 +622,47 @@ async function saveQueryCache(store, key, value) {
   }
 }
 
-function mergeAndRank(baseProducts, fallbackProducts, query, tokens, limit, offset) {
+
+function diversifyBySellerWithinTier(rows) {
+  const tiers = new Map();
+  for (const row of rows) {
+    const tier = Number(row?.intentTier || 0);
+    if (!tiers.has(tier)) tiers.set(tier, []);
+    tiers.get(tier).push(row);
+  }
+
+  const out = [];
+  for (const tier of [...tiers.keys()].sort((a, b) => b - a)) {
+    const groups = new Map();
+    for (const row of tiers.get(tier)) {
+      const key = lower(row?.seller || row?.advertiser || "(unknown seller)");
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(row);
+    }
+
+    const keys = [...groups.keys()].sort((a, b) => {
+      const as = Number(groups.get(a)?.[0]?.matchScore || 0);
+      const bs = Number(groups.get(b)?.[0]?.matchScore || 0);
+      return bs - as || a.localeCompare(b);
+    });
+
+    let round = 0;
+    while (true) {
+      let added = false;
+      for (const key of keys) {
+        const row = groups.get(key)?.[round];
+        if (!row) continue;
+        out.push(row);
+        added = true;
+      }
+      if (!added) break;
+      round += 1;
+    }
+  }
+  return out;
+}
+
+function mergeAndRank(baseProducts, fallbackProducts, query, tokens, limit, offset, sellerFilter = "") {
   const rows = unique([
     ...(baseProducts || []),
     ...(fallbackProducts || [])
@@ -655,7 +695,7 @@ function mergeAndRank(baseProducts, fallbackProducts, query, tokens, limit, offs
     rows,
     coreCandidates,
     strongCoreCandidates,
-    paged: rows.slice(offset, offset + limit)
+    paged: (sellerFilter ? rows : diversifyBySellerWithinTier(rows)).slice(offset, offset + limit)
   };
 }
 
@@ -785,7 +825,8 @@ export default async function handler(request) {
       lower(query),
       tokens,
       limit,
-      offset
+      offset,
+      seller
     );
 
     return json({
@@ -822,7 +863,7 @@ export default async function handler(request) {
       products: merged.paged
     });
   } catch (error) {
-    console.error("TrendPilot V17.2.0 hybrid search failed", error);
+    console.error("TrendPilot V17.3.1 hybrid search failed", error);
     return json({
       ok: false,
       version: VERSION,
