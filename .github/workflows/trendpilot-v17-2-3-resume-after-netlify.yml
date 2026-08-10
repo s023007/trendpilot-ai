@@ -1,0 +1,298 @@
+name: TrendPilot V17.2.3 RESUME AFTER NETLIFY — No Publish Wait
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v17-2-3-resume-after-netlify
+  cancel-in-progress: true
+
+jobs:
+  resume-after-netlify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout current main only
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: QUICK CHECK — V17.2 source is already committed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          required = [
+              Path("netlify/functions/product-seller-policy-v17.mjs"),
+              Path("netlify/functions/products-v16.mjs"),
+              Path("netlify/functions/products-v16-hybrid.mjs"),
+              Path("netlify/functions/products-v16-rebuild.mjs"),
+              Path("data/approved-product-sellers-v16.json"),
+          ]
+          missing=[str(p) for p in required if not p.exists()]
+          if missing:
+              print("SOURCE_NOT_READY: missing", missing)
+              sys.exit(2)
+
+          policy = Path("netlify/functions/product-seller-policy-v17.mjs").read_text(encoding="utf-8")
+          if "Joom" in policy and "intentionally excluded" not in policy:
+              print("SOURCE_NOT_READY: Joom policy is ambiguous")
+              sys.exit(3)
+
+          hybrid = Path("netlify/functions/products-v16-hybrid.mjs").read_text(encoding="utf-8")
+          site = Path("js/site-v13-5.js")
+          site_text = site.read_text(encoding="utf-8") if site.exists() else ""
+
+          checks = {
+              "policy_version": "17.2.0" in policy,
+              "hybrid_policy_import": "product-seller-policy-v17.mjs" in hybrid,
+              "front_end_marker": "TP_SELLER_POLICY_V17_2" in site_text,
+              "joom_not_public": "\"Joom\"" not in Path("data/approved-product-sellers-v16.json").read_text(encoding="utf-8"),
+          }
+          print(checks)
+          if not all(checks.values()):
+              print("SOURCE_NOT_READY: one or more V17.2 source checks failed")
+              sys.exit(4)
+          print("SOURCE_READY: V17.2 is already committed on main. No source file will be changed by this workflow.")
+          PY
+
+      - name: IMPORTANT — Skip the broken Netlify publish wait
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "V17.2.1 repeatedly returned curl code 23 while piping curl into grep."
+          echo "That behavior is consistent with grep finding the marker and closing the pipe early."
+          echo "V17.2.3 intentionally performs NO curl|grep publish wait and makes NO source changes."
+
+      - name: Trigger ONE clean approved-seller Blobs rebuild
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp)"
+          trap 'rm -f "$tmp"' EXIT
+          url="https://trendpilotchoice.com/api/products-v16/rebuild?policy=17.2&run=${GITHUB_RUN_ID}"
+          echo "Calling rebuild endpoint once..."
+          if ! curl -fsSL --retry 2 --retry-delay 2 --connect-timeout 10 --max-time 90 -o "$tmp" "$url"; then
+            echo "REBUILD_REQUEST_FAILED"
+            [ -s "$tmp" ] && head -c 2000 "$tmp" || true
+            exit 10
+          fi
+          echo "Rebuild endpoint response:"
+          head -c 3000 "$tmp" || true
+          echo
+
+      - name: Wait for V17.2 index readiness — safe polling
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 72); do
+            tmp="$(mktemp)"
+            rc=0
+            curl -fsSL --connect-timeout 10 --max-time 25 -o "$tmp" \
+              "https://trendpilotchoice.com/api/products-v16/health?resume=17.2.3.${GITHUB_RUN_ID}.$i.$RANDOM" || rc=$?
+
+            if [ "$rc" -eq 0 ]; then
+              if BODY_FILE="$tmp" python3 - <<'PY'
+          import json, os, sys
+          p=os.environ["BODY_FILE"]
+          try:
+              x=json.load(open(p, encoding="utf-8"))
+          except Exception as e:
+              print("health parse error:", e)
+              sys.exit(1)
+          print("health:", {k:x.get(k) for k in ("ready","version","products","sellers","storage","status")})
+          good = bool(x.get("ready")) and str(x.get("version")) == "17.2.0"
+          sys.exit(0 if good else 1)
+          PY
+              then
+                ready=1
+                rm -f "$tmp"
+                echo "INDEX_READY on attempt $i"
+                break
+              fi
+            else
+              echo "health request curl=$rc on attempt $i"
+            fi
+            rm -f "$tmp"
+            sleep 10
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo "INDEX_NOT_READY_WITHIN_WINDOW"
+            exit 11
+          fi
+
+      - name: Automated seller-policy and search benchmark — ALL approved sellers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v17-2-3-benchmark
+
+          python3 - <<'PY'
+          from pathlib import Path
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+          import collections, json, time
+
+          BASE = "https://trendpilotchoice.com"
+          APPROVED = [
+              "AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS",
+              "Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW",
+              "Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical",
+              "PandaHall","TikTok Shop US","Temu"
+          ]
+          APPROVED_SET=set(APPROVED)
+
+          SELLER_TESTS = {
+              "AliExpress":"phone",
+              "Alibaba":"phone",
+              "Geekbuying":"phone",
+              "FilamentPRO EU CPS":"filament",
+              "Govee Many GEOs":"light",
+              "Harfington Many GEOs":"tool",
+              "Sunsky-online WW":"phone",
+              "Lenovo":"laptop",
+              "Diecast":"model car",
+              "FragranceShop.com":"perfume",
+              "Karaca EU":"cookware",
+              "MFI Medical":"medical",
+              "PandaHall":"beads",
+              "TikTok Shop US":"dog food",
+              "Temu":"phone",
+          }
+
+          def get_json(path, params, timeout=35):
+              url = BASE + path + "?" + urlencode(params)
+              req = Request(url, headers={
+                  "accept":"application/json",
+                  "user-agent":"TrendPilot-V17.2.3-Resume-Benchmark"
+              })
+              with urlopen(req, timeout=timeout) as r:
+                  return json.loads(r.read().decode("utf-8","replace"))
+
+          def seller_of(p):
+              return str(p.get("seller") or p.get("advertiser") or "").strip()
+
+          health = get_json("/api/products-v16/health", {"test":"1723"})
+
+          queries = ["phone","dog food","laptop","watch","perfume","power bank"]
+          general=[]
+          violations=[]
+
+          for q in queries:
+              data=get_json("/api/products-v16-hybrid", {"q":q,"limit":"48","test":"1723"})
+              products=data.get("products") or []
+              counts=collections.Counter(seller_of(p) for p in products)
+              unapproved=sorted({s for s in counts if s and s not in APPROVED_SET})
+              if unapproved:
+                  violations.append({"query":q,"unapproved":unapproved})
+              general.append({
+                  "query":q,
+                  "returned":len(products),
+                  "core":sum(1 for p in products if int(p.get("intentTier") or 0) >= 4),
+                  "strong":sum(1 for p in products if int(p.get("intentTier") or 0) >= 5),
+                  "sellers":dict(counts),
+                  "fallbackUsed":bool(data.get("fallbackUsed")),
+                  "totalCandidates":data.get("totalCandidates",0),
+              })
+              time.sleep(.5)
+
+          seller_checks=[]
+          for seller in APPROVED:
+              q=SELLER_TESTS[seller]
+              try:
+                  data=get_json("/api/products-v16-hybrid", {"q":q,"seller":seller,"limit":"48","test":"1723"})
+                  products=data.get("products") or []
+                  wrong=sorted({seller_of(p) for p in products if seller_of(p) and seller_of(p) != seller})
+                  if wrong:
+                      violations.append({"requestedSeller":seller,"query":q,"wrongSeller":wrong})
+                  seller_checks.append({
+                      "seller":seller,"query":q,"returned":len(products),
+                      "core":sum(1 for p in products if int(p.get("intentTier") or 0) >= 4),
+                      "strong":sum(1 for p in products if int(p.get("intentTier") or 0) >= 5),
+                      "fallbackUsed":bool(data.get("fallbackUsed")),
+                      "sellerPolicy":data.get("sellerPolicy","")
+                  })
+              except Exception as e:
+                  seller_checks.append({"seller":seller,"query":q,"returned":-1,"error":str(e)})
+              time.sleep(.5)
+
+          joom=get_json("/api/products-v16-hybrid", {"q":"phone","seller":"Joom","limit":"10","test":"1723"})
+          joom_ok=len(joom.get("products") or []) == 0 and joom.get("sellerPolicy") == "rejected-unapproved-seller"
+          if not joom_ok:
+              violations.append({"JoomPolicy":"FAILED","response":joom})
+
+          result={
+              "version":"17.2.3-resume",
+              "health":health,
+              "general":general,
+              "sellerChecks":seller_checks,
+              "joomBlocked":joom_ok,
+              "violations":violations,
+          }
+          Path("v17-2-3-benchmark/results.json").write_text(json.dumps(result,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+
+          lines=[]
+          lines += [
+              "# TrendPilot V17.2.3 — Resume Verification",
+              "",
+              "This workflow changed no source files and skipped the broken Netlify publish wait.",
+              "",
+              "## Index",
+              "",
+              f"- Ready: **{health.get('ready')}**",
+              f"- Version: **{health.get('version')}**",
+              f"- Indexed approved products: **{int(health.get('products') or 0):,}**",
+              f"- Indexed seller strings: **{health.get('sellers')}**",
+              f"- Joom blocked from public product search: **{'PASS' if joom_ok else 'FAIL'}**",
+              "",
+              "## General search",
+              "",
+              "| Query | Returned | Core tier 4+ | Strong tier 5 | Sellers in first 48 |",
+              "|---|---:|---:|---:|---|",
+          ]
+          for r in general:
+              seller_text=", ".join(f"{k}:{v}" for k,v in r["sellers"].items()) or "-"
+              lines.append(f"| {r['query']} | {r['returned']} | {r['core']} | {r['strong']} | {seller_text} |")
+
+          lines += ["", "## ALL approved sellers", "", "| Seller | Test query | Returned | Core 4+ | Strong 5 | Note |", "|---|---|---:|---:|---:|---|"]
+          for r in seller_checks:
+              if "error" in r:
+                  lines.append(f"| {r['seller']} | {r['query']} | ERROR | - | - | {r['error'][:100]} |")
+              else:
+                  note=r.get("sellerPolicy") or ("fallback" if r.get("fallbackUsed") else "")
+                  lines.append(f"| {r['seller']} | {r['query']} | {r['returned']} | {r['core']} | {r['strong']} | {note} |")
+
+          lines += ["", "## Policy result", ""]
+          if violations:
+              lines += ["**FAIL — policy violation detected.**", "", "```json", json.dumps(violations,ensure_ascii=False,indent=2), "```"]
+          else:
+              lines += ["**PASS — no unapproved seller was returned, and Joom remained blocked.**"]
+
+          summary="\n".join(lines)+"\n"
+          Path("v17-2-3-benchmark/summary.md").write_text(summary,encoding="utf-8")
+          print(summary)
+          if violations:
+              raise SystemExit(12)
+          PY
+
+          cat v17-2-3-benchmark/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload V17.2.3 verification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v17-2-3-resume-verification
+          path: |
+            v17-2-3-benchmark/summary.md
+            v17-2-3-benchmark/results.json
+          retention-days: 7
