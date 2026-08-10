@@ -1,0 +1,336 @@
+name: TrendPilot V19.6.2 — Remove FilamentPRO Seller
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v19-remove-filamentpro
+  cancel-in-progress: false
+
+jobs:
+  remove-filamentpro:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Remove FilamentPRO from public seller registry
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+
+          const file = "data/product-seller-registry-v17.json";
+          const data = JSON.parse(fs.readFileSync(file,"utf8"));
+
+          const before = data.sellers.length;
+          data.sellers = data.sellers.filter(x => x?.name !== "FilamentPRO EU CPS");
+
+          if (data.sellers.length !== before - 1) {
+            throw new Error(`Expected to remove exactly one FilamentPRO row; before=${before}, after=${data.sellers.length}`);
+          }
+
+          data.version = "18.1.4";
+          data.notes = Array.isArray(data.notes) ? data.notes : [];
+          data.notes = data.notes.filter(x => !String(x).toLowerCase().includes("filamentpro"));
+          data.notes.push("FilamentPRO EU CPS is intentionally excluded from public product sellers by publisher decision.");
+
+          fs.writeFileSync(file, JSON.stringify(data,null,2) + "\n");
+          console.log("Registry seller count:", data.sellers.length);
+          JS
+
+      - name: Remove FilamentPRO from shared product seller policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+
+          const file = "netlify/functions/product-seller-policy-v17.mjs";
+          const src = fs.readFileSync(file,"utf8");
+
+          const namesMatch = src.match(
+            /export const PUBLIC_PRODUCT_SELLER_NAMES = Object\.freeze\((\[[\s\S]*?\])\);/
+          );
+          if (!namesMatch) throw new Error("Could not parse PUBLIC_PRODUCT_SELLER_NAMES.");
+
+          const names = JSON.parse(namesMatch[1]);
+          if (!names.includes("FilamentPRO EU CPS")) {
+            throw new Error("FilamentPRO EU CPS was not present in public seller policy.");
+          }
+
+          const nextNames = names.filter(x => x !== "FilamentPRO EU CPS");
+
+          const aliasesMatch = src.match(/const aliasGroups = (\{[\s\S]*?\});\nconst normalizeKey/);
+          if (!aliasesMatch) throw new Error("Could not parse aliasGroups.");
+
+          const aliases = JSON.parse(aliasesMatch[1]);
+          delete aliases["FilamentPRO EU CPS"];
+
+          let out = src;
+          out = out.replace(
+            /\/\/ TrendPilot [^\n]*explicit public product seller policy\./,
+            "// TrendPilot V18.1.4 - explicit public product seller policy."
+          );
+          out = out.replace(
+            /export const PRODUCT_SELLER_POLICY_VERSION = "[^"]+";/,
+            'export const PRODUCT_SELLER_POLICY_VERSION = "18.1.4";'
+          );
+          out = out.replace(
+            /export const PUBLIC_PRODUCT_SELLER_NAMES = Object\.freeze\(\[[\s\S]*?\]\);/,
+            `export const PUBLIC_PRODUCT_SELLER_NAMES = Object.freeze(${JSON.stringify(nextNames)});`
+          );
+          out = out.replace(
+            /const aliasGroups = \{[\s\S]*?\};\nconst normalizeKey/,
+            `const aliasGroups = ${JSON.stringify(aliases)};\nconst normalizeKey`
+          );
+
+          if (out.includes('"FilamentPRO EU CPS"') || out.includes('"filamentpro"')) {
+            throw new Error("FilamentPRO alias/name still present in product seller policy.");
+          }
+
+          fs.writeFileSync(file,out);
+          console.log("Public product sellers:", nextNames.length);
+          JS
+
+          node --check netlify/functions/product-seller-policy-v17.mjs
+
+      - name: Remove FilamentPRO from approved seller JSON if present
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+
+          const file = "data/approved-product-sellers-v16.json";
+          if (!fs.existsSync(file)) {
+            console.log("approved-product-sellers-v16.json not present; nothing to change.");
+            process.exit(0);
+          }
+
+          const remove = value => {
+            if (Array.isArray(value)) {
+              return value
+                .filter(item => {
+                  if (typeof item === "string") return item !== "FilamentPRO EU CPS";
+                  if (item && typeof item === "object") return item.name !== "FilamentPRO EU CPS";
+                  return true;
+                })
+                .map(remove);
+            }
+
+            if (value && typeof value === "object") {
+              const out = {};
+              for (const [key,val] of Object.entries(value)) {
+                if (key === "FilamentPRO EU CPS") continue;
+                out[key] = remove(val);
+              }
+              return out;
+            }
+
+            return value;
+          };
+
+          const data = JSON.parse(fs.readFileSync(file,"utf8"));
+          const next = remove(data);
+          const text = JSON.stringify(next,null,2) + "\n";
+
+          if (text.includes("FilamentPRO EU CPS")) {
+            throw new Error("FilamentPRO still present in approved-product-sellers-v16.json.");
+          }
+
+          fs.writeFileSync(file,text);
+          JS
+
+      - name: Remove any V19 FilamentPRO catalog state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          rm -rf data/catalog-v19/sellers/filamentpro-eu-cps
+          rm -f data/catalog-v19/source-manifests/filamentpro-eu-cps.json
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          p = Path("data/catalog-v19/catalog-set-v1.json")
+          if p.exists():
+              data = json.loads(p.read_text())
+              data["sellers"] = [
+                  x for x in data.get("sellers",[])
+                  if x.get("name") != "FilamentPRO EU CPS"
+                  and x.get("slug") != "filamentpro-eu-cps"
+              ]
+              names = [x.get("name") for x in data["sellers"]]
+              assert "FilamentPRO EU CPS" not in names
+              data["version"] = "19.6.2"
+              p.write_text(json.dumps(data,indent=2) + "\n")
+          PY
+
+      - name: Validate new public seller policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --input-type=module <<'JS'
+          import fs from "node:fs";
+          import {
+            PUBLIC_PRODUCT_SELLER_NAMES,
+            canonicalProductSeller
+          } from "./netlify/functions/product-seller-policy-v17.mjs";
+
+          const sellers = [...PUBLIC_PRODUCT_SELLER_NAMES];
+
+          if (sellers.includes("FilamentPRO EU CPS")) throw new Error("FilamentPRO still public.");
+          if (canonicalProductSeller("FilamentPRO EU CPS")) throw new Error("FilamentPRO still canonicalizes.");
+          if (canonicalProductSeller("filamentpro")) throw new Error("FilamentPRO alias still canonicalizes.");
+          if (sellers.includes("Temu")) throw new Error("Temu unexpectedly public.");
+          if (sellers.includes("Joom")) throw new Error("Joom unexpectedly public.");
+
+          const registry = JSON.parse(fs.readFileSync("data/product-seller-registry-v17.json","utf8"));
+          if (registry.sellers.some(x => x.name === "FilamentPRO EU CPS")) {
+            throw new Error("FilamentPRO still present in registry.");
+          }
+
+          console.log("Public product sellers:", sellers.length);
+          console.log("FilamentPRO blocked: PASS");
+          console.log("Temu blocked: PASS");
+          console.log("Joom blocked: PASS");
+          JS
+
+      - name: Rebuild resolver from remaining validated seller catalogs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -s scripts/catalog-v19/build-global-resolver.mjs ] && [ -s data/catalog-v19/catalog-set-v1.json ]; then
+            node --check scripts/catalog-v19/build-global-resolver.mjs
+            node scripts/catalog-v19/build-global-resolver.mjs
+          else
+            echo "V19 resolver files unavailable; skipping resolver rebuild."
+          fi
+
+      - name: Rebuild remaining seller queue without FilamentPRO
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -s scripts/catalog-v19/build-source-aware-seller-queue.mjs ]; then
+            node --check scripts/catalog-v19/build-source-aware-seller-queue.mjs
+            node scripts/catalog-v19/build-source-aware-seller-queue.mjs
+          else
+            echo "Dynamic queue builder unavailable; skipping queue rebuild."
+          fi
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          for file in [
+              Path("data/catalog-v19/seller-build-queue-v3.json"),
+              Path("data/catalog-v19/seller-build-queue-v2.json"),
+              Path("data/catalog-v19/seller-build-queue-v1.json"),
+          ]:
+              if not file.exists():
+                  continue
+              data = json.loads(file.read_text())
+              assert "FilamentPRO EU CPS" not in data.get("completedSellers",[])
+              assert all(
+                  x.get("seller") != "FilamentPRO EU CPS"
+                  for x in data.get("remaining",[])
+              )
+              recommended = data.get("recommendedNext")
+              assert not recommended or recommended.get("seller") != "FilamentPRO EU CPS"
+              print("Queue clean:", file)
+              break
+          PY
+
+      - name: Create concise removal report
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          registry = json.loads(Path("data/product-seller-registry-v17.json").read_text())
+          catalog_set_path = Path("data/catalog-v19/catalog-set-v1.json")
+          queue_path = Path("data/catalog-v19/seller-build-queue-v3.json")
+
+          report = []
+          report.append("# TrendPilot V19.6.2 — FilamentPRO Removed")
+          report.append("")
+          report.append("- FilamentPRO EU CPS public seller status: **REMOVED**")
+          report.append("- FilamentPRO product catalog/search/comparison eligibility: **BLOCKED**")
+          report.append("- FilamentPRO aliases in shared seller policy: **REMOVED**")
+          report.append("- Any V19 FilamentPRO catalog/source-manifest state: **REMOVED**")
+          report.append(f"- Current public product seller count: **{len(registry['sellers'])}**")
+          report.append("- Temu blocked: **PASS**")
+          report.append("- Joom blocked: **PASS**")
+
+          if catalog_set_path.exists():
+              catalog = json.loads(catalog_set_path.read_text())
+              report.append(f"- Validated V19 seller catalogs remaining: **{len(catalog.get('sellers',[]))}**")
+
+          if queue_path.exists():
+              queue = json.loads(queue_path.read_text())
+              nxt = queue.get("recommendedNext")
+              report.append("")
+              report.append("## Next seller")
+              if nxt:
+                  report.append(
+                      f"**{nxt.get('seller','')}** — "
+                      f"**{int(nxt.get('qualifiedProducts',0)):,}** qualified products."
+                  )
+              else:
+                  report.append("No remaining seller with a qualified persisted product feed.")
+
+          text = "\n".join(report) + "\n"
+          Path("data/catalog-v19/V19.6.2-REMOVE-FILAMENTPRO.md").write_text(text)
+          print(text)
+          PY
+
+      - name: Commit removal
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A \
+            data/product-seller-registry-v17.json \
+            data/approved-product-sellers-v16.json \
+            netlify/functions/product-seller-policy-v17.mjs \
+            data/catalog-v19
+
+          if git diff --cached --quiet; then
+            echo "No removal changes to commit."
+          else
+            git commit -m "chore: remove FilamentPRO from public product sellers"
+            if ! git push origin HEAD:main; then
+              git pull --rebase origin main
+              git push origin HEAD:main
+            fi
+          fi
+
+      - name: Publish summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat data/catalog-v19/V19.6.2-REMOVE-FILAMENTPRO.md >> "$GITHUB_STEP_SUMMARY"
