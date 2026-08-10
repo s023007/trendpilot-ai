@@ -1,0 +1,428 @@
+name: TrendPilot V17.1 Catalog Seller Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v17-1-catalog-seller-audit-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  catalog-seller-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Audit selectable sellers and stored products
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v17-1-audit
+
+          python3 - <<'PY'
+          from pathlib import Path
+          from collections import Counter, defaultdict
+          import csv, hashlib, html, json, re
+
+          ROOT = Path(".")
+          DATA = Path("data")
+          JS = Path("js/site-v13-5.js")
+          OUT = Path("v17-1-audit")
+
+          def clean(v):
+              if v is None:
+                  return ""
+              s = re.sub(r"<[^>]*>", " ", str(v))
+              return re.sub(r"\s+", " ", s).strip()
+
+          def lower(v):
+              return clean(v).lower()
+
+          def first(d, keys):
+              if not isinstance(d, dict):
+                  return ""
+              for k in keys:
+                  if k in d and d[k] not in (None, "", [], {}):
+                      return d[k]
+              return ""
+
+          # ------------------------------------------------------------
+          # 1) Read the SAME selectable seller list used by the finder UI.
+          # ------------------------------------------------------------
+          js_text = JS.read_text(encoding="utf-8", errors="replace") if JS.exists() else ""
+
+          seller_list = []
+          m = re.search(
+              r'const\s+TP_PRODUCT_SELLERS_V15_1\s*=\s*\[(.*?)\]\s*;',
+              js_text,
+              flags=re.S
+          )
+          if m:
+              seller_list = re.findall(r'["\']([^"\']+)["\']', m.group(1))
+
+          # Fallback only if the UI constant is unexpectedly missing.
+          if not seller_list:
+              fallback = DATA / "approved-product-sellers-v16.json"
+              if fallback.exists():
+                  try:
+                      seller_list = json.loads(fallback.read_text(encoding="utf-8")).get("sellers", [])
+                  except Exception:
+                      pass
+
+          if not seller_list:
+              raise SystemExit("Could not discover the public selectable seller list.")
+
+          seller_list = [clean(x) for x in seller_list if clean(x)]
+          seller_set = set(seller_list)
+
+          # Parse the canonical alias object used by the finder.
+          alias_map = {}
+          am = re.search(
+              r'const\s+TP_SELLER_ALIASES_V15_1\s*=\s*\{(.*?)\}\s*;',
+              js_text,
+              flags=re.S
+          )
+          if am:
+              for a, c in re.findall(
+                  r'["\']([^"\']+)["\']\s*:\s*["\']([^"\']+)["\']',
+                  am.group(1)
+              ):
+                  alias_map[lower(a)] = clean(c)
+
+          # Guarantee direct canonical-name lookup.
+          for s in seller_list:
+              alias_map.setdefault(lower(s), s)
+
+          aliases_sorted = sorted(alias_map.items(), key=lambda kv: len(kv[0]), reverse=True)
+
+          def canonical_seller(value):
+              raw = lower(value)
+              if not raw:
+                  return ""
+              # Exact canonical / exact alias first.
+              if raw in alias_map:
+                  return alias_map[raw]
+              # Match the current site's broad alias behavior, but prefer long aliases.
+              for alias, canonical in aliases_sorted:
+                  if alias and alias in raw:
+                      return canonical
+              return ""
+
+          # ------------------------------------------------------------
+          # 2) Discover product-like records from stored JSON only.
+          #    No APIs, no Netlify deploy, no writes to production.
+          # ------------------------------------------------------------
+          title_keys = ["name","title","productName","product_name"]
+          seller_keys = [
+              "advertiser","seller","merchant","advertiserName","advertiser_name",
+              "sellerName","seller_name","merchantName","merchant_name","store","storeName"
+          ]
+          network_keys = [
+              "network","networkName","network_name","provider","platform",
+              "affiliateNetwork","affiliate_network","programme","program"
+          ]
+          url_keys = [
+              "url","affiliateUrl","affiliate_url","destinationUrl","destination_url",
+              "productUrl","product_url","clickUrl","click_url","buyUrl","buy_url",
+              "destination"
+          ]
+          id_keys = [
+              "id","objectID","productId","product_id","sourceProductId",
+              "source_product_id","clusterKey","sku","offerId","offer_id"
+          ]
+          group_keys = ["group","department","categoryGroup","category_group"]
+          family_keys = ["family","subcategory","subCategory","productFamily","product_family"]
+          category_keys = ["category","categoryName","category_name"]
+          image_keys = ["image","imageUrl","image_url","thumbnail","thumbnailUrl","imageLink"]
+
+          container_keys = {
+              "products","items","results","offers","records","rows","entries",
+              "productFeed","product_feed","data","catalog","catalogue"
+          }
+
+          def walk_product_candidates(x):
+              if isinstance(x, list):
+                  for y in x:
+                      yield from walk_product_candidates(y)
+                  return
+              if not isinstance(x, dict):
+                  return
+
+              title = clean(first(x, title_keys))
+              url = clean(first(x, url_keys))
+              image = clean(first(x, image_keys))
+              seller = clean(first(x, seller_keys))
+
+              # Require a title plus at least one product-level signal.
+              # This avoids counting seller/config/manifest rows as products.
+              product_signal = (
+                  url.startswith("http://") or url.startswith("https://")
+                  or bool(image)
+                  or bool(clean(first(x, id_keys)))
+              )
+              if title and product_signal:
+                  yield x
+
+              # Product collections are commonly nested in these containers.
+              for k, v in x.items():
+                  if k in container_keys and isinstance(v, (list, dict)):
+                      yield from walk_product_candidates(v)
+
+          json_files = sorted(DATA.rglob("*.json")) if DATA.exists() else []
+          parse_ok = 0
+          parse_bad = 0
+          raw_rows = 0
+
+          selectable_raw_rows = Counter()
+          selectable_unique = defaultdict(set)
+          selectable_networks = defaultdict(Counter)
+          selectable_groups = defaultdict(Counter)
+          selectable_families = defaultdict(Counter)
+          selectable_files = defaultdict(Counter)
+          selectable_raw_names = defaultdict(Counter)
+
+          raw_seller_names = Counter()
+          unrecognized_raw_rows = Counter()
+          unrecognized_unique = defaultdict(set)
+          unrecognized_files = defaultdict(Counter)
+
+          source_file_rows = Counter()
+          source_file_unique = defaultdict(set)
+
+          all_unique = set()
+          recognized_unique_global = set()
+          unassigned_unique_global = set()
+
+          def dedupe_key(p, raw_seller, title, url):
+              pid = clean(first(p, id_keys))
+              if pid:
+                  base = f"id|{pid}|{raw_seller}"
+              elif url:
+                  base = f"url|{url}"
+              else:
+                  base = f"title|{raw_seller}|{title}"
+              return hashlib.sha1(base.encode("utf-8", "ignore")).hexdigest()
+
+          for f in json_files:
+              rel = f.as_posix()
+              try:
+                  obj = json.loads(f.read_text(encoding="utf-8", errors="replace"))
+                  parse_ok += 1
+              except Exception:
+                  parse_bad += 1
+                  continue
+
+              file_seen = set()
+
+              for p in walk_product_candidates(obj):
+                  title = clean(first(p, title_keys))
+                  raw_seller = clean(first(p, seller_keys))
+                  url = clean(first(p, url_keys))
+                  network = clean(first(p, network_keys)) or "Unknown"
+                  group = clean(first(p, group_keys)) or "Unknown"
+                  family = clean(first(p, family_keys)) or clean(first(p, category_keys)) or "Unknown"
+
+                  key = dedupe_key(p, raw_seller, title, url)
+                  raw_rows += 1
+                  source_file_rows[rel] += 1
+                  file_seen.add(key)
+                  all_unique.add(key)
+
+                  if raw_seller:
+                      raw_seller_names[raw_seller] += 1
+
+                  canonical = canonical_seller(raw_seller)
+                  if canonical in seller_set:
+                      selectable_raw_rows[canonical] += 1
+                      selectable_unique[canonical].add(key)
+                      selectable_networks[canonical][network] += 1
+                      selectable_groups[canonical][group] += 1
+                      selectable_families[canonical][family] += 1
+                      selectable_files[canonical][rel] += 1
+                      selectable_raw_names[canonical][raw_seller or "(blank)"] += 1
+                      recognized_unique_global.add(key)
+                  else:
+                      label = raw_seller or "(blank seller)"
+                      unrecognized_raw_rows[label] += 1
+                      unrecognized_unique[label].add(key)
+                      unrecognized_files[label][rel] += 1
+                      unassigned_unique_global.add(key)
+
+              source_file_unique[rel].update(file_seen)
+
+          # ------------------------------------------------------------
+          # 3) Build seller-level audit.
+          # ------------------------------------------------------------
+          seller_rows = []
+          for seller in seller_list:
+              uniq = len(selectable_unique[seller])
+              raw = selectable_raw_rows[seller]
+              dup = max(0, raw - uniq)
+              dup_pct = round((dup / raw * 100), 1) if raw else 0.0
+              nets = selectable_networks[seller]
+              groups = selectable_groups[seller]
+              fams = selectable_families[seller]
+              files = selectable_files[seller]
+              raw_names = selectable_raw_names[seller]
+
+              seller_rows.append({
+                  "seller": seller,
+                  "unique_products": uniq,
+                  "raw_product_rows": raw,
+                  "duplicate_rows": dup,
+                  "duplicate_pct": dup_pct,
+                  "networks_observed": " | ".join(f"{k}:{v}" for k,v in nets.most_common(5)),
+                  "top_groups": " | ".join(f"{k}:{v}" for k,v in groups.most_common(5)),
+                  "top_families": " | ".join(f"{k}:{v}" for k,v in fams.most_common(8)),
+                  "source_files": len(files),
+                  "top_source_files": " | ".join(f"{k}:{v}" for k,v in files.most_common(5)),
+                  "raw_names_seen": " | ".join(f"{k}:{v}" for k,v in raw_names.most_common(8)),
+                  "status": "OK" if uniq else "NO STORED PRODUCTS"
+              })
+
+          # Sort the diagnostic unrecognized values by unique products.
+          unrecognized_rows = []
+          for raw_name, raw_count in unrecognized_raw_rows.items():
+              unrecognized_rows.append({
+                  "raw_seller": raw_name,
+                  "unique_products": len(unrecognized_unique[raw_name]),
+                  "raw_product_rows": raw_count,
+                  "top_source_files": " | ".join(
+                      f"{k}:{v}" for k,v in unrecognized_files[raw_name].most_common(5)
+                  )
+              })
+          unrecognized_rows.sort(
+              key=lambda r: (-r["unique_products"], -r["raw_product_rows"], r["raw_seller"].lower())
+          )
+
+          source_rows = []
+          for f, n in source_file_rows.items():
+              source_rows.append({
+                  "file": f,
+                  "raw_product_rows": n,
+                  "unique_product_keys_in_file": len(source_file_unique[f])
+              })
+          source_rows.sort(key=lambda r: (-r["unique_product_keys_in_file"], r["file"]))
+
+          # ------------------------------------------------------------
+          # 4) Write CSV + JSON + Markdown.
+          # ------------------------------------------------------------
+          def write_csv(path, rows):
+              rows = list(rows)
+              if not rows:
+                  path.write_text("", encoding="utf-8")
+                  return
+              with path.open("w", newline="", encoding="utf-8-sig") as fh:
+                  w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+                  w.writeheader()
+                  w.writerows(rows)
+
+          write_csv(OUT / "selectable-sellers-audit.csv", seller_rows)
+          write_csv(OUT / "unrecognized-raw-sellers.csv", unrecognized_rows)
+          write_csv(OUT / "source-files-audit.csv", source_rows)
+
+          summary = {
+              "uiSellerSource": "js/site-v13-5.js::TP_PRODUCT_SELLERS_V15_1",
+              "selectableSellers": seller_list,
+              "selectableSellerCount": len(seller_list),
+              "selectableSellersWithStoredProducts": sum(1 for r in seller_rows if r["unique_products"] > 0),
+              "selectableSellersWithZeroStoredProducts": [r["seller"] for r in seller_rows if r["unique_products"] == 0],
+              "jsonFilesScanned": len(json_files),
+              "jsonFilesParsed": parse_ok,
+              "jsonFilesFailed": parse_bad,
+              "rawProductLikeRows": raw_rows,
+              "uniqueProductLikeRecordsAllRawSellers": len(all_unique),
+              "uniqueProductsMappedToSelectableSellers": len(recognized_unique_global),
+              "uniqueProductsNotMappedToSelectableSellers": len(unassigned_unique_global),
+              "distinctRawSellerStrings": len(raw_seller_names),
+              "distinctUnrecognizedRawSellerStrings": len(unrecognized_rows),
+              "sellerAudit": seller_rows
+          }
+
+          (OUT / "catalog-seller-audit.json").write_text(
+              json.dumps(summary, ensure_ascii=False, indent=2),
+              encoding="utf-8"
+          )
+
+          md = []
+          md.append("# TrendPilot V17.1 — Catalog Seller Audit")
+          md.append("")
+          md.append("> Read-only audit. Production, Netlify, search code and catalogue files were not changed.")
+          md.append("")
+          md.append("## What the seller numbers really mean")
+          md.append("")
+          md.append(f"- **Selectable sellers in the live finder code:** {len(seller_list)}")
+          md.append(f"- **Selectable sellers with stored products found:** {summary['selectableSellersWithStoredProducts']}")
+          md.append(f"- **Distinct raw seller strings inside product data:** {len(raw_seller_names)}")
+          md.append(f"- **Raw seller strings that do not map to the selectable list:** {len(unrecognized_rows)}")
+          md.append("")
+          md.append("The old V17 `196 sellers` figure was a raw-data diagnostic, not the number of sellers shown to visitors.")
+          md.append("")
+          md.append("## Catalogue totals")
+          md.append("")
+          md.append(f"- JSON files scanned: **{len(json_files):,}**")
+          md.append(f"- Product-like rows encountered before dedupe: **{raw_rows:,}**")
+          md.append(f"- Unique product-like records across all raw seller strings: **{len(all_unique):,}**")
+          md.append(f"- Unique products mapped to the selectable sellers: **{len(recognized_unique_global):,}**")
+          md.append(f"- Unique product-like records not mapped to a selectable seller: **{len(unassigned_unique_global):,}**")
+          md.append("")
+          md.append("## The exact sellers shown by the finder")
+          md.append("")
+          md.append("| Seller | Unique products stored | Raw rows | Dup. | Networks observed | Source files | Status |")
+          md.append("|---|---:|---:|---:|---|---:|---|")
+          for r in seller_rows:
+              md.append(
+                  f"| {r['seller']} | {r['unique_products']:,} | {r['raw_product_rows']:,} | "
+                  f"{r['duplicate_pct']}% | {r['networks_observed'] or '—'} | "
+                  f"{r['source_files']} | {r['status']} |"
+              )
+          md.append("")
+          md.append("## Top unrecognized raw seller strings")
+          md.append("")
+          md.append("These are diagnostic names found inside product records. They are **not automatically public selectable sellers**.")
+          md.append("")
+          md.append("| Raw seller string | Unique products | Raw rows |")
+          md.append("|---|---:|---:|")
+          for r in unrecognized_rows[:40]:
+              md.append(f"| {r['raw_seller']} | {r['unique_products']:,} | {r['raw_product_rows']:,} |")
+          md.append("")
+          md.append("## Interpretation")
+          md.append("")
+          md.append("- `Unique products stored` tells us what TrendPilot currently has locally for each real selectable seller.")
+          md.append("- It does **not** claim to be the seller's complete external marketplace catalogue.")
+          md.append("- A low count means the ingestion/feed/API side needs attention before we blame the search engine.")
+          md.append("- A high count with poor top results means indexing/ranking/classification needs attention.")
+          md.append("- The CSV/JSON artifacts contain source files, raw aliases, groups and families for deeper diagnosis.")
+
+          (OUT / "catalog-seller-audit.md").write_text("\n".join(md) + "\n", encoding="utf-8")
+
+          print("\n".join(md))
+          PY
+
+      - name: Publish audit to GitHub Summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat v17-1-audit/catalog-seller-audit.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload V17.1 audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v17-1-catalog-seller-audit
+          path: |
+            v17-1-audit/catalog-seller-audit.md
+            v17-1-audit/catalog-seller-audit.json
+            v17-1-audit/selectable-sellers-audit.csv
+            v17-1-audit/unrecognized-raw-sellers.csv
+            v17-1-audit/source-files-audit.csv
+          retention-days: 7
