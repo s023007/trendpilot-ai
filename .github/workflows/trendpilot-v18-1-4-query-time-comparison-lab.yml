@@ -1,0 +1,513 @@
+name: TrendPilot V18.1.4 Query-Time Comparison Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v18-1-4-query-time-comparison
+  cancel-in-progress: true
+
+jobs:
+  query-time-lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Verify seller policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          expected = [
+              "AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS",
+              "Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo",
+              "Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US"
+          ]
+
+          reg = json.loads(Path("data/product-seller-registry-v17.json").read_text())
+          public = [x["name"] for x in reg["sellers"] if x.get("public")]
+          assert public == expected, public
+          assert "Temu" not in public
+          assert "Joom" not in public
+          print("Seller policy PASS — 14 product sellers; Temu/Joom blocked.")
+          PY
+
+      - name: Run query-time comparison simulation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v18-1-4-lab
+
+          cat > /tmp/v18_1_4.py <<'PY'
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          from pathlib import Path
+          from urllib.parse import urlencode
+          from urllib.request import Request, urlopen
+          import json, re, time, random
+
+          ORIGIN = "https://trendpilotchoice.com"
+          APPROVED = [
+              "AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS",
+              "Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo",
+              "Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US"
+          ]
+
+          TESTS = [
+              {"query":"phone","intent":"phone","mode":"broad"},
+              {"query":"iPhone 17","intent":"phone","mode":"specific"},
+              {"query":"laptop","intent":"laptop","mode":"broad"},
+              {"query":"smartwatch","intent":"smartwatch","mode":"broad"},
+              {"query":"headphones","intent":"headphones","mode":"broad"},
+              {"query":"perfume","intent":"perfume","mode":"broad"},
+              {"query":"power bank","intent":"power_bank","mode":"broad"},
+              {"query":"dog food","intent":"dog_food","mode":"broad"},
+              {"query":"air conditioner","intent":"air_conditioner","mode":"broad"},
+              {"query":"3d filament","intent":"filament","mode":"broad"},
+          ]
+
+          def rx(p):
+              return re.compile(p, re.I)
+
+          PROFILES = {
+              "phone": {
+                  "positive":[
+                      rx(r"\bsmartphones?\b"), rx(r"\bmobile phones?\b"), rx(r"\bcell phones?\b"),
+                      rx(r"\bunlocked phones?\b"), rx(r"\bfeature phones?\b"),
+                      rx(r"\biphone\s*\d{1,2}(?:\s*(?:pro max|pro|plus|mini|air))?\b"),
+                      rx(r"\bgalaxy\s*[asfz]\s*\d{1,3}(?:\s*(?:ultra|plus|fe|pro))?\b"),
+                      rx(r"\bpixel\s*\d{1,2}(?:\s*(?:pro|xl|a))?\b"),
+                      rx(r"\b(?:redmi|poco|oneplus|realme|oppo|vivo|honor)\s+[a-z0-9+.-]{1,20}\b"),
+                  ],
+                  "support":[
+                      rx(r"\b(?:4g|5g|lte)\b"), rx(r"\b(?:dual sim|esim)\b"),
+                      rx(r"\b(?:snapdragon|dimensity|mediatek|helio|exynos)\b"),
+                      rx(r"\b\d{4,6}\s*mah\b"), rx(r"\b\d{2,3}\s*mp\b"),
+                      rx(r"\b(?:64|128|256|512|1024)\s*gb\b")
+                  ],
+                  "negative":[
+                      rx(r"\b(?:case|cover|bumper|shell|screen protector|tempered glass|sim card tray)\b"),
+                      rx(r"\b(?:lcd|oled)\s+(?:screen|display)\b|\bdigitizer\b|\bscreen assembly\b"),
+                      rx(r"\b(?:lens|projector|radio|receiver|power supply|tester|repair|replacement|motherboard|housing|flex cable)\b"),
+                      rx(r"\b(?:charger|charging cable|usb cable|adapter|dock|stand|holder|mount|enclosure)\b"),
+                      rx(r"\b(?:earphones?|earbuds?|headphones?|headset|speaker|microphone)\b"),
+                  ]
+              },
+              "laptop": {
+                  "positive":[
+                      rx(r"\blaptops?\b"), rx(r"\bultrabook\b"), rx(r"\bchromebook\b"),
+                      rx(r"\bnotebook computer\b"), rx(r"\bmacbook\s+(?:air|pro)\b"),
+                      rx(r"\bthinkpad\s+[a-z0-9-]{1,18}\b")
+                  ],
+                  "support":[
+                      rx(r"\b(?:intel|amd|ryzen|celeron|pentium|atom|core\s*i[3579])\b"),
+                      rx(r"\bgaming\b"), rx(r"\b\d{1,2}(?:\.\d{1,2})?\s*(?:inch|inches|\")\b"),
+                      rx(r"\b\d{1,2}\s*gb\s*ram\b"),
+                      rx(r"\b(?:128|256|512|1024)\s*gb\s*(?:ssd|storage|rom|nvme)?\b")
+                  ],
+                  "negative":[
+                      rx(r"\b(?:bag|handbag|briefcase|sleeve|case|cover|skin|decal|sticker)\b"),
+                      rx(r"\b(?:screen protector|privacy filter|keyboard film|replacement fan|cooling fan|topcase|top case|hinge)\b"),
+                      rx(r"\b(?:portable monitor|extension monitor|laptop desk|computer desk|tower shelf|dock|charger|adapter)\b"),
+                      rx(r"\b(?:ram memory|memory module|ssd drive|solid state drive)\b")
+                  ]
+              },
+              "smartwatch": {
+                  "positive":[
+                      rx(r"\bsmart ?watch(?:es)?\b"), rx(r"\bapple watch\b"),
+                      rx(r"\bgalaxy watch\b"), rx(r"\bfitness watch\b"), rx(r"\bgps watch\b")
+                  ],
+                  "support":[rx(r"\bgps\b"),rx(r"\bbluetooth\b"),rx(r"\b(?:calling|call function|phone call)\b")],
+                  "negative":[
+                      rx(r"\b(?:protective case|watch case|screen protector|replacement screen|lcd screen|display assembly)\b"),
+                      rx(r"\b(?:strap|watch band|charging dock|watch charger|charger for)\b"),
+                      rx(r"\b(?:case for apple watch|for apple watch.{0,35}(?:case|band|strap|protector|charger))\b")
+                  ]
+              },
+              "headphones": {
+                  "positive":[
+                      rx(r"\bheadphones?\b"), rx(r"\bearbuds?\b"), rx(r"\bearphones?\b"),
+                      rx(r"\btws\b"), rx(r"\bheadset\b")
+                  ],
+                  "support":[rx(r"\bbluetooth\b"),rx(r"\b(?:anc|noise cancell?ing|noise cancellation)\b")],
+                  "negative":[
+                      rx(r"\b(?:upgrade cable|replacement cable|audio cable|xlr cable|headphone cable|earphone cable)\b"),
+                      rx(r"\b(?:headphone hook|headphone stand|earbud case|earphone case|airpods? case|silicone case|ear pads?|ear cushions?)\b"),
+                      rx(r"\b(?:desktop microphone|usb microphone|sound card|bluetooth speaker)\b"),
+                      rx(r"\b(?:virtual reality|\bvr\b|meta quest)\b")
+                  ]
+              },
+              "perfume": {
+                  "positive":[
+                      rx(r"\bperfume\b"), rx(r"\beau de parfum\b"), rx(r"\beau de toilette\b"),
+                      rx(r"\bcologne\b"), rx(r"\bfragrance\b")
+                  ],
+                  "support":[rx(r"\b\d+(?:\.\d+)?\s*(?:ml|oz|fl\.?\s*oz)\b"),rx(r"\b(?:edp|edt|parfum)\b")],
+                  "negative":[
+                      rx(r"\b(?:fragrance style|fragrance cup|tea cup|teacup|tea bowl|tea set)\b"),
+                      rx(r"\b(?:airpods?|airpod|keychain|coat|clothing|clothes|case cover|phone case)\b"),
+                      rx(r"\b(?:engraving machine|chuck|spindle|collet)\b"),
+                      rx(r"\b(?:empty|refillable)\s+perfume\s+bottle\b"),
+                      rx(r"^(?:women'?s perfume|men'?s cologne|discount perfume\s*&\s*cologne|designer fragrance\s*-?\s*discount prices)$")
+                  ]
+              },
+              "power_bank": {
+                  "positive":[rx(r"\bpower ?banks?\b"),rx(r"\bportable charger\b")],
+                  "support":[rx(r"\b\d{4,6}\s*mah\b"),rx(r"\b\d{2,3}\s*w\b"),rx(r"\b(?:pd|power delivery|quick charge|qc\s*\d)\b")],
+                  "negative":[
+                      rx(r"\b(?:battery inverter|inverter adapter|power tool battery adapter)\b"),
+                      rx(r"\b(?:vr headsets? accessory|headset accessory)\b"),
+                      rx(r"\b(?:for makita|for bosch|for dewalt|for milwaukee)\b")
+                  ]
+              },
+              "dog_food": {
+                  "positive":[rx(r"\bdog food\b"),rx(r"\bpet food\b"),rx(r"\bkibble\b"),rx(r"\bdog treats?\b")],
+                  "support":[rx(r"\b(?:chicken|beef|salmon|lamb|protein|nutrition)\b"),rx(r"\b\d+(?:\.\d+)?\s*(?:kg|g|lb|oz)\b")],
+                  "negative":[
+                      rx(r"\b(?:feeder|dispenser|bowl|storage|container|scoop|mat|toy)\b"),
+                      rx(r"\b(?:extruder|pelletizer|production line|machine|equipment)\b")
+                  ]
+              },
+              "air_conditioner": {
+                  "positive":[
+                      rx(r"\bair conditioner\b"),rx(r"\bmini split\b"),
+                      rx(r"\bsplit (?:air conditioner|ac|system)\b"),
+                      rx(r"\bportable air conditioner\b"),rx(r"\bduct type air conditioner\b")
+                  ],
+                  "support":[rx(r"\b\d{4,6}\s*btu\b"),rx(r"\binverter\b"),rx(r"\b\d(?:\.\d+)?\s*hp\b")],
+                  "negative":[
+                      rx(r"\b(?:bracket|connector|hose|remote|receiver board|servo motor|expansion valve|water valve|filter|spare part|replacement part)\b"),
+                      rx(r"\b(?:cleaner|cleaning tool|drill|expander|grille|ventilation grille|fan|water cooler)\b"),
+                      rx(r"\b(?:bbq|barbecue|burner|propane)\b")
+                  ]
+              },
+              "filament": {
+                  "positive":[
+                      rx(r"\b(?:pla|petg|abs|tpu|asa|nylon)\s+(?:3d\s+printing\s+)?filament\b"),
+                      rx(r"\b3d\s+print(?:er|ing)?\s+filament\b"),
+                      rx(r"\bfilament\s+(?:1\.75|2\.85)\s*mm\b")
+                  ],
+                  "support":[rx(r"\b(?:1\.75|2\.85)\s*mm\b"),rx(r"\b\d+(?:\.\d+)?\s*kg\b")],
+                  "negative":[rx(r"\b(?:tea bag|phone case|airpods?|sleeve|cover)\b")]
+              }
+          }
+
+          def fetch_json(params, timeout=25):
+              q = dict(params)
+              q["_cb"] = f"{int(time.time()*1000)}-{random.randint(1000,9999)}"
+              url = ORIGIN + "/api/products-v16-hybrid?" + urlencode(q)
+              req = Request(url, headers={"Accept":"application/json","Cache-Control":"no-cache"})
+              with urlopen(req, timeout=timeout) as r:
+                  return json.loads(r.read().decode("utf-8","replace"))
+
+          def title_of(row):
+              return str(row.get("title") or row.get("name") or "").strip()
+
+          def seller_of(row):
+              return str(row.get("seller") or row.get("advertiser") or "").strip()
+
+          def row_key(row):
+              return str(row.get("id") or row.get("sourceProductId") or row.get("affiliateUrl") or row.get("url") or (seller_of(row)+"|"+title_of(row))).strip()
+
+          def safe_type(row, intent):
+              profile = PROFILES[intent]
+              title = title_of(row).lower()
+              context = " ".join([
+                  title,
+                  str(row.get("category") or "").lower(),
+                  str(row.get("subcategory") or "").lower(),
+                  str(row.get("brand") or "").lower()
+              ])
+
+              if any(p.search(title) for p in profile["negative"]):
+                  return False, -100
+
+              direct = sum(1 for p in profile["positive"] if p.search(title))
+              support = sum(1 for p in profile["support"] if p.search(context))
+              if direct == 0:
+                  return False, support
+
+              # Query-time rule: a direct product signal is mandatory.
+              # Support only improves ranking; it never creates a product match by itself.
+              score = direct * 20 + support * 4
+
+              # Extra safety for known ambiguous broad nouns.
+              if intent == "phone" and re.search(r"\bmobile phone lens\b|\bcell phone lens\b", title):
+                  return False, -100
+              if intent == "power_bank" and re.search(r"\bsolar panel\b", title) and not re.search(r"\b\d{4,6}\s*mah\b", context):
+                  return False, -100
+              if intent == "air_conditioner" and not re.search(r"\b\d{4,6}\s*btu\b|\binverter\b|\bportable air conditioner\b|\bmini split\b", context):
+                  return False, score
+              if intent == "perfume" and re.search(r"^(women'?s perfume|men'?s cologne|discount perfume\s*&\s*cologne|designer fragrance)", title):
+                  return False, score
+
+              return True, score
+
+          def query_tokens(q):
+              return [x for x in re.findall(r"[a-z0-9]+", q.lower()) if x not in {"the","and","for","with"}]
+
+          def query_score(row, q):
+              title = title_of(row).lower()
+              qs = query_tokens(q)
+              if not qs:
+                  return 0
+              score = 0
+              if q.lower() in title:
+                  score += 30
+              for token in qs:
+                  if re.search(rf"\b{re.escape(token)}\b", title):
+                      score += 8
+                  elif len(token) >= 4 and token in title:
+                      score += 4
+              return score
+
+          def exact_enough(row, q):
+              title = title_of(row).lower()
+              qs = query_tokens(q)
+              return bool(qs) and all(token in title for token in qs)
+
+          def merge_rows(rows):
+              out = {}
+              for row in rows:
+                  key = row_key(row)
+                  if key and key not in out:
+                      out[key] = row
+              return list(out.values())
+
+          def seller_diverse(rows, limit=12):
+              groups = {}
+              for row in rows:
+                  groups.setdefault(seller_of(row), []).append(row)
+              for group in groups.values():
+                  group.sort(key=lambda x:(-x["_score"], float(x.get("price") or 10**18)))
+              sellers = sorted(groups, key=lambda s:-groups[s][0]["_score"])
+              out = []
+              round_no = 0
+              while len(out) < limit:
+                  added = False
+                  for seller in sellers:
+                      if round_no < len(groups[seller]):
+                          out.append(groups[seller][round_no])
+                          added = True
+                          if len(out) >= limit:
+                              break
+                  if not added:
+                      break
+                  round_no += 1
+              return out
+
+          results = []
+
+          for test in TESTS:
+              print("Testing", test["query"])
+              general = fetch_json({"q":test["query"],"limit":100}).get("products") or []
+              pool = list(general)
+
+              # If general search is sparse or seller-heavy, enrich at query time
+              # by asking each approved seller for a small result slice.
+              prelim = []
+              for row in pool:
+                  ok, type_score = safe_type(row, test["intent"])
+                  if ok:
+                      row = dict(row)
+                      row["_score"] = type_score + query_score(row, test["query"])
+                      prelim.append(row)
+
+              general_sellers = len({seller_of(x) for x in prelim if seller_of(x)})
+              need_enrichment = len(prelim) < 24 or general_sellers < 3 or test["mode"] == "specific"
+
+              if need_enrichment:
+                  def one_seller(seller):
+                      try:
+                          return fetch_json({"q":test["query"],"seller":seller,"limit":30}).get("products") or []
+                      except Exception:
+                          return []
+
+                  with ThreadPoolExecutor(max_workers=6) as ex:
+                      futures = [ex.submit(one_seller, seller) for seller in APPROVED]
+                      for f in as_completed(futures):
+                          pool.extend(f.result())
+
+              pool = merge_rows(pool)
+              safe = []
+              related = []
+              for row in pool:
+                  ok, type_score = safe_type(row, test["intent"])
+                  qs = query_score(row, test["query"])
+                  item = dict(row)
+                  item["_score"] = type_score + qs
+                  if ok:
+                      safe.append(item)
+                  elif qs > 0:
+                      related.append(item)
+
+              safe.sort(key=lambda x:(-x["_score"], float(x.get("price") or 10**18)))
+              exact = [x for x in safe if exact_enough(x, test["query"])] if test["mode"] == "specific" else []
+
+              if exact:
+                  source = exact
+              elif test["mode"] == "specific":
+                  close = [x for x in safe if query_score(x, test["query"]) > 0]
+                  source = close if len(close) >= 4 else safe
+              else:
+                  source = safe
+
+              selected = seller_diverse(source, 12)
+              selected_sellers = sorted({seller_of(x) for x in selected if seller_of(x)})
+
+              status = "PASS"
+              if not selected:
+                  status = "NO_SAFE_DATA"
+              elif len(selected_sellers) < 2:
+                  status = "ONE_SELLER_ONLY"
+
+              results.append({
+                  "query":test["query"],
+                  "intent":test["intent"],
+                  "mode":test["mode"],
+                  "safePool":len(safe),
+                  "exactMatches":len(exact),
+                  "selectedCount":len(selected),
+                  "sellerCount":len(selected_sellers),
+                  "sellers":selected_sellers,
+                  "relatedSeparated":len(related),
+                  "status":status,
+                  "selected":[{
+                      "seller":seller_of(x),
+                      "title":title_of(x),
+                      "price":x.get("price"),
+                      "currency":x.get("currency"),
+                      "image":x.get("image") or x.get("imageUrl"),
+                      "url":x.get("url") or x.get("affiliateUrl") or x.get("destinationUrl")
+                  } for x in selected],
+                  "relatedSample":[title_of(x) for x in related[:5]]
+              })
+
+          # Explicit blocked-seller verification.
+          blocked = {}
+          for seller in ["Temu","Joom"]:
+              data = fetch_json({"q":"phone","seller":seller,"limit":10})
+              blocked[seller] = len(data.get("products") or []) == 0
+
+          priority_names = {"phone","laptop","headphones","perfume","power bank"}
+          priority = [r for r in results if r["query"] in priority_names]
+          verdict = "PASS" if all(r["status"] != "NO_SAFE_DATA" for r in priority) and blocked["Temu"] and blocked["Joom"] else "REVIEW"
+
+          summary = {
+              "version":"18.1.4-lab",
+              "architecture":"query-time-comparison",
+              "approvedProductSellerCount":len(APPROVED),
+              "temuBlocked":blocked["Temu"],
+              "joomBlocked":blocked["Joom"],
+              "verdict":verdict,
+              "results":[{
+                  k:r[k] for k in ["query","mode","safePool","exactMatches","selectedCount","sellerCount","relatedSeparated","status"]
+              } for r in results]
+          }
+
+          Path("v18-1-4-lab/summary.json").write_text(json.dumps(summary,indent=2,ensure_ascii=False))
+          Path("v18-1-4-lab/query-results.json").write_text(json.dumps(results,indent=2,ensure_ascii=False))
+
+          report = []
+          report.append("# TrendPilot V18.1.4 — Query-Time Comparison Lab")
+          report.append("")
+          report.append("> Read-only. No production code, seller policy, Netlify Blobs, or live UI was changed.")
+          report.append("")
+          report.append("## Policy")
+          report.append(f"- Public product sellers: **{len(APPROVED)}**")
+          report.append(f"- Temu blocked: **{'PASS' if blocked['Temu'] else 'FAIL'}**")
+          report.append(f"- Joom blocked: **{'PASS' if blocked['Joom'] else 'FAIL'}**")
+          report.append("")
+          report.append("## Query-time results")
+          report.append("| Query | Mode | Safe pool | Exact | Top shown | Sellers | Related separated | Result |")
+          report.append("|---|---|---:|---:|---:|---:|---:|---|")
+          for r in results:
+              report.append(
+                  f"| {r['query']} | {r['mode']} | {r['safePool']} | {r['exactMatches']} | "
+                  f"{r['selectedCount']} | {r['sellerCount']} | {r['relatedSeparated']} | **{r['status']}** |"
+              )
+
+          report.append("")
+          report.append("## Short visitor samples")
+          for r in results:
+              if r["query"] not in {"phone","iPhone 17","laptop","headphones","perfume","power bank","dog food"}:
+                  continue
+              report.append(f"### {r['query']}")
+              if not r["selected"]:
+                  report.append("- No safe main product; the UI should say so instead of showing a false match.")
+              else:
+                  for x in r["selected"][:3]:
+                      price = "price unavailable" if x["price"] is None else f"{x['price']} {x['currency'] or ''}".strip()
+                      report.append(f"- **{x['seller']}** — {x['title'][:145]} — {price}")
+              if r["relatedSeparated"]:
+                  sample = r["relatedSample"][0][:110] if r["relatedSample"] else "related items"
+                  report.append(f"- Related/accessories kept separate: **{r['relatedSeparated']}** (example: {sample})")
+              report.append("")
+
+          report.append("## Final verdict")
+          report.append(f"**{verdict}**")
+          report.append("")
+          if verdict == "PASS":
+              report.append("Use this simpler query-time design as the base for V18.2: seller catalogs stay as the source of truth; the visitor query chooses a small intent filter; safe alternatives are compared; accessories stay separate.")
+          else:
+              report.append("Do not connect the comparison UI yet. The artifact contains the exact rows for the few failing queries.")
+
+          Path("v18-1-4-lab/report.md").write_text("\n".join(report)+"\n")
+          print("\n".join(report))
+          PY
+
+          python3 /tmp/v18_1_4.py
+
+      - name: Validate concise result
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = json.loads(Path("v18-1-4-lab/summary.json").read_text())
+          assert summary["approvedProductSellerCount"] == 14
+          assert summary["temuBlocked"] is True
+          assert summary["joomBlocked"] is True
+          assert len(summary["results"]) == 10
+          assert Path("v18-1-4-lab/query-results.json").stat().st_size > 0
+
+          print("FINAL VERDICT:", summary["verdict"])
+          for row in summary["results"]:
+              print(
+                  row["query"], "=>", row["status"],
+                  "| shown", row["selectedCount"],
+                  "| sellers", row["sellerCount"],
+                  "| related", row["relatedSeparated"]
+              )
+          PY
+
+      - name: Publish concise GitHub Summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat v18-1-4-lab/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload detailed artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v18-1-4-query-time-comparison-lab
+          path: |
+            v18-1-4-lab/report.md
+            v18-1-4-lab/summary.json
+            v18-1-4-lab/query-results.json
+          retention-days: 14
+          compression-level: 9
