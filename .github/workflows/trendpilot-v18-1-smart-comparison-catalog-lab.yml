@@ -1,0 +1,453 @@
+name: TrendPilot V18.1 Smart Comparison Catalog Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v18-1-smart-comparison-catalog-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smart-comparison-lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Build smart comparison catalog
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v18-1-lab
+
+          cat > /tmp/v18-1-smart-compare.mjs <<'JS'
+          import fs from "node:fs";
+          import path from "node:path";
+          import crypto from "node:crypto";
+          import { extractProducts, clean } from "./netlify/functions/products-v16-lib.mjs";
+          import { canonicalizePublicProduct } from "./netlify/functions/product-seller-policy-v17.mjs";
+
+          const OUT = "v18-1-lab";
+          const DATA = "data";
+          const registry = JSON.parse(fs.readFileSync("data/product-seller-registry-v17.json", "utf8"));
+          const approved = registry.sellers.filter(x => x.public).map(x => x.name);
+          if (approved.length !== 15) throw new Error(`Expected 15 approved sellers, found ${approved.length}`);
+          if (approved.includes("Joom")) throw new Error("Safety stop: Joom must remain excluded.");
+
+          const walk = dir => {
+            const out = [];
+            for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
+              const p = path.join(dir, ent.name);
+              if (ent.isDirectory()) out.push(...walk(p));
+              else if (ent.isFile() && p.endsWith(".json")) out.push(p);
+            }
+            return out;
+          };
+
+          const files = walk(DATA).sort();
+          const byId = new Map();
+          let failedFiles = 0;
+          let rawRows = 0;
+
+          for (const file of files) {
+            try {
+              const root = JSON.parse(fs.readFileSync(file, "utf8"));
+              const products = extractProducts(root, file, 180000);
+              rawRows += products.length;
+              for (const product of products) {
+                const publicProduct = canonicalizePublicProduct(product);
+                if (!publicProduct) continue;
+                const current = byId.get(publicProduct.id);
+                if (!current || richness(publicProduct) > richness(current)) byId.set(publicProduct.id, publicProduct);
+              }
+            } catch {
+              failedFiles++;
+            }
+          }
+
+          function richness(p) {
+            return Number(Boolean(p.imageUrl)) + Number(Boolean(p.affiliateUrl)) + Number(Boolean(p.brand)) +
+              Number(Boolean(p.category)) + Number(p.price != null) + Math.min(4, Object.keys(extractSpecs("other", p.title, p.description)).length);
+          }
+
+          const accessoryRules = [
+            /\b(case|cover|bumper|shell|screen protector|protector|strap|band|charger|adapter|cable|stand|mount|dock)\b/i
+          ];
+
+          const typeRules = [
+            ["phone", [/\bsmartphone\b/i,/\bmobile phone\b/i,/\bcell phone\b/i,/\biphone\s*\d/i,/\bgalaxy\s+[asfz]\s*\d/i,/\b(redmi|poco|oneplus|pixel)\b.{0,30}\b(5g|4g|phone)\b/i]],
+            ["laptop", [/\blaptop\b/i,/\bnotebook computer\b/i,/\bmacbook\b/i,/\bthinkpad\b/i,/\bchromebook\b/i]],
+            ["smartwatch", [/\bsmart ?watch\b/i,/\bapple watch\b/i,/\bgalaxy watch\b/i,/\bfitness watch\b/i]],
+            ["air_conditioner", [/\bair conditioner\b/i,/\bair conditioning\b/i,/\bmini split\b/i,/\bsplit ac\b/i,/\b\d{4,6}\s*btu\b/i]],
+            ["power_bank", [/\bpower ?bank\b/i,/\bportable charger\b/i]],
+            ["headphones", [/\bheadphones?\b/i,/\bearbuds?\b/i,/\bearphones?\b/i,/\bheadset\b/i]],
+            ["perfume", [/\bperfume\b/i,/\bfragrance\b/i,/\beau de (parfum|toilette)\b/i,/\bedp\b/i,/\bedt\b/i]],
+            ["pet_food", [/\b(dog|cat|pet)\s+(food|kibble|treats?)\b/i]],
+            ["cookware", [/\b(cookware|frying pan|saucepan|pot set|casserole|kettle|pressure cooker)\b/i]],
+            ["tools", [/\b(drill|screwdriver|wrench|pliers|hammer|tool kit|power tool)\b/i]],
+            ["3d_filament", [/\bfilament\b/i,/\bpla\+?\b.{0,18}\b(1\.75|2\.85)\s*mm\b/i]],
+            ["lighting", [/\b(led strip|smart light|light bulb|wall light|floor lamp|table lamp)\b/i]],
+            ["beads_jewelry", [/\b(beads?|jewelry making|jewellery making|charms?)\b/i]],
+            ["diecast_model", [/\b(diecast|die-cast|model car|scale model)\b/i]],
+            ["medical", [/\b(medical|surgical|diagnostic|stethoscope|wheelchair|exam table|patient)\b/i]],
+          ];
+
+          function classify(p) {
+            const text = clean(`${p.title} ${p.category} ${p.subcategory} ${(p.description || "").slice(0, 600)}`);
+            const title = clean(p.title);
+            const accessory = accessoryRules.some(r => r.test(title));
+            for (const [type, rules] of typeRules) {
+              if (rules.some(r => r.test(text))) {
+                if (accessory && ["phone","laptop","smartwatch"].includes(type)) return `${type}_accessory`;
+                return type;
+              }
+            }
+            return "other";
+          }
+
+          const knownBrands = [
+            "Apple","Samsung","Xiaomi","Redmi","Poco","OnePlus","Google","Motorola","Huawei","Honor","Nokia","Realme","Oppo","Vivo",
+            "Lenovo","Dell","HP","Asus","Acer","MSI","Microsoft","Razer","LG","Sony","JBL","Anker","Baseus","UGREEN","Govee",
+            "Bosch","Makita","DeWalt","Milwaukee","Dyson","Philips","Panasonic","TCL","Hisense","Haier","Midea","Daikin",
+            "Armani","Dior","Chanel","Gucci","Versace","Burberry","Calvin Klein","Hugo Boss","Yves Saint Laurent","YSL"
+          ];
+
+          function inferBrand(p) {
+            if (clean(p.brand)) return clean(p.brand);
+            const title = clean(p.title).toLowerCase();
+            return knownBrands.find(b => new RegExp(`(^|[^a-z0-9])${escapeRegex(b.toLowerCase())}([^a-z0-9]|$)`, "i").test(title)) || "";
+          }
+
+          function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+          function numberMatch(regex, text) {
+            const m = text.match(regex);
+            return m ? Number(m[1]) : null;
+          }
+
+          function extractSpecs(type, title, description = "") {
+            const text = clean(`${title} ${(description || "").slice(0, 1000)}`).toLowerCase();
+            const specs = {};
+            const storage = text.match(/\b(32|64|128|256|512|1024)\s*(gb|tb)\b/i);
+            if (storage) specs.storage = `${storage[1]}${storage[2].toUpperCase()}`;
+            const ram = text.match(/\b(2|3|4|6|8|12|16|24|32|64)\s*gb\s*(?:ram|memory)\b|\b(?:ram|memory)\s*(2|3|4|6|8|12|16|24|32|64)\s*gb\b/i);
+            if (ram) specs.ram = `${ram[1] || ram[2]}GB`;
+            const battery = numberMatch(/\b(\d{3,6})\s*mah\b/i, text);
+            if (battery) specs.batteryMah = battery;
+            const watts = numberMatch(/\b(\d{2,5})\s*w(?:att)?s?\b/i, text);
+            if (watts) specs.watts = watts;
+            const screen = numberMatch(/\b(\d{1,2}(?:\.\d)?)\s*(?:inch|inches|in|\")\b/i, text);
+            if (screen && screen >= 2 && screen <= 100) specs.screenInches = screen;
+            const btu = numberMatch(/\b(\d{4,6})\s*btu\b/i, text);
+            if (btu) specs.btu = btu;
+            const tons = numberMatch(/\b(\d(?:\.\d+)?)\s*ton\b/i, text);
+            if (tons) specs.tons = tons;
+            if (/\binverter\b/i.test(text)) specs.inverter = true;
+            const volume = text.match(/\b(\d+(?:\.\d+)?)\s*(ml|l)\b/i);
+            if (volume) specs.volume = `${volume[1]}${volume[2]}`;
+            if (type === "phone") {
+              const cam = numberMatch(/\b(\d{2,3})\s*mp\b/i, text);
+              if (cam) specs.cameraMP = cam;
+            }
+            const conn = [];
+            if (/\b5g\b/i.test(text)) conn.push("5G");
+            if (/\b4g\b/i.test(text)) conn.push("4G");
+            if (/\bwi[ -]?fi\b/i.test(text)) conn.push("Wi-Fi");
+            if (/\bbluetooth\b/i.test(text)) conn.push("Bluetooth");
+            if (/\bgps\b/i.test(text)) conn.push("GPS");
+            if (conn.length) specs.connectivity = conn;
+            return specs;
+          }
+
+          function modelHint(title) {
+            const patterns = [
+              /\b(iPhone\s*\d+(?:\s*(?:Pro Max|Pro|Plus|Mini|Air))?)\b/i,
+              /\b(Galaxy\s*[ASZF]\s*\d{1,3}(?:\s*(?:Ultra|Plus|FE|Pro))?)\b/i,
+              /\b(Pixel\s*\d+(?:\s*(?:Pro|XL|a))?)\b/i,
+              /\b(Galaxy Watch\s*\d+(?:\s*(?:Pro|Classic|Ultra))?)\b/i,
+              /\b(MacBook\s+(?:Air|Pro)(?:\s*M\d)?)\b/i,
+              /\b(ThinkPad\s+[A-Za-z0-9-]{2,16})\b/i,
+              /\b((?:Redmi|Poco|OnePlus)\s+[A-Za-z0-9+.-]{1,18})\b/i,
+            ];
+            for (const p of patterns) {
+              const m = clean(title).match(p);
+              if (m) return clean(m[1]);
+            }
+            const code = clean(title).match(/\b[A-Za-z]{1,8}[- ]?\d{2,6}[A-Za-z0-9-]{0,8}\b/);
+            return code ? clean(code[0]) : "";
+          }
+
+          const offers = [...byId.values()].map(p => {
+            const productType = classify(p);
+            return {
+              id: p.id,
+              seller: p.seller,
+              title: p.title,
+              brand: inferBrand(p),
+              modelHint: modelHint(p.title),
+              productType,
+              category: p.category,
+              subcategory: p.subcategory,
+              price: p.price,
+              currency: p.currency,
+              imageUrl: p.imageUrl,
+              affiliateUrl: p.affiliateUrl,
+              destinationUrl: p.destinationUrl,
+              specs: extractSpecs(productType, p.title, p.description),
+            };
+          });
+
+          function fold(v) { return clean(v).toLowerCase().replace(/[^a-z0-9]+/g, ""); }
+          function hash(v) { return crypto.createHash("sha1").update(String(v)).digest("hex"); }
+
+          // Bonus: exact-ish same-model groups. These are not required for comparison success.
+          const sameMap = new Map();
+          for (const p of offers) {
+            if (!p.brand || !p.modelHint) continue;
+            const key = `${fold(p.brand)}|${fold(p.modelHint)}`;
+            if (!sameMap.has(key)) sameMap.set(key, []);
+            sameMap.get(key).push(p);
+          }
+          const sameModelGroups = [...sameMap.entries()].map(([key, rows]) => {
+            const sellers = [...new Set(rows.map(x => x.seller))].sort();
+            return { key, brand: rows[0].brand, model: rows[0].modelHint, sellerCount: sellers.length, sellers, offers: rows.slice(0, 30) };
+          }).filter(x => x.sellerCount >= 2).sort((a,b) => b.sellerCount - a.sellerCount || a.model.localeCompare(b.model));
+
+          function band(price) {
+            if (!(price > 0)) return "";
+            if (price < 25) return "under-25";
+            if (price < 50) return "25-50";
+            if (price < 100) return "50-100";
+            if (price < 200) return "100-200";
+            if (price < 350) return "200-350";
+            if (price < 500) return "350-500";
+            if (price < 750) return "500-750";
+            if (price < 1000) return "750-1000";
+            if (price < 1500) return "1000-1500";
+            return "1500-plus";
+          }
+
+          function specScore(p) {
+            const s = p.specs || {};
+            let score = Object.keys(s).length * 4 + (p.brand ? 8 : 0) + (p.imageUrl ? 4 : 0);
+            if (p.productType === "phone") {
+              score += Math.min(24, (s.batteryMah || 0) / 250);
+              score += Math.min(24, (s.cameraMP || 0) / 5);
+              if (s.storage?.endsWith("GB")) score += Math.min(24, Number(s.storage.slice(0,-2)) / 16);
+              if (s.connectivity?.includes("5G")) score += 10;
+            } else if (p.productType === "air_conditioner") {
+              score += Math.min(40, (s.btu || 0) / 500) + (s.inverter ? 25 : 0);
+            } else if (p.productType === "power_bank") {
+              score += Math.min(50, (s.batteryMah || 0) / 500) + Math.min(20, (s.watts || 0) / 5);
+            } else if (p.productType === "laptop") {
+              if (s.storage?.endsWith("GB")) score += Math.min(30, Number(s.storage.slice(0,-2)) / 16);
+              if (s.ram?.endsWith("GB")) score += Math.min(30, Number(s.ram.slice(0,-2)) * 2);
+            }
+            return score;
+          }
+
+          const buckets = new Map();
+          for (const p of offers) {
+            if (["other","phone_accessory","laptop_accessory","smartwatch_accessory"].includes(p.productType)) continue;
+            if (!(p.price > 0) || !p.currency) continue;
+            const key = `${p.productType}|${p.currency}|${band(p.price)}`;
+            if (!buckets.has(key)) buckets.set(key, []);
+            buckets.get(key).push(p);
+          }
+
+          const comparisonSets = [];
+          for (const [key, rows] of buckets.entries()) {
+            const [productType, currency, priceBand] = key.split("|");
+            const bySeller = new Map();
+            for (const row of rows) {
+              if (!bySeller.has(row.seller)) bySeller.set(row.seller, []);
+              bySeller.get(row.seller).push(row);
+            }
+            if (bySeller.size < 2) continue;
+
+            const picked = [];
+            for (const [seller, sellerRows] of bySeller.entries()) {
+              sellerRows.sort((a,b) => specScore(b) - specScore(a) || a.price - b.price || a.title.localeCompare(b.title));
+              picked.push({ ...sellerRows[0], _score: specScore(sellerRows[0]), badges: [] });
+            }
+            picked.sort((a,b) => a.price - b.price || b._score - a._score);
+            const products = picked.slice(0, 8);
+            const lowest = products.reduce((a,b) => a.price <= b.price ? a : b);
+            const strongest = products.reduce((a,b) => a._score >= b._score ? a : b);
+            lowest.badges.push("Lowest price");
+            if (strongest.id !== lowest.id) strongest.badges.push("Better specs");
+            const value = products.reduce((a,b) => (a._score / Math.max(a.price,1)) >= (b._score / Math.max(b.price,1)) ? a : b);
+            if (!value.badges.length) value.badges.push("Best value");
+            for (const p of products) delete p._score;
+
+            comparisonSets.push({
+              comparisonId: `cmp-${hash(key).slice(0,18)}`,
+              productType, currency, priceBand,
+              sellerCount: products.length,
+              minPrice: Math.min(...products.map(x => x.price)),
+              maxPrice: Math.max(...products.map(x => x.price)),
+              products
+            });
+          }
+          comparisonSets.sort((a,b) => b.sellerCount - a.sellerCount || a.productType.localeCompare(b.productType) || a.minPrice - b.minPrice);
+
+          const typeCounts = new Map();
+          const sellerStats = new Map(approved.map(s => [s, { seller:s, stored:0, priced:0, images:0, useful:0, types:new Map() }]));
+          for (const p of offers) {
+            typeCounts.set(p.productType, (typeCounts.get(p.productType) || 0) + 1);
+            const st = sellerStats.get(p.seller);
+            st.stored++;
+            if (p.price != null) st.priced++;
+            if (p.imageUrl) st.images++;
+            if (p.productType !== "other") st.useful++;
+            st.types.set(p.productType, (st.types.get(p.productType) || 0) + 1);
+          }
+
+          const routesWanted = ["phone","laptop","smartwatch","air_conditioner","power_bank","headphones","perfume","pet_food","cookware","tools","3d_filament","lighting"];
+          const searchRoutes = routesWanted.map(type => {
+            const sets = comparisonSets.filter(x => x.productType === type);
+            return { type, sets: sets.length, sellers: [...new Set(sets.flatMap(x => x.products.map(p => p.seller)))].sort() };
+          });
+
+          fs.writeFileSync(`${OUT}/smart-offers.ndjson`, offers.map(x => JSON.stringify(x)).join("\n") + "\n");
+          fs.writeFileSync(`${OUT}/comparison-sets.json`, JSON.stringify(comparisonSets));
+          fs.writeFileSync(`${OUT}/same-model-groups.json`, JSON.stringify(sameModelGroups));
+          fs.writeFileSync(`${OUT}/search-routes.json`, JSON.stringify(searchRoutes, null, 2));
+
+          const summary = {
+            version: "18.1.0-lab",
+            approvedSellerCount: approved.length,
+            joomBlocked: true,
+            jsonFilesScanned: files.length,
+            jsonFilesFailed: failedFiles,
+            rawProductRowsSeen: rawRows,
+            storedApprovedOffers: offers.length,
+            usefulClassifiedOffers: offers.filter(x => x.productType !== "other").length,
+            smartComparisonSets: comparisonSets.length,
+            sameModelMultiSellerGroups: sameModelGroups.length,
+            productTypes: Object.fromEntries([...typeCounts.entries()].sort((a,b) => b[1]-a[1])),
+            searchRoutes,
+          };
+          fs.writeFileSync(`${OUT}/summary.json`, JSON.stringify(summary, null, 2));
+
+          const csv = ["seller,stored,priced,images,useful,top_types"];
+          for (const seller of approved) {
+            const st = sellerStats.get(seller);
+            const top = [...st.types.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k}:${v}`).join("; ");
+            const q = v => `"${String(v).replaceAll('"','""')}"`;
+            csv.push([q(seller),st.stored,st.priced,st.images,st.useful,q(top)].join(","));
+          }
+          fs.writeFileSync(`${OUT}/seller-summary.csv`, csv.join("\n") + "\n");
+
+          const money = (n,c) => `${Number(n).toFixed(2)} ${c}`;
+          const report = [];
+          report.push("# TrendPilot V18.1 — Smart Comparison Catalog Lab", "");
+          report.push("> Read-only. The live site, production search, and Netlify Blobs were not changed.", "");
+          report.push("## Decision", "");
+          report.push("TrendPilot can compare useful alternatives in the same product type and price band. Exact same-model matching is a bonus, not a dependency.", "");
+          report.push("## Totals", "");
+          report.push(`- Approved sellers: **${approved.length}**`);
+          report.push(`- Stored approved offers: **${offers.length.toLocaleString()}**`);
+          report.push(`- Useful classified offers: **${summary.usefulClassifiedOffers.toLocaleString()}**`);
+          report.push(`- Smart multi-seller comparison sets: **${comparisonSets.length.toLocaleString()}**`);
+          report.push(`- Same-model multi-seller groups (bonus): **${sameModelGroups.length.toLocaleString()}**`);
+          report.push(`- Joom blocked: **PASS**`, "");
+          report.push("## Product types", "", "| Type | Offers |", "|---|---:|");
+          for (const [type,count] of [...typeCounts.entries()].sort((a,b)=>b[1]-a[1])) report.push(`| ${type} | ${count.toLocaleString()} |`);
+          report.push("", "## Broad search routes", "", "| Intent | Comparison sets | Sellers represented |", "|---|---:|---|");
+          for (const r of searchRoutes) report.push(`| ${r.type} | ${r.sets.toLocaleString()} | ${r.sellers.join(", ") || "—"} |`);
+          report.push("", "## Seller coverage", "", "| Seller | Stored | Price | Image | Useful classified | Top types |", "|---|---:|---:|---:|---:|---|");
+          for (const seller of approved) {
+            const st = sellerStats.get(seller);
+            const top = [...st.types.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5).map(([k,v])=>`${k}:${v}`).join(", ");
+            report.push(`| ${seller} | ${st.stored.toLocaleString()} | ${st.priced.toLocaleString()} | ${st.images.toLocaleString()} | ${st.useful.toLocaleString()} | ${top || "—"} |`);
+          }
+          report.push("", "## Sample comparison sets", "");
+          for (const set of comparisonSets.slice(0,18)) {
+            report.push(`### ${set.productType} • ${set.currency} • ${set.priceBand}`);
+            for (const p of set.products) {
+              const badges = p.badges.length ? ` — **${p.badges.join(" / ")}**` : "";
+              const specs = Object.entries(p.specs).map(([k,v]) => `${k}=${Array.isArray(v)?v.join("/"):v}`).join(", ") || "specs pending";
+              report.push(`- ${p.seller}: ${p.title.slice(0,120)} — ${money(p.price,p.currency)}${badges} — ${specs}`);
+            }
+            report.push("");
+          }
+          report.push("## Next production step", "");
+          report.push("1. If these comparison sets look useful, persist `productType` + extracted specs + offers to Netlify Blobs.");
+          report.push("2. `phone` opens phone choices grouped by price; accessories stay separate.");
+          report.push("3. `iPhone 17` first tries same-model/name matches, then close phone alternatives.");
+          report.push("4. Product cards can show Lowest price / Best value / Better specs, using transparent rules.");
+          report.push("5. Pagefind can index the normalized product records instead of raw seller feed rows.");
+          fs.writeFileSync(`${OUT}/report.md`, report.join("\n") + "\n");
+
+          const preferred = ["phone","laptop","smartwatch","air_conditioner","power_bank","headphones","perfume","pet_food"];
+          const samples = preferred.map(t => comparisonSets.find(x => x.productType === t)).filter(Boolean);
+          const esc = v => String(v ?? "").replace(/[&<>\"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+          const cards = samples.map(set => `
+            <section><h2>${esc(set.productType.replaceAll("_"," "))} — ${esc(set.priceBand)}</h2>
+            <p>${set.sellerCount} sellers • ${esc(set.currency)} • ${money(set.minPrice,set.currency)}–${money(set.maxPrice,set.currency)}</p>
+            <div class="grid">${set.products.map(p => `<article class="card">
+              ${p.imageUrl ? `<img src="${esc(p.imageUrl)}" alt="">` : `<div class="noimg">No image</div>`}
+              <small>${esc(p.seller)}</small><h3>${esc(p.title.slice(0,145))}</h3><b class="price">${money(p.price,p.currency)}</b>
+              <div>${p.badges.map(b=>`<span>${esc(b)}</span>`).join("")}</div>
+              <p>${esc(Object.entries(p.specs).map(([k,v])=>`${k}: ${Array.isArray(v)?v.join("/"):v}`).join(" • ") || "Specs pending")}</p>
+            </article>`).join("")}</div></section>`).join("");
+          fs.writeFileSync(`${OUT}/comparison-preview.html`, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TrendPilot V18.1 Preview</title><style>body{font-family:system-ui;background:#f5f7fa;color:#17202a;margin:0}main{max-width:1250px;margin:auto;padding:24px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}.card{background:white;border:1px solid #e2e7ec;border-radius:14px;padding:14px}.card img,.noimg{width:100%;height:160px;object-fit:contain;background:#fafafa;border-radius:9px}.noimg{display:grid;place-items:center;color:#8a949e}.price{display:block;font-size:20px;margin:8px 0}.card span{display:inline-block;border:1px solid #ccd4dd;border-radius:999px;padding:3px 7px;margin:2px;font-size:12px}.card p{font-size:12px;line-height:1.5;color:#56616c}</style><main><h1>TrendPilot V18.1 Smart Comparison Preview</h1><p>Comparable alternatives from different sellers, grouped by purpose and price. Same-model matches remain a bonus.</p>${cards || "<p>No multi-seller samples generated.</p>"}</main>`);
+
+          console.log(report.join("\n"));
+          JS
+
+          node --check /tmp/v18-1-smart-compare.mjs
+          node /tmp/v18-1-smart-compare.mjs
+
+      - name: Validate V18.1 outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'JS'
+          const fs = require("node:fs");
+          const s = JSON.parse(fs.readFileSync("v18-1-lab/summary.json", "utf8"));
+          if (s.approvedSellerCount !== 15) throw new Error("Approved seller count changed.");
+          if (!s.joomBlocked) throw new Error("Joom safety check failed.");
+          if (s.storedApprovedOffers < 1000) throw new Error("Too few stored offers.");
+          for (const f of ["smart-offers.ndjson","comparison-sets.json","same-model-groups.json","search-routes.json","seller-summary.csv","comparison-preview.html","report.md"]) {
+            if (!fs.existsSync(`v18-1-lab/${f}`) || fs.statSync(`v18-1-lab/${f}`).size === 0) throw new Error(`Missing output: ${f}`);
+          }
+          console.log("V18.1 validation PASS", {
+            offers: s.storedApprovedOffers,
+            classified: s.usefulClassifiedOffers,
+            comparisonSets: s.smartComparisonSets,
+            sameModelGroups: s.sameModelMultiSellerGroups
+          });
+          JS
+
+      - name: Publish V18.1 report to GitHub Summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat v18-1-lab/report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload V18.1 lab artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v18-1-smart-comparison-catalog-lab
+          path: |
+            v18-1-lab/report.md
+            v18-1-lab/summary.json
+            v18-1-lab/seller-summary.csv
+            v18-1-lab/smart-offers.ndjson
+            v18-1-lab/comparison-sets.json
+            v18-1-lab/same-model-groups.json
+            v18-1-lab/search-routes.json
+            v18-1-lab/comparison-preview.html
+          retention-days: 14
+          compression-level: 9
