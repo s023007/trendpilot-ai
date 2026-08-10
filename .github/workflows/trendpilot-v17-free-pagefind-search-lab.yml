@@ -1,0 +1,483 @@
+name: TrendPilot V17 Free Pagefind Search Lab
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v17-free-pagefind-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  pagefind-search-lab:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build normalized V17 product dataset
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p v17-lab
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, hashlib, re
+
+          roots = [Path("data")]
+          files = []
+          for root in roots:
+              if root.exists():
+                  files.extend(root.rglob("*.json"))
+
+          def clean(v):
+              if v is None:
+                  return ""
+              return re.sub(r"\s+", " ", re.sub(r"<[^>]*>", " ", str(v))).strip()
+
+          def first(d, keys):
+              for k in keys:
+                  if isinstance(d, dict) and d.get(k) not in (None, "", [], {}):
+                      return d.get(k)
+              return ""
+
+          def walk(x):
+              if isinstance(x, list):
+                  for y in x:
+                      yield from walk(y)
+              elif isinstance(x, dict):
+                  title = clean(first(x, ["name","title","productName","product_name"]))
+                  url = clean(first(x, [
+                      "url","affiliateUrl","affiliate_url","destinationUrl","destination_url",
+                      "productUrl","product_url","clickUrl","click_url","buyUrl","buy_url"
+                  ]))
+                  # Only product-like rows. This deliberately ignores config/manifest metadata.
+                  if title and (url.startswith("http://") or url.startswith("https://")):
+                      yield x
+                  # Product lists are sometimes nested under container keys.
+                  for k, v in x.items():
+                      if k in {
+                          "products","items","results","offers","records","data",
+                          "rows","entries","productFeed","product_feed"
+                      } and isinstance(v, (list, dict)):
+                          yield from walk(v)
+
+          seen = set()
+          rows = []
+          parsed_files = 0
+          bad_files = 0
+
+          for f in files:
+              try:
+                  obj = json.loads(f.read_text(encoding="utf-8"))
+                  parsed_files += 1
+              except Exception:
+                  bad_files += 1
+                  continue
+
+              for p in walk(obj):
+                  title = clean(first(p, ["name","title","productName","product_name"]))
+                  seller = clean(first(p, [
+                      "advertiser","seller","merchant","advertiserName","advertiser_name",
+                      "sellerName","seller_name","merchantName","merchant_name"
+                  ]))
+                  network = clean(first(p, [
+                      "network","networkName","provider","platform","affiliateNetwork"
+                  ]))
+                  url = clean(first(p, [
+                      "url","affiliateUrl","affiliate_url","destinationUrl","destination_url",
+                      "productUrl","product_url","clickUrl","click_url","buyUrl","buy_url"
+                  ]))
+                  image = clean(first(p, [
+                      "image","imageUrl","image_url","thumbnail","thumbnailUrl","imageLink"
+                  ]))
+                  group = clean(first(p, ["group","categoryGroup","department"]))
+                  family = clean(first(p, ["family","subcategory","subCategory","productFamily"]))
+                  category = clean(first(p, ["category","categoryName","category_name"]))
+                  brand = clean(first(p, ["brand","brandName","brand_name"]))
+                  desc = clean(first(p, ["description","desc","shortDescription","short_description"]))
+                  currency = clean(first(p, ["currency","currencyCode","currency_code"]))
+                  price = first(p, ["price","salePrice","sale_price","currentPrice","current_price"])
+                  pid = clean(first(p, ["id","objectID","productId","product_id","sourceProductId","source_product_id","clusterKey"]))
+
+                  dedupe = pid or url or f"{seller}|{title}"
+                  dedupe = hashlib.sha1(dedupe.encode("utf-8","ignore")).hexdigest()
+                  if dedupe in seen:
+                      continue
+                  seen.add(dedupe)
+
+                  rows.append({
+                      "objectID": dedupe,
+                      "title": title,
+                      "seller": seller or "Unknown seller",
+                      "network": network or "Unknown network",
+                      "group": group or "",
+                      "family": family or "",
+                      "category": category or "",
+                      "brand": brand or "",
+                      "description": desc[:1600],
+                      "price": price if isinstance(price,(int,float,str)) else "",
+                      "currency": currency,
+                      "image": image,
+                      "affiliateUrl": url,
+                  })
+
+          # Prefer records that carry seller/category signals, then preserve deterministic order.
+          rows.sort(key=lambda r: (
+              0 if r["seller"] != "Unknown seller" else 1,
+              0 if (r["family"] or r["category"] or r["group"]) else 1,
+              r["seller"].lower(),
+              r["title"].lower(),
+              r["objectID"]
+          ))
+
+          Path("v17-lab/products.json").write_text(
+              json.dumps(rows, ensure_ascii=False),
+              encoding="utf-8"
+          )
+
+          sellers = {}
+          networks = {}
+          for r in rows:
+              sellers[r["seller"]] = sellers.get(r["seller"], 0) + 1
+              networks[r["network"]] = networks.get(r["network"], 0) + 1
+
+          stats = {
+              "jsonFilesParsed": parsed_files,
+              "jsonFilesSkipped": bad_files,
+              "products": len(rows),
+              "sellers": len(sellers),
+              "networks": len(networks),
+              "topSellers": sorted(sellers.items(), key=lambda x:(-x[1],x[0]))[:25],
+              "topNetworks": sorted(networks.items(), key=lambda x:(-x[1],x[0]))[:15],
+          }
+          Path("v17-lab/dataset-stats.json").write_text(
+              json.dumps(stats, ensure_ascii=False, indent=2),
+              encoding="utf-8"
+          )
+
+          print(json.dumps(stats, ensure_ascii=False, indent=2))
+          if len(rows) < 1000:
+              raise SystemExit(
+                  f"Only {len(rows)} product-like records were discovered; "
+                  "lab stopped rather than testing an incomplete catalogue."
+              )
+          PY
+
+      - name: Install Pagefind and Playwright
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm init -y >/dev/null 2>&1
+          npm install --no-fund --no-audit pagefind@1.5.2 playwright >/dev/null
+          npx playwright install --with-deps chromium >/dev/null
+
+      - name: Build Pagefind index from products
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > v17-lab/build-pagefind.mjs <<'JS'
+          import fs from "node:fs";
+          import * as pagefind from "pagefind";
+
+          const products = JSON.parse(fs.readFileSync("v17-lab/products.json","utf8"));
+          const { index } = await pagefind.createIndex({
+            forceLanguage: "en",
+            writePlayground: false,
+            verbose: false
+          });
+
+          if (!index) throw new Error("Pagefind index was not created");
+
+          const chunkSize = 120;
+          let indexed = 0;
+          let errors = 0;
+
+          for (let i=0; i<products.length; i+=chunkSize) {
+            const batch = products.slice(i, i+chunkSize);
+            const results = await Promise.all(batch.map(async (p) => {
+              // Repetition intentionally gives title/family/category more influence than description
+              // without altering the production catalogue.
+              const content = [
+                p.title, p.title, p.title,
+                p.family, p.family,
+                p.category, p.category,
+                p.group,
+                p.brand,
+                p.description
+              ].filter(Boolean).join(" ");
+
+              return index.addCustomRecord({
+                url: `/v17-product/${p.objectID}/`,
+                content,
+                language: "en",
+                meta: {
+                  title: p.title,
+                  seller: p.seller,
+                  network: p.network,
+                  group: p.group,
+                  family: p.family,
+                  category: p.category,
+                  brand: p.brand,
+                  price: String(p.price ?? ""),
+                  currency: p.currency,
+                  image: p.image,
+                  affiliateUrl: p.affiliateUrl
+                },
+                filters: {
+                  seller: [p.seller],
+                  network: [p.network],
+                  group: p.group ? [p.group] : [],
+                  family: p.family ? [p.family] : []
+                }
+              });
+            }));
+
+            for (const r of results) {
+              if (r?.errors?.length) errors += r.errors.length;
+              else indexed += 1;
+            }
+
+            if ((i / chunkSize) % 20 === 0) {
+              console.log(`Indexed ${Math.min(i+batch.length,products.length)}/${products.length}`);
+            }
+          }
+
+          if (errors) throw new Error(`Pagefind indexing returned ${errors} errors`);
+
+          const write = await index.writeFiles({outputPath:"v17-lab/pagefind"});
+          if (write?.errors?.length) throw new Error(write.errors.join("\n"));
+
+          fs.writeFileSync("v17-lab/index.html", `<!doctype html>
+          <html lang="en">
+          <head><meta charset="utf-8"><title>TrendPilot V17 Pagefind Lab</title></head>
+          <body><h1>TrendPilot V17 Pagefind Lab</h1><p>Automated benchmark only.</p></body>
+          </html>`);
+
+          fs.writeFileSync(
+            "v17-lab/pagefind-build.json",
+            JSON.stringify({products:products.length,indexed,errors},null,2)
+          );
+
+          await pagefind.close();
+          console.log({products:products.length,indexed,errors});
+          JS
+
+          node v17-lab/build-pagefind.mjs
+
+      - name: Run automated relevance benchmark
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cat > v17-lab/benchmark.mjs <<'JS'
+          import fs from "node:fs";
+          import { chromium } from "playwright";
+
+          const tests = [
+            {
+              q:"phone",
+              positive:/\b(smart ?phone|mobile phone|cell phone|iphone|android phone|unlocked phone|samsung galaxy|google pixel|oneplus|xiaomi|redmi|oppo|vivo|realme|motorola|moto g|nothing phone)\b/i,
+              negative:/\b(case|cover|screen protector|charger|cable|repair|tool|board|connector|speaker|projector|mount|holder|stand|earbud|headphone|power bank|watch|tripod)\b/i
+            },
+            {
+              q:"dog food",
+              positive:/\b(dog food|dog foods|dog treat|dog treats|dog snack|dog snacks|dog topper|dog toppers|kibble|bone broth|freeze dried|freeze-dried|raw dog food)\b/i,
+              negative:/\b(feeder|bowl|container|storage|dispenser|toy|mold|mould|bead|stand|mat|scoop)\b/i
+            },
+            {
+              q:"laptop",
+              positive:/\b(laptop|notebook computer|macbook|thinkpad|ideapad|thinkbook|chromebook|gaming notebook)\b/i,
+              negative:/\b(case|bag|sleeve|stand|charger|adapter|battery|keyboard|repair|tool|screen protector)\b/i
+            },
+            {
+              q:"watch",
+              positive:/\b(watch|smartwatch|smart watch)\b/i,
+              negative:/\b(repair tool|movement|band|strap|bracelet|case|screen protector|charger|battery tester|watch hand)\b/i
+            },
+            {
+              q:"dress",
+              positive:/\b(dress|dresses|gown|abaya)\b/i,
+              negative:/\b(pattern|fabric|bead|charm|doll dress|pet dress)\b/i
+            },
+            {
+              q:"drill",
+              positive:/\b(drill|hammer drill|impact drill|cordless drill|drill driver)\b/i,
+              negative:/\b(drill bit|drill bits|bit set|attachment|adapter|holder)\b/i
+            },
+            {
+              q:"headphones",
+              positive:/\b(headphone|headphones|headset|headsets)\b/i,
+              negative:/\b(case|ear pad|earpad|cable|stand|holder|replacement)\b/i
+            },
+            {
+              q:"power bank",
+              positive:/\b(power bank|portable charger|battery bank)\b/i,
+              negative:/\b(case|holder|shell|housing)\b/i
+            },
+            {
+              q:"perfume",
+              positive:/\b(perfume|eau de parfum|eau de toilette|cologne|fragrance)\b/i,
+              negative:/\b(empty bottle|atomizer bottle|perfume bottle|display stand)\b/i
+            },
+            {
+              q:"cat food",
+              positive:/\b(cat food|cat foods|cat treat|cat treats|cat snack|cat snacks|cat topper|cat toppers|kitten food|kibble|freeze dried|freeze-dried)\b/i,
+              negative:/\b(feeder|bowl|container|storage|dispenser|toy|litter|mold|mould|bead|stand|mat|scoop)\b/i
+            }
+          ];
+
+          const serverBase = "http://127.0.0.1:4173";
+          const browser = await chromium.launch({headless:true});
+          const page = await browser.newPage();
+          await page.goto(serverBase + "/index.html", {waitUntil:"domcontentloaded"});
+
+          const report = [];
+          for (const t of tests) {
+            const result = await page.evaluate(async ({q}) => {
+              const pf = await import("/pagefind/pagefind.js");
+              await pf.options({
+                baseUrl: "/",
+                ranking: {
+                  termFrequency: 0.35,
+                  termSimilarity: 1.0
+                }
+              });
+              const t0 = performance.now();
+              const search = await pf.search(q);
+              const top = await Promise.all(
+                search.results.slice(0,20).map(r => r.data())
+              );
+              const elapsed = performance.now() - t0;
+              return {
+                total: search.results.length,
+                ms: Math.round(elapsed),
+                rows: top.map(x => ({
+                  title: x.meta?.title || "",
+                  seller: x.meta?.seller || "",
+                  family: x.meta?.family || "",
+                  category: x.meta?.category || "",
+                  affiliateUrl: x.meta?.affiliateUrl || ""
+                }))
+              };
+            }, {q:t.q});
+
+            let good = 0;
+            for (const row of result.rows) {
+              const text = `${row.title} ${row.family} ${row.category}`;
+              if (t.positive.test(text) && !t.negative.test(text)) good++;
+            }
+
+            const sellers = new Set(result.rows.map(x=>x.seller).filter(Boolean));
+            report.push({
+              query:t.q,
+              hits:result.total,
+              milliseconds:result.ms,
+              top20CoreLike:good,
+              top20CorePercent:result.rows.length ? Math.round(good/result.rows.length*100) : 0,
+              sellersInTop20:sellers.size,
+              rows:result.rows
+            });
+          }
+
+          await browser.close();
+
+          fs.writeFileSync(
+            "v17-lab/benchmark.json",
+            JSON.stringify(report,null,2)
+          );
+
+          let md = "# TrendPilot V17 — Pagefind Free Search Benchmark\n\n";
+          md += "> This is an isolated lab. Production search and Netlify were not changed.\n\n";
+          md += "| Query | Hits | Core-like in top 20 | Sellers in top 20 | Browser time |\n";
+          md += "|---|---:|---:|---:|---:|\n";
+          for (const r of report) {
+            md += `| ${r.query} | ${r.hits} | ${r.top20CoreLike}/20 (${r.top20CorePercent}%) | ${r.sellersInTop20} | ${r.milliseconds} ms |\n`;
+          }
+          md += "\n## Top 10 details\n";
+          for (const r of report) {
+            md += `\n### ${r.query}\n`;
+            r.rows.slice(0,10).forEach((x,i)=>{
+              md += `${i+1}. **${x.seller || "?"}** — ${x.title}\n`;
+            });
+          }
+
+          fs.writeFileSync("v17-lab/benchmark.md", md);
+          console.log(md);
+          JS
+
+          python3 -m http.server 4173 --directory v17-lab >/tmp/v17-http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/index.html >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          node v17-lab/benchmark.mjs
+
+      - name: Create GitHub summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          stats=json.loads(Path("v17-lab/dataset-stats.json").read_text())
+          bench=json.loads(Path("v17-lab/benchmark.json").read_text())
+          build=json.loads(Path("v17-lab/pagefind-build.json").read_text())
+
+          print("# TrendPilot V17 — Free Search Lab")
+          print("")
+          print("**Production was not changed. Netlify was not deployed. No paid service was used.**")
+          print("")
+          print(f"- Products discovered: **{stats['products']:,}**")
+          print(f"- Products indexed by Pagefind: **{build['indexed']:,}**")
+          print(f"- Sellers discovered: **{stats['sellers']:,}**")
+          print(f"- Networks discovered: **{stats['networks']:,}**")
+          print("")
+          print("## Automated benchmark")
+          print("")
+          print("| Query | Hits | Core-like top 20 | Sellers | Search time |")
+          print("|---|---:|---:|---:|---:|")
+          for r in bench:
+              print(
+                  f"| {r['query']} | {r['hits']} | "
+                  f"{r['top20CoreLike']}/20 ({r['top20CorePercent']}%) | "
+                  f"{r['sellersInTop20']} | {r['milliseconds']} ms |"
+              )
+          print("")
+          print("### Decision rule")
+          print("- If Pagefind is strong enough, we continue with the completely free static-search path.")
+          print("- If relevance is weak, we test the same dataset against Algolia Build free before changing production.")
+          PY
+
+      - name: Upload V17 lab report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v17-pagefind-free-lab
+          path: |
+            v17-lab/dataset-stats.json
+            v17-lab/pagefind-build.json
+            v17-lab/benchmark.json
+            v17-lab/benchmark.md
+          retention-days: 7
