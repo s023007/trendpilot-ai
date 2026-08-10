@@ -1,0 +1,1325 @@
+name: TrendPilot V19.1 — Clean Seller 1 + Build Seller 2 AliExpress
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v19-1-sequential-catalogs
+  cancel-in-progress: false
+
+jobs:
+  seller-by-seller:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Verify V19 foundation and current seller policy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s data/catalog-v19/schema-v1.json
+          test -s data/catalog-v19/ARCHITECTURE.md
+          test -s data/catalog-v19/sellers/geekbuying/products.ndjson
+
+          node --input-type=module <<'JS'
+          import { PUBLIC_PRODUCT_SELLER_NAMES } from "./netlify/functions/product-seller-policy-v17.mjs";
+          const sellers = [...PUBLIC_PRODUCT_SELLER_NAMES];
+          if (sellers.length !== 14) throw new Error(`Expected 14 public product sellers, got ${sellers.length}`);
+          for (const required of ["Geekbuying","AliExpress"]) {
+            if (!sellers.includes(required)) throw new Error(`${required} is not approved.`);
+          }
+          if (sellers.includes("Temu") || sellers.includes("Joom")) throw new Error("Blocked seller leaked into policy.");
+          console.log("Policy PASS.");
+          JS
+
+      - name: Record Seller 1 pre-clean state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          products = Path("data/catalog-v19/sellers/geekbuying/products.ndjson")
+          rows = [json.loads(x) for x in products.read_text().splitlines() if x.strip()]
+          bad = [x for x in rows if not str(x.get("source",{}).get("sourceFile","")).startswith("data/search-catalog/shards/")]
+
+          state = {
+              "beforeProducts": len(rows),
+              "unqualifiedSourceRows": len(bad),
+              "unqualifiedSourceFiles": sorted(set(
+                  str(x.get("source",{}).get("sourceFile","")) for x in bad
+              )),
+              "examples": [
+                  {
+                      "title": x.get("name",{}).get("display",""),
+                      "sourceFile": x.get("source",{}).get("sourceFile","")
+                  }
+                  for x in bad[:12]
+              ]
+          }
+          Path("/tmp/geekbuying-preclean.json").write_text(json.dumps(state,indent=2))
+          print(json.dumps(state,indent=2))
+          PY
+
+      - name: Install reusable V19 catalog engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scripts/catalog-v19 data/catalog-v19
+
+          cat > data/catalog-v19/source-policy-v1.json <<'JSON'
+          {
+            "version": "1.0.0",
+            "purpose": "Only qualified product-catalog sources may populate V19 seller catalogs.",
+            "includeRoots": [
+              "data/search-catalog/shards/"
+            ],
+            "explicitExclusions": [
+              "data/coupons.json",
+              "campaign metadata",
+              "promotion feeds",
+              "service affiliates",
+              "archived/unapproved seller rows"
+            ],
+            "rule": "Search and comparison may only consume seller catalogs built from qualified product-catalog shards. Coupons and promotions never become products."
+          }
+          JSON
+
+          cat > scripts/catalog-v19/build-canonical-seller.mjs <<'JS'
+          import fs from "node:fs";
+          import path from "node:path";
+          import crypto from "node:crypto";
+          import {
+            clean,
+            extractProducts,
+            validUrl
+          } from "../../netlify/functions/products-v16-lib.mjs";
+          import {
+            PUBLIC_PRODUCT_SELLER_NAMES,
+            canonicalProductSeller
+          } from "../../netlify/functions/product-seller-policy-v17.mjs";
+
+          const args = Object.fromEntries(
+            process.argv.slice(2).map(arg => {
+              const i = arg.indexOf("=");
+              return i < 0 ? [arg, ""] : [arg.slice(0, i), arg.slice(i + 1)];
+            })
+          );
+
+          const SELLER = args["--seller"];
+          const SELLER_SLUG = args["--slug"];
+          const VERSION = args["--version"] || "19.1.0";
+          const ROLE = args["--role"] || "canonical-seller-catalog";
+          const ROOT = "data/catalog-v19";
+          const SOURCE_ROOT = "data/search-catalog/shards";
+          const SELLER_DIR = `${ROOT}/sellers/${SELLER_SLUG}`;
+
+          if (!SELLER || !SELLER_SLUG) throw new Error("Missing --seller or --slug.");
+          if (!PUBLIC_PRODUCT_SELLER_NAMES.includes(SELLER)) {
+            throw new Error(`${SELLER} is not an approved public product seller.`);
+          }
+          if (PUBLIC_PRODUCT_SELLER_NAMES.includes("Temu") || PUBLIC_PRODUCT_SELLER_NAMES.includes("Joom")) {
+            throw new Error("Blocked seller leaked into public policy.");
+          }
+          if (!fs.existsSync(`${ROOT}/schema-v1.json`)) throw new Error("V19 schema-v1.json is missing.");
+          if (!fs.existsSync(SOURCE_ROOT)) throw new Error(`${SOURCE_ROOT} is missing.`);
+
+          const registry = JSON.parse(fs.readFileSync("data/product-seller-registry-v17.json", "utf8"));
+          const registryRow = registry.sellers.find(x => x.name === SELLER && x.public);
+          if (!registryRow) throw new Error(`Approved registry row missing for ${SELLER}.`);
+
+          fs.mkdirSync(SELLER_DIR, { recursive: true });
+
+          const sha = value => crypto.createHash("sha256").update(String(value)).digest("hex");
+          const norm = value =>
+            clean(value)
+              .normalize("NFKC")
+              .toLocaleLowerCase("en-US")
+              .replace(/[’'`]/g, "")
+              .replace(/[^a-z0-9]+/g, " ")
+              .trim();
+          const compact = value => norm(value).replace(/\s+/g, "");
+          const uniq = values => [...new Set(values.filter(Boolean))];
+
+          function walkJson(dir) {
+            const out = [];
+            for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+              const full = path.join(dir, entry.name);
+              if (entry.isDirectory()) out.push(...walkJson(full));
+              else if (entry.isFile() && entry.name.toLowerCase().endsWith(".json")) out.push(full);
+            }
+            return out;
+          }
+
+          function pickDirect(obj, keys) {
+            for (const key of keys) {
+              const value = obj?.[key];
+              if (value !== undefined && value !== null && clean(value)) return clean(value);
+            }
+            return "";
+          }
+
+          const FIELD_KEYS = {
+            sellerProductId: [
+              "sourceProductId","source_product_id","productId","product_id","itemId","item_id",
+              "offerId","offer_id","goodsId","goods_id","id"
+            ],
+            sku: ["sku","SKU","sellerSku","seller_sku","productSku","product_sku","itemSku","item_sku"],
+            model: ["model","modelNumber","model_number","modelNo","model_no","partNumber","part_number"],
+            mpn: ["mpn","MPN","manufacturerPartNumber","manufacturer_part_number"],
+            gtin: ["gtin","GTIN","gtin13","gtin14"],
+            ean: ["ean","EAN","ean13","ean_code"],
+            upc: ["upc","UPC","upcA","upc_code"],
+            isbn: ["isbn","ISBN"],
+            brand: ["brand","manufacturer","vendor","maker"]
+          };
+
+          function explicitIds(raw, normalized) {
+            return {
+              sellerProductId:
+                pickDirect(raw, FIELD_KEYS.sellerProductId) ||
+                clean(normalized.sourceProductId),
+              sku: pickDirect(raw, FIELD_KEYS.sku),
+              model: pickDirect(raw, FIELD_KEYS.model),
+              mpn: pickDirect(raw, FIELD_KEYS.mpn),
+              gtin: pickDirect(raw, FIELD_KEYS.gtin),
+              ean: pickDirect(raw, FIELD_KEYS.ean),
+              upc: pickDirect(raw, FIELD_KEYS.upc),
+              isbn: pickDirect(raw, FIELD_KEYS.isbn)
+            };
+          }
+
+          function inferTitleModel(title) {
+            const patterns = [
+              /\b(iPhone\s*\d{1,2}(?:\s*(?:Pro Max|Pro|Plus|Mini|Air))?)\b/i,
+              /\b(Galaxy\s*[ASZF]\s*\d{1,3}(?:\s*(?:Ultra|Plus|FE|Pro))?)\b/i,
+              /\b(Pixel\s*\d{1,2}(?:\s*(?:Pro|XL|a))?)\b/i,
+              /\b(Galaxy Watch\s*\d+(?:\s*(?:Pro|Classic|Ultra))?)\b/i,
+              /\b(MacBook\s+(?:Air|Pro)(?:\s*M\d)?)\b/i,
+              /\b(ThinkPad\s+[A-Za-z0-9-]{2,20})\b/i,
+              /\b((?:Redmi|Poco|OnePlus|Realme|Oppo|Vivo|Honor)\s+[A-Za-z0-9+._-]{1,24})\b/i,
+              /\b((?:FOSSiBOT|CHUWI|Tronsmart|Creality|ERYONE|ALLIWAVA|MINIX|ZIKE|Mecpow|KuKirin|Narwal)\s+[A-Za-z0-9+._-]{1,24})\b/i
+            ];
+            for (const pattern of patterns) {
+              const match = clean(title).match(pattern);
+              if (match) return clean(match[1]);
+            }
+            return "";
+          }
+
+          const KNOWN_BRANDS = [
+            "Apple","Samsung","Google","Xiaomi","Redmi","Poco","OnePlus","Realme","Oppo","Vivo","Honor",
+            "Huawei","Motorola","Nokia","Lenovo","CHUWI","Tronsmart","Creality","ERYONE","ALLIWAVA","MINIX",
+            "ZIKE","FOSSiBOT","Anker","UGREEN","Baseus","Govee","Sony","JBL","Asus","Acer","MSI","Dell","HP",
+            "Mecpow","KuKirin","Narwal","DOOGEE","OUKITEL","Blackview","Teclast","XGIMI","Wanbo"
+          ];
+
+          function inferBrand(title, explicit) {
+            if (clean(explicit)) return clean(explicit);
+            const t = ` ${norm(title)} `;
+            return KNOWN_BRANDS.find(brand => t.includes(` ${norm(brand)} `)) || "";
+          }
+
+          function flattenPrimitiveFields(obj, max = 100) {
+            const ignored = new Set([
+              "title","name","product_name","productName","product_title","productTitle",
+              "description","shortDescription","short_description","summary","product_description","productDescription",
+              "image","imageUrl","image_url","imageLink","image_link","picture","picture_url","photo","mainImage","main_image",
+              "affiliateUrl","affiliate_url","deeplink","deep_link","trackingUrl","tracking_url","clickUrl","click_url","goto",
+              "destinationUrl","destination_url","productUrl","product_url","url","link","landing_page","landingPage","product_link",
+              "seller","merchant","advertiser","advertiserName","advertiser_name","merchantName","merchant_name",
+              "price","salePrice","sale_price","currentPrice","current_price","amount"
+            ]);
+            const out = {};
+            let count = 0;
+            for (const [key, value] of Object.entries(obj || {})) {
+              if (count >= max || ignored.has(key) || value == null) continue;
+              if (["string","number","boolean"].includes(typeof value)) {
+                const str = clean(value);
+                if (!str || str.length > 500) continue;
+                out[key] = typeof value === "string" ? str : value;
+                count++;
+              }
+            }
+            return out;
+          }
+
+          function addAttribute(out, name, value) {
+            const key = clean(name).slice(0, 120);
+            if (!key || value == null) return;
+            let text;
+            if (Array.isArray(value)) text = value.map(x => clean(x)).filter(Boolean).join(", ");
+            else if (typeof value === "object") text = clean(value.value ?? value.text ?? value.label ?? "");
+            else text = clean(value);
+            if (!text || text.length > 1000) return;
+            if (!(key in out)) out[key] = text;
+          }
+
+          function flattenAttributeContainer(container, out, depth = 0) {
+            if (depth > 3 || container == null || Object.keys(out).length >= 160) return;
+            if (Array.isArray(container)) {
+              for (const item of container) {
+                if (Object.keys(out).length >= 160) break;
+                if (item && typeof item === "object") {
+                  const name = item.name ?? item.key ?? item.label ?? item.attribute ?? item.property ?? item.specification;
+                  const value = item.value ?? item.values ?? item.text ?? item.option ?? item.content;
+                  if (name != null && value != null) addAttribute(out, name, value);
+                  else flattenAttributeContainer(item, out, depth + 1);
+                }
+              }
+              return;
+            }
+            if (typeof container === "object") {
+              for (const [key, value] of Object.entries(container)) {
+                if (Object.keys(out).length >= 160) break;
+                if (value == null) continue;
+                if (["string","number","boolean"].includes(typeof value)) addAttribute(out, key, value);
+                else flattenAttributeContainer(value, out, depth + 1);
+              }
+            }
+          }
+
+          function structuredAttributes(raw) {
+            const out = {};
+            for (const key of [
+              "attributes","attribute","specifications","specification","specs","properties","property",
+              "features","feature","parameters","parameter","params","technicalSpecifications","technical_specs",
+              "productSpecifications","product_specs"
+            ]) {
+              if (raw?.[key] != null) flattenAttributeContainer(raw[key], out);
+            }
+            return out;
+          }
+
+          function variants(raw) {
+            for (const key of ["variants","variant","models","options","skus","items"]) {
+              const value = raw?.[key];
+              if (!Array.isArray(value) || !value.length || value.length > 250) continue;
+              return value.slice(0, 250).map((item, index) => {
+                if (item == null) return { index, value:"" };
+                if (["string","number","boolean"].includes(typeof item)) return { index, value:clean(item) };
+                return {
+                  index,
+                  id: pickDirect(item, ["sku","id","model_id","modelId","variantId","variant_id","itemId","item_id"]),
+                  name: pickDirect(item, ["name","title","label","option","variantName","variant_name"]),
+                  price: pickDirect(item, ["price","salePrice","sale_price","amount"]),
+                  availability: pickDirect(item, ["stock","availability","stockStatus","stock_status"]),
+                  sourceFields: flattenPrimitiveFields(item, 30)
+                };
+              });
+            }
+            return [];
+          }
+
+          function derivedSpecs(title) {
+            const t = clean(title);
+            const out = {};
+            const put = (key, value, unit = "") => {
+              if (value == null || Number.isNaN(value)) return;
+              out[key] = { value, unit, evidence:"title", confidence:"medium" };
+            };
+
+            let m;
+            m = t.match(/\b(?:RAM\s*)?(2|3|4|6|8|12|16|24|32|64)\s*GB\s*(?:RAM|Memory)\b/i);
+            if (!m) m = t.match(/\b(?:RAM|Memory)\s*(2|3|4|6|8|12|16|24|32|64)\s*GB\b/i);
+            if (m) put("ramGB", Number(m[1]), "GB");
+
+            m = t.match(/\b(32|64|128|256|512|1024|2048)\s*GB\s*(?:ROM|Storage|SSD|NVMe|eMMC)?\b/i);
+            if (m) put("storageGB", Number(m[1]), "GB");
+
+            m = t.match(/\b(\d{4,6})\s*mAh\b/i);
+            if (m) put("batteryMah", Number(m[1]), "mAh");
+
+            m = t.match(/\b(\d{2,3})\s*MP\b/i);
+            if (m) put("cameraMP", Number(m[1]), "MP");
+
+            m = t.match(/\b(\d{1,2}(?:\.\d{1,2})?)\s*(?:inch|inches|")\b/i);
+            if (m) {
+              const v = Number(m[1]);
+              if (v >= 1 && v <= 100) put("screenOrSizeInches", v, "in");
+            }
+
+            m = t.match(/\b(\d{1,5})\s*W\b/i);
+            if (m) put("watts", Number(m[1]), "W");
+
+            m = t.match(/\b(\d{4,6})\s*BTU\b/i);
+            if (m) put("btu", Number(m[1]), "BTU");
+
+            m = t.match(/\b(\d+(?:\.\d+)?)\s*kg\b/i);
+            if (m) put("weightKg", Number(m[1]), "kg");
+
+            m = t.match(/\b(1\.75|2\.85)\s*mm\b/i);
+            if (m) put("filamentDiameterMm", Number(m[1]), "mm");
+
+            const connectivity = [];
+            if (/\b5G\b/i.test(t)) connectivity.push("5G");
+            if (/\b4G\b/i.test(t)) connectivity.push("4G");
+            if (/\bBluetooth\b/i.test(t)) connectivity.push("Bluetooth");
+            if (/\bWi-?Fi\b/i.test(t)) connectivity.push("Wi-Fi");
+            if (/\bGPS\b/i.test(t)) connectivity.push("GPS");
+            if (connectivity.length) out.connectivity = { value:connectivity, evidence:"title", confidence:"medium" };
+
+            return out;
+          }
+
+          function rawCandidateMap(payload) {
+            const byId = new Map();
+            const byTitle = new Map();
+            const stack = [payload];
+            const seen = new Set();
+
+            while (stack.length) {
+              const value = stack.pop();
+              if (!value || typeof value !== "object" || seen.has(value)) continue;
+              seen.add(value);
+
+              if (Array.isArray(value)) {
+                for (const child of value) stack.push(child);
+                continue;
+              }
+
+              const title = pickDirect(value, [
+                "title","name","product_name","productName","product_title","productTitle",
+                "offer_name","offerName","product"
+              ]);
+
+              if (title) {
+                const id = pickDirect(value, [...FIELD_KEYS.sellerProductId, ...FIELD_KEYS.sku]);
+                if (id && !byId.has(id)) byId.set(id, value);
+                const titleKey = norm(title);
+                if (titleKey && !byTitle.has(titleKey)) byTitle.set(titleKey, value);
+              }
+
+              for (const child of Object.values(value)) {
+                if (child && typeof child === "object") stack.push(child);
+              }
+            }
+
+            return { byId, byTitle };
+          }
+
+          function identityKeys(record) {
+            const exactGlobal = uniq([
+              record.identifiers.gtin && `gtin:${compact(record.identifiers.gtin)}`,
+              record.identifiers.ean && `ean:${compact(record.identifiers.ean)}`,
+              record.identifiers.upc && `upc:${compact(record.identifiers.upc)}`,
+              record.identifiers.isbn && `isbn:${compact(record.identifiers.isbn)}`,
+              record.identifiers.mpn && record.brand && `mpn:${compact(record.brand)}:${compact(record.identifiers.mpn)}`
+            ]);
+
+            const brandModel =
+              record.brand && record.identifiers.model
+                ? `brand-model:${compact(record.brand)}:${compact(record.identifiers.model)}`
+                : "";
+
+            return {
+              exactGlobal,
+              sellerProduct: record.identifiers.sellerProductId
+                ? `seller-product:${SELLER_SLUG}:${compact(record.identifiers.sellerProductId)}`
+                : "",
+              sku: record.identifiers.sku
+                ? `seller-sku:${SELLER_SLUG}:${compact(record.identifiers.sku)}`
+                : "",
+              brandModel,
+              exactName: `name:${record.name.normalized}`,
+              compactName: `compact-name:${record.name.compact}`
+            };
+          }
+
+          function stableProductKey(ids, normalized) {
+            const stable = ids.sellerProductId || ids.sku || normalized.destinationUrl || normalized.affiliateUrl;
+            if (stable) return `${SELLER_SLUG}:${sha(stable).slice(0,24)}`;
+            const fingerprint = [
+              norm(normalized.title), clean(normalized.price), clean(normalized.currency), clean(normalized.imageUrl)
+            ].join("|");
+            return `${SELLER_SLUG}:fallback:${sha(fingerprint).slice(0,24)}`;
+          }
+
+          function taxonomyFrom(raw, normalized) {
+            const primitive = flattenPrimitiveFields(raw, 100);
+            const group = clean(raw?.group ?? primitive.group ?? "");
+            const family = clean(raw?.family ?? primitive.family ?? "");
+            const subtype = clean(raw?.subtype ?? primitive.subtype ?? "");
+            const canonicalPath = uniq([group, family, subtype]);
+            return {
+              sourceCategory: clean(normalized.category),
+              sourceSubcategory: clean(normalized.subcategory),
+              sourcePath: uniq([clean(normalized.category), clean(normalized.subcategory)]),
+              canonicalCategory: group || clean(normalized.category),
+              canonicalPath
+            };
+          }
+
+          const files = walkJson(SOURCE_ROOT);
+          const recordsByKey = new Map();
+          const sourceFiles = new Set();
+          let normalizedRowsForSeller = 0;
+
+          for (const file of files) {
+            let payload;
+            try {
+              payload = JSON.parse(fs.readFileSync(file, "utf8"));
+            } catch {
+              continue;
+            }
+
+            const normalizedRows = extractProducts(payload, file, 250000);
+            const sellerRows = normalizedRows.filter(row => canonicalProductSeller(row.seller) === SELLER);
+            if (!sellerRows.length) continue;
+
+            sourceFiles.add(file);
+            const candidates = rawCandidateMap(payload);
+
+            for (const normalized of sellerRows) {
+              normalizedRowsForSeller++;
+              const raw =
+                (normalized.sourceProductId && candidates.byId.get(clean(normalized.sourceProductId))) ||
+                candidates.byTitle.get(norm(normalized.title)) ||
+                {};
+
+              const ids = explicitIds(raw, normalized);
+              const explicitModel = ids.model;
+              const inferredModel = explicitModel ? "" : inferTitleModel(normalized.title);
+              if (!ids.model && inferredModel) ids.model = inferredModel;
+
+              const brand = inferBrand(
+                normalized.title,
+                pickDirect(raw, FIELD_KEYS.brand) || normalized.brand
+              );
+
+              const modelConfidence = explicitModel ? "explicit" : inferredModel ? "title-inferred" : "none";
+              const structured = structuredAttributes(raw);
+              const sourceFields = flattenPrimitiveFields(raw, 100);
+              const productKey = stableProductKey(ids, normalized);
+
+              const record = {
+                schemaVersion: VERSION,
+                catalogId: SELLER_SLUG,
+                productKey,
+                seller: {
+                  name: SELLER,
+                  slug: SELLER_SLUG,
+                  network: clean(registryRow.network)
+                },
+                identifiers: ids,
+                identity: {
+                  modelConfidence,
+                  comparableExact: Boolean(
+                    ids.gtin || ids.ean || ids.upc || ids.isbn ||
+                    (brand && ids.mpn) ||
+                    (brand && ids.model && modelConfidence === "explicit")
+                  )
+                },
+                name: {
+                  display: clean(normalized.title),
+                  normalized: norm(normalized.title),
+                  compact: compact(normalized.title),
+                  aliases: []
+                },
+                brand,
+                taxonomy: taxonomyFrom(raw, normalized),
+                specs: {
+                  structured,
+                  derived: derivedSpecs(normalized.title),
+                  sourceFields
+                },
+                variants: variants(raw),
+                offer: {
+                  price: normalized.price,
+                  currency: clean(normalized.currency),
+                  condition: clean(normalized.condition),
+                  availability: clean(normalized.availability)
+                },
+                media: {
+                  imageUrl: validUrl(normalized.imageUrl) ? normalized.imageUrl : ""
+                },
+                links: {
+                  affiliateUrl: validUrl(normalized.affiliateUrl) ? normalized.affiliateUrl : "",
+                  destinationUrl: validUrl(normalized.destinationUrl) ? normalized.destinationUrl : ""
+                },
+                source: {
+                  network: clean(normalized.network),
+                  sourceName: clean(normalized.source),
+                  sourceFile: file,
+                  kind: "qualified-product-catalog-shard"
+                },
+                quality: {
+                  inputQuality: normalized.quality,
+                  sourceQualified: file.startsWith(`${SOURCE_ROOT}/`),
+                  hasStableSellerId: Boolean(ids.sellerProductId || ids.sku),
+                  hasBrand: Boolean(brand),
+                  hasModel: Boolean(ids.model),
+                  hasExplicitModel: modelConfidence === "explicit",
+                  hasStructuredSpecs: Object.keys(structured).length > 0,
+                  hasDerivedSpecs: Object.keys(derivedSpecs(normalized.title)).length > 0,
+                  hasPrice: normalized.price != null,
+                  hasImage: Boolean(normalized.imageUrl),
+                  hasAffiliateOrDestinationUrl: Boolean(normalized.affiliateUrl || normalized.destinationUrl)
+                }
+              };
+
+              record.identity.keys = identityKeys(record);
+
+              const old = recordsByKey.get(productKey);
+              if (!old) {
+                recordsByKey.set(productKey, record);
+                continue;
+              }
+
+              const richness = x =>
+                Object.keys(x.specs.structured).length * 5 +
+                Object.keys(x.specs.derived || {}).length * 2 +
+                Object.keys(x.specs.sourceFields).length +
+                x.variants.length * 2 +
+                Number(x.quality.hasBrand) * 3 +
+                Number(x.quality.hasModel) * 4 +
+                Number(x.quality.hasPrice) * 2 +
+                Number(x.quality.hasImage) * 2 +
+                Number(x.quality.hasAffiliateOrDestinationUrl) * 2;
+
+              if (richness(record) > richness(old)) recordsByKey.set(productKey, record);
+            }
+          }
+
+          const records = [...recordsByKey.values()].sort((a,b) =>
+            a.name.normalized.localeCompare(b.name.normalized) || a.productKey.localeCompare(b.productKey)
+          );
+
+          if (!records.length) throw new Error(`No qualified catalog products found for ${SELLER}.`);
+          if (records.some(x => !x.quality.sourceQualified)) throw new Error("Unqualified source leaked into catalog.");
+          if (records.some(x => ["Temu","Joom"].includes(x.seller.name))) throw new Error("Blocked seller leaked into catalog.");
+
+          const indexes = {
+            version: VERSION,
+            seller: SELLER,
+            byGlobalId: {},
+            bySellerProductId: {},
+            bySku: {},
+            byBrandModel: {},
+            byModel: {},
+            byExactName: {},
+            byCompactName: {}
+          };
+
+          function pushIndex(obj, key, productKey) {
+            if (!key) return;
+            if (!obj[key]) obj[key] = [];
+            if (!obj[key].includes(productKey)) obj[key].push(productKey);
+          }
+
+          for (const record of records) {
+            for (const key of record.identity.keys.exactGlobal) pushIndex(indexes.byGlobalId, key, record.productKey);
+            if (record.identifiers.sellerProductId) pushIndex(indexes.bySellerProductId, compact(record.identifiers.sellerProductId), record.productKey);
+            if (record.identifiers.sku) pushIndex(indexes.bySku, compact(record.identifiers.sku), record.productKey);
+            if (record.identity.keys.brandModel) pushIndex(indexes.byBrandModel, record.identity.keys.brandModel, record.productKey);
+            if (record.identifiers.model) pushIndex(indexes.byModel, compact(record.identifiers.model), record.productKey);
+            pushIndex(indexes.byExactName, record.name.normalized, record.productKey);
+            pushIndex(indexes.byCompactName, record.name.compact, record.productKey);
+          }
+
+          const conflicts = { globalId:[], sellerProductId:[], sku:[], brandModel:[] };
+          for (const [key, values] of Object.entries(indexes.byGlobalId)) if (values.length > 1) conflicts.globalId.push({key,productKeys:values});
+          for (const [key, values] of Object.entries(indexes.bySellerProductId)) if (values.length > 1) conflicts.sellerProductId.push({key,productKeys:values});
+          for (const [key, values] of Object.entries(indexes.bySku)) if (values.length > 1) conflicts.sku.push({key,productKeys:values});
+          for (const [key, values] of Object.entries(indexes.byBrandModel)) if (values.length > 1) conflicts.brandModel.push({key,productKeys:values});
+
+          const categoryIndex = {};
+          for (const record of records) {
+            const canonicalKey = record.taxonomy.canonicalPath.length
+              ? record.taxonomy.canonicalPath.map(norm).join("/")
+              : norm(record.taxonomy.canonicalCategory || record.taxonomy.sourceCategory || "(uncategorized)");
+            if (!categoryIndex[canonicalKey]) {
+              categoryIndex[canonicalKey] = {
+                canonicalCategory: record.taxonomy.canonicalCategory || "",
+                canonicalPath: record.taxonomy.canonicalPath || [],
+                sourceLabels: [],
+                count: 0,
+                productKeys: []
+              };
+            }
+            categoryIndex[canonicalKey].count++;
+            categoryIndex[canonicalKey].productKeys.push(record.productKey);
+            categoryIndex[canonicalKey].sourceLabels = uniq([
+              ...categoryIndex[canonicalKey].sourceLabels,
+              record.taxonomy.sourceCategory,
+              record.taxonomy.sourceSubcategory
+            ]);
+          }
+
+          const count = fn => records.filter(fn).length;
+          const pct = n => Number((n * 100 / records.length).toFixed(1));
+          const metrics = {
+            totalProducts: records.length,
+            sourceFiles: sourceFiles.size,
+            stableSellerId: count(x => x.quality.hasStableSellerId),
+            brand: count(x => x.quality.hasBrand),
+            modelAny: count(x => x.quality.hasModel),
+            modelExplicit: count(x => x.quality.hasExplicitModel),
+            modelInferred: count(x => x.identity.modelConfidence === "title-inferred"),
+            comparableExact: count(x => x.identity.comparableExact),
+            structuredSpecs: count(x => x.quality.hasStructuredSpecs),
+            derivedSpecs: count(x => x.quality.hasDerivedSpecs),
+            price: count(x => x.quality.hasPrice),
+            image: count(x => x.quality.hasImage),
+            link: count(x => x.quality.hasAffiliateOrDestinationUrl),
+            variants: count(x => x.variants.length > 0),
+            sourceQualified: count(x => x.quality.sourceQualified)
+          };
+
+          const fillRates = Object.fromEntries(
+            Object.entries(metrics)
+              .filter(([key]) => !["totalProducts","sourceFiles"].includes(key))
+              .map(([key,value]) => [key,{count:value,percent:pct(value)}])
+          );
+
+          function resolve(query) {
+            const qn = norm(query);
+            const qc = compact(query);
+
+            for (const [kind, bucket, key] of [
+              ["exact-name", indexes.byExactName, qn],
+              ["compact-name", indexes.byCompactName, qc],
+              ["model", indexes.byModel, qc],
+              ["seller-product-id", indexes.bySellerProductId, qc],
+              ["sku", indexes.bySku, qc]
+            ]) {
+              const values = bucket[key] || [];
+              if (values.length) return {kind, productKeys:values};
+            }
+
+            const candidates = records.filter(r => r.name.normalized.includes(qn)).slice(0,20);
+            return {kind:candidates.length ? "name-contains" : "not-found", productKeys:candidates.map(x=>x.productKey)};
+          }
+
+          const roundTripSamples = [];
+          for (const record of records.filter(x => x.identifiers.model).slice(0,20)) {
+            const result = resolve(record.identifiers.model);
+            roundTripSamples.push({
+              query:record.identifiers.model,
+              expectedProductKey:record.productKey,
+              resolutionKind:result.kind,
+              resolved:result.productKeys.includes(record.productKey),
+              resultCount:result.productKeys.length
+            });
+          }
+          for (const record of records.filter(x => x.identifiers.sellerProductId).slice(0,20)) {
+            const result = resolve(record.identifiers.sellerProductId);
+            roundTripSamples.push({
+              query:record.identifiers.sellerProductId,
+              expectedProductKey:record.productKey,
+              resolutionKind:result.kind,
+              resolved:result.productKeys.includes(record.productKey),
+              resultCount:result.productKeys.length
+            });
+          }
+
+          const manifest = {
+            version: VERSION,
+            architecture: "seller-catalog-first",
+            seller: {
+              name:SELLER,
+              slug:SELLER_SLUG,
+              network:clean(registryRow.network),
+              mode:clean(registryRow.mode),
+              role:ROLE
+            },
+            generatedAt:new Date().toISOString(),
+            schema:"../../schema-v1.json",
+            sourcePolicy:"../../source-policy-v1.json",
+            files:{
+              products:"products.ndjson",
+              identityIndex:"identity-index.json",
+              categoryIndex:"category-index.json",
+              audit:"audit.json"
+            },
+            metrics,
+            fillRates,
+            identityPolicy:{
+              exactMergeAllowedBy:[
+                "GTIN/EAN/UPC/ISBN exact match",
+                "brand + explicit MPN exact match",
+                "brand + explicit model exact match"
+              ],
+              neverAutoMergeBy:[
+                "title alone",
+                "price alone",
+                "image alone",
+                "title-inferred model alone",
+                "semantic clusterKey alone"
+              ]
+            }
+          };
+
+          const audit = {
+            version:VERSION,
+            seller:SELLER,
+            generatedAt:manifest.generatedAt,
+            input:{
+              sourceRoot:SOURCE_ROOT,
+              sourceFilesContainingSeller:[...sourceFiles].sort(),
+              normalizedRowsSeenForSeller
+            },
+            metrics,
+            fillRates,
+            conflicts,
+            roundTripSamples,
+            sourceLeak:records.some(x => !x.source.sourceFile.startsWith(`${SOURCE_ROOT}/`)),
+            blockedSellerLeak:records.some(x => ["Temu","Joom"].includes(x.seller.name)),
+            duplicateProductKeys:records.length !== new Set(records.map(x=>x.productKey)).size
+          };
+
+          fs.writeFileSync(`${SELLER_DIR}/products.ndjson`, records.map(x=>JSON.stringify(x)).join("\n")+"\n");
+          fs.writeFileSync(`${SELLER_DIR}/identity-index.json`, JSON.stringify(indexes,null,2)+"\n");
+          fs.writeFileSync(`${SELLER_DIR}/category-index.json`, JSON.stringify(categoryIndex,null,2)+"\n");
+          fs.writeFileSync(`${SELLER_DIR}/manifest.json`, JSON.stringify(manifest,null,2)+"\n");
+          fs.writeFileSync(`${SELLER_DIR}/audit.json`, JSON.stringify(audit,null,2)+"\n");
+
+          console.log(JSON.stringify({
+            seller:SELLER,
+            totalProducts:metrics.totalProducts,
+            stableSellerId:metrics.stableSellerId,
+            stableSellerIdPercent:fillRates.stableSellerId.percent,
+            sourceQualifiedPercent:fillRates.sourceQualified.percent,
+            brandPercent:fillRates.brand.percent,
+            modelPercent:fillRates.modelAny.percent,
+            derivedSpecsPercent:fillRates.derivedSpecs.percent,
+            pricePercent:fillRates.price.percent,
+            imagePercent:fillRates.image.percent,
+            roundTrip:`${roundTripSamples.filter(x=>x.resolved).length}/${roundTripSamples.length}`
+          }, null, 2));
+          JS
+
+          cat > scripts/catalog-v19/build-global-resolver.mjs <<'JS'
+          import fs from "node:fs";
+          import crypto from "node:crypto";
+
+          const VERSION = "19.1.0";
+          const ROOT = "data/catalog-v19";
+          const SELLERS = [
+            {name:"Geekbuying",slug:"geekbuying"},
+            {name:"AliExpress",slug:"aliexpress"}
+          ];
+
+          const norm = value =>
+            String(value ?? "")
+              .normalize("NFKC")
+              .toLocaleLowerCase("en-US")
+              .replace(/[’'`]/g, "")
+              .replace(/[^a-z0-9]+/g, " ")
+              .trim();
+          const compact = value => norm(value).replace(/\s+/g, "");
+          const uniq = values => [...new Set(values.filter(Boolean))];
+          const sha = value => crypto.createHash("sha256").update(String(value)).digest("hex");
+
+          function loadNdjson(file) {
+            return fs.readFileSync(file,"utf8").split(/\n/).filter(Boolean).map(JSON.parse);
+          }
+
+          const records = [];
+          for (const seller of SELLERS) {
+            const file = `${ROOT}/sellers/${seller.slug}/products.ndjson`;
+            if (!fs.existsSync(file)) throw new Error(`Missing seller catalog ${file}`);
+            for (const row of loadNdjson(file)) {
+              if (row.seller?.name !== seller.name) throw new Error(`Seller mismatch in ${file}`);
+              records.push(row);
+            }
+          }
+
+          if (records.some(x => ["Temu","Joom"].includes(x.seller?.name))) {
+            throw new Error("Blocked seller leaked into global resolver.");
+          }
+
+          const byKey = Object.fromEntries(records.map(r => [r.productKey, r]));
+          const resolver = {
+            version:VERSION,
+            sellers:SELLERS,
+            byGlobalId:{},
+            byBrandExplicitModel:{},
+            byScopedSellerProductId:{},
+            byScopedSku:{},
+            byModelDiscovery:{},
+            byExactName:{},
+            byCompactName:{},
+            byNameToken:{},
+            autoGroups:[],
+            discoveryOverlaps:{
+              exactName:[],
+              brandModelInferred:[]
+            }
+          };
+
+          function push(bucket,key,productKey) {
+            if (!key) return;
+            if (!bucket[key]) bucket[key]=[];
+            if (!bucket[key].includes(productKey)) bucket[key].push(productKey);
+          }
+
+          for (const row of records) {
+            for (const key of row.identity?.keys?.exactGlobal || []) push(resolver.byGlobalId,key,row.productKey);
+
+            if (row.brand && row.identifiers?.model && row.identity?.modelConfidence === "explicit") {
+              push(
+                resolver.byBrandExplicitModel,
+                `brand-model:${compact(row.brand)}:${compact(row.identifiers.model)}`,
+                row.productKey
+              );
+            }
+
+            if (row.identifiers?.sellerProductId) {
+              push(
+                resolver.byScopedSellerProductId,
+                `${row.seller.slug}:${compact(row.identifiers.sellerProductId)}`,
+                row.productKey
+              );
+            }
+
+            if (row.identifiers?.sku) {
+              push(
+                resolver.byScopedSku,
+                `${row.seller.slug}:${compact(row.identifiers.sku)}`,
+                row.productKey
+              );
+            }
+
+            if (row.identifiers?.model) {
+              push(resolver.byModelDiscovery, compact(row.identifiers.model), row.productKey);
+            }
+
+            push(resolver.byExactName, row.name.normalized, row.productKey);
+            push(resolver.byCompactName, row.name.compact, row.productKey);
+
+            const nameTokens = uniq(
+              row.name.normalized
+                .split(/\s+/)
+                .filter(token => token.length >= 2 && !/^\d$/.test(token))
+            );
+            for (const token of nameTokens) push(resolver.byNameToken, token, row.productKey);
+          }
+
+          const autoCandidates = new Map();
+          for (const [key, productKeys] of Object.entries(resolver.byGlobalId)) {
+            autoCandidates.set(`global:${key}`, {reason:key, productKeys});
+          }
+          for (const [key, productKeys] of Object.entries(resolver.byBrandExplicitModel)) {
+            autoCandidates.set(`explicit-model:${key}`, {reason:key, productKeys});
+          }
+
+          const autoConflicts = [];
+          for (const [groupKey, group] of autoCandidates) {
+            const rows = group.productKeys.map(k => byKey[k]).filter(Boolean);
+            const sellerNames = uniq(rows.map(x => x.seller.name));
+            if (sellerNames.length < 2) continue;
+
+            const perSellerCounts = {};
+            for (const row of rows) perSellerCounts[row.seller.name] = (perSellerCounts[row.seller.name] || 0) + 1;
+            const sameSellerCollision = Object.values(perSellerCounts).some(n => n > 1);
+
+            if (sameSellerCollision) {
+              autoConflicts.push({groupKey,reason:group.reason,productKeys:group.productKeys,perSellerCounts});
+              continue;
+            }
+
+            resolver.autoGroups.push({
+              groupId:`exact-${sha(groupKey).slice(0,20)}`,
+              reason:group.reason,
+              sellerCount:sellerNames.length,
+              sellers:sellerNames.sort(),
+              productKeys:group.productKeys
+            });
+          }
+
+          for (const [name, productKeys] of Object.entries(resolver.byExactName)) {
+            const sellers = uniq(productKeys.map(k => byKey[k]?.seller?.name));
+            if (sellers.length >= 2) {
+              resolver.discoveryOverlaps.exactName.push({
+                name,
+                sellerCount:sellers.length,
+                sellers:sellers.sort(),
+                productKeys
+              });
+            }
+          }
+
+          const inferredBrandModel = {};
+          for (const row of records) {
+            if (!row.brand || !row.identifiers?.model) continue;
+            const key = `brand-model:${compact(row.brand)}:${compact(row.identifiers.model)}`;
+            push(inferredBrandModel,key,row.productKey);
+          }
+          for (const [key,productKeys] of Object.entries(inferredBrandModel)) {
+            const sellers = uniq(productKeys.map(k => byKey[k]?.seller?.name));
+            if (sellers.length >= 2) {
+              resolver.discoveryOverlaps.brandModelInferred.push({
+                key,
+                sellerCount:sellers.length,
+                sellers:sellers.sort(),
+                productKeys
+              });
+            }
+          }
+
+          function tokenSearch(query, limit=30) {
+            const ts = uniq(
+              norm(query).split(/\s+/).filter(token => token.length >= 2 && !/^\d$/.test(token))
+            );
+            if (!ts.length) return [];
+            let current = null;
+            for (const token of ts) {
+              const bucket = new Set(resolver.byNameToken[token] || []);
+              current = current == null ? bucket : new Set([...current].filter(x => bucket.has(x)));
+              if (!current.size) break;
+            }
+            return [...(current || [])].slice(0,limit);
+          }
+
+          const roundTrips = [];
+          for (const seller of SELLERS) {
+            const sellerRows = records.filter(x => x.seller.slug === seller.slug);
+
+            for (const row of sellerRows.filter(x => x.identifiers?.sellerProductId).slice(0,15)) {
+              const key = `${seller.slug}:${compact(row.identifiers.sellerProductId)}`;
+              roundTrips.push({
+                seller:seller.name,
+                kind:"seller-product-id",
+                query:row.identifiers.sellerProductId,
+                resolved:(resolver.byScopedSellerProductId[key] || []).includes(row.productKey)
+              });
+            }
+
+            for (const row of sellerRows.slice(0,10)) {
+              roundTrips.push({
+                seller:seller.name,
+                kind:"exact-name",
+                query:row.name.display,
+                resolved:(resolver.byExactName[row.name.normalized] || []).includes(row.productKey)
+              });
+            }
+          }
+
+          const tokenSamples = [];
+          for (const row of records.filter(x => x.identifiers?.model).slice(0,20)) {
+            tokenSamples.push({
+              seller:row.seller.name,
+              query:row.identifiers.model,
+              expected:row.productKey,
+              resolved:tokenSearch(row.identifiers.model,100).includes(row.productKey)
+            });
+          }
+
+          const audit = {
+            version:VERSION,
+            generatedAt:new Date().toISOString(),
+            sellers:SELLERS,
+            totalRecords:records.length,
+            sellerCounts:Object.fromEntries(
+              SELLERS.map(s => [s.name, records.filter(x=>x.seller.slug===s.slug).length])
+            ),
+            autoExactGroups:resolver.autoGroups.length,
+            autoGroupConflicts:autoConflicts,
+            exactNameCrossSellerOverlaps:resolver.discoveryOverlaps.exactName.length,
+            brandModelDiscoveryOverlaps:resolver.discoveryOverlaps.brandModelInferred.length,
+            roundTrips,
+            tokenSamples,
+            blockedSellerLeak:records.some(x => ["Temu","Joom"].includes(x.seller?.name)),
+            duplicateGlobalProductKeys:records.length !== new Set(records.map(x=>x.productKey)).size
+          };
+
+          fs.writeFileSync(`${ROOT}/global-resolver-v1.json`,JSON.stringify(resolver,null,2)+"\n");
+          fs.writeFileSync(`${ROOT}/cross-seller-audit-v1.json`,JSON.stringify(audit,null,2)+"\n");
+
+          console.log(JSON.stringify({
+            totalRecords:audit.totalRecords,
+            sellerCounts:audit.sellerCounts,
+            autoExactGroups:audit.autoExactGroups,
+            exactNameCrossSellerOverlaps:audit.exactNameCrossSellerOverlaps,
+            brandModelDiscoveryOverlaps:audit.brandModelDiscoveryOverlaps,
+            roundTrips:`${roundTrips.filter(x=>x.resolved).length}/${roundTrips.length}`,
+            tokenSamples:`${tokenSamples.filter(x=>x.resolved).length}/${tokenSamples.length}`
+          },null,2));
+          JS
+
+          node --check scripts/catalog-v19/build-canonical-seller.mjs
+          node --check scripts/catalog-v19/build-global-resolver.mjs
+
+      - name: Seller 1 — rebuild Geekbuying from qualified product sources only
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/catalog-v19/build-canonical-seller.mjs \
+            --seller=Geekbuying \
+            --slug=geekbuying \
+            --version=19.1.0 \
+            --role=reference-foundation-catalog
+
+      - name: Seller 1 — hard validation gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          pre = json.loads(Path("/tmp/geekbuying-preclean.json").read_text())
+          seller = Path("data/catalog-v19/sellers/geekbuying")
+          manifest = json.loads((seller/"manifest.json").read_text())
+          audit = json.loads((seller/"audit.json").read_text())
+
+          total = manifest["metrics"]["totalProducts"]
+          stable = manifest["metrics"]["stableSellerId"]
+          qualified = manifest["metrics"]["sourceQualified"]
+
+          assert 900 <= total <= 2000, total
+          assert stable / total >= 0.70, (stable,total)
+          assert qualified == total
+          assert audit["sourceLeak"] is False
+          assert audit["blockedSellerLeak"] is False
+          assert audit["duplicateProductKeys"] is False
+          assert audit["roundTripSamples"]
+          assert all(x["resolved"] for x in audit["roundTripSamples"])
+
+          # The clean catalog must never contain coupon/promotion source rows.
+          with (seller/"products.ndjson").open() as f:
+              for line in f:
+                  if not line.strip(): continue
+                  row = json.loads(line)
+                  source = row["source"]["sourceFile"]
+                  assert source.startswith("data/search-catalog/shards/"), source
+                  assert source != "data/coupons.json"
+
+          clean_state = {
+              "before": pre["beforeProducts"],
+              "after": total,
+              "removedUnqualified": pre["beforeProducts"] - total,
+              "detectedUnqualifiedBefore": pre["unqualifiedSourceRows"]
+          }
+          Path("/tmp/geekbuying-clean-state.json").write_text(json.dumps(clean_state,indent=2))
+          print("Seller 1 PASS", json.dumps(clean_state))
+          PY
+
+      - name: Seller 2 — build AliExpress against the exact same contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/catalog-v19/build-canonical-seller.mjs \
+            --seller=AliExpress \
+            --slug=aliexpress \
+            --version=19.1.0 \
+            --role=second-canonical-catalog
+
+      - name: Seller 2 — hard validation gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          geek = json.loads((root/"sellers/geekbuying/manifest.json").read_text())
+          ali_dir = root/"sellers/aliexpress"
+          ali = json.loads((ali_dir/"manifest.json").read_text())
+          audit = json.loads((ali_dir/"audit.json").read_text())
+          schema = json.loads((root/"schema-v1.json").read_text())
+
+          assert schema["title"] == "TrendPilot Canonical Seller Product"
+          assert ali["seller"]["name"] == "AliExpress"
+          assert ali["schema"] == "../../schema-v1.json"
+
+          total = ali["metrics"]["totalProducts"]
+          stable = ali["metrics"]["stableSellerId"]
+          qualified = ali["metrics"]["sourceQualified"]
+
+          assert total >= 10000, total
+          assert stable / total >= 0.70, (stable,total)
+          assert qualified == total
+          assert audit["sourceLeak"] is False
+          assert audit["blockedSellerLeak"] is False
+          assert audit["duplicateProductKeys"] is False
+          assert audit["roundTripSamples"]
+          assert all(x["resolved"] for x in audit["roundTripSamples"])
+
+          # Contract parity: sample records from both sellers must expose exactly
+          # the same top-level canonical field set.
+          def first_row(file):
+              with file.open() as f:
+                  for line in f:
+                      if line.strip():
+                          return json.loads(line)
+
+          g = first_row(root/"sellers/geekbuying/products.ndjson")
+          a = first_row(root/"sellers/aliexpress/products.ndjson")
+          assert set(g.keys()) == set(a.keys()), (set(g.keys()),set(a.keys()))
+          assert set(g["identifiers"].keys()) == set(a["identifiers"].keys())
+          assert set(g["seller"].keys()) == set(a["seller"].keys())
+          assert set(g["name"].keys()) == set(a["name"].keys())
+          assert set(g["taxonomy"].keys()) == set(a["taxonomy"].keys())
+          assert set(g["specs"].keys()) == set(a["specs"].keys())
+          assert set(g["offer"].keys()) == set(a["offer"].keys())
+          assert set(g["media"].keys()) == set(a["media"].keys())
+          assert set(g["links"].keys()) == set(a["links"].keys())
+          assert set(g["source"].keys()) == set(a["source"].keys())
+
+          print("Seller 2 PASS")
+          print("AliExpress products:", total)
+          print("Stable seller IDs:", stable)
+          print("Geekbuying products:", geek["metrics"]["totalProducts"])
+          PY
+
+      - name: Build the first cross-seller resolver bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/catalog-v19/build-global-resolver.mjs
+
+      - name: Validate cross-seller bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          resolver = json.loads((root/"global-resolver-v1.json").read_text())
+          audit = json.loads((root/"cross-seller-audit-v1.json").read_text())
+
+          assert audit["blockedSellerLeak"] is False
+          assert audit["duplicateGlobalProductKeys"] is False
+          assert audit["sellerCounts"]["Geekbuying"] >= 900
+          assert audit["sellerCounts"]["AliExpress"] >= 10000
+          assert audit["roundTrips"]
+          assert all(x["resolved"] for x in audit["roundTrips"])
+
+          # Inferred models and exact names may create discovery overlaps, but
+          # automatic groups are only strong-ID/explicit-model groups.
+          for group in resolver["autoGroups"]:
+              assert group["sellerCount"] >= 2
+
+          print("Cross-seller resolver PASS")
+          print("Auto exact groups:", audit["autoExactGroups"])
+          print("Exact-name overlaps:", audit["exactNameCrossSellerOverlaps"])
+          print("Brand/model discovery overlaps:", audit["brandModelDiscoveryOverlaps"])
+          PY
+
+      - name: Create concise V19.1 report
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          clean = json.loads(Path("/tmp/geekbuying-clean-state.json").read_text())
+          geek = json.loads((root/"sellers/geekbuying/manifest.json").read_text())
+          ali = json.loads((root/"sellers/aliexpress/manifest.json").read_text())
+          bridge = json.loads((root/"cross-seller-audit-v1.json").read_text())
+
+          def rate(m,key):
+              return m["fillRates"][key]["percent"]
+
+          report = []
+          report.append("# TrendPilot V19.1 — Seller-by-Seller Catalog Build")
+          report.append("")
+          report.append("> Sequential production data build. Visitor UI/search API are still unchanged.")
+          report.append("")
+          report.append("## Seller 1 — Geekbuying final foundation")
+          report.append(f"- Previous rows: **{clean['before']:,}**")
+          report.append(f"- Qualified catalog products now: **{clean['after']:,}**")
+          report.append(f"- Non-product/unqualified rows removed: **{clean['removedUnqualified']:,}**")
+          report.append(f"- Qualified source coverage: **{rate(geek,'sourceQualified')}%**")
+          report.append(f"- Stable seller ID/SKU: **{geek['metrics']['stableSellerId']:,} ({rate(geek,'stableSellerId')}%)**")
+          report.append(f"- Brand: **{geek['metrics']['brand']:,} ({rate(geek,'brand')}%)**")
+          report.append(f"- Model/name hint: **{geek['metrics']['modelAny']:,} ({rate(geek,'modelAny')}%)**")
+          report.append(f"- Derived title specs preserved: **{geek['metrics']['derivedSpecs']:,} ({rate(geek,'derivedSpecs')}%)**")
+          report.append("")
+          report.append("## Seller 2 — AliExpress")
+          report.append(f"- Canonical products: **{ali['metrics']['totalProducts']:,}**")
+          report.append(f"- Qualified source coverage: **{rate(ali,'sourceQualified')}%**")
+          report.append(f"- Stable seller ID/SKU: **{ali['metrics']['stableSellerId']:,} ({rate(ali,'stableSellerId')}%)**")
+          report.append(f"- Brand: **{ali['metrics']['brand']:,} ({rate(ali,'brand')}%)**")
+          report.append(f"- Model/name hint: **{ali['metrics']['modelAny']:,} ({rate(ali,'modelAny')}%)**")
+          report.append(f"- Explicit model: **{ali['metrics']['modelExplicit']:,} ({rate(ali,'modelExplicit')}%)**")
+          report.append(f"- Structured specs: **{ali['metrics']['structuredSpecs']:,} ({rate(ali,'structuredSpecs')}%)**")
+          report.append(f"- Derived title specs: **{ali['metrics']['derivedSpecs']:,} ({rate(ali,'derivedSpecs')}%)**")
+          report.append(f"- Price: **{ali['metrics']['price']:,} ({rate(ali,'price')}%)**")
+          report.append(f"- Image: **{ali['metrics']['image']:,} ({rate(ali,'image')}%)**")
+          report.append("")
+          report.append("## Shared system")
+          report.append("- Geekbuying and AliExpress now use the **same schema, identity fields, taxonomy fields, specs layout, offer layout and source policy**.")
+          report.append("- Seller product IDs/SKUs remain seller-scoped.")
+          report.append("- Strong global IDs / brand+explicit-model are the only automatic cross-seller merge keys.")
+          report.append("- Exact names, inferred models and stored category paths are discovery/search indexes only; they are never silently merged.")
+          report.append(f"- Automatic exact cross-seller groups: **{bridge['autoExactGroups']:,}**")
+          report.append(f"- Exact-name cross-seller discovery overlaps: **{bridge['exactNameCrossSellerOverlaps']:,}**")
+          report.append(f"- Brand/model discovery overlaps: **{bridge['brandModelDiscoveryOverlaps']:,}**")
+          report.append("")
+          report.append("## Gate for Seller 3")
+          report.append("**PASS**")
+          report.append("")
+          report.append("Seller 3 can now be **Alibaba**, built with the same reusable V19 engine. No new product structure is allowed.")
+
+          text = "\n".join(report) + "\n"
+          (root/"V19.1-REPORT.md").write_text(text)
+          print(text)
+          PY
+
+      - name: Commit Seller 1 clean foundation + Seller 2 + reusable engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            scripts/catalog-v19 \
+            data/catalog-v19/source-policy-v1.json \
+            data/catalog-v19/sellers/geekbuying \
+            data/catalog-v19/sellers/aliexpress \
+            data/catalog-v19/global-resolver-v1.json \
+            data/catalog-v19/cross-seller-audit-v1.json \
+            data/catalog-v19/V19.1-REPORT.md
+
+          if git diff --cached --quiet; then
+            echo "No V19.1 catalog changes to commit."
+          else
+            git commit -m "feat: build clean Geekbuying and AliExpress canonical seller catalogs"
+            if ! git push origin HEAD:main; then
+              echo "Main moved; rebasing once."
+              git pull --rebase origin main
+              git push origin HEAD:main
+            fi
+          fi
+
+      - name: Publish concise summary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat data/catalog-v19/V19.1-REPORT.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload compact audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v19-1-seller2-aliexpress-audit
+          path: |
+            data/catalog-v19/V19.1-REPORT.md
+            data/catalog-v19/source-policy-v1.json
+            data/catalog-v19/sellers/geekbuying/manifest.json
+            data/catalog-v19/sellers/geekbuying/audit.json
+            data/catalog-v19/sellers/aliexpress/manifest.json
+            data/catalog-v19/sellers/aliexpress/audit.json
+            data/catalog-v19/cross-seller-audit-v1.json
+          retention-days: 14
+          compression-level: 9
