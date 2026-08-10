@@ -1,0 +1,2175 @@
+{
+  "version": "19.2.0",
+  "seller": "Alibaba",
+  "generatedAt": "2026-08-10T18:13:26.369Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/search-catalog/shards/apparel/coats/all/001.json",
+      "data/search-catalog/shards/apparel/hoodies-sweatshirts/men/001.json",
+      "data/search-catalog/shards/apparel/jackets/all/001.json",
+      "data/search-catalog/shards/apparel/other-apparel/all/001.json",
+      "data/search-catalog/shards/apparel/other-apparel/all/002.json",
+      "data/search-catalog/shards/apparel/other-apparel/all/003.json",
+      "data/search-catalog/shards/apparel/other-apparel/kids/001.json",
+      "data/search-catalog/shards/apparel/other-apparel/men/001.json",
+      "data/search-catalog/shards/audio/audio-interfaces/all/001.json",
+      "data/search-catalog/shards/audio/earbuds/all/001.json",
+      "data/search-catalog/shards/audio/earbuds/all/002.json",
+      "data/search-catalog/shards/audio/earbuds/all/003.json",
+      "data/search-catalog/shards/audio/earbuds/all/004.json",
+      "data/search-catalog/shards/audio/earbuds/all/005.json",
+      "data/search-catalog/shards/audio/earbuds/all/006.json",
+      "data/search-catalog/shards/audio/earbuds/all/007.json",
+      "data/search-catalog/shards/audio/earbuds/all/008.json",
+      "data/search-catalog/shards/audio/earbuds/all/009.json",
+      "data/search-catalog/shards/audio/earbuds/all/010.json",
+      "data/search-catalog/shards/audio/earbuds/all/011.json",
+      "data/search-catalog/shards/audio/earbuds/all/012.json",
+      "data/search-catalog/shards/audio/earbuds/all/013.json",
+      "data/search-catalog/shards/audio/earbuds/all/014.json",
+      "data/search-catalog/shards/audio/earbuds/all/015.json",
+      "data/search-catalog/shards/audio/earbuds/kids/001.json",
+      "data/search-catalog/shards/audio/earbuds/men/001.json",
+      "data/search-catalog/shards/audio/earbuds/unisex/001.json",
+      "data/search-catalog/shards/audio/earbuds/women/001.json",
+      "data/search-catalog/shards/audio/headphones/all/001.json",
+      "data/search-catalog/shards/audio/headphones/all/002.json",
+      "data/search-catalog/shards/audio/headphones/all/003.json",
+      "data/search-catalog/shards/audio/headphones/men/001.json",
+      "data/search-catalog/shards/audio/headphones/unisex/001.json",
+      "data/search-catalog/shards/audio/headphones/women/001.json",
+      "data/search-catalog/shards/audio/microphones/all/001.json",
+      "data/search-catalog/shards/audio/microphones/all/002.json",
+      "data/search-catalog/shards/audio/microphones/kids/001.json",
+      "data/search-catalog/shards/audio/microphones/unisex/001.json",
+      "data/search-catalog/shards/audio/microphones/women/001.json",
+      "data/search-catalog/shards/audio/other-audio/all/001.json",
+      "data/search-catalog/shards/audio/other-audio/all/002.json",
+      "data/search-catalog/shards/audio/other-audio/all/003.json",
+      "data/search-catalog/shards/audio/other-audio/all/004.json",
+      "data/search-catalog/shards/audio/other-audio/kids/001.json",
+      "data/search-catalog/shards/audio/other-audio/men/001.json",
+      "data/search-catalog/shards/audio/other-audio/unisex/001.json",
+      "data/search-catalog/shards/audio/other-audio/women/001.json",
+      "data/search-catalog/shards/audio/soundbars/all/001.json",
+      "data/search-catalog/shards/audio/speakers/all/001.json",
+      "data/search-catalog/shards/audio/speakers/all/002.json",
+      "data/search-catalog/shards/audio/speakers/men/001.json",
+      "data/search-catalog/shards/automotive/car-chargers/all/001.json",
+      "data/search-catalog/shards/automotive/car-head-unit/all/001.json",
+      "data/search-catalog/shards/automotive/other-automotive/all/001.json",
+      "data/search-catalog/shards/baby-kids/baby-monitors/kids/001.json",
+      "data/search-catalog/shards/bags-accessories/backpacks/all/001.json",
+      "data/search-catalog/shards/bags-accessories/belts/all/001.json",
+      "data/search-catalog/shards/bags-accessories/handbags/all/001.json",
+      "data/search-catalog/shards/bags-accessories/handbags/women/001.json",
+      "data/search-catalog/shards/bags-accessories/hats-caps/all/001.json",
+      "data/search-catalog/shards/bags-accessories/luggage/all/001.json",
+      "data/search-catalog/shards/bags-accessories/other-bags-accessories/all/001.json",
+      "data/search-catalog/shards/bags-accessories/other-bags-accessories/all/003.json",
+      "data/search-catalog/shards/bags-accessories/other-bags-accessories/women/001.json",
+      "data/search-catalog/shards/bags-accessories/wallets-cardholders/all/001.json",
+      "data/search-catalog/shards/bags-accessories/wallets-cardholders/all/002.json",
+      "data/search-catalog/shards/bags-accessories/wallets-cardholders/kids/001.json",
+      "data/search-catalog/shards/bags-accessories/wallets-cardholders/women/001.json",
+      "data/search-catalog/shards/beauty-care/eye-makeup/all/001.json",
+      "data/search-catalog/shards/beauty-care/fragrance/all/001.json",
+      "data/search-catalog/shards/beauty-care/hair-care/all/001.json",
+      "data/search-catalog/shards/beauty-care/lip-makeup/all/001.json",
+      "data/search-catalog/shards/beauty-care/makeup-sets/all/001.json",
+      "data/search-catalog/shards/beauty-care/other-beauty-care/all/001.json",
+      "data/search-catalog/shards/beauty-care/other-beauty-care/women/001.json",
+      "data/search-catalog/shards/beauty-care/other-makeup/all/001.json",
+      "data/search-catalog/shards/beauty-care/other-makeup/all/002.json",
+      "data/search-catalog/shards/beauty-care/other-makeup/kids/001.json",
+      "data/search-catalog/shards/beauty-care/other-makeup/women/001.json",
+      "data/search-catalog/shards/beauty-care/skin-care/all/001.json",
+      "data/search-catalog/shards/business-sourcing/custom-logo/all/001.json",
+      "data/search-catalog/shards/business-sourcing/custom-logo/all/002.json",
+      "data/search-catalog/shards/business-sourcing/custom-logo/kids/001.json",
+      "data/search-catalog/shards/business-sourcing/custom-logo/women/001.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/all/001.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/all/002.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/all/003.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/all/004.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/all/005.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/all/006.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/kids/001.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/men/001.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/unisex/001.json",
+      "data/search-catalog/shards/business-sourcing/other-business-sourcing/women/001.json",
+      "data/search-catalog/shards/business-sourcing/packaging/all/001.json",
+      "data/search-catalog/shards/business-sourcing/private-label/all/001.json",
+      "data/search-catalog/shards/business-sourcing/private-label/kids/001.json",
+      "data/search-catalog/shards/business-sourcing/private-label/men/001.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/all/001.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/all/002.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/all/003.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/all/004.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/all/005.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/all/006.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/kids/001.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/men/001.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/unisex/001.json",
+      "data/search-catalog/shards/business-sourcing/wholesale-products/women/001.json",
+      "data/search-catalog/shards/cameras/action-cameras/all/001.json",
+      "data/search-catalog/shards/cameras/camera-bags/all/001.json",
+      "data/search-catalog/shards/cameras/camera-lenses/all/001.json",
+      "data/search-catalog/shards/cameras/digital-cameras/all/001.json",
+      "data/search-catalog/shards/cameras/digital-cameras/kids/001.json",
+      "data/search-catalog/shards/cameras/gimbals-stabilizers/all/001.json",
+      "data/search-catalog/shards/cameras/other-cameras/all/001.json",
+      "data/search-catalog/shards/cameras/other-cameras/all/002.json",
+      "data/search-catalog/shards/cameras/other-cameras/all/003.json",
+      "data/search-catalog/shards/cameras/other-cameras/all/004.json",
+      "data/search-catalog/shards/cameras/other-cameras/all/005.json",
+      "data/search-catalog/shards/cameras/other-cameras/kids/001.json",
+      "data/search-catalog/shards/cameras/other-cameras/men/001.json",
+      "data/search-catalog/shards/cameras/photo-lighting/all/001.json",
+      "data/search-catalog/shards/cameras/tripods/all/001.json",
+      "data/search-catalog/shards/computers/desktops/all/001.json",
+      "data/search-catalog/shards/computers/docks-hubs/all/001.json",
+      "data/search-catalog/shards/computers/graphics-cards/all/001.json",
+      "data/search-catalog/shards/computers/keyboards/all/001.json",
+      "data/search-catalog/shards/computers/keyboards/all/002.json",
+      "data/search-catalog/shards/computers/keyboards/kids/001.json",
+      "data/search-catalog/shards/computers/laptops/all/001.json",
+      "data/search-catalog/shards/computers/laptops/all/002.json",
+      "data/search-catalog/shards/computers/laptops/all/003.json",
+      "data/search-catalog/shards/computers/laptops/kids/001.json",
+      "data/search-catalog/shards/computers/laptops/men/001.json",
+      "data/search-catalog/shards/computers/laptops/unisex/001.json",
+      "data/search-catalog/shards/computers/memory-ram/all/001.json",
+      "data/search-catalog/shards/computers/mice/all/001.json",
+      "data/search-catalog/shards/computers/mice/men/001.json",
+      "data/search-catalog/shards/computers/mini-pcs/all/001.json",
+      "data/search-catalog/shards/computers/monitors/all/001.json",
+      "data/search-catalog/shards/computers/motherboards/all/001.json",
+      "data/search-catalog/shards/computers/networking/all/001.json",
+      "data/search-catalog/shards/computers/other-computers/all/001.json",
+      "data/search-catalog/shards/computers/other-computers/all/002.json",
+      "data/search-catalog/shards/computers/other-computers/all/003.json",
+      "data/search-catalog/shards/computers/other-computers/kids/001.json",
+      "data/search-catalog/shards/computers/other-computers/men/001.json",
+      "data/search-catalog/shards/computers/other-computers/unisex/001.json",
+      "data/search-catalog/shards/computers/storage-drives/all/001.json",
+      "data/search-catalog/shards/computers/webcams/all/001.json",
+      "data/search-catalog/shards/footwear/boots/all/001.json",
+      "data/search-catalog/shards/footwear/other-footwear/all/001.json",
+      "data/search-catalog/shards/footwear/sneakers/all/001.json",
+      "data/search-catalog/shards/home-kitchen/curtains-window/all/001.json",
+      "data/search-catalog/shards/home-kitchen/furniture/all/002.json",
+      "data/search-catalog/shards/home-kitchen/other-home-kitchen/all/014.json",
+      "data/search-catalog/shards/jewelry-watches/bracelets/all/001.json",
+      "data/search-catalog/shards/jewelry-watches/bracelets/kids/001.json",
+      "data/search-catalog/shards/jewelry-watches/bracelets/men/001.json",
+      "data/search-catalog/shards/jewelry-watches/eyewear/all/001.json",
+      "data/search-catalog/shards/jewelry-watches/necklaces/all/001.json",
+      "data/search-catalog/shards/jewelry-watches/other-jewelry-watches/all/001.json",
+      "data/search-catalog/shards/jewelry-watches/rings/all/001.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/all/001.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/all/002.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/all/003.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/all/004.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/all/005.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/all/006.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/kids/001.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/men/001.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/unisex/001.json",
+      "data/search-catalog/shards/jewelry-watches/smartwatches/women/001.json",
+      "data/search-catalog/shards/jewelry-watches/watches/all/001.json",
+      "data/search-catalog/shards/jewelry-watches/watches/kids/001.json",
+      "data/search-catalog/shards/jewelry-watches/watches/men/001.json",
+      "data/search-catalog/shards/jewelry-watches/watches/unisex/001.json",
+      "data/search-catalog/shards/jewelry-watches/watches/women/001.json",
+      "data/search-catalog/shards/office-school/notebooks-paper/all/001.json",
+      "data/search-catalog/shards/office-school/pens-pencils/all/001.json",
+      "data/search-catalog/shards/office-school/pens-pencils/kids/001.json",
+      "data/search-catalog/shards/other/car-head-unit/all/001.json",
+      "data/search-catalog/shards/other/headphones/all/001.json",
+      "data/search-catalog/shards/other/laptops/all/001.json",
+      "data/search-catalog/shards/other/other/all/002.json",
+      "data/search-catalog/shards/other/other/all/003.json",
+      "data/search-catalog/shards/other/other/all/004.json",
+      "data/search-catalog/shards/other/other/all/005.json",
+      "data/search-catalog/shards/other/other/all/006.json",
+      "data/search-catalog/shards/other/other/kids/001.json",
+      "data/search-catalog/shards/other/other/men/001.json",
+      "data/search-catalog/shards/other/other/unisex/001.json",
+      "data/search-catalog/shards/other/phone-cases/all/001.json",
+      "data/search-catalog/shards/other/power-banks/all/001.json",
+      "data/search-catalog/shards/other/power-banks/all/002.json",
+      "data/search-catalog/shards/other/power-banks/men/001.json",
+      "data/search-catalog/shards/other/security-camera/all/001.json",
+      "data/search-catalog/shards/other/smartphones/all/001.json",
+      "data/search-catalog/shards/other/speakers/all/001.json",
+      "data/search-catalog/shards/other/tablets/all/001.json",
+      "data/search-catalog/shards/other/tablets/kids/001.json",
+      "data/search-catalog/shards/other/thermal-printer/all/001.json",
+      "data/search-catalog/shards/pet-supplies/other-pet-supplies/all/001.json",
+      "data/search-catalog/shards/pet-supplies/other-pet-supplies/all/002.json",
+      "data/search-catalog/shards/pet-supplies/other-pet-supplies/kids/001.json",
+      "data/search-catalog/shards/phones-tablets/other-phones-tablets/all/001.json",
+      "data/search-catalog/shards/phones-tablets/other-phones-tablets/all/002.json",
+      "data/search-catalog/shards/phones-tablets/other-phones-tablets/all/003.json",
+      "data/search-catalog/shards/phones-tablets/other-phones-tablets/all/004.json",
+      "data/search-catalog/shards/phones-tablets/other-phones-tablets/kids/001.json",
+      "data/search-catalog/shards/phones-tablets/other-phones-tablets/men/001.json",
+      "data/search-catalog/shards/phones-tablets/other-phones-tablets/women/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/all/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/all/002.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/all/003.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/all/004.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/all/005.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/all/006.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/all/007.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/kids/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/men/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/unisex/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-cases/women/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-chargers-cables/all/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-chargers-cables/all/002.json",
+      "data/search-catalog/shards/phones-tablets/phone-chargers-cables/kids/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-chargers-cables/men/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-mounts-stands/all/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-mounts-stands/all/002.json",
+      "data/search-catalog/shards/phones-tablets/phone-mounts-stands/all/003.json",
+      "data/search-catalog/shards/phones-tablets/phone-mounts-stands/kids/001.json",
+      "data/search-catalog/shards/phones-tablets/phone-mounts-stands/men/001.json",
+      "data/search-catalog/shards/phones-tablets/power-banks/all/001.json",
+      "data/search-catalog/shards/phones-tablets/screen-protectors/all/001.json",
+      "data/search-catalog/shards/phones-tablets/screen-protectors/all/002.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/001.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/002.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/003.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/004.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/005.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/006.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/007.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/008.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/009.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/010.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/011.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/all/012.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/kids/001.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/men/001.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/unisex/001.json",
+      "data/search-catalog/shards/phones-tablets/smartphones/women/001.json",
+      "data/search-catalog/shards/phones-tablets/stylus-pens/all/001.json",
+      "data/search-catalog/shards/phones-tablets/stylus-pens/kids/001.json",
+      "data/search-catalog/shards/phones-tablets/tablets/all/001.json",
+      "data/search-catalog/shards/phones-tablets/tablets/all/002.json",
+      "data/search-catalog/shards/phones-tablets/tablets/all/003.json",
+      "data/search-catalog/shards/phones-tablets/tablets/kids/001.json",
+      "data/search-catalog/shards/phones-tablets/tablets/men/001.json",
+      "data/search-catalog/shards/phones-tablets/tablets/unisex/001.json",
+      "data/search-catalog/shards/printing-3d/3d-filament/all/001.json",
+      "data/search-catalog/shards/printing-3d/3d-printers/all/001.json",
+      "data/search-catalog/shards/printing-3d/labels-paper/all/001.json",
+      "data/search-catalog/shards/printing-3d/office-printers/all/001.json",
+      "data/search-catalog/shards/printing-3d/other-printing-3d/all/001.json",
+      "data/search-catalog/shards/printing-3d/thermal-printer/all/001.json",
+      "data/search-catalog/shards/projectors-tv/home-projectors/all/001.json",
+      "data/search-catalog/shards/projectors-tv/other-projectors-tv/all/001.json",
+      "data/search-catalog/shards/projectors-tv/other-projectors-tv/kids/001.json",
+      "data/search-catalog/shards/projectors-tv/portable-projector/all/001.json",
+      "data/search-catalog/shards/projectors-tv/portable-projector/kids/001.json",
+      "data/search-catalog/shards/projectors-tv/projector-screens/all/001.json",
+      "data/search-catalog/shards/projectors-tv/streaming-devices/all/001.json",
+      "data/search-catalog/shards/projectors-tv/televisions/all/001.json",
+      "data/search-catalog/shards/smart-home/other-smart-home/all/001.json",
+      "data/search-catalog/shards/smart-home/robot-vacuum/all/001.json",
+      "data/search-catalog/shards/smart-home/smart-locks/all/001.json",
+      "data/search-catalog/shards/software/antivirus-security/all/001.json",
+      "data/search-catalog/shards/software/other-software/all/001.json",
+      "data/search-catalog/shards/software/other-software/all/002.json",
+      "data/search-catalog/shards/software/other-software/kids/001.json",
+      "data/search-catalog/shards/sports-outdoors/cycling/all/001.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/all/004.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/all/005.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/all/006.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/all/014.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/kids/001.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/men/001.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/unisex/001.json",
+      "data/search-catalog/shards/sports-outdoors/other-sports-outdoors/women/001.json",
+      "data/search-catalog/shards/sports-outdoors/running-gear/all/001.json",
+      "data/search-catalog/shards/sports-outdoors/running-gear/men/001.json",
+      "data/search-catalog/shards/tools/hand-tools/all/004.json",
+      "data/search-catalog/shards/tools/multimeters/all/001.json",
+      "data/search-catalog/shards/tools/other-tools/all/001.json",
+      "data/search-catalog/shards/toys-games/board-games/all/001.json",
+      "data/search-catalog/shards/toys-games/game-consoles/all/001.json",
+      "data/search-catalog/shards/toys-games/game-consoles/kids/001.json",
+      "data/search-catalog/shards/toys-games/gaming-accessories/all/002.json",
+      "data/search-catalog/shards/toys-games/gaming-accessories/all/003.json",
+      "data/search-catalog/shards/toys-games/gaming-accessories/all/004.json",
+      "data/search-catalog/shards/toys-games/other-toys-games/all/001.json",
+      "data/search-catalog/shards/toys-games/other-toys-games/kids/001.json",
+      "data/search-catalog/shards/toys-games/puzzles/all/001.json",
+      "data/search-catalog/shards/toys-games/remote-control-toys/all/001.json",
+      "data/search-catalog/shards/toys-games/remote-control-toys/kids/001.json",
+      "data/search-catalog/shards/toys-games/video-games/all/001.json",
+      "data/search-catalog/shards/toys-games/video-games/kids/001.json"
+    ],
+    "normalizedRowsForSeller": 21216
+  },
+  "metrics": {
+    "totalProducts": 21216,
+    "sourceFiles": 307,
+    "stableSellerId": 21216,
+    "brand": 3294,
+    "modelAny": 2445,
+    "modelExplicit": 0,
+    "modelInferred": 2445,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 7508,
+    "price": 21161,
+    "image": 21213,
+    "link": 21216,
+    "variants": 0,
+    "sourceQualified": 21216
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 21216,
+      "percent": 100
+    },
+    "brand": {
+      "count": 3294,
+      "percent": 15.5
+    },
+    "modelAny": {
+      "count": 2445,
+      "percent": 11.5
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 2445,
+      "percent": 11.5
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 7508,
+      "percent": 35.4
+    },
+    "price": {
+      "count": 21161,
+      "percent": 99.7
+    },
+    "image": {
+      "count": 21213,
+      "percent": 100
+    },
+    "link": {
+      "count": 21216,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 21216,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [],
+    "sku": [],
+    "brandModel": [
+      {
+        "key": "brand-model:oneplus:oneplus7t",
+        "productKeys": [
+          "alibaba:48f41b5cec72d9623ba07a36",
+          "alibaba:9527139f33fb2340080cdf96",
+          "alibaba:d46395a3fb3d769a66d0c6c4",
+          "alibaba:221b4c3079430ed184a755cc",
+          "alibaba:0b392c9196cee19396dd1d32",
+          "alibaba:a70945a64932736b647108bb",
+          "alibaba:0bfc8dc30dd85b217058e69c",
+          "alibaba:a86d8a2ff7cd518df6d394db",
+          "alibaba:a13dea2e7717c6eb5b5a4b7f"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redminote",
+        "productKeys": [
+          "alibaba:d02567991e9d0c65a0e140a7",
+          "alibaba:c12ad7240642b3a905ac7e7b",
+          "alibaba:48c88cb51990d408a9954756",
+          "alibaba:4babc50d1b446c409d08eba7",
+          "alibaba:2220492b0dea945d524e7ee0",
+          "alibaba:f674c61eabc849c2bd3a27c2",
+          "alibaba:70931f96221e62ec277ae7ef",
+          "alibaba:4655eec05fa9c97aaf1d0267",
+          "alibaba:0fe4945f51b49f9c8ded4753",
+          "alibaba:b989a65db5bf6a33cec981be",
+          "alibaba:7f60a58c264e321517131a42",
+          "alibaba:2bf65fb6b1bb45f2e2bd3d7b",
+          "alibaba:aa5faaa83c938d91149e265b",
+          "alibaba:501e28dd1a128ed0f8d3f15c",
+          "alibaba:47072b0856d6ef45b11fa95f",
+          "alibaba:461289c06bfd569582c3a286",
+          "alibaba:e1804d8cf32ff481958aa2ad",
+          "alibaba:54c4396ada18e762d3f45b45",
+          "alibaba:358596dbebd52d06d7f3fba5",
+          "alibaba:58f73d4b5c376bdd31a9d574",
+          "alibaba:f7324acd9387f1a939845dab",
+          "alibaba:e6b2dc2de6df6ce1453f4e62",
+          "alibaba:57d9f9d78fa58a143494e648",
+          "alibaba:8373453541a2f61d61287d5a",
+          "alibaba:b1834f96e9867fdba5d05881",
+          "alibaba:3596bf80e29f56fb0cca8b15",
+          "alibaba:4f18b679c72a42a50a28c068",
+          "alibaba:f18d1d40d45fe887b27e71e3",
+          "alibaba:88a3f22f4463d8f496d1eba5",
+          "alibaba:cd31a56bdb30266a2f4dae6e",
+          "alibaba:a04adf101b8f54685f89c4c5",
+          "alibaba:104bc5588b046d0b908204e7",
+          "alibaba:9c36f346eae670eabff47cf4",
+          "alibaba:23629912a3479c4694321016",
+          "alibaba:6c90311cdb3d302b1f353777",
+          "alibaba:73f83bf73d6020cae7350759",
+          "alibaba:09a1a3e21d816c96d957a131",
+          "alibaba:bbc25679333faa67666a450c",
+          "alibaba:257d6021d7fa6be20900cb2c",
+          "alibaba:f8490c96b5080b379bbdac3e",
+          "alibaba:6cd0bce6e9119ba6d228f588",
+          "alibaba:c847e0c9e93123258ff91095",
+          "alibaba:03a1fcc504d24b21406c5079",
+          "alibaba:0190b85802cf1c11e96becb6",
+          "alibaba:b70c5b6d2d7f05a640958bd7",
+          "alibaba:37961c2030e1c49d3eecaf00",
+          "alibaba:884e7d551423b0bd6ea3e7d0",
+          "alibaba:1d37fb67d427142567d200b8",
+          "alibaba:2cce436be3f7fab91c56e8ad",
+          "alibaba:a96adc7a8584caf1775b6d55",
+          "alibaba:58e80dc6f10309be56a4530c",
+          "alibaba:693c4ad5b8f51ace85797141",
+          "alibaba:2dd318a0b2a7d91b157b45b2",
+          "alibaba:0fa46efbcd026d2609c774bb",
+          "alibaba:cfeea13f6e12da9c1d36bdcc",
+          "alibaba:6c2e484f0430e40835c889ac",
+          "alibaba:a4164a75e3d3509c5e1ae671",
+          "alibaba:c456bc2ed4061ac974cd3e56",
+          "alibaba:5489dcc11021daf8e07c9bb6",
+          "alibaba:7019a473c7e8e0fdec01a818",
+          "alibaba:2b00f58cb39e16b76e105d7d",
+          "alibaba:c2c593a5770ea20c5c9d8273",
+          "alibaba:ff09a30963fc4b30aaeac07a",
+          "alibaba:61575e82454ee3bf55695b57",
+          "alibaba:e1eef5414b0737f0d390dcde",
+          "alibaba:8f93edbeca7815bef79ce5c2",
+          "alibaba:9f7349fa6fa4342d4ceff4e3",
+          "alibaba:3bc5ecd9a8ff0312c7c3f2b4",
+          "alibaba:fc06da7b370b55ad5fe40aee",
+          "alibaba:78fb8c1ec19175e6d1721391",
+          "alibaba:a6ce84660d7b97da29dab590",
+          "alibaba:01957d733e4261ef5edf62bc",
+          "alibaba:0dce833da537a1fb1d4165ad",
+          "alibaba:9296d3cde53c1ac3f1ff24f7",
+          "alibaba:ec5a9b1e66dd6c91214ba13f",
+          "alibaba:dde748a2f31fc468864a8731",
+          "alibaba:aa34d98c7dc2278059762809",
+          "alibaba:5597a2dc5d0471b279cf0953",
+          "alibaba:54b9dbd982ac0166651a450c",
+          "alibaba:b4aa35df8d2824d7fc33dc14",
+          "alibaba:c75d35290bc3ebd997344623",
+          "alibaba:aec76ed313e2625881492b02",
+          "alibaba:ee73622327b27c8d5d1d4654",
+          "alibaba:fc3167397221bbbf74b7f33b",
+          "alibaba:06febbcf89b666fa5859cfac",
+          "alibaba:00d6165ebd67ee3f1bea7b4c"
+        ]
+      },
+      {
+        "key": "brand-model:chuwi:chuwihi9",
+        "productKeys": [
+          "alibaba:02870635513799cc210e4749",
+          "alibaba:8a3e5fa11ed8c3bdcbb1cdc4"
+        ]
+      },
+      {
+        "key": "brand-model:oppo:oppovivo",
+        "productKeys": [
+          "alibaba:8cebe97e6d2f0fd8b2480263",
+          "alibaba:442bd834f61d6fcfc904c5b4"
+        ]
+      },
+      {
+        "key": "brand-model:google:pixel3",
+        "productKeys": [
+          "alibaba:8014f1f04300f584442d41d5",
+          "alibaba:4fa6c11d1a153ed02f57f60e",
+          "alibaba:9fc558b05919ced7d14f505b",
+          "alibaba:4a1f10ea0544df90a69b0b9f",
+          "alibaba:a025d2d15e753574742e2201"
+        ]
+      },
+      {
+        "key": "brand-model:oneplus:oneplus7",
+        "productKeys": [
+          "alibaba:6a7a942c28755916596fa80e",
+          "alibaba:f1b4717672ad07621cb165db",
+          "alibaba:395334a37a253287ec0fcf09",
+          "alibaba:32d8d893b0bba3e5205cdb5e",
+          "alibaba:bbffaa2f98ae8fdf5287dbec",
+          "alibaba:f80f64f65aef226dbbbe092e",
+          "alibaba:e959eb4cbf4846c0a2beb164",
+          "alibaba:2d8396204b4d870c808c603d",
+          "alibaba:8750ee6e325d2c82833a7cdc",
+          "alibaba:ade141133f121377d458d4b1",
+          "alibaba:33f30db1a53bb0c3d26afe8c",
+          "alibaba:edcd8366a1c6deab5c221eab",
+          "alibaba:85af7160ddf17fedcd2d9bb4",
+          "alibaba:4c7cc816be713d21f7b03210",
+          "alibaba:5dcc1defbdac12c2cd8765e8",
+          "alibaba:5ce5668d6c1dede0f459efb5",
+          "alibaba:4ab99e294789ffdf4e7e5ee1",
+          "alibaba:2bce06425fc66511d235f41f",
+          "alibaba:cf54149953a032fb843278a7",
+          "alibaba:b369e98c4ce375b155dce80a",
+          "alibaba:5c3c4151cfe006ad049f2c20"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmiairdots",
+        "productKeys": [
+          "alibaba:e9e6a4c4a46ef567bc435b84",
+          "alibaba:ce869f6630eccc431622218f",
+          "alibaba:6e6069d343dec91a0254f017",
+          "alibaba:3a5f888aa98201a851bc8840",
+          "alibaba:1f0a6e0c799c69f932830859",
+          "alibaba:e89e685a7edd0fb5ed94eb62",
+          "alibaba:be8bf4bb289c44974a318a21",
+          "alibaba:da8f27be3996ddc6f024333e",
+          "alibaba:114dee37f9589ed8e213ae76",
+          "alibaba:f06611de28bbb0f601bd70e6",
+          "alibaba:3754e48b25c5efed3843654f",
+          "alibaba:6cbee27f7cc4ce81f714f839",
+          "alibaba:810f99645c6c7cba6dcac6db",
+          "alibaba:bf5eca070588ca913a99c8be",
+          "alibaba:77bbfba681929e4b91a90661",
+          "alibaba:50736bd4c84300849473bcb7",
+          "alibaba:c720d5253698ad6877d1ec30",
+          "alibaba:406a2a03b86c87b78d368f1b",
+          "alibaba:80b30b9e7280959e7db4c4a2",
+          "alibaba:1a7f38f802cc63cf581fc625",
+          "alibaba:a79bdd5b0ba3d540164bb8b3",
+          "alibaba:5aa09c169207ce82a3f8dfe7",
+          "alibaba:4af00175029379de3e90f443",
+          "alibaba:77a72905b78d89622b5923b9",
+          "alibaba:e981ff2a5c250e757335123a",
+          "alibaba:0ede245b73d68b9e99ee0064",
+          "alibaba:a09025f996f4f7bf1ee36636",
+          "alibaba:4b017672f53b1387e9fd31cb",
+          "alibaba:1c8f0b2f5cbc958975e98216",
+          "alibaba:d751963c4e7a13ee50622712",
+          "alibaba:27454216419bb6e064fcfb52",
+          "alibaba:cae373a8b640b21303cd0a9b",
+          "alibaba:82da61d85a4e377528a8ebbe",
+          "alibaba:654b9553034b5b1d0a0f8a73",
+          "alibaba:e72ddfdf6d08fd757020aaf4",
+          "alibaba:279977cbac09c0086411f43f",
+          "alibaba:86a4ecbc83ccd0fce5ad82c6",
+          "alibaba:a3511bb13ba731dd4bc85cf5",
+          "alibaba:f09dbdaf6f96dbb3d7fc102c",
+          "alibaba:1eb51598e92e846310092682",
+          "alibaba:d127e5cc1c244dd0db6ecd32",
+          "alibaba:959092c9fd869d9b3fb4dba6",
+          "alibaba:00e635b414f3bcae0f754656",
+          "alibaba:2be4244498435c3aba4d87e6",
+          "alibaba:e84db6c3678927c1026cb52e",
+          "alibaba:8de9a539127c3ad126a41903",
+          "alibaba:134cacac933ca5ae6545a680",
+          "alibaba:75ff70e7437fff78dc69d3d1",
+          "alibaba:0b3edffe7305d5c344d21dfe",
+          "alibaba:596ab83b36243efecb5bceb3",
+          "alibaba:3d43d1d726d9ebb87711c322",
+          "alibaba:7c41fe5af3df4aedc31a22d8",
+          "alibaba:956129e6667a1617cb6bf80d",
+          "alibaba:74e1d5c09b6da2cac1c08a58",
+          "alibaba:dbfd55bb7dc063f3bae9f9a2",
+          "alibaba:79d4de35039218cada3cca6e",
+          "alibaba:019d16e13b0cf9daa93c74ba",
+          "alibaba:2ffd1036bf117a3bfa325f46",
+          "alibaba:ad911516eece97c9c5de1508",
+          "alibaba:ba4503f4a6f9362b0f9666c6",
+          "alibaba:1b8852c2080de5cef2812be1",
+          "alibaba:e4d17a97a1d6fe8adbca7f9e",
+          "alibaba:f7dadce0c63f8b52adb753a9",
+          "alibaba:17d0b45a09ebfb698b7f247d",
+          "alibaba:d53691345d1b3f8eba965099"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya70",
+        "productKeys": [
+          "alibaba:691b4d07ddb258a22c7aaee2",
+          "alibaba:4b673bcb332d8e970d1637ba",
+          "alibaba:ce0ac19856f524e78ae41410",
+          "alibaba:0e866ef32afba045f1784b7b",
+          "alibaba:706ebb032193e26924aac892",
+          "alibaba:b8d479eb6ad578156e16192c"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone11promax",
+        "productKeys": [
+          "alibaba:14e35e25a7f5b8b4651654dd",
+          "alibaba:41a2e8166b38575440df2c11",
+          "alibaba:c1029e3073be1ee0c779be67",
+          "alibaba:64c565048bf0a71fd9df4b6a",
+          "alibaba:a6aa12f17d1115b1c78d4242",
+          "alibaba:0cc6ebb130171ee9cad2afe8",
+          "alibaba:e70a79cbd9897f456783e7b1",
+          "alibaba:6c0484236c476e476490f615",
+          "alibaba:5ed96734f8c247038b8a732f",
+          "alibaba:a4221cbbb503df70c2448d1d",
+          "alibaba:bd7f9ccf8453d258b9af3e66",
+          "alibaba:cd33138d15d0693263d32b57",
+          "alibaba:0adae5fe4f551de204d5f19b",
+          "alibaba:2607cfcaa0205c1271c66c41",
+          "alibaba:8b10a0129b09f64e79709d74",
+          "alibaba:6bd2b1298d00040b78b53e0b",
+          "alibaba:b63ce21dbc7181e8ac971894",
+          "alibaba:e5819aa96a5b52753b36ad64",
+          "alibaba:8cbdae77c8096d25f19ee0f5",
+          "alibaba:dde10e0785af57edbb53a30a",
+          "alibaba:f7771628038e5ab31dad1e6d",
+          "alibaba:f4824f41caed7c160d57db2d",
+          "alibaba:52ef71222a5b4f9623d80f24",
+          "alibaba:d7170a1d199ccf097e754059",
+          "alibaba:f720a3514b8ea5949d557944",
+          "alibaba:750c692c86bde0f7ed682415",
+          "alibaba:abef4d350bc427601d8ac305",
+          "alibaba:b08f47abfa509028ada24e20",
+          "alibaba:f5feddb2ff3124aa65f6132a",
+          "alibaba:981328aee4eb8172f1d49522",
+          "alibaba:59ab23b34f8c666252518d0e"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:iphone11pro",
+        "productKeys": [
+          "alibaba:f818766ae233aef778875641",
+          "alibaba:bb4773d35e8828e63b03938a",
+          "alibaba:dd4226633ff7caec6267d658",
+          "alibaba:58578d74b7f50cb61d1a016a",
+          "alibaba:71b8a91307b9b3fcccc4c095",
+          "alibaba:d843a9f106b3cb998d0c20a9",
+          "alibaba:590e1ff86b0402bced4d2957"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone11pro",
+        "productKeys": [
+          "alibaba:a2dfc2aee71858849c22e6d0",
+          "alibaba:c950c86c56b6155d967aa9b0",
+          "alibaba:f0bd25701182539df63cdc51",
+          "alibaba:3d63523421431a645464ae19",
+          "alibaba:91395cb6c63bd7c5765df958",
+          "alibaba:be77cfdabef863d70e80b34f",
+          "alibaba:339e8410c4f90200bd3d8b0b",
+          "alibaba:9cfbb89ae59bd4224cd37b72",
+          "alibaba:3ef6473aefa68311a98f2d10",
+          "alibaba:5e1118975559f7ac6171b7e2",
+          "alibaba:cc5d03ca505f4ec7ce8b1fcc",
+          "alibaba:07aef5ebc1b3f544ee33cb53",
+          "alibaba:37a122beae11275e00b6ed70",
+          "alibaba:1ae3525eaff925d239beaaa6",
+          "alibaba:8f66b34b83668224f43be47a",
+          "alibaba:dfb148a6495b6221c6d9950c",
+          "alibaba:391679706874133c4b0076fe",
+          "alibaba:a7276fdfde6db758f584aabc"
+        ]
+      },
+      {
+        "key": "brand-model:redmi:redminote",
+        "productKeys": [
+          "alibaba:4a8a08e472a5312fdec02adb",
+          "alibaba:fe5be16a1551761715eea0a7",
+          "alibaba:7fe3b2a287868f6cc7ec2c56",
+          "alibaba:a5b270506360fe7482856700",
+          "alibaba:13ea042beaad6f5d59dd354e",
+          "alibaba:32cd4375c77f8ddc0038e274",
+          "alibaba:c0535781c00a6cbab00c9a0b",
+          "alibaba:ac969e452bb18d1a2bb99c64",
+          "alibaba:5c911b9923de37665ed46c4e",
+          "alibaba:02b515b9bc85591ddf5122c1",
+          "alibaba:7b3b1dd153d8da510735e6a4",
+          "alibaba:bced2e066285b6f0ce54b66f",
+          "alibaba:bb38b1afb95a15199d92b3b2",
+          "alibaba:b172fb7d62e810a7fadf4a5f",
+          "alibaba:9b15a9282ec0d7b5ddab5bce",
+          "alibaba:ae90beaf57c14b4b3738b6fe",
+          "alibaba:be6ba20e7ceb45b556272bc4",
+          "alibaba:87521730f277dc88596ae7aa",
+          "alibaba:244e140a15341adf934c99f9"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone11",
+        "productKeys": [
+          "alibaba:4b7eabe0e66f7c236aae5eca",
+          "alibaba:9078868ccac6334a745165fc",
+          "alibaba:a2d633276d6f1028f351f6b2",
+          "alibaba:32b6893b43c21fc30b83c41b",
+          "alibaba:58503bb7e9bd62a15758e8a6",
+          "alibaba:d10aefe7bc56824c6d3c7af0",
+          "alibaba:6bfaa7ec68a25888a25c82c0",
+          "alibaba:29daf10c965ca6ac978e3fb0",
+          "alibaba:4bce34b9dbd5a9bf8535ff22",
+          "alibaba:8b039bc4cd610d85362518b2",
+          "alibaba:d1390785beacef6f5ca61565",
+          "alibaba:ac055754b6d04fe180588ca9",
+          "alibaba:f79e6141f248349ce17f56a3",
+          "alibaba:15dbb33918be32374c1e8ede",
+          "alibaba:097cd839371883f86acbd57b",
+          "alibaba:67efccf1aeb1bc8eff55ac33",
+          "alibaba:d1de39a2fd25907d585d2e98",
+          "alibaba:9e140569c8939065fc2e6dd3",
+          "alibaba:e87b5373c4fc34c4e116d000",
+          "alibaba:8cd9aed4a0150358e6dff8b0",
+          "alibaba:2c497b28b63723da50318909",
+          "alibaba:1ad7303e68ae3d609519d23a",
+          "alibaba:c3e5aaf326859dbcecf9abe8",
+          "alibaba:9500324bdde08cd76535d7e1",
+          "alibaba:8dfcd967133a69f35cd3bbc4",
+          "alibaba:00fedd4e060de5845b610f98",
+          "alibaba:929d13d2dab481038c5c8fd4",
+          "alibaba:84a9ff9b9f858989b66780b7",
+          "alibaba:0838220240d281cdc8edf97b",
+          "alibaba:b40fd4715e50d0997ec430c6",
+          "alibaba:92550fd8a341f5bc9f5256e3",
+          "alibaba:0257586429c491bfaab12e53"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone7",
+        "productKeys": [
+          "alibaba:d7490386119d00d0fc4f2fe2",
+          "alibaba:2e692ad3b573085adb075867",
+          "alibaba:b2c3a702b991554fc196984a",
+          "alibaba:b04fa90f47f2cc20ee64e47b",
+          "alibaba:5253c4a2a73255849b1d43f9",
+          "alibaba:6bd609967aee123496ebcb7e",
+          "alibaba:297bf935b32dee794917f43b",
+          "alibaba:7cfca123b3f993e9aeece400",
+          "alibaba:0413a9ab4ec94693a435a7b7",
+          "alibaba:a6f428dcbba7dbf815499896",
+          "alibaba:84ba76631bad87e5a1ac75ea",
+          "alibaba:4701efc49b0fb70a676b3078",
+          "alibaba:77f2d12b995c326515c2303c",
+          "alibaba:2df9d7fc5e713f4134d568df",
+          "alibaba:784bffbd4cf6159c81e3e145",
+          "alibaba:5f37c8f2cd33ff2e11f9f340",
+          "alibaba:14c1adf624066bba44668ecd",
+          "alibaba:a4bd3519e833a702ae67aff9",
+          "alibaba:d53961ce7050f12112ddfb87",
+          "alibaba:062d9f1ce61211477da94b44",
+          "alibaba:120336bde0990f58e1f34273",
+          "alibaba:8e5fdef9e83979d61b911d1a",
+          "alibaba:88a232e430bf993f32a695e4",
+          "alibaba:1509cae4cc1ed068a5084c1e"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya10",
+        "productKeys": [
+          "alibaba:dacf3eeafd5baca23807ca5d",
+          "alibaba:e6ab3becd3430b8a0cabada5",
+          "alibaba:7585ddb837b0ab01ba9bd386",
+          "alibaba:9d5d5688112a1d73b78a4d79",
+          "alibaba:28b9288156246ec7deb48a7c",
+          "alibaba:307278a07d930eb6e6e452e4",
+          "alibaba:a5d2771cd953515dba66da96",
+          "alibaba:6e7bf08f18ed9d5cc7df6dd4",
+          "alibaba:4c04aa8d7d7a0925adde1a2b",
+          "alibaba:210783eab1ecfe9119c307ef",
+          "alibaba:b404430864bc798668a1f592",
+          "alibaba:49be0ad5853d7ae137f2ec15"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone5",
+        "productKeys": [
+          "alibaba:11214d1665bb4c7a7eb411c2",
+          "alibaba:1a690f00e489f74485433e1e",
+          "alibaba:e4e7d14fa548f548dfaaebd3",
+          "alibaba:f5ec1efe73e59e7f092ad808",
+          "alibaba:0fa5c927ad910002e156fb1d"
+        ]
+      },
+      {
+        "key": "brand-model:huawei:iphone11",
+        "productKeys": [
+          "alibaba:0f409c79fb21126bf680c889",
+          "alibaba:99c1d6217ab584fe15d8a0c0",
+          "alibaba:9cb575e2966060a5dd637640",
+          "alibaba:c54b1b5f832d73a14f70cd02"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone8",
+        "productKeys": [
+          "alibaba:438fcf9a6a3e6b8963d8f982",
+          "alibaba:adc0bcb910c5018484a9f495",
+          "alibaba:be106ac5c22fdac5f090694a",
+          "alibaba:1837f22ba1c71422d1b4a5eb",
+          "alibaba:05e77fef87055f8a6afb07ae",
+          "alibaba:ef256f5e55c4fd0507f75463",
+          "alibaba:b362ab61101dd56106e2c8b4",
+          "alibaba:0fb62355821ad591db6729e8",
+          "alibaba:84133104a438f0f52db70a19",
+          "alibaba:ef0f0803483ed5fb02859212",
+          "alibaba:ae048afcf037be8523f16c2a",
+          "alibaba:931207d87b1fc8936bd3e449",
+          "alibaba:d9cee25288ddf68b31baf1af"
+        ]
+      },
+      {
+        "key": "brand-model:tronsmart:tronsmartelement",
+        "productKeys": [
+          "alibaba:522ef044f2807241468e3132",
+          "alibaba:8e40d270d78f432233551e75",
+          "alibaba:02d6a48309a99d65f8000f2d",
+          "alibaba:a322b9fc78fe93a9b70d392c",
+          "alibaba:607be89ac1a9ba77c74d0313",
+          "alibaba:e3818130bc4e7569bdf18807"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:iphone8",
+        "productKeys": [
+          "alibaba:996f79831a8a80fff86b2917",
+          "alibaba:aba31f2e1434fdc6212ad3e7",
+          "alibaba:6cdb315b46bf87b27ad26df0",
+          "alibaba:a904a3cd99146ba493e05ecf",
+          "alibaba:6571dbd20c15e8389ca3e4ca",
+          "alibaba:a347c280898e37cc85a43a3e",
+          "alibaba:a847774997fdc46fff9a6d53",
+          "alibaba:46ebeaf128c7ba97d968baec",
+          "alibaba:226a3f85de9174ade4931cae",
+          "alibaba:2bc99b1570e28a1421612564"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone6",
+        "productKeys": [
+          "alibaba:351d391bb2c4e234f8a67d48",
+          "alibaba:cb7d6440b7cccfb7b9c7cf27",
+          "alibaba:2c6eb472bb30adcbc0cd505d",
+          "alibaba:714fc96d0e0363ab5b9358ce",
+          "alibaba:26c2c56bbdd2404a836ea09c",
+          "alibaba:89ffa1f2f3901f2cd0abcfbb",
+          "alibaba:28829876b79479b8a8594b6b",
+          "alibaba:f1517d5ee2c6f4d4b774b594",
+          "alibaba:8204f517c8f3738c08c26424",
+          "alibaba:739fbc21d99cc9703a672d9f",
+          "alibaba:79e9a2d176574c6fc83375fb",
+          "alibaba:f386f287affa6ff0021b72fd",
+          "alibaba:07267911e084e86ff1ca2c00",
+          "alibaba:91301a52001abe6962389386",
+          "alibaba:467170e9dea715b8aa3ba7d3",
+          "alibaba:acf8289e49769f4532def24e",
+          "alibaba:0a439070667252c1ca17fd64",
+          "alibaba:fd20f4a445924dcb13b47652",
+          "alibaba:5f4f69a7c417b4ff051831dd",
+          "alibaba:75f423761ae8c0ff94cf0ad0"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys10",
+        "productKeys": [
+          "alibaba:30847adb7e7feb353fc54f49",
+          "alibaba:10a09fd4746bccd6bc7cfcf3",
+          "alibaba:73f49cf96e8ade164cf4f109",
+          "alibaba:4cb268aa75b018bf57dfcf9d",
+          "alibaba:af6b3e9ab4fdb81ecc948f55",
+          "alibaba:b823d17e8103374215e3a803",
+          "alibaba:8afb9d2bc3581cede99448dd",
+          "alibaba:bf4c4a849347f34bd05a75d1",
+          "alibaba:ff66d4239932f588d90d9ecd",
+          "alibaba:1c0180f2a2f6c573c4687202",
+          "alibaba:a59585aa91024875a32d4cea",
+          "alibaba:b66721fd3e52fbe853014b6d",
+          "alibaba:bf6afaf2b9731eaa9b0e4630",
+          "alibaba:5199f5eafea1d8d14cd7cc67",
+          "alibaba:da5f2b612b7fed31a29d692d",
+          "alibaba:f1b2babe3a0c5b05971ebda9",
+          "alibaba:4b1d530778c19c0553b26209",
+          "alibaba:5301af89aeef79688c49a44f",
+          "alibaba:06b9f84c85c59441587e598f",
+          "alibaba:5064ffd2e60ec323ad7c20a7",
+          "alibaba:35edcdd7f9b4219b2bd68575",
+          "alibaba:42ef44f6425c1579279064d8",
+          "alibaba:b2ba0b8fa04de9b2925394ba",
+          "alibaba:4bb6a71ec2c3ae2b608d12c3",
+          "alibaba:ef127275dd471847f19cfe3e",
+          "alibaba:55ed381a3cc5cf3864caef08",
+          "alibaba:20208416565a0a6866d4351d",
+          "alibaba:0ced36eed234ceade9f319cf",
+          "alibaba:e54e3faf9c1abaadd4ddd553",
+          "alibaba:aac1bf1a00b334777413f4d1",
+          "alibaba:74f3e4bf2126fa482fecb20c",
+          "alibaba:3f1b433b8bc01bfac7d10f74",
+          "alibaba:57b2e7bf085d2033ba8062a3",
+          "alibaba:5351e612a6fe6f364169eb36",
+          "alibaba:16eca8691049cb3f3672e92f",
+          "alibaba:adf0766900c2c9ea5ebab33b",
+          "alibaba:f80aae6642e12a0e48d4517b",
+          "alibaba:40676b7d2a289e45feb6d768",
+          "alibaba:8c73efb3428aecee7fb58747",
+          "alibaba:e68ed401415cac48e2d2bc6b",
+          "alibaba:328c05a5c7748af48d12d191",
+          "alibaba:18e976b7c0da32d09fb7b28b",
+          "alibaba:7dc349effd002d7b00f803a0",
+          "alibaba:2282af318a99aa4f93943b66",
+          "alibaba:6879c528f5134171f1800ec2"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmik20",
+        "productKeys": [
+          "alibaba:644b15dccb61c40cd8d6a946",
+          "alibaba:4b8a9651f69c341f6394d844",
+          "alibaba:061cee7e74755aff050cea22",
+          "alibaba:281631446a30c0e95b1089b2",
+          "alibaba:578d71acfb89bbe0fce0b2d6",
+          "alibaba:051b4231d34089eb7ceee649",
+          "alibaba:4b8f2124f582c8b943ffc21a",
+          "alibaba:f2579786faed6e9f894277db",
+          "alibaba:36350675df64a04007a42e75",
+          "alibaba:2c0418796b92f81aeb9c7859",
+          "alibaba:ad2ddd84448eec28400d0a2b",
+          "alibaba:a9497dd56ee45b66041cd375",
+          "alibaba:df37027b4a91091da973e7d5",
+          "alibaba:25d3ae642721d524ff748db8",
+          "alibaba:c866da6367096b839aae0e61",
+          "alibaba:8d74b1fc9aea2747240bc3bc",
+          "alibaba:55d5d4cb954bc6c1ef4ec116",
+          "alibaba:3a1fa8a1b2d31c163bb92426",
+          "alibaba:1d7b3d11eb9886e9140d5b07",
+          "alibaba:016951c81c9f009d8194eecd",
+          "alibaba:b9f1028502667ba5cecc7be7",
+          "alibaba:b327623a4378d1dd2182186a",
+          "alibaba:bba29f15eb46356208970ee6"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys10plus",
+        "productKeys": [
+          "alibaba:1f6bbd30b231087c75ffdc6e",
+          "alibaba:e17e39c290296cd4062b6bda",
+          "alibaba:225e876aeb6cf16dabeac23c",
+          "alibaba:b95928e0fd7db423044c5800",
+          "alibaba:ad11437f4f89415d173a291c",
+          "alibaba:8888dda592764f516c9a2562",
+          "alibaba:86642861ba99ca8f911a9dea",
+          "alibaba:65df4d8f66ecc3e29ade0b2e",
+          "alibaba:daab3727bfad75748495744a"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:iphone6",
+        "productKeys": [
+          "alibaba:bd03db414259e88be40f1d65",
+          "alibaba:725bf089a88d652fbbfb677e",
+          "alibaba:6afc2631c00ee2a25da505d1",
+          "alibaba:afbaa6c006feefc1310df46b",
+          "alibaba:64e28e62b907978d74f43d2e",
+          "alibaba:0cc30954093be1668d2dc921",
+          "alibaba:cda190aaf40f49cc78218cd8"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya50",
+        "productKeys": [
+          "alibaba:577ebc5b943c7bb46dcfcd0e",
+          "alibaba:a714e53a8153fe9c3de6256c",
+          "alibaba:365aed2ca90a57c13f8a8a5f",
+          "alibaba:efd4cf66cd7fd27c45f87b36",
+          "alibaba:eb5dbe5d0ab758f89931c35e",
+          "alibaba:f99edb8140345481c90bba89",
+          "alibaba:10213a15bf3f02f79363e73a",
+          "alibaba:dbdafc1cf3ed8483c96ec110",
+          "alibaba:4e08052c59178236bc2cb913",
+          "alibaba:dcf1d30b51c1e711763d2d1d",
+          "alibaba:16c919af1ac14437ac8d6c4c",
+          "alibaba:201e7f95a0882c41dea145c3",
+          "alibaba:e0cbd033ab8ebc5108db4c4a",
+          "alibaba:8de42145c4734decc3e32e9d",
+          "alibaba:74dcd85fed4dc2c22a87b6e1",
+          "alibaba:254d434906d438f9885fe54f"
+        ]
+      },
+      {
+        "key": "brand-model:oppo:oppof11",
+        "productKeys": [
+          "alibaba:3d6fedab2e177adef4823e8b",
+          "alibaba:aaf72ae6de661dfef07a3d74",
+          "alibaba:4770078dd2d921e9cd36eb86",
+          "alibaba:867b50ad309ca301607bfc39",
+          "alibaba:e31ee321c5241d04000da81c",
+          "alibaba:84d7be653871cf9293cadb33"
+        ]
+      },
+      {
+        "key": "brand-model:vivo:vivov15",
+        "productKeys": [
+          "alibaba:0e8afaf6cce692cbd8324769",
+          "alibaba:377436f7d5ccfd16bb9e0f37",
+          "alibaba:aa2644244b615638245cf670",
+          "alibaba:10217f1c97ff2285e97521c0",
+          "alibaba:f7a2fb1a27f1c44a0c26953f",
+          "alibaba:c8ad0b68cd93964f15573db4"
+        ]
+      },
+      {
+        "key": "brand-model:vivo:vivoiqoo",
+        "productKeys": [
+          "alibaba:87e1fd2bcc7fce87363c7d6f",
+          "alibaba:65c5c3a6eb94ed081aa163e8",
+          "alibaba:9997ce0787096d1978ea04e7"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:iphone11",
+        "productKeys": [
+          "alibaba:6e39b6535577164eab7987f5",
+          "alibaba:d6a53dc0ccf3f1d735c23b0c",
+          "alibaba:1ca4eb9645edbc4857e3294a",
+          "alibaba:ca59aaa65f264ba6b6d87a24",
+          "alibaba:7137040f2e9b7d6859ce34c9",
+          "alibaba:7bb262117b1b047baf74b56b",
+          "alibaba:0596ac4d7d26a36dc2f64a95",
+          "alibaba:b3ffcf771577579e97438345",
+          "alibaba:3e2791299eaac9ab7168ab9b",
+          "alibaba:5a706a4a4aafa7bd5673fa00",
+          "alibaba:31d186aa7822aa9deb324e88",
+          "alibaba:5f16e29f1a6156d5b41e4cba",
+          "alibaba:32ee92a471528bb2600c9845",
+          "alibaba:97bf73eb311bbc069b4c659b",
+          "alibaba:c55e2ebd2095810b8c28343f",
+          "alibaba:bd28e8b21738264e8f729343",
+          "alibaba:7073352379e22ccce40eaea5",
+          "alibaba:6d14f798bb5c0fb38862328c",
+          "alibaba:2f468a01bb9165606cf05c9e"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmi8",
+        "productKeys": [
+          "alibaba:8b2b7510fa3a38b1e8ae877a",
+          "alibaba:f535a10453611d8daffb450e",
+          "alibaba:a9acd2d92aa84c978b35a501",
+          "alibaba:9f6677fe3e8e74fa2a6314ce",
+          "alibaba:690d284f437d5d4504a5f2d1",
+          "alibaba:a49bab12d6cbbaa6ed01368a",
+          "alibaba:ec08c17c33b644e2e3b8d455",
+          "alibaba:a9065177eee74597ff21ce67",
+          "alibaba:1c62d9e14b72574d3235cb27",
+          "alibaba:a4e6662f7432ec9ca425a00f",
+          "alibaba:649ceac6bb896897a3269294",
+          "alibaba:3771824825ee04241bf54c28"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys20ultra",
+        "productKeys": [
+          "alibaba:a630c1c04abd0ac292ccbe1e",
+          "alibaba:33b51e26799c658ffe4f87d6",
+          "alibaba:2494f32708dd86a557ee164c",
+          "alibaba:ef490969008bc5e9f52aaf15",
+          "alibaba:3207f4a7cee96742e4aa2ec3",
+          "alibaba:f478e7d5790b5b9d44db07bf",
+          "alibaba:757e13c37dd3529e16f0838f",
+          "alibaba:8de3d278b886d0b2eea51fa7",
+          "alibaba:2559c58c4041b45a5c257786"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:redmiairdots",
+        "productKeys": [
+          "alibaba:53a57417fed3f46e163ce8a4",
+          "alibaba:990a6d7bef3ddb657b588b8b",
+          "alibaba:bdc79c20f790d50bb214fcda",
+          "alibaba:1301f827d2125499eeac33ac",
+          "alibaba:d5210e0e7f10d864cea8d91d"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:iphone11promax",
+        "productKeys": [
+          "alibaba:1b2784fd3410f0a93ff20052",
+          "alibaba:ca1467bbe48d2f607b4508eb",
+          "alibaba:76dca625f67d99b12f9779d9",
+          "alibaba:325933c1e99406af009e0bcb",
+          "alibaba:344689cd8b1f911491af7fb9",
+          "alibaba:d3764aea85f018e680713026",
+          "alibaba:5e3106010826d146cffb74d2",
+          "alibaba:d79e1db3aa1597bdc31b9718",
+          "alibaba:08b9f9ad55c3f1259a21c8cb",
+          "alibaba:f61558010fc880ff39345c64",
+          "alibaba:2fcc6ee5b38dee2a35226f11",
+          "alibaba:8bcf1baaf502389a3b243318",
+          "alibaba:6c93f488c89ddf9071ac4034"
+        ]
+      },
+      {
+        "key": "brand-model:redmi:redmiairdots",
+        "productKeys": [
+          "alibaba:0cfc3f76a3074f9da2585536",
+          "alibaba:84fef9035dc1482aaa99beb6",
+          "alibaba:5de8fc914cb5714f585853e6",
+          "alibaba:8a20fcbccc4e43ac9005c654",
+          "alibaba:b9b9c059a5588f195d69365c",
+          "alibaba:d51121c67710fdb68b990828",
+          "alibaba:cc2985bfbb6905271a046332",
+          "alibaba:d84843d9a087b2e722ed5714",
+          "alibaba:84fb40ceebabaf9149e7f8d4",
+          "alibaba:5f10cf24e2e28af0638f0692",
+          "alibaba:998ae362b004473e615b6fcf",
+          "alibaba:7cb9c07b72360c5af7d41595"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys7",
+        "productKeys": [
+          "alibaba:009fd3e59b77a968628612b3",
+          "alibaba:cf6f9795f49f84a1731a55ed",
+          "alibaba:d3d4c3e28dc07272199bdf6f",
+          "alibaba:7317766727298b27054d2cad",
+          "alibaba:f09ca775f9d15829512a7b08",
+          "alibaba:2570275583909dc89144d97e",
+          "alibaba:e44fa769eb0dfc7301dfea19",
+          "alibaba:f8f53d11089b0145da4db910",
+          "alibaba:25c7feeb3ce291d7d0ec29b5",
+          "alibaba:53cc91856e4125b871c97df9",
+          "alibaba:9a181bbdd6fc11ff4a53c488",
+          "alibaba:21a19300cf80613c786a1d20",
+          "alibaba:bd0aebe7d088d10f1465cee3",
+          "alibaba:db8d6ada74fbf9d2c06931cc",
+          "alibaba:f6192f2921799e8c5b408197",
+          "alibaba:320652455ef55b28d1c59166",
+          "alibaba:15b26e9fc6fbbbbc04184dbc",
+          "alibaba:4ea06d678edc5ca856479068",
+          "alibaba:d5fcb62deecd5a0c4479294e",
+          "alibaba:a1c0c4078c83cdf9bba5c4b4",
+          "alibaba:81a0d41ee6b633a8917d81b1",
+          "alibaba:3067cd9faea5011bdd7bf86d"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys20",
+        "productKeys": [
+          "alibaba:db6a3f68316e6c85383fe733",
+          "alibaba:2cc69818ecdfa34c0c679cba",
+          "alibaba:dd3056a43ca8e3f67d38a9f3",
+          "alibaba:9fd26771ddbfb057961cf5ec",
+          "alibaba:0a21bf81418f457a72329ea7",
+          "alibaba:9257140d523c65536e1aa5b2",
+          "alibaba:09e6c7881a305690b38d15cc",
+          "alibaba:b36ea95e88246f217ee16cde",
+          "alibaba:ac1d9d0a1b1ca70f3c8728e2",
+          "alibaba:f283dcd393cca53df58be819",
+          "alibaba:cf5dedad1d9b14985652829d",
+          "alibaba:66a8c275a7ada6b215dfdc18"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys20plus",
+        "productKeys": [
+          "alibaba:1a0800d622c6d945390464be",
+          "alibaba:597c9d25097cec17eacab180",
+          "alibaba:534016d511108dd12e05a696",
+          "alibaba:fb58f572b1a37c0cd00b764c",
+          "alibaba:a5280d997803437c80b21634"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys4",
+        "productKeys": [
+          "alibaba:9f49d40e0b87d286b7454a3d",
+          "alibaba:612d259f713d26d021df5a6b",
+          "alibaba:a27a87cc8e9cc417bcb6bb41",
+          "alibaba:b1b0884506a0c57a6b3d634d"
+        ]
+      },
+      {
+        "key": "brand-model:huawei:iphone7",
+        "productKeys": [
+          "alibaba:a3671185d487035d6b81292d",
+          "alibaba:e639edd55f38a8762c222716",
+          "alibaba:df8860ac994ccc9e99e27c04",
+          "alibaba:4143d87e681270991e7f6277"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys5",
+        "productKeys": [
+          "alibaba:167e78ccc63f42eb07602475",
+          "alibaba:cfd2a84334b3eeb7d406f94e",
+          "alibaba:23ab87514d085e2c7c3805d8",
+          "alibaba:7d25afe00a625254fab821b9",
+          "alibaba:4fcb0df08c7cb55757902e76"
+        ]
+      },
+      {
+        "key": "brand-model:realme:opporealme",
+        "productKeys": [
+          "alibaba:a2a1c47c564aa3bcedf4b0f2",
+          "alibaba:7132afff3f6b197a7c9b3970",
+          "alibaba:28f93b3d5ee60155435bd272",
+          "alibaba:d38543d0f9b3a673a8caf152",
+          "alibaba:77ec81a7df6244ef23754262",
+          "alibaba:19eaa55f172041cef52d3172",
+          "alibaba:93b083ece946cfd894259031",
+          "alibaba:39c85fc5f0411db12f4f78f0",
+          "alibaba:b433f2af2e4fde371eb28f31",
+          "alibaba:326b5ea0c5b783dee3197bf1",
+          "alibaba:7387a48feeac2d7977b2efe5",
+          "alibaba:0f72b9df280ac9cdcd10348d",
+          "alibaba:941c9620f99d9c76f5f2acba",
+          "alibaba:9fbb886bbd5e6074ce7d2522",
+          "alibaba:b57c6bf7d137a6fd42cf0743",
+          "alibaba:9f61a444f6fb54e55d5bf243",
+          "alibaba:f34d16f58c1c4d09fabf09e0",
+          "alibaba:bebed57beed400adef907a59",
+          "alibaba:6602af51cd140b4e142ea224",
+          "alibaba:7656adaf40bedc8b4c6bf9c4",
+          "alibaba:68eda8eebad860ba46742273",
+          "alibaba:db4e3990ed49f55da6976ccd"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redminote8",
+        "productKeys": [
+          "alibaba:626cdecf9aaad8e68ec339a8",
+          "alibaba:a41ec325790100e6514dae10"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:redminote",
+        "productKeys": [
+          "alibaba:9558c0847a984fadfe1d57a4",
+          "alibaba:d8b4c2c9322cb28996c19720",
+          "alibaba:89294b94412e223df674a770"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys9",
+        "productKeys": [
+          "alibaba:5211b60d96b2d9e210966780",
+          "alibaba:3434f8ebf374275ce69c9626",
+          "alibaba:9d929d0f3a2a629dedfc0606",
+          "alibaba:7f2df7c49af99bef2c4e96d1",
+          "alibaba:6ecd0e3d3e33913e7c903f7c",
+          "alibaba:67bd899ae208317b574c1a35",
+          "alibaba:78a7a4c9290f576fc9208c55",
+          "alibaba:4079e5bb5c069a33fc8678d7",
+          "alibaba:44dc04a7fc73d952ab29a863",
+          "alibaba:af438863938d31eb0836f72c"
+        ]
+      },
+      {
+        "key": "brand-model:oppo:oppoa7",
+        "productKeys": [
+          "alibaba:899c99b6d85a9f4ab1215281",
+          "alibaba:f5e9ebc189e834da4c6dd48e"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys6",
+        "productKeys": [
+          "alibaba:2b8eccfe6f595addcc9cba15",
+          "alibaba:bf08890dc12b2e930f5137a4",
+          "alibaba:a6bd106c61268c9bb15be46c",
+          "alibaba:3d25e0482e1f00af5339c1e1",
+          "alibaba:d2c6514c8ee34b8ccdb8a038",
+          "alibaba:de45c7e65f799b23738d8b6f",
+          "alibaba:d91fa8e34dafdf334b4d7b46",
+          "alibaba:b98b2fdfc126d87657ea2285",
+          "alibaba:0085cce0ccf8c1861074f1e7",
+          "alibaba:aa1d2871e909d8a629b784c4",
+          "alibaba:a78efdfe006e5f3edc0caaee",
+          "alibaba:16f10c70fb7df1c339b3377a",
+          "alibaba:a11bbf61e1fb89fa7bacdca5"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:iphone7",
+        "productKeys": [
+          "alibaba:f5ee63a7a922e23b138b4e45",
+          "alibaba:c046b2a699060532a702239f",
+          "alibaba:6f6d57fb9132f84ef5c3c5e8",
+          "alibaba:07e70ebf4e2c7a3c6a9a1b41",
+          "alibaba:b53030c386aea04638247480",
+          "alibaba:1a119ed74af5b28394a8f59a",
+          "alibaba:5f671651bb2438ad6a67ea6c",
+          "alibaba:4233fb69609511a1bc5dd585",
+          "alibaba:413d1151f0bf94c64c6744c4",
+          "alibaba:cd936206409f7e18d3f5b7d7"
+        ]
+      },
+      {
+        "key": "brand-model:apple:macbookpro",
+        "productKeys": [
+          "alibaba:654dbb9e37e03dc9742e4ace",
+          "alibaba:2c11625ad96da05ec1844d1a",
+          "alibaba:c9d4b869d39416c4cd9eff45",
+          "alibaba:bef7e314c9681a6dd4d3286d",
+          "alibaba:26534fb8914b1b67dee8114f",
+          "alibaba:f587daae2490aee9ce007610",
+          "alibaba:3200edb61f0955a78025d3b2"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys8",
+        "productKeys": [
+          "alibaba:d6eceed536611aacfb623206",
+          "alibaba:646772c921e193436ea05631",
+          "alibaba:2b5d91a2c1e8b9b608f4989d",
+          "alibaba:3263d5677607f5878450873f",
+          "alibaba:4a952cff2866fcd8b79f834b",
+          "alibaba:9a857a9e53372e1bb4ea6970",
+          "alibaba:ca81ec427cb188233a13dab9",
+          "alibaba:89a639b50292c3e26164ca9f",
+          "alibaba:d50f087e6fe5c00cde0e494d",
+          "alibaba:9da2910b76c7b64c77f35742",
+          "alibaba:eaf715ac74213bca38acb220",
+          "alibaba:9bc86963fd9f06dbdbd7880b",
+          "alibaba:414d0a458c2413af5e65d9cc",
+          "alibaba:144529fcd0455129d542bb4f",
+          "alibaba:17b2ca561b676db53c8af6a2",
+          "alibaba:f5d867923802f3c3c6314d04",
+          "alibaba:9dbae3fbe249a171d2e3c827",
+          "alibaba:8085640fca1fb80a70c0d70f",
+          "alibaba:12cdf0ce2af2847787828856"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:macbookpro",
+        "productKeys": [
+          "alibaba:0d3cc4126c857b32e1652396",
+          "alibaba:782c1aea3d7ea88860142749",
+          "alibaba:9a1657f0b4e4d873b4d78ab1"
+        ]
+      },
+      {
+        "key": "brand-model:vivo:vivov17",
+        "productKeys": [
+          "alibaba:9202fd9b4b9ffc111a92b8f4",
+          "alibaba:0d1e136bc3bcd2d14104a948",
+          "alibaba:3c087e43e7c94ca2262effe4",
+          "alibaba:029791c2231ae5add2fa2798"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:vivooppo",
+        "productKeys": [
+          "alibaba:d2111c2a407121b71b833651",
+          "alibaba:a46ea8e337ccabc8579682ca"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya5",
+        "productKeys": [
+          "alibaba:701e955bde02c64421142750",
+          "alibaba:a07fdfe2a4813e8859b03fea",
+          "alibaba:b62d37b88600fd82a88cb236",
+          "alibaba:1c42d48714cf97961ceddb78",
+          "alibaba:d5a3b7351a6a5aa3a4f427fc"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone7plus",
+        "productKeys": [
+          "alibaba:8df74c88f75a221ab4ada179",
+          "alibaba:16bb328d8fccf23b0f78306d",
+          "alibaba:bbb06cdb2f6d6884130400a5",
+          "alibaba:220f30061dd62c433e184cb4",
+          "alibaba:0603121ca138d9f8ce368386"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmi7",
+        "productKeys": [
+          "alibaba:4f4f3a4e2cae713d99bfbe11",
+          "alibaba:08aeb6e2e3c26cb6fb94b73e",
+          "alibaba:1aab7638193e8032b8e1da82",
+          "alibaba:d77a8b9b64fa22f0936c5a92",
+          "alibaba:16200113aeb1f5fd217346b1",
+          "alibaba:ee541526a754a2921bc86ac9",
+          "alibaba:17e0c3073fb8b77118e28db2",
+          "alibaba:e516f4a7d60b3f6db8da4030",
+          "alibaba:41812d42cadf78e586e18487"
+        ]
+      },
+      {
+        "key": "brand-model:vivo:vivoz5x",
+        "productKeys": [
+          "alibaba:52a361db333a0e6237d5db50",
+          "alibaba:873674178e521dfe10716ee8"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya30",
+        "productKeys": [
+          "alibaba:8521945c65edb79a73146b5a",
+          "alibaba:fa2931b98440607c43690402",
+          "alibaba:de045d44af6eb7484d49d688",
+          "alibaba:5a7700b563b9a920e8441447"
+        ]
+      },
+      {
+        "key": "brand-model:realme:realmebuds",
+        "productKeys": [
+          "alibaba:80bf74058255aeeb063c5bf7",
+          "alibaba:f94d219a388b98d60e22a49c"
+        ]
+      },
+      {
+        "key": "brand-model:oneplus:oneplus3",
+        "productKeys": [
+          "alibaba:cf6526049729c5077fbc56c9",
+          "alibaba:88643b086db47a07a3f04a0a"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honor8",
+        "productKeys": [
+          "alibaba:f1e61d2661ce1df3e98672cc",
+          "alibaba:79544472f33f1284f07dc98f"
+        ]
+      },
+      {
+        "key": "brand-model:realme:realme3",
+        "productKeys": [
+          "alibaba:455371c051fc489133cd9e82",
+          "alibaba:88daa0b296812beebcec1781"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya51",
+        "productKeys": [
+          "alibaba:9c4e7567efa39eab0d7034d4",
+          "alibaba:8dd862b07f31eb456a3209c8",
+          "alibaba:40696a4d8dde1cac74366667",
+          "alibaba:44d44247f79f65ac89a6d172",
+          "alibaba:ae47190a1edd29e7c0fe22aa",
+          "alibaba:e755c170826e91d18b129bc6",
+          "alibaba:3a68d25ebb88f155580b6cb0"
+        ]
+      },
+      {
+        "key": "brand-model:oppo:opporeno",
+        "productKeys": [
+          "alibaba:dc0a53a17881d2ac36386215",
+          "alibaba:71bf0d0edfa8e3497de16f6b",
+          "alibaba:0b061db2b88f52eeb9d6baf0",
+          "alibaba:1a6f4f27931d73cd539b71cc",
+          "alibaba:351939473648c2d547dbff74",
+          "alibaba:aa70ca49448f057ee00a8bed"
+        ]
+      },
+      {
+        "key": "brand-model:tronsmart:tronsmartspunky",
+        "productKeys": [
+          "alibaba:0febea6218bfa7c9f9b3712b",
+          "alibaba:dee386cdfe102ddce52c8284"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya9",
+        "productKeys": [
+          "alibaba:6de6018b6f6e0434080e8ab4",
+          "alibaba:35850ddd6174d628255bc894"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honorband",
+        "productKeys": [
+          "alibaba:6e04bf657a7e2b72fc4bc5c7",
+          "alibaba:f24a905be589ed6e14b9c286",
+          "alibaba:2912e31080bd5e5de0b7443d",
+          "alibaba:a3cc781ca642c2ce10d54fa6",
+          "alibaba:1a760e182cc9ceca83663f2b",
+          "alibaba:a4fc2e38043b9b0933ba5c33",
+          "alibaba:36499d9d908c6e4181987c11"
+        ]
+      },
+      {
+        "key": "brand-model:google:pixel3xl",
+        "productKeys": [
+          "alibaba:e7f914ccce8e5a992d6ae518",
+          "alibaba:1154b9a8642f098a460c2810"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmi6",
+        "productKeys": [
+          "alibaba:f1c9115c0321845bd857c548",
+          "alibaba:2f7c647a1fe8fc63fd6d5b19",
+          "alibaba:901d29a7deacfdc684156e02",
+          "alibaba:933e71fd87327f5386935857",
+          "alibaba:c9ad0745c30fe8fe87c4cee6"
+        ]
+      },
+      {
+        "key": "brand-model:chuwi:chuwiaerobook",
+        "productKeys": [
+          "alibaba:9e5b865c49dedc6b5835da99",
+          "alibaba:7c86c9f07a9f93ff86409e25"
+        ]
+      },
+      {
+        "key": "brand-model:chuwi:chuwilapbook",
+        "productKeys": [
+          "alibaba:b4180189a77967f3b9061641",
+          "alibaba:f24aa0507465db63e1c080d7"
+        ]
+      },
+      {
+        "key": "brand-model:vivo:vivox27",
+        "productKeys": [
+          "alibaba:97bb506c65111e3a3d64f405",
+          "alibaba:f06ebfd41f884abba21f3f13"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmi6a",
+        "productKeys": [
+          "alibaba:0913c6a91bced4cf5cbd6ade",
+          "alibaba:091406be0fce36662e0348d1",
+          "alibaba:29af5b100d61d70901f35736"
+        ]
+      },
+      {
+        "key": "brand-model:apple:iphone8plus",
+        "productKeys": [
+          "alibaba:782356c0405db2af6ebf037e",
+          "alibaba:e479f6b28181d58f4dea1835",
+          "alibaba:7e034cb75e200a1806506f4e"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmi5",
+        "productKeys": [
+          "alibaba:a9bc67c21c9ce0ba0cc8ec14",
+          "alibaba:d57af5ae74acbf16a7125ea4"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honor9x",
+        "productKeys": [
+          "alibaba:cfeac05dafcc5150c2ea4158",
+          "alibaba:b119cc8b1c965e8bf4c163cc"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honor8x",
+        "productKeys": [
+          "alibaba:3d2386ca8304d9145cc0b94c",
+          "alibaba:2be366af6fb2306bff4bd188"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys8plus",
+        "productKeys": [
+          "alibaba:20eff21dfbb252e47b979387",
+          "alibaba:1c886b80b44c34b74de888d9"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya20",
+        "productKeys": [
+          "alibaba:556cea7af3cf150d3e1dcc62",
+          "alibaba:bddb592696dcdfe9429788b5",
+          "alibaba:a4e7fcce205bcdd2e1861efc",
+          "alibaba:f41dca14db4236c3d80bee21",
+          "alibaba:d0fe7e3d5908e0b503539122",
+          "alibaba:5718220e3a94fe794cd9daa6",
+          "alibaba:52db6d129c8f9cf53966f253",
+          "alibaba:b1fcc2ea24cd97e5cf97c80e"
+        ]
+      },
+      {
+        "key": "brand-model:google:pixel4xl",
+        "productKeys": [
+          "alibaba:ad6441d879752660c4ec256a",
+          "alibaba:798c58b5a69eeb7fec9b17ee"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honormagicbook",
+        "productKeys": [
+          "alibaba:523614d3f116f26ec66ed78c",
+          "alibaba:4d39adea1700502bdc2ee69b"
+        ]
+      },
+      {
+        "key": "brand-model:oppo:oppoa3s",
+        "productKeys": [
+          "alibaba:c8a0e21907a7ece73380b38e",
+          "alibaba:b3c718a53a86956d8a90bdba",
+          "alibaba:e90ca9eb923b407b05e3c66b",
+          "alibaba:88bb46aaf925f3b985a1b38d"
+        ]
+      },
+      {
+        "key": "brand-model:oppo:oppoa5",
+        "productKeys": [
+          "alibaba:ed77b0daf557013bd91509ba",
+          "alibaba:d456c9c4bc9db396f5b27a6c"
+        ]
+      },
+      {
+        "key": "brand-model:oppo:oppof1s",
+        "productKeys": [
+          "alibaba:29b77f6ea1ebb96f2dc273f6",
+          "alibaba:3ca196e885eb62868433dd28"
+        ]
+      },
+      {
+        "key": "brand-model:realme:realmex2",
+        "productKeys": [
+          "alibaba:2208ce0e2a8184d53051baa5",
+          "alibaba:c542bb130ad5be3b2401dc65",
+          "alibaba:e96c9b460f433acb41a56e0f"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya40",
+        "productKeys": [
+          "alibaba:af1b9a103b6addc8ba09ab5d",
+          "alibaba:d61ed7a6e230d256340e5d26"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys11",
+        "productKeys": [
+          "alibaba:7d3b30affe901c0635151fad",
+          "alibaba:eb16dab84845c3834b52329a"
+        ]
+      },
+      {
+        "key": "brand-model:vivo:vivoy12",
+        "productKeys": [
+          "alibaba:313303d05fd6e0d5ca679de3",
+          "alibaba:a403aeda7b4c75a7a61896f8"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmi7a",
+        "productKeys": [
+          "alibaba:b1c0d3bb4d2a0bf6da75574d",
+          "alibaba:f63fdba3b0515475d4fc0956",
+          "alibaba:4d575a8d1e2b93c5b1a12da1",
+          "alibaba:f74c9fb5ec24fbcb062f1a40",
+          "alibaba:5d7d4b769e551f77ad64736c",
+          "alibaba:10929f93f2c0faacf9ffc456",
+          "alibaba:9212a5fe8bd2ce9d531f7736",
+          "alibaba:cc48178bb11be620a139b573",
+          "alibaba:72ee4a950f801082b48d7999",
+          "alibaba:dc8c5f82f2f5bc68be3aad5e"
+        ]
+      },
+      {
+        "key": "brand-model:lenovo:thinkpadyoga",
+        "productKeys": [
+          "alibaba:fdfa113ea7d9886b3e4d6734",
+          "alibaba:4adacf6593f7d96f2e49f409",
+          "alibaba:4a0659e6e1035aca922e108c"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:pocof1",
+        "productKeys": [
+          "alibaba:5fa4f13ec13661c7ba92175f",
+          "alibaba:25395d467ababa2050ee755a"
+        ]
+      },
+      {
+        "key": "brand-model:vivo:vivou3",
+        "productKeys": [
+          "alibaba:2f48308b8c97cfe49be18619",
+          "alibaba:be8cd886911877f117619d49"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honor9i",
+        "productKeys": [
+          "alibaba:531ab834814eead6082e691e",
+          "alibaba:7a8e9894ffbd0a4f70cf7f6e",
+          "alibaba:b1437c870628df0eac71a885",
+          "alibaba:3a1d7250fd5246d63b84d5a9"
+        ]
+      },
+      {
+        "key": "brand-model:oppo:oppoa83",
+        "productKeys": [
+          "alibaba:205c235f2a1785d68fa5551f",
+          "alibaba:282b3b3d1df63e7060b47a98"
+        ]
+      },
+      {
+        "key": "brand-model:oneplus:oneplus5t",
+        "productKeys": [
+          "alibaba:e14881d3bc7249d8abc78fea",
+          "alibaba:dd160090a985294a80161529"
+        ]
+      },
+      {
+        "key": "brand-model:realme:realmex",
+        "productKeys": [
+          "alibaba:28a80ad9fd684d14bf801519",
+          "alibaba:e27a215071f5e8fc52b8d8e9",
+          "alibaba:8b851ae0efc74d0de0809e7a",
+          "alibaba:ba20c05107d8cb7b579d9672"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmi8a",
+        "productKeys": [
+          "alibaba:2986728035a658c977032e25",
+          "alibaba:16321615f1496888e69fed84",
+          "alibaba:b027c13a674ad9ecce371478",
+          "alibaba:c0b3ef0e4f995077ac24fb2d"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmis2",
+        "productKeys": [
+          "alibaba:8b8d6dc2df76ba85fc5a60b7",
+          "alibaba:c19bba2c72c7a88f747a211a"
+        ]
+      },
+      {
+        "key": "brand-model:google:pixel2",
+        "productKeys": [
+          "alibaba:8e99aa2299737ffb4ca1b527",
+          "alibaba:cae25492506b71ae1b8b8219"
+        ]
+      },
+      {
+        "key": "brand-model:vivo:vivov9",
+        "productKeys": [
+          "alibaba:211ae1618aa8b2c8cf88b0fc",
+          "alibaba:63345817556fdb19f5f8f839"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honor20",
+        "productKeys": [
+          "alibaba:95ed6df60a7747ca49802056",
+          "alibaba:cb8c32f21c8345a35cb3ec4e",
+          "alibaba:49172f2acef2888647d04d24"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honorpocket",
+        "productKeys": [
+          "alibaba:1475c460d567910f5c311c1f",
+          "alibaba:5c35d45edf6552d835e18904"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honor7",
+        "productKeys": [
+          "alibaba:9158594a38fbf352587c2249",
+          "alibaba:00fe6c72cfa5884846333e89"
+        ]
+      },
+      {
+        "key": "brand-model:minix:minixneo",
+        "productKeys": [
+          "alibaba:c84d401b5f641bf4d0af1483",
+          "alibaba:bce11a892a87da615f3046b7"
+        ]
+      },
+      {
+        "key": "brand-model:realme:realmex50",
+        "productKeys": [
+          "alibaba:508604405417d1cc39debe86",
+          "alibaba:5494c2b735585e2d4db2c004",
+          "alibaba:cdebf1aed92a73ddb429a055"
+        ]
+      },
+      {
+        "key": "brand-model:google:pixel4",
+        "productKeys": [
+          "alibaba:c6038b55d0bf0aecd1068b20",
+          "alibaba:1de8fe4d96ecb49b4ade1b3d"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya3",
+        "productKeys": [
+          "alibaba:d30bc73f440d49f0eaaaea81",
+          "alibaba:24a23de026a06606d122a839"
+        ]
+      },
+      {
+        "key": "brand-model:oneplus:oneplus6t",
+        "productKeys": [
+          "alibaba:3cdfcca748ed3afe08261eda",
+          "alibaba:31cd2fda9227ce947e84d8e6",
+          "alibaba:0bba37b13a2b0d21285503b7"
+        ]
+      },
+      {
+        "key": "brand-model:honor:honor10",
+        "productKeys": [
+          "alibaba:9166deda0490e26313630b2b",
+          "alibaba:27cf55327949d85572fd892e",
+          "alibaba:c373b66e27e544d8829157d9",
+          "alibaba:0bd123150d0d6a81e37a7dc9"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys9plus",
+        "productKeys": [
+          "alibaba:524ee28e068b98262a3dde98",
+          "alibaba:a7b0c165e8ad5f8e4c47f955",
+          "alibaba:275309fb7a0671c7a586b70f"
+        ]
+      },
+      {
+        "key": "brand-model:oneplus:oneplusbullets",
+        "productKeys": [
+          "alibaba:d235aa223f082b18392c10e7",
+          "alibaba:93ac8d72021a2b07736bcbcf"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxya8",
+        "productKeys": [
+          "alibaba:25ed8f79b3a2c4c9463ffb7f",
+          "alibaba:a5dc2f8325c68150e5ef84c8"
+        ]
+      },
+      {
+        "key": "brand-model:samsung:galaxys3",
+        "productKeys": [
+          "alibaba:d0fb2ad4631dbb3ee2a4762f",
+          "alibaba:6f02639460b2afe4d44bd17e",
+          "alibaba:188ea2b09d364d3d2b4c1bf5"
+        ]
+      },
+      {
+        "key": "brand-model:xiaomi:redmik30",
+        "productKeys": [
+          "alibaba:d634ea3a45bcaad8093e5e99",
+          "alibaba:f9a1c3392cb92afecd15cadf",
+          "alibaba:dc051eb32d0b70de4cff50a9",
+          "alibaba:80a3ee7ac79effbdf6b3f0d8",
+          "alibaba:ee8518c1d0d8d70e705d60b2",
+          "alibaba:c4de86b10712dcd6dbc467f3",
+          "alibaba:cf8859a37201403cd5a078c5",
+          "alibaba:1ebe5bd18be4b24093db425b"
+        ]
+      }
+    ]
+  },
+  "roundTripSamples": [
+    {
+      "query": "iPhone 11",
+      "expectedProductKey": "alibaba:85f904153a926266eec6d65a",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 485
+    },
+    {
+      "query": "iphone 6",
+      "expectedProductKey": "alibaba:3adcb084741617667a14da9d",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 185
+    },
+    {
+      "query": "oneplus 7T",
+      "expectedProductKey": "alibaba:48f41b5cec72d9623ba07a36",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 9
+    },
+    {
+      "query": "Redmi Note",
+      "expectedProductKey": "alibaba:d02567991e9d0c65a0e140a7",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 108
+    },
+    {
+      "query": "iphone 8",
+      "expectedProductKey": "alibaba:88d60b258e689871d0ee7b28",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 78
+    },
+    {
+      "query": "iphone 5",
+      "expectedProductKey": "alibaba:464d111ab962d83cb048ed2e",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 24
+    },
+    {
+      "query": "Iphone 11 pro max",
+      "expectedProductKey": "alibaba:dfcccfe282932f4ed372d9a0",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 350
+    },
+    {
+      "query": "iPhone 5",
+      "expectedProductKey": "alibaba:f224a11375508235212208f1",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 24
+    },
+    {
+      "query": "iphone 2",
+      "expectedProductKey": "alibaba:a8d263515f9efb91b59ef83d",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 6
+    },
+    {
+      "query": "iPhone 11",
+      "expectedProductKey": "alibaba:d5aaf9e55c5028deacfe0c35",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 485
+    },
+    {
+      "query": "Iphone 8",
+      "expectedProductKey": "alibaba:546af093521e62a856e3a96b",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 78
+    },
+    {
+      "query": "chuwi Hi9",
+      "expectedProductKey": "alibaba:02870635513799cc210e4749",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 2
+    },
+    {
+      "query": "iPhone 11 pro",
+      "expectedProductKey": "alibaba:ea60f340e7f40e1a8effa2c3",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 162
+    },
+    {
+      "query": "Iphone 11 Pro Max",
+      "expectedProductKey": "alibaba:ae0a68c232bf46cd9db1194b",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 350
+    },
+    {
+      "query": "iphone 11",
+      "expectedProductKey": "alibaba:5d402f2bb7a19b0854ef7e8f",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 485
+    },
+    {
+      "query": "iphone 6 Plus",
+      "expectedProductKey": "alibaba:eb3fcd7249cdb8a220be41ff",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 15
+    },
+    {
+      "query": "Iphone 7",
+      "expectedProductKey": "alibaba:dfd165b4ffdb512ef5d4d9ea",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 200
+    },
+    {
+      "query": "Oppo Vivo",
+      "expectedProductKey": "alibaba:8cebe97e6d2f0fd8b2480263",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 2
+    },
+    {
+      "query": "iphone 11",
+      "expectedProductKey": "alibaba:220e11152e3419015ceb509e",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 485
+    },
+    {
+      "query": "Iphone 8",
+      "expectedProductKey": "alibaba:f262ad6811ae6783f5cea0e7",
+      "resolutionKind": "model",
+      "resolved": true,
+      "resultCount": 78
+    },
+    {
+      "query": "2f7c930f239fab89ca",
+      "expectedProductKey": "alibaba:06ad44e7802627d48b78a442",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "81c52e521f1bf38f3f",
+      "expectedProductKey": "alibaba:85f904153a926266eec6d65a",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "edab47026ef86c70a1",
+      "expectedProductKey": "alibaba:3adcb084741617667a14da9d",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "0d8970d3e365de2166",
+      "expectedProductKey": "alibaba:4a455a2fbde695630cf4e9a7",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "d3154673e94bbd9619",
+      "expectedProductKey": "alibaba:48f41b5cec72d9623ba07a36",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "c7486fb67750cbf450",
+      "expectedProductKey": "alibaba:9dc3d3c5ac7abe1e0a88cf3a",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "c81bafc2ecf866420a",
+      "expectedProductKey": "alibaba:bfb91eb20f1cc9ee0c7e5b4b",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7de31531a4b601aad5",
+      "expectedProductKey": "alibaba:d02567991e9d0c65a0e140a7",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "a388db15b405ab4cb9",
+      "expectedProductKey": "alibaba:88d60b258e689871d0ee7b28",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "d9ce85209e1c5ef98f",
+      "expectedProductKey": "alibaba:b1e3360576dd255d9b3093e5",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1f718eb221f8f1e740",
+      "expectedProductKey": "alibaba:f5388c54f7818357d993369f",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "2ee05a3951d931b982",
+      "expectedProductKey": "alibaba:09e9ed7a23a8266c34bd9e2d",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "63d1a6d9a00088ed47",
+      "expectedProductKey": "alibaba:e9b592bd5b0b1e22a19ee21a",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7a5994dc94b7612d37",
+      "expectedProductKey": "alibaba:92e4d51e089a7a90138b18a5",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "cda9fd8f7f10082970",
+      "expectedProductKey": "alibaba:464d111ab962d83cb048ed2e",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "e5362008b2ebad5daf",
+      "expectedProductKey": "alibaba:bef5e19524b0759754ceeaf8",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "90979fd192a8fe0219",
+      "expectedProductKey": "alibaba:fa281ca974c4c7f75287065d",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "e10a643d84c7c7b168",
+      "expectedProductKey": "alibaba:152f55787db4a9c10c7b05fb",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "685b058919675b7a45",
+      "expectedProductKey": "alibaba:63a72844bf9bfaffa14391a8",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "ca424283a771dba220",
+      "expectedProductKey": "alibaba:2d012ef7b03fbc86a380884a",
+      "resolutionKind": "seller-product-id",
+      "resolved": true,
+      "resultCount": 1
+    }
+  ],
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}
