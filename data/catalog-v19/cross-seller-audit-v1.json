@@ -1,7 +1,7 @@
 {
-  "version": "19.5.0",
-  "generatedAt": "2026-08-10T19:59:55.955Z",
-  "catalogSetVersion": "19.6.2",
+  "version": "19.7.0",
+  "generatedAt": "2026-08-10T23:35:37.573Z",
+  "catalogSetVersion": "19.7.0",
   "sellers": [
     {
       "name": "Geekbuying",
@@ -26,16 +26,21 @@
     {
       "name": "FragranceShop.com",
       "slug": "fragranceshop-com"
+    },
+    {
+      "name": "Govee Many GEOs",
+      "slug": "govee-many-geos"
     }
   ],
-  "totalRecords": 38856,
+  "totalRecords": 38956,
   "sellerCounts": {
     "Geekbuying": 1107,
     "AliExpress": 16206,
     "Alibaba": 21216,
     "PandaHall": 127,
     "Karaca EU": 100,
-    "FragranceShop.com": 100
+    "FragranceShop.com": 100,
+    "Govee Many GEOs": 100
   },
   "autoExactGroups": 0,
   "autoGroupConflicts": [],
@@ -1481,6 +1486,86 @@
       "query": "Al Haramain Batoul Perfume for Unisex - Concentrated Perfume Oil 0.4 oz",
       "indexKey": "al haramain batoul perfume for unisex concentrated perfume oil 0 4 oz",
       "expectedProductKey": "fragranceshop-com:56aa046d124dd114924db832",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee Bluetooth Hygrometer Thermometer H5075, 1*H5075",
+      "indexKey": "govee bluetooth hygrometer thermometer h5075 1 h5075",
+      "expectedProductKey": "govee-many-geos:094a17bf98140c4d2675845e",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee Bluetooth Hygrometer Thermometer H5075, 2*H5075",
+      "indexKey": "govee bluetooth hygrometer thermometer h5075 2 h5075",
+      "expectedProductKey": "govee-many-geos:195d83d13ec36a33cea5d81f",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee Bluetooth Hygrometer Thermometer H5075, 3*H5075",
+      "indexKey": "govee bluetooth hygrometer thermometer h5075 3 h5075",
+      "expectedProductKey": "govee-many-geos:a2c4f1cf50091bc638d96d8f",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee Christmas String Lights, 20m",
+      "indexKey": "govee christmas string lights 20m",
+      "expectedProductKey": "govee-many-geos:b70b230ddf564e30ef010459",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee Christmas String Lights, H70C2+H70B1",
+      "indexKey": "govee christmas string lights h70c2 h70b1",
+      "expectedProductKey": "govee-many-geos:344857d0e9b4a641300c18bf",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee Curtain Lights, 2m*1.5m",
+      "indexKey": "govee curtain lights 2m 1 5m",
+      "expectedProductKey": "govee-many-geos:bafc7fca63a4bccc3fdd9372",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee Curtain Lights, H70B1*3",
+      "indexKey": "govee curtain lights h70b1 3",
+      "expectedProductKey": "govee-many-geos:7e8ca732da42eaf116374def",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee DreamView T1 TV Backlight, For 55-65 inch TVs",
+      "indexKey": "govee dreamview t1 tv backlight for 55 65 inch tvs",
+      "expectedProductKey": "govee-many-geos:63805e226845f774dc9a8e89",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee DreamView T1 TV Backlight, For 75-85 inch TVs",
+      "indexKey": "govee dreamview t1 tv backlight for 75 85 inch tvs",
+      "expectedProductKey": "govee-many-geos:0f3f429b64a4d6faa7b2df0e",
+      "resolved": true
+    },
+    {
+      "seller": "Govee Many GEOs",
+      "kind": "exact-name",
+      "query": "Govee Envisual TV Backlight T2, For 55-65 inch TVs",
+      "indexKey": "govee envisual tv backlight t2 for 55 65 inch tvs",
+      "expectedProductKey": "govee-many-geos:bcfbbacd59a6815495a1c0df",
       "resolved": true
     }
   ],

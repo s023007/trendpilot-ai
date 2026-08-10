@@ -1,0 +1,105 @@
+{
+  "version": "19.7.0",
+  "architecture": "seller-catalog-first",
+  "seller": {
+    "name": "Govee Many GEOs",
+    "slug": "govee-many-geos",
+    "network": "Admitad",
+    "mode": "catalog",
+    "role": "seventh-canonical-catalog"
+  },
+  "generatedAt": "2026-08-10T23:35:35.807Z",
+  "schema": "../../schema-v1.json",
+  "sourcePolicy": "../../source-policy-v1.json",
+  "files": {
+    "products": "products.ndjson",
+    "identityIndex": "identity-index.json",
+    "categoryIndex": "category-index.json",
+    "audit": "audit.json"
+  },
+  "metrics": {
+    "totalProducts": 100,
+    "sourceFiles": 1,
+    "stableSellerId": 0,
+    "brand": 100,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 24,
+    "price": 100,
+    "image": 100,
+    "link": 100,
+    "variants": 0,
+    "sourceQualified": 100
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 0,
+      "percent": 0
+    },
+    "brand": {
+      "count": 100,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 24,
+      "percent": 24
+    },
+    "price": {
+      "count": 100,
+      "percent": 100
+    },
+    "image": {
+      "count": 100,
+      "percent": 100
+    },
+    "link": {
+      "count": 100,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 100,
+      "percent": 100
+    }
+  },
+  "identityPolicy": {
+    "exactMergeAllowedBy": [
+      "GTIN/EAN/UPC/ISBN exact match",
+      "brand + explicit MPN exact match",
+      "brand + explicit model exact match"
+    ],
+    "neverAutoMergeBy": [
+      "title alone",
+      "price alone",
+      "image alone",
+      "title-inferred model alone",
+      "semantic clusterKey alone"
+    ]
+  }
+}

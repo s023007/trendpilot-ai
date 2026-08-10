@@ -1,0 +1,33 @@
+{
+  "version": "19.7.0",
+  "seller": "Govee Many GEOs",
+  "slug": "govee-many-geos",
+  "generatedAt": "2026-08-10T23:35:35.649Z",
+  "policy": {
+    "purpose": "Discover all repository product-feed sources for one approved seller before building its canonical V19 catalog.",
+    "productCatalogOnly": true,
+    "couponsAndPromotionsExcluded": true,
+    "auditsAndGeneratedAnalysisExcluded": true
+  },
+  "candidateFiles": 1,
+  "qualifiedFileCount": 1,
+  "discoveredUniqueProductsAcrossAllCandidateFiles": 100,
+  "qualifiedUniqueProducts": 100,
+  "qualifiedFiles": [
+    "data/admitad-products-new-account-v15-3-2.json"
+  ],
+  "files": [
+    {
+      "file": "data/admitad-products-new-account-v15-3-2.json",
+      "rows": 100,
+      "uniqueProducts": 100,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    }
+  ]
+}

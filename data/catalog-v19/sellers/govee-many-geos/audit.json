@@ -1,0 +1,255 @@
+{
+  "version": "19.7.0",
+  "seller": "Govee Many GEOs",
+  "generatedAt": "2026-08-10T23:35:35.807Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/admitad-products-new-account-v15-3-2.json"
+    ],
+    "normalizedRowsForSeller": 100
+  },
+  "metrics": {
+    "totalProducts": 100,
+    "sourceFiles": 1,
+    "stableSellerId": 0,
+    "brand": 100,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 24,
+    "price": 100,
+    "image": 100,
+    "link": 100,
+    "variants": 0,
+    "sourceQualified": 100
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 0,
+      "percent": 0
+    },
+    "brand": {
+      "count": 100,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 24,
+      "percent": 24
+    },
+    "price": {
+      "count": 100,
+      "percent": 100
+    },
+    "image": {
+      "count": 100,
+      "percent": 100
+    },
+    "link": {
+      "count": 100,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 100,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [],
+    "sku": [],
+    "brandModel": []
+  },
+  "roundTripSamples": [
+    {
+      "query": "Govee Bluetooth Hygrometer Thermometer H5075, 1*H5075",
+      "indexKey": "govee bluetooth hygrometer thermometer h5075, 1*h5075",
+      "expectedProductKey": "govee-many-geos:094a17bf98140c4d2675845e",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Bluetooth Hygrometer Thermometer H5075, 2*H5075",
+      "indexKey": "govee bluetooth hygrometer thermometer h5075, 2*h5075",
+      "expectedProductKey": "govee-many-geos:195d83d13ec36a33cea5d81f",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Bluetooth Hygrometer Thermometer H5075, 3*H5075",
+      "indexKey": "govee bluetooth hygrometer thermometer h5075, 3*h5075",
+      "expectedProductKey": "govee-many-geos:a2c4f1cf50091bc638d96d8f",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Christmas String Lights, 20m",
+      "indexKey": "govee christmas string lights, 20m",
+      "expectedProductKey": "govee-many-geos:b70b230ddf564e30ef010459",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Christmas String Lights, H70C2+H70B1",
+      "indexKey": "govee christmas string lights, h70c2+h70b1",
+      "expectedProductKey": "govee-many-geos:344857d0e9b4a641300c18bf",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Curtain Lights, 2m*1.5m",
+      "indexKey": "govee curtain lights, 2m*1.5m",
+      "expectedProductKey": "govee-many-geos:bafc7fca63a4bccc3fdd9372",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Curtain Lights, H70B1*3",
+      "indexKey": "govee curtain lights, h70b1*3",
+      "expectedProductKey": "govee-many-geos:7e8ca732da42eaf116374def",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee DreamView T1 TV Backlight, For 55-65 inch TVs",
+      "indexKey": "govee dreamview t1 tv backlight, for 55-65 inch tvs",
+      "expectedProductKey": "govee-many-geos:63805e226845f774dc9a8e89",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee DreamView T1 TV Backlight, For 75-85 inch TVs",
+      "indexKey": "govee dreamview t1 tv backlight, for 75-85 inch tvs",
+      "expectedProductKey": "govee-many-geos:0f3f429b64a4d6faa7b2df0e",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Envisual TV Backlight T2, For 55-65 inch TVs",
+      "indexKey": "govee envisual tv backlight t2, for 55-65 inch tvs",
+      "expectedProductKey": "govee-many-geos:bcfbbacd59a6815495a1c0df",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Envisual TV Backlight T2, For 75-85 inch TVs",
+      "indexKey": "govee envisual tv backlight t2, for 75-85 inch tvs",
+      "expectedProductKey": "govee-many-geos:8c75ea6cd1f77bb68b9add17",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Envisual TV Backlight T2, H605C(55''-65'')+H6072",
+      "indexKey": "govee envisual tv backlight t2, h605c(55-65)+h6072",
+      "expectedProductKey": "govee-many-geos:eaef3efdecf9af0962820743",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Envisual TV Backlight T2, H605C(55''-65'')+H61C3",
+      "indexKey": "govee envisual tv backlight t2, h605c(55-65)+h61c3",
+      "expectedProductKey": "govee-many-geos:9db5aa85fecc7a03ed876d46",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Envisual TV Backlight T2, H605C(55''-65'')+H61E0",
+      "indexKey": "govee envisual tv backlight t2, h605c(55-65)+h61e0",
+      "expectedProductKey": "govee-many-geos:967549ec24d4a7f1c7c8455c",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Gaming Wall Light, 3+1 (Standard Edition) / 3+1",
+      "indexKey": "govee gaming wall light, 3+1 (standard edition) / 3+1",
+      "expectedProductKey": "govee-many-geos:1f2fd5e521d45a5f155ab3fa",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Gaming Wall Light, 6+2 (Govee x EVANGELION Edition) / 6+2",
+      "indexKey": "govee gaming wall light, 6+2 (govee x evangelion edition) / 6+2",
+      "expectedProductKey": "govee-many-geos:406347b2159c8a60c3b3d513",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Glide RGBIC Y Lights",
+      "indexKey": "govee glide rgbic y lights",
+      "expectedProductKey": "govee-many-geos:0014e98e3fdb664122bea852",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Glide Wall Light, 6+1",
+      "indexKey": "govee glide wall light, 6+1",
+      "expectedProductKey": "govee-many-geos:059d983c71f154906595fb63",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Glide Wall Light, 8+4",
+      "indexKey": "govee glide wall light, 8+4",
+      "expectedProductKey": "govee-many-geos:3f1da7b1043674cb803c66ca",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Govee Music Sync Box",
+      "indexKey": "govee music sync box",
+      "expectedProductKey": "govee-many-geos:c33a42ea264a5785f0591521",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    }
+  ],
+  "sourceManifest": "data/catalog-v19/source-manifests/govee-many-geos.json",
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}
