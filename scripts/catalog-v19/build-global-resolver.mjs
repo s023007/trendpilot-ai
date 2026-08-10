@@ -2,110 +2,119 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { PUBLIC_PRODUCT_SELLER_NAMES } from "../../netlify/functions/product-seller-policy-v17.mjs";
 
-const VERSION = "19.2.0";
+const VERSION = "19.4.0";
 const ROOT = "data/catalog-v19";
 const SET_FILE = `${ROOT}/catalog-set-v1.json`;
 
 if (!fs.existsSync(SET_FILE)) throw new Error(`Missing ${SET_FILE}`);
 
-const catalogSet = JSON.parse(fs.readFileSync(SET_FILE, "utf8"));
+const catalogSet = JSON.parse(fs.readFileSync(SET_FILE,"utf8"));
 const SELLERS = catalogSet.sellers || [];
 
-if (SELLERS.length < 2) throw new Error("Global resolver requires at least two seller catalogs.");
+if (SELLERS.length < 2) throw new Error("At least two validated seller catalogs are required.");
 
 for (const seller of SELLERS) {
-  if (!seller?.name || !seller?.slug) throw new Error("Invalid seller entry in catalog-set-v1.json.");
+  if (!seller?.name || !seller?.slug) throw new Error("Invalid catalog-set seller.");
   if (!PUBLIC_PRODUCT_SELLER_NAMES.includes(seller.name)) {
     throw new Error(`Unapproved seller in catalog set: ${seller.name}`);
   }
 }
-if (SELLERS.some(s => ["Temu","Joom"].includes(s.name))) {
+if (SELLERS.some(x => ["Temu","Joom"].includes(x.name))) {
   throw new Error("Blocked seller leaked into catalog set.");
 }
 
-const norm = value =>
-  String(value ?? "")
+const norm = value => {
+  const base = String(value ?? "")
     .normalize("NFKC")
     .toLocaleLowerCase("en-US")
-    .replace(/[’'`]/g, "")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-const compact = value => norm(value).replace(/\s+/g, "");
+    .replace(/[’'`]/g,"");
+  const searchable = base.replace(/[^\p{L}\p{N}]+/gu," ").trim();
+  return searchable || base.replace(/\s+/g," ").trim();
+};
+
+const compact = value => norm(value).replace(/\s+/g,"");
 const uniq = values => [...new Set(values.filter(Boolean))];
 const sha = value => crypto.createHash("sha256").update(String(value)).digest("hex");
+const exactNameKey = row => norm(row?.name?.display || row?.name?.normalized || "");
 
 function loadNdjson(file) {
-  return fs.readFileSync(file, "utf8").split(/\n/).filter(Boolean).map(JSON.parse);
+  return fs.readFileSync(file,"utf8").split(/\n/).filter(Boolean).map(JSON.parse);
+}
+
+const maps = {
+  byGlobalId:new Map(),
+  byBrandExplicitModel:new Map(),
+  byScopedSellerProductId:new Map(),
+  byScopedSku:new Map(),
+  byModelDiscovery:new Map(),
+  byExactName:new Map(),
+  byCompactName:new Map(),
+  byNameToken:new Map(),
+  byCanonicalCategory:new Map()
+};
+
+function push(map,key,productKey) {
+  if (!key) return;
+  let set = map.get(key);
+  if (!set) {
+    set = new Set();
+    map.set(key,set);
+  }
+  set.add(productKey);
+}
+
+function mapToObject(map) {
+  const out = Object.create(null);
+  for (const [key,set] of map) out[key] = [...set];
+  return out;
 }
 
 const records = [];
+
 for (const seller of SELLERS) {
-  const file = `${ROOT}/sellers/${seller.slug}/products.ndjson`;
+  const productsFile = `${ROOT}/sellers/${seller.slug}/products.ndjson`;
   const manifestFile = `${ROOT}/sellers/${seller.slug}/manifest.json`;
-  if (!fs.existsSync(file) || !fs.existsSync(manifestFile)) {
-    throw new Error(`Missing canonical catalog for ${seller.name}`);
+
+  if (!fs.existsSync(productsFile) || !fs.existsSync(manifestFile)) {
+    throw new Error(`Missing validated canonical catalog for ${seller.name}`);
   }
 
-  const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
-  if (manifest.seller?.name !== seller.name) throw new Error(`Manifest mismatch for ${seller.name}`);
+  const manifest = JSON.parse(fs.readFileSync(manifestFile,"utf8"));
+  if (manifest.seller?.name !== seller.name || manifest.seller?.slug !== seller.slug) {
+    throw new Error(`Manifest seller mismatch for ${seller.name}`);
+  }
 
-  for (const row of loadNdjson(file)) {
+  for (const row of loadNdjson(productsFile)) {
     if (row.seller?.name !== seller.name || row.seller?.slug !== seller.slug) {
-      throw new Error(`Seller mismatch in ${file}`);
+      throw new Error(`Product seller mismatch in ${productsFile}`);
     }
     if (!row.quality?.sourceQualified) {
       throw new Error(`Unqualified source row leaked into ${seller.name}`);
+    }
+    if (!row.name?.display || !exactNameKey(row)) {
+      throw new Error(`Unsearchable canonical name in ${seller.name}: ${row.productKey}`);
     }
     records.push(row);
   }
 }
 
 if (records.some(x => ["Temu","Joom"].includes(x.seller?.name))) {
-  throw new Error("Blocked seller leaked into global resolver.");
+  throw new Error("Blocked seller leaked into canonical records.");
 }
-if (records.length !== new Set(records.map(r => r.productKey)).size) {
+if (records.length !== new Set(records.map(x=>x.productKey)).size) {
   throw new Error("Duplicate productKey across canonical seller catalogs.");
 }
 
-const byKey = Object.fromEntries(records.map(r => [r.productKey, r]));
-
-const resolver = {
-  version: VERSION,
-  catalogSetVersion: catalogSet.version,
-  sellers: SELLERS,
-  generatedAt: new Date().toISOString(),
-
-  byGlobalId: {},
-  byBrandExplicitModel: {},
-  byScopedSellerProductId: {},
-  byScopedSku: {},
-  byModelDiscovery: {},
-  byExactName: {},
-  byCompactName: {},
-  byNameToken: {},
-  byCanonicalCategory: {},
-
-  autoGroups: [],
-  discoveryOverlaps: {
-    exactName: [],
-    brandModelInferred: []
-  }
-};
-
-function push(bucket, key, productKey) {
-  if (!key) return;
-  if (!bucket[key]) bucket[key] = [];
-  if (!bucket[key].includes(productKey)) bucket[key].push(productKey);
-}
+const byKey = new Map(records.map(row => [row.productKey,row]));
 
 for (const row of records) {
   for (const key of row.identity?.keys?.exactGlobal || []) {
-    push(resolver.byGlobalId, key, row.productKey);
+    push(maps.byGlobalId,key,row.productKey);
   }
 
   if (row.brand && row.identifiers?.model && row.identity?.modelConfidence === "explicit") {
     push(
-      resolver.byBrandExplicitModel,
+      maps.byBrandExplicitModel,
       `brand-model:${compact(row.brand)}:${compact(row.identifiers.model)}`,
       row.productKey
     );
@@ -113,7 +122,7 @@ for (const row of records) {
 
   if (row.identifiers?.sellerProductId) {
     push(
-      resolver.byScopedSellerProductId,
+      maps.byScopedSellerProductId,
       `${row.seller.slug}:${compact(row.identifiers.sellerProductId)}`,
       row.productKey
     );
@@ -121,50 +130,96 @@ for (const row of records) {
 
   if (row.identifiers?.sku) {
     push(
-      resolver.byScopedSku,
+      maps.byScopedSku,
       `${row.seller.slug}:${compact(row.identifiers.sku)}`,
       row.productKey
     );
   }
 
   if (row.identifiers?.model) {
-    push(resolver.byModelDiscovery, compact(row.identifiers.model), row.productKey);
+    push(maps.byModelDiscovery,compact(row.identifiers.model),row.productKey);
   }
 
-  push(resolver.byExactName, row.name.normalized, row.productKey);
-  push(resolver.byCompactName, row.name.compact, row.productKey);
+  const nameKey = exactNameKey(row);
+  push(maps.byExactName,nameKey,row.productKey);
+  push(maps.byCompactName,compact(row.name.display),row.productKey);
 
-  for (const token of uniq(
-    row.name.normalized
-      .split(/\s+/)
-      .filter(token => token.length >= 2 && !/^\d$/.test(token))
-  )) {
-    push(resolver.byNameToken, token, row.productKey);
+  for (const token of uniq(nameKey.split(/\s+/).filter(x => x.length >= 2 && !/^\d$/.test(x)))) {
+    push(maps.byNameToken,token,row.productKey);
   }
 
-  const categoryKeys = uniq([
+  for (const category of uniq([
     ...(row.taxonomy?.canonicalPath || []).map(norm),
     norm(row.taxonomy?.canonicalCategory || ""),
     norm(row.taxonomy?.sourceCategory || ""),
     norm(row.taxonomy?.sourceSubcategory || "")
-  ]);
-  for (const key of categoryKeys) push(resolver.byCanonicalCategory, key, row.productKey);
+  ])) {
+    push(maps.byCanonicalCategory,category,row.productKey);
+  }
 }
+
+const insertionFailures = [];
+
+for (const row of records) {
+  if (row.identifiers?.sellerProductId) {
+    const key = `${row.seller.slug}:${compact(row.identifiers.sellerProductId)}`;
+    if (!maps.byScopedSellerProductId.get(key)?.has(row.productKey)) {
+      insertionFailures.push({
+        seller:row.seller.name,
+        kind:"seller-product-id",
+        key,
+        productKey:row.productKey
+      });
+    }
+  }
+
+  const nameKey = exactNameKey(row);
+  if (!maps.byExactName.get(nameKey)?.has(row.productKey)) {
+    insertionFailures.push({
+      seller:row.seller.name,
+      kind:"exact-name",
+      key:nameKey,
+      productKey:row.productKey
+    });
+  }
+}
+
+if (insertionFailures.length) {
+  throw new Error(`Resolver insertion failures: ${JSON.stringify(insertionFailures.slice(0,10))}`);
+}
+
+const resolver = {
+  version:VERSION,
+  catalogSetVersion:catalogSet.version,
+  sellers:SELLERS,
+  generatedAt:new Date().toISOString(),
+  byGlobalId:mapToObject(maps.byGlobalId),
+  byBrandExplicitModel:mapToObject(maps.byBrandExplicitModel),
+  byScopedSellerProductId:mapToObject(maps.byScopedSellerProductId),
+  byScopedSku:mapToObject(maps.byScopedSku),
+  byModelDiscovery:mapToObject(maps.byModelDiscovery),
+  byExactName:mapToObject(maps.byExactName),
+  byCompactName:mapToObject(maps.byCompactName),
+  byNameToken:mapToObject(maps.byNameToken),
+  byCanonicalCategory:mapToObject(maps.byCanonicalCategory),
+  autoGroups:[],
+  discoveryOverlaps:{exactName:[],brandModelInferred:[]}
+};
 
 const autoCandidates = new Map();
 
-for (const [key, productKeys] of Object.entries(resolver.byGlobalId)) {
-  autoCandidates.set(`global:${key}`, { reason:key, productKeys });
+for (const [key,set] of maps.byGlobalId) {
+  autoCandidates.set(`global:${key}`,{reason:key,productKeys:[...set]});
 }
-for (const [key, productKeys] of Object.entries(resolver.byBrandExplicitModel)) {
-  autoCandidates.set(`explicit-model:${key}`, { reason:key, productKeys });
+for (const [key,set] of maps.byBrandExplicitModel) {
+  autoCandidates.set(`explicit-model:${key}`,{reason:key,productKeys:[...set]});
 }
 
 const autoConflicts = [];
 
-for (const [groupKey, group] of autoCandidates) {
-  const rows = group.productKeys.map(k => byKey[k]).filter(Boolean);
-  const sellerNames = uniq(rows.map(x => x.seller.name));
+for (const [groupKey,group] of autoCandidates) {
+  const rows = group.productKeys.map(k=>byKey.get(k)).filter(Boolean);
+  const sellerNames = uniq(rows.map(x=>x.seller.name));
   if (sellerNames.length < 2) continue;
 
   const perSellerCounts = {};
@@ -172,110 +227,95 @@ for (const [groupKey, group] of autoCandidates) {
     perSellerCounts[row.seller.name] = (perSellerCounts[row.seller.name] || 0) + 1;
   }
 
-  if (Object.values(perSellerCounts).some(n => n > 1)) {
+  if (Object.values(perSellerCounts).some(n=>n>1)) {
     autoConflicts.push({
       groupKey,
-      reason: group.reason,
-      productKeys: group.productKeys,
+      reason:group.reason,
+      productKeys:group.productKeys,
       perSellerCounts
     });
     continue;
   }
 
   resolver.autoGroups.push({
-    groupId: `exact-${sha(groupKey).slice(0,20)}`,
-    reason: group.reason,
-    sellerCount: sellerNames.length,
-    sellers: sellerNames.sort(),
-    productKeys: group.productKeys
+    groupId:`exact-${sha(groupKey).slice(0,20)}`,
+    reason:group.reason,
+    sellerCount:sellerNames.length,
+    sellers:sellerNames.sort(),
+    productKeys:group.productKeys
   });
 }
 
-for (const [name, productKeys] of Object.entries(resolver.byExactName)) {
-  const sellers = uniq(productKeys.map(k => byKey[k]?.seller?.name));
+for (const [name,set] of maps.byExactName) {
+  const productKeys = [...set];
+  const sellers = uniq(productKeys.map(k=>byKey.get(k)?.seller?.name));
   if (sellers.length >= 2) {
     resolver.discoveryOverlaps.exactName.push({
       name,
-      sellerCount: sellers.length,
-      sellers: sellers.sort(),
+      sellerCount:sellers.length,
+      sellers:sellers.sort(),
       productKeys
     });
   }
 }
 
-const inferredBrandModel = {};
+const inferredBrandModel = new Map();
+
 for (const row of records) {
   if (!row.brand || !row.identifiers?.model) continue;
-  const key = `brand-model:${compact(row.brand)}:${compact(row.identifiers.model)}`;
-  push(inferredBrandModel, key, row.productKey);
+  push(
+    inferredBrandModel,
+    `brand-model:${compact(row.brand)}:${compact(row.identifiers.model)}`,
+    row.productKey
+  );
 }
-for (const [key, productKeys] of Object.entries(inferredBrandModel)) {
-  const sellers = uniq(productKeys.map(k => byKey[k]?.seller?.name));
+
+for (const [key,set] of inferredBrandModel) {
+  const productKeys = [...set];
+  const sellers = uniq(productKeys.map(k=>byKey.get(k)?.seller?.name));
   if (sellers.length >= 2) {
     resolver.discoveryOverlaps.brandModelInferred.push({
       key,
-      sellerCount: sellers.length,
-      sellers: sellers.sort(),
+      sellerCount:sellers.length,
+      sellers:sellers.sort(),
       productKeys
     });
   }
 }
 
-function tokenSearch(query, limit=100) {
-  const tokens = uniq(
-    norm(query)
-      .split(/\s+/)
-      .filter(token => token.length >= 2 && !/^\d$/.test(token))
-  );
-  if (!tokens.length) return [];
-
-  let current = null;
-  for (const token of tokens) {
-    const bucket = new Set(resolver.byNameToken[token] || []);
-    current = current == null
-      ? bucket
-      : new Set([...current].filter(x => bucket.has(x)));
-    if (!current.size) break;
-  }
-  return [...(current || [])].slice(0, limit);
-}
-
 const roundTrips = [];
-for (const seller of SELLERS) {
-  const sellerRows = records.filter(x => x.seller.slug === seller.slug);
 
-  for (const row of sellerRows.filter(x => x.identifiers?.sellerProductId).slice(0, 20)) {
-    const key = `${seller.slug}:${compact(row.identifiers.sellerProductId)}`;
+for (const seller of SELLERS) {
+  const sellerRows = records.filter(x=>x.seller.slug===seller.slug);
+
+  for (const row of sellerRows.filter(x=>x.identifiers?.sellerProductId).slice(0,20)) {
+    const indexKey = `${seller.slug}:${compact(row.identifiers.sellerProductId)}`;
     roundTrips.push({
       seller:seller.name,
       kind:"seller-product-id",
       query:row.identifiers.sellerProductId,
+      indexKey,
       expectedProductKey:row.productKey,
-      resolved:(resolver.byScopedSellerProductId[key] || []).includes(row.productKey)
+      resolved:Boolean(maps.byScopedSellerProductId.get(indexKey)?.has(row.productKey))
     });
   }
 
-  for (const row of sellerRows.slice(0, 10)) {
+  for (const row of sellerRows.slice(0,10)) {
+    const indexKey = exactNameKey(row);
     roundTrips.push({
       seller:seller.name,
       kind:"exact-name",
       query:row.name.display,
+      indexKey,
       expectedProductKey:row.productKey,
-      resolved:(resolver.byExactName[row.name.normalized] || []).includes(row.productKey)
+      resolved:Boolean(maps.byExactName.get(indexKey)?.has(row.productKey))
     });
   }
 }
 
-const tokenSamples = [];
-for (const seller of SELLERS) {
-  for (const row of records.filter(x => x.seller.slug === seller.slug && x.identifiers?.model).slice(0, 10)) {
-    tokenSamples.push({
-      seller:seller.name,
-      query:row.identifiers.model,
-      expectedProductKey:row.productKey,
-      resolved:tokenSearch(row.identifiers.model, 500).includes(row.productKey)
-    });
-  }
+const failedRoundTrips = roundTrips.filter(x=>!x.resolved);
+if (failedRoundTrips.length) {
+  throw new Error(`Resolver round-trip failures: ${JSON.stringify(failedRoundTrips.slice(0,10))}`);
 }
 
 const audit = {
@@ -285,20 +325,21 @@ const audit = {
   sellers:SELLERS,
   totalRecords:records.length,
   sellerCounts:Object.fromEntries(
-    SELLERS.map(s => [s.name, records.filter(x => x.seller.slug === s.slug).length])
+    SELLERS.map(s=>[s.name,records.filter(x=>x.seller.slug===s.slug).length])
   ),
   autoExactGroups:resolver.autoGroups.length,
   autoGroupConflicts:autoConflicts,
   exactNameCrossSellerOverlaps:resolver.discoveryOverlaps.exactName.length,
   brandModelDiscoveryOverlaps:resolver.discoveryOverlaps.brandModelInferred.length,
+  insertionFailures,
   roundTrips,
-  tokenSamples,
+  failedRoundTrips,
   blockedSellerLeak:false,
   duplicateGlobalProductKeys:false
 };
 
-fs.writeFileSync(`${ROOT}/global-resolver-v1.json`, JSON.stringify(resolver,null,2)+"\n");
-fs.writeFileSync(`${ROOT}/cross-seller-audit-v1.json`, JSON.stringify(audit,null,2)+"\n");
+fs.writeFileSync(`${ROOT}/global-resolver-v1.json`,JSON.stringify(resolver,null,2)+"\n");
+fs.writeFileSync(`${ROOT}/cross-seller-audit-v1.json`,JSON.stringify(audit,null,2)+"\n");
 
 console.log(JSON.stringify({
   totalRecords:audit.totalRecords,
@@ -306,6 +347,5 @@ console.log(JSON.stringify({
   autoExactGroups:audit.autoExactGroups,
   exactNameCrossSellerOverlaps:audit.exactNameCrossSellerOverlaps,
   brandModelDiscoveryOverlaps:audit.brandModelDiscoveryOverlaps,
-  roundTrips:`${roundTrips.filter(x=>x.resolved).length}/${roundTrips.length}`,
-  tokenSamples:`${tokenSamples.filter(x=>x.resolved).length}/${tokenSamples.length}`
+  roundTrips:`${roundTrips.length}/${roundTrips.length}`
 },null,2));

@@ -1,0 +1,521 @@
+{
+  "version": "19.4.0",
+  "seller": "Karaca EU",
+  "generatedAt": "2026-08-10T19:17:23.360Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/cj-products.json"
+    ],
+    "normalizedRowsForSeller": 100
+  },
+  "metrics": {
+    "totalProducts": 100,
+    "sourceFiles": 1,
+    "stableSellerId": 100,
+    "brand": 100,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 0,
+    "price": 100,
+    "image": 100,
+    "link": 100,
+    "variants": 0,
+    "sourceQualified": 100
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 100,
+      "percent": 100
+    },
+    "brand": {
+      "count": 100,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "price": {
+      "count": 100,
+      "percent": 100
+    },
+    "image": {
+      "count": 100,
+      "percent": 100
+    },
+    "link": {
+      "count": 100,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 100,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [
+      {
+        "key": "p",
+        "productKeys": [
+          "karaca-eu:00a1273e86c3cdf6b31e15fd",
+          "karaca-eu:03ef53538404c4c29458a144",
+          "karaca-eu:0720005d6e238fe9224a0509",
+          "karaca-eu:09aeb2ef8bb594b2c726e142",
+          "karaca-eu:0cf824f53bb750c1a1c4d7bf",
+          "karaca-eu:0e24068bd2aab42105ae1edb",
+          "karaca-eu:135d72f5c27fb84979a5fbeb",
+          "karaca-eu:13b46fd489c86e1fbac8342d",
+          "karaca-eu:17a7507dd18d2737e0eab40a",
+          "karaca-eu:19825229c6058927b41b9594",
+          "karaca-eu:1c09a72ffbfebf9738a0dec8",
+          "karaca-eu:21c819f6d1aeef42f25fbf94",
+          "karaca-eu:28a50686a0c1d961294d0f78",
+          "karaca-eu:2f6f97eb8cd496f492a9f1c6",
+          "karaca-eu:3218e4678b23d4f14535d3c1",
+          "karaca-eu:36b03247ae020235de4b01ac",
+          "karaca-eu:3826c99b797affffe75be151",
+          "karaca-eu:3acdab342f2e1e80759bc16d",
+          "karaca-eu:3eab3d1d2f1986d3288d8fd4",
+          "karaca-eu:3f25d70bd9ce62973f22f800",
+          "karaca-eu:429d11313bc565b97bab7426",
+          "karaca-eu:48858cae56773365dcbf77f9",
+          "karaca-eu:49caf83bfe8ce2aff23a8857",
+          "karaca-eu:4ddb12a59958fa712aad7c39",
+          "karaca-eu:52826f4e615ff31af0043eb1",
+          "karaca-eu:528e87f8ca0d3cf35876d6aa",
+          "karaca-eu:584da67c31dbee69efd88323",
+          "karaca-eu:5a03c972bf48733511b43d9e",
+          "karaca-eu:5cc2addc9e254509a27d4a6e",
+          "karaca-eu:600e2dd9181b7cc32960daf7",
+          "karaca-eu:62562f229da5a6dcec1d34be",
+          "karaca-eu:63213ce50edff2e33dac34db",
+          "karaca-eu:6ac4ce251923013aad48ebef",
+          "karaca-eu:6bf67fca62c1e62ce7a5d9e1",
+          "karaca-eu:6f518e236c3784e8c2d7f7ca",
+          "karaca-eu:6f55d6c55b7bf4ac7f65fc87",
+          "karaca-eu:702eb10eaaf38719bf084e95",
+          "karaca-eu:708ce0193a3726cf485f8be2",
+          "karaca-eu:70ee4d145ba3a034889909be",
+          "karaca-eu:7a3522f8d755ec13d5bda260",
+          "karaca-eu:7ec26aa23fe1d050fbf68d23",
+          "karaca-eu:7f82a33171d35e656caa4052",
+          "karaca-eu:93f83d726e994196653876ca",
+          "karaca-eu:97020582e0dbba8c7c431124",
+          "karaca-eu:9d64fddf147cadbf77e9e214",
+          "karaca-eu:a03b3388a53c9e8c181dd0ee",
+          "karaca-eu:a180f2faddc77c701f4bcf26",
+          "karaca-eu:a244a2c0c00e1dbe31a68502",
+          "karaca-eu:a5ff2a70a617caf77438bf42",
+          "karaca-eu:a615ed963aa72c520d4a64d5",
+          "karaca-eu:a62139c894d7a7fb3d84d157",
+          "karaca-eu:ac0856aaa53de165845718d6",
+          "karaca-eu:ac21b9da9194d0ec9c690f91",
+          "karaca-eu:ae289dd60503f85ecb1fbf54",
+          "karaca-eu:b338b0dc1219d4fe3292af2d",
+          "karaca-eu:b68eb2e63c6f09ac168426a7",
+          "karaca-eu:bc57c2d35a33a17d4822d9bd",
+          "karaca-eu:bd50bd1d4ca3176b6114e330",
+          "karaca-eu:be09d141f383827ab32a20b8",
+          "karaca-eu:bfc877bb9641cdaaf4247c89",
+          "karaca-eu:c226b3af68f150cc55d31fa4",
+          "karaca-eu:c414282bf1189b7e899ad740",
+          "karaca-eu:c5a3405cafd64825c657fcc4",
+          "karaca-eu:c791c28845ec0ed1a829d809",
+          "karaca-eu:ce8b6cd0594ab640d813bd46",
+          "karaca-eu:d2a93d81732a561ae5af7b54",
+          "karaca-eu:d2ac7220378017a5e7342651",
+          "karaca-eu:d3e9ae240a0041b52a33458b",
+          "karaca-eu:d7779dad5cf8a9e29a82fac2",
+          "karaca-eu:deb33d29b5a8cb8e5fffa36c",
+          "karaca-eu:df0b786739aeb6f0d8c2a79c",
+          "karaca-eu:df6d377af570802d61fc151f",
+          "karaca-eu:e3be5c079746f347ab65ff0b",
+          "karaca-eu:eb584b32cd0aabf41c470a8d",
+          "karaca-eu:eb762ebd4cd22bfc43669c0c",
+          "karaca-eu:ec16e5cf0b69086f9527edc0",
+          "karaca-eu:ec37aa8dbc85b748630dd4bf",
+          "karaca-eu:eca0951a69bdcade018b9362",
+          "karaca-eu:f1449f104c7a933f14c3edb8",
+          "karaca-eu:f2bd501bcbf3c07ed7ab9d70",
+          "karaca-eu:f671f469af95a4ef0d833a6b",
+          "karaca-eu:f76a0b0006c2b37677f72131",
+          "karaca-eu:f9681497ab896b4b891bcc4a",
+          "karaca-eu:fe29394565bc5cc422045ad4",
+          "karaca-eu:fedf9e1cc26d85ca564ab466",
+          "karaca-eu:2401f5946eb2d800fa096645",
+          "karaca-eu:3b1a4fba394773df6c45633e",
+          "karaca-eu:5d6cb33c611c4ed11f8eb1d2",
+          "karaca-eu:8a420e5b5e9a868232ee1ce4",
+          "karaca-eu:9504a5458234ad611868c4a6",
+          "karaca-eu:955829f95725650eeb950044",
+          "karaca-eu:a70a9cde5357bfa771f1c49c",
+          "karaca-eu:ad02608bbe53b623b02cf305",
+          "karaca-eu:bf9ba86c58073a16b8d4c5de",
+          "karaca-eu:d3bf62d1b6a1c05387ac640c",
+          "karaca-eu:5f7087724ec1d4deb0464fc1",
+          "karaca-eu:adc6cde70dd5a4b3d07ff9f0",
+          "karaca-eu:aa2bc13161f5d17584bc9d39",
+          "karaca-eu:bdfeab16fc53bd62a29012c4",
+          "karaca-eu:24294a3734a9a3557628308f"
+        ]
+      }
+    ],
+    "sku": [],
+    "brandModel": []
+  },
+  "roundTripSamples": [
+    {
+      "query": "cj-product-f51160e0b1650a05aa6ff611",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:00a1273e86c3cdf6b31e15fd",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-bd568cf455475c104da7655c",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:03ef53538404c4c29458a144",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-8ef7fc83feeda65c0a63447e",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:0720005d6e238fe9224a0509",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-e622ae37d6f00750ee418164",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:09aeb2ef8bb594b2c726e142",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-6e1cce69484e93d11d5b5277",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:0cf824f53bb750c1a1c4d7bf",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-56b6cd41ff524b6d16fa2ae2",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:0e24068bd2aab42105ae1edb",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-750b6075b68824a74194d20b",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:135d72f5c27fb84979a5fbeb",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-1c19d5f7eb77444557d45fd3",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:13b46fd489c86e1fbac8342d",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-f9cb2d96769d72cd43efabec",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:17a7507dd18d2737e0eab40a",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-e53b1321356f99e9cf0986df",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:19825229c6058927b41b9594",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-6141ef07be2ea94770c0f764",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:1c09a72ffbfebf9738a0dec8",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-940d816f9c44b0ec8329bb47",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:21c819f6d1aeef42f25fbf94",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-aef2c1af6cd57ff023808a1f",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:28a50686a0c1d961294d0f78",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-275a7cdc7dfb40941b3e178e",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:2f6f97eb8cd496f492a9f1c6",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-a4e4a0b91f40cdcfa0919260",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3218e4678b23d4f14535d3c1",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-e2028adeda7c74b4b0660912",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:36b03247ae020235de4b01ac",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-dd455f831b7d2006a7518997",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3826c99b797affffe75be151",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-2cd3f811db1a588abe382648",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3acdab342f2e1e80759bc16d",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-2fbb122df9654cb57eef8baf",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3eab3d1d2f1986d3288d8fd4",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "cj-product-7fcb94cb548b69bc8ea961e9",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3f25d70bd9ce62973f22f800",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 100
+    },
+    {
+      "query": "Karaca Blackgold Biogranite 3-Piece Induction Cookware Set, Black Gold",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:00a1273e86c3cdf6b31e15fd",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Grey Stone Biogranite 5-Piece Cookware Set, Small, Grey",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:03ef53538404c4c29458a144",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Etiler Stainless Steel 8-Piece Induction Cookware Set, Silver",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:0720005d6e238fe9224a0509",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Gastro Stainless Steel 8-Piece Cookware Set, Silver",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:09aeb2ef8bb594b2c726e142",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Wood Stone Biogranite 5-Piece Cookware Set, Small, Brown",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:0cf824f53bb750c1a1c4d7bf",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Yenka 6-Piece Stainless Steel Cookware Set, Silver",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:0e24068bd2aab42105ae1edb",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Blue Stone Biogranite 9-Piece Cookware Set, Blue",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:135d72f5c27fb84979a5fbeb",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Blackgold Biogranite 7-Piece Non-Stick Cookware Set, Black Gold",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:13b46fd489c86e1fbac8342d",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Galina 4-Piece Stainless Steel Induction Cookware Set, Silver",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:17a7507dd18d2737e0eab40a",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Rosegold Biogranite 7-Piece Induction Cookware Set, Rose Gold",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:19825229c6058927b41b9594",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Kristal 16-Piece Enamel Induction Cookware Set, Cream Gold",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:1c09a72ffbfebf9738a0dec8",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Avanos Biogranite 7-Piece Non-Stick Cookware Set, Black",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:21c819f6d1aeef42f25fbf94",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Blue Stone Biogranite 5-Piece Cookware Set, Small, Blue",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:28a50686a0c1d961294d0f78",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Mastermaid BioDiamond 13-Piece Cookware Set, Shiny Black Silver",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:2f6f97eb8cd496f492a9f1c6",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Biogranite 7-Piece Induction Cookware Set, Rose",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3218e4678b23d4f14535d3c1",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Gris Biogranite 7-Piece Non-Stick Cookware Set, Grey",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:36b03247ae020235de4b01ac",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Atlas Biogranite 7-Piece Non-Stick Cookware Set, Grey",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3826c99b797affffe75be151",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca BioDiamond 7-Piece Non-Stick Cookware Set, Cream Silver",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3acdab342f2e1e80759bc16d",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Jumbo Darci Biogranite 7-Piece Induction Cookware Set, Yellow",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3eab3d1d2f1986d3288d8fd4",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    },
+    {
+      "query": "Karaca Dream Biogranite 7-Piece Non-Stick Cookware Set, Green",
+      "indexKey": "p",
+      "expectedProductKey": "karaca-eu:3f25d70bd9ce62973f22f800",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 85
+    }
+  ],
+  "sourceManifest": "data/catalog-v19/source-manifests/karaca-eu.json",
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}

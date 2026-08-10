@@ -1,0 +1,57 @@
+{
+  "version": "19.4.0",
+  "seller": "Karaca EU",
+  "slug": "karaca-eu",
+  "generatedAt": "2026-08-10T19:17:23.221Z",
+  "policy": {
+    "purpose": "Discover all repository product-feed sources for one approved seller before building its canonical V19 catalog.",
+    "productCatalogOnly": true,
+    "couponsAndPromotionsExcluded": true,
+    "auditsAndGeneratedAnalysisExcluded": true
+  },
+  "candidateFiles": 3,
+  "qualifiedFileCount": 1,
+  "discoveredUniqueProductsAcrossAllCandidateFiles": 130,
+  "qualifiedUniqueProducts": 100,
+  "qualifiedFiles": [
+    "data/cj-products.json"
+  ],
+  "files": [
+    {
+      "file": "data/cj-products.json",
+      "rows": 100,
+      "uniqueProducts": 100,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/cj-link-catalog.json",
+      "rows": 15,
+      "uniqueProducts": 15,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 0,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "no-price-or-image-signal"
+    },
+    {
+      "file": "data/cj-offers.json",
+      "rows": 15,
+      "uniqueProducts": 15,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 0,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "no-price-or-image-signal"
+    }
+  ]
+}

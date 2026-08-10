@@ -9,8 +9,16 @@ import {
   canonicalProductSeller
 } from "../../netlify/functions/product-seller-policy-v17.mjs";
 
+const VERSION = "19.4.0";
 const ROOT = "data";
-const BUILT = new Set(["Geekbuying","AliExpress","Alibaba","PandaHall"]);
+const CATALOG_SET = "data/catalog-v19/catalog-set-v1.json";
+
+const set = JSON.parse(fs.readFileSync(CATALOG_SET,"utf8"));
+const completed = new Set((set.sellers || []).map(x=>x.name));
+
+if (completed.has("Temu") || completed.has("Joom")) {
+  throw new Error("Blocked seller leaked into completed catalog set.");
+}
 
 function walkJson(dir) {
   const out = [];
@@ -32,6 +40,7 @@ function walkJson(dir) {
 function forbiddenPath(file) {
   const lower = file.toLowerCase();
   const base = path.basename(lower);
+
   if ([
     "coupons.json",
     "product-seller-registry-v17.json",
@@ -56,10 +65,13 @@ function keyFor(row) {
   );
 }
 
-const remaining = PUBLIC_PRODUCT_SELLER_NAMES.filter(x => !BUILT.has(x));
+const remaining = PUBLIC_PRODUCT_SELLER_NAMES.filter(
+  seller => !completed.has(seller) && !["Temu","Joom"].includes(seller)
+);
+
 const sellers = new Map(
-  remaining.map(s => [s,{
-    seller:s,
+  remaining.map(seller=>[seller,{
+    seller,
     allCandidateKeys:new Set(),
     qualifiedKeys:new Set(),
     candidateFiles:new Set(),
@@ -79,6 +91,7 @@ for (const file of walkJson(ROOT)) {
   catch { continue; }
 
   const perSeller = new Map();
+
   for (const row of rows) {
     const seller = canonicalProductSeller(row.seller);
     if (!sellers.has(seller)) continue;
@@ -86,7 +99,7 @@ for (const file of walkJson(ROOT)) {
     perSeller.get(seller).push(row);
   }
 
-  for (const [seller, sellerRows] of perSeller) {
+  for (const [seller,sellerRows] of perSeller) {
     const stat = sellers.get(seller);
     stat.candidateFiles.add(file);
 
@@ -101,13 +114,16 @@ for (const file of walkJson(ROOT)) {
     const n = values.length;
     if (!n) continue;
 
-    const stable = values.filter(x => clean(x.sourceProductId || x.id)).length;
-    const price = values.filter(x => x.price != null).length;
-    const image = values.filter(x => clean(x.imageUrl)).length;
-    const link = values.filter(x => clean(x.affiliateUrl || x.destinationUrl)).length;
+    const stable = values.filter(x=>clean(x.sourceProductId || x.id)).length;
+    const price = values.filter(x=>x.price != null).length;
+    const image = values.filter(x=>clean(x.imageUrl)).length;
+    const link = values.filter(x=>clean(x.affiliateUrl || x.destinationUrl)).length;
+    const title = values.filter(x=>clean(x.title)).length;
+
     const rate = x => n ? x/n : 0;
 
     const qualifies =
+      title === n &&
       rate(stable) >= 0.50 &&
       rate(link) >= 0.50 &&
       (rate(price) >= 0.25 || rate(image) >= 0.25);
@@ -119,26 +135,28 @@ for (const file of walkJson(ROOT)) {
   }
 }
 
-const rows = [...sellers.values()].map(x => ({
-  seller:x.seller,
-  candidateFiles:x.candidateFiles.size,
-  qualifiedFiles:x.qualifiedFiles.size,
-  allCandidateUniqueProducts:x.allCandidateKeys.size,
-  qualifiedProducts:x.qualifiedKeys.size
-})).sort((a,b) =>
-  b.qualifiedProducts-a.qualifiedProducts ||
-  b.allCandidateUniqueProducts-a.allCandidateUniqueProducts ||
-  a.seller.localeCompare(b.seller)
-);
+const rows = [...sellers.values()]
+  .map(x=>({
+    seller:x.seller,
+    candidateFiles:x.candidateFiles.size,
+    qualifiedFiles:x.qualifiedFiles.size,
+    allCandidateUniqueProducts:x.allCandidateKeys.size,
+    qualifiedProducts:x.qualifiedKeys.size
+  }))
+  .sort((a,b)=>
+    b.qualifiedProducts-a.qualifiedProducts ||
+    b.allCandidateUniqueProducts-a.allCandidateUniqueProducts ||
+    a.seller.localeCompare(b.seller)
+  );
 
 const result = {
-  version:"19.3.3",
+  version:VERSION,
   generatedAt:new Date().toISOString(),
-  completedSellers:["Geekbuying","AliExpress","Alibaba","PandaHall"],
+  completedSellers:[...completed],
   sourceAware:true,
   remaining:rows,
-  recommendedNext:rows.find(x => x.qualifiedProducts > 0) || null
+  recommendedNext:rows.find(x=>x.qualifiedProducts>0) || null
 };
 
-fs.writeFileSync("data/catalog-v19/seller-build-queue-v2.json",JSON.stringify(result,null,2)+"\n");
+fs.writeFileSync("data/catalog-v19/seller-build-queue-v3.json",JSON.stringify(result,null,2)+"\n");
 console.log(JSON.stringify(result,null,2));
