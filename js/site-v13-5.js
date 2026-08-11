@@ -10,7 +10,7 @@
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
 
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "18.1.3";
+  const TP_CJ_GUARD_VERSION = "20.3.2";
   const TP_CJ_APPROVED_IDS = new Set(["2357926","7287203","5893489","7227612","4837117","4295086","7753674","2288710","7563286","4368684"]);
   const TP_CJ_APPROVED_NAMES = new Set(["diecast","diecastcom","fragranceshop","fragranceshopcom","karaca","karacaeu","karacaeurope","mfi","mfimedical","nordvpn","pandahall","pandahallcom","sportsevents365","ticketnetwork","ticketnetworkcom","tiktok","tiktokshop","tiktokshopus","tripcom","tripcomglobal","thefragranceshop","thefragranceshopcom"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tiktok", "tiktokshop", "tiktokshopus", "tripcom", "tripcomglobal"]);
@@ -94,6 +94,7 @@
   }
 
   function tpCjPublicAllowed(p) {
+    if (p && p._tpV20_3 === true) return tpPublicSellerAllowed(p);
     if (!p || !tpIsCjItem(p)) return Boolean(p);
     return tpCjApproved(p) && tpCjSpecificEvidence(p);
   }
@@ -106,7 +107,7 @@
   // TP_CJ_EXACT_GUARD_END
 
 // TP_SELLER_POLICY_V18_1_3
-const TP_PUBLIC_PRODUCT_SELLERS_V17_2 = new Set(["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US"]);
+const TP_PUBLIC_PRODUCT_SELLERS_V17_2 = new Set(["AliExpress","Alibaba","Geekbuying","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US"]);
 // TP_PUBLIC_SELLER_GUARD_START
 function tpPublicSellerAllowed(p) {
   if (!p) return false;
@@ -307,7 +308,7 @@ function tpPublicSellerAllowed(p) {
   const state = {
     manifest: null, query: "", plan: null, segments: [], segmentState: new Map(), products: [], exact: [], alternatives: [],
     shown: 24, activeTab: "exact", loading: false, scope: "", couponExpanded: false,
-    originalQuery: "", queryCorrected: false, selectedSeller: "" // TP_SELECTED_SELLER_V15_9_2
+    originalQuery: "", queryCorrected: false, selectedSeller: "", v20Active:false, v20Meta:null // TP_SELECTED_SELLER_V15_9_2
   };
   const compareStore = "trendpilot-v13-compare";
   const savedStore = "trendpilot-v13-saved";
@@ -322,12 +323,12 @@ function tpPublicSellerAllowed(p) {
   try {
     const guardKey="trendpilot-cj-guard-version";
     if(localStorage.getItem(guardKey)!==TP_CJ_GUARD_VERSION){
-      const cleanArray=(key)=>writeStore(key,readStore(key,[]).map(normalizeProduct).filter(tpCjPublicAllowed));
+      const cleanArray=(key)=>writeStore(key,readStore(key,[]).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed));
       cleanArray(savedStore);
       cleanArray(compareStore);
       const cache=readStore(productCacheStore,{});
       const safe={};
-      Object.entries(cache).forEach(([id,row])=>{const p=normalizeProduct(row);if(tpCjPublicAllowed(p))safe[id]=row;});
+      Object.entries(cache).forEach(([id,row])=>{const p=normalizeProduct(row);if(tpCjPublicAllowed(p)&&tpPublicSellerAllowed(p))safe[id]=row;});
       writeStore(productCacheStore,safe);
       localStorage.setItem(guardKey,TP_CJ_GUARD_VERSION);
     }
@@ -378,7 +379,7 @@ function normalizeProduct(p) {
       return m;
     } catch (e) {
       console.error("TrendPilot V13 catalogue unavailable", e);
-      const rows = Object.values(window.TRENDPILOT_MATCHED_PRODUCTS || {}).flat().filter(Boolean).map(normalizeProduct).filter(tpCjPublicAllowed);
+      const rows = Object.values(window.TRENDPILOT_MATCHED_PRODUCTS || {}).flat().filter(Boolean).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
       state.manifest = {version:"fallback", productCount:rows.length, segments:[], featured:rows.slice(0,24), rareUsed:[], dealCandidates:[], tokenRoutes:{}, groups:[]};
       state.products = rows;
       return state.manifest;
@@ -504,7 +505,7 @@ function normalizeProduct(p) {
       return payload.products
         .map(normalizeProduct)
         .map(tpEnrichCjTaxonomyV15_6_4)
-        .filter(tpCjPublicAllowed)
+        .filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed)
         .filter(tpPublicSellerAllowed);
     }catch(error){
       if(error?.name!=="AbortError") console.warn("TrendPilot CJ live search unavailable",error);
@@ -656,7 +657,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
 
         return p;
       })
-      .filter(tpCjPublicAllowed)
+      .filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed)
       .filter(tpPublicSellerAllowed);
 
     return {rows,meta:payload};
@@ -671,6 +672,146 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
 }
 // TP_V16_2_1_HYBRID_FINDER_END
 
+// TP_V20_3_CONTROLLED_START
+const TP_V20_3_BLOCKED_SELLERS = new Set(["Temu","Joom","FilamentPRO EU CPS","FilamentPRO"]);
+const TP_V20_3_UI_TYPE = Object.freeze({
+  phone:{group:"phones-tablets",family:"smartphones"},
+  laptop:{group:"computers",family:"laptops"},
+  smartwatch:{group:"jewelry-watches",family:"watches"},
+  headphones:{group:"audio",family:"headphones"},
+  perfume:{group:"beauty-care",family:"fragrance"},
+  dog_food:{group:"pet-supplies",family:"dog-food"},
+  power_bank:{group:"phones-tablets",family:"power-banks"},
+  air_conditioner:{group:"home-kitchen",family:"air-conditioner"},
+  "3d_filament":{group:"printing-3d",family:"3d-filament"},
+  cookware:{group:"home-kitchen",family:"cookware"},
+  lighting:{group:"smart-home",family:"smart-lighting"},
+  tools:{group:"tools",family:"tools"}
+});
+
+function tpV20RowV20_3(row,type,channel){
+  if(!row || typeof row!=="object")return null;
+  const seller=clean(row.seller||"");
+  if(!seller || TP_V20_3_BLOCKED_SELLERS.has(seller))return null;
+  const ui=TP_V20_3_UI_TYPE[type]||{group:"other",family:type||"other"};
+  const source={
+    id:clean(row.key||row.url||`${seller}:${row.title||""}`),
+    clusterKey:clean(row.key||row.url||`${seller}:${row.title||""}`),
+    name:clean(row.title||""),
+    url:clean(row.url||""),
+    image:clean(row.image||""),
+    advertiser:seller,
+    network:clean(row.network||""),
+    brand:clean(row.brand||""),
+    group:ui.group,
+    family:ui.family,
+    audience:"all",
+    price:Number(row.price||0)||0,
+    currency:clean(row.currency||"USD"),
+    quality:Number(row.quality||0)||0,
+    specs:row.specs&&typeof row.specs==="object"?row.specs:{},
+    category:type,
+    description:"",
+    offerCount:1,
+    storeCount:1
+  };
+  let p=normalizeProduct(source);
+  p._tpV20_3=true;
+  p._tpV20Role=clean(row.role||channel||"");
+  p._tpV20Type=type;
+  p._tpV20Channel=channel;
+  return tpPublicSellerAllowed(p)?p:null;
+}
+
+async function tpLoadV20ControlledV20_3(query,requestedSeller=""){
+  const q=clean(query);
+  const seller=tpCanonicalSellerV15_1(requestedSeller)||clean(requestedSeller);
+  const no={usable:false,main:[],alternatives:[],related:[],meta:null};
+
+  if(q.length<2 || lower(q)==="popular products")return {...no,reason:"popular-or-empty"};
+  if(seller && (!TP_PUBLIC_PRODUCT_SELLERS_V17_2.has(seller) || TP_V20_3_BLOCKED_SELLERS.has(seller))){
+    return {...no,reason:"seller-not-public"};
+  }
+
+  const params=new URLSearchParams({q,limit:"48",related:"1",cutover:"20.3"});
+  if(seller)params.set("seller",seller);
+
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),9000);
+  try{
+    const response=await fetch(`/api/products-v20-shadow?${params.toString()}`,{
+      cache:"no-store",
+      signal:controller.signal,
+      headers:{"accept":"application/json"}
+    });
+    if(!response.ok)return {...no,reason:`http-${response.status}`};
+
+    const payload=await response.json();
+    if(payload?.ready!==true || !String(payload?.version||"").startsWith("20.2.")){
+      return {...no,meta:payload||null,reason:"projection-not-ready"};
+    }
+    if(payload.mode==="unknown" || !payload.type || !TP_V20_3_UI_TYPE[payload.type]){
+      return {...no,meta:payload,reason:"unsupported-type"};
+    }
+
+    const rawMain=Array.isArray(payload.main)?payload.main:[];
+    const rawAlt=Array.isArray(payload.alternatives)?payload.alternatives:[];
+    const rawRelated=Array.isArray(payload.related)?payload.related:[];
+
+    for(const row of rawMain){
+      if(clean(row.role)!=="main" || clean(row.type)!==clean(payload.type)){
+        console.warn("TrendPilot V20.3 rejected impure main row",row);
+        return {...no,meta:payload,reason:"impure-main-row"};
+      }
+      if(TP_V20_3_BLOCKED_SELLERS.has(clean(row.seller))){
+        return {...no,meta:payload,reason:"blocked-seller-row"};
+      }
+    }
+
+    const main=rawMain.map(r=>tpV20RowV20_3(r,payload.type,"main")).filter(Boolean);
+    const alternatives=rawAlt.map(r=>tpV20RowV20_3(r,payload.type,"same-type-alternative")).filter(Boolean);
+    const related=rawRelated.map(r=>tpV20RowV20_3(r,payload.type,"related")).filter(Boolean);
+
+    const meta={
+      ...payload,
+      engine:"v20.3-controlled",
+      fallbackUsed:false,
+      sourceEndpoint:"/api/products-v20-shadow"
+    };
+
+    return {
+      usable:main.length>0,
+      main,
+      alternatives,
+      related,
+      meta,
+      reason:main.length?"v20-main-ready":"no-main-results"
+    };
+  }catch(error){
+    if(error?.name!=="AbortError")console.warn("TrendPilot V20.3 controlled search unavailable",error);
+    return {...no,reason:error?.name==="AbortError"?"timeout":"request-failed"};
+  }finally{
+    clearTimeout(timer);
+  }
+}
+
+function tpApplyV20ControlledV20_3(payload){
+  const main=uniqProducts((payload?.main||[]).filter(tpPublicSellerAllowed));
+  const alternatives=uniqProducts([
+    ...(payload?.alternatives||[]),
+    ...(payload?.related||[])
+  ].filter(tpPublicSellerAllowed));
+
+  state.v20Active=true;
+  state.v20Meta=payload?.meta||null;
+  state.hybridMeta={...(payload?.meta||{}),engine:"v20.3-controlled",fallbackUsed:false};
+  state.exact=main;
+  state.alternatives=alternatives;
+  state.products=uniqProducts([...main,...alternatives]);
+  state.segmentState.clear();
+}
+// TP_V20_3_CONTROLLED_END
+
   // TP_CJ_SEARCH_BRIDGE_START
   let tpCjProductsPromise = null;
   async function loadCjProducts() {
@@ -680,7 +821,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
         const r = await fetch(`/data/cj-products.json?v=14.1.5-${Date.now()}`, {cache:"no-store"});
         if (!r.ok) throw new Error(`CJ products ${r.status}`);
         const data = await r.json();
-        return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct).map(tpEnrichCjTaxonomyV15_6_4).filter(tpCjPublicAllowed);
+        return (Array.isArray(data.products) ? data.products : []).map(normalizeProduct).map(tpEnrichCjTaxonomyV15_6_4).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
       } catch (error) {
         console.warn("TrendPilot CJ products unavailable", error);
         return [];
@@ -874,7 +1015,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
   }
 
   // TP_V15_1_FEDERATED_START
-  const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","FilamentPRO EU CPS","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US"];
+  const TP_PRODUCT_SELLERS_V15_1 = ["AliExpress","Alibaba","Geekbuying","Govee Many GEOs","Harfington Many GEOs","Sunsky-online WW","Lenovo","Diecast","FragranceShop.com","Karaca EU","MFI Medical","PandaHall","TikTok Shop US"];
   const TP_CPC_SELLERS_V15_1 = new Set(["AliExpress","Alibaba","Geekbuying"]);
   const TP_SELLER_ALIASES_V15_1 = {
     "aliexpress":"AliExpress","ali express":"AliExpress","aliexpress.com":"AliExpress",
@@ -1093,7 +1234,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
       const file = meta.files?.[page - 1]; if (!file) return [];
       const r = await fetch(`${file}?v=${encodeURIComponent(state.manifest.generatedAt || 13)}`, {cache:"force-cache"});
       if (!r.ok) throw new Error(`${r.status}`);
-      const data = await r.json(); return (data.products || []).map(normalizeProduct).filter(tpCjPublicAllowed);
+      const data = await r.json(); return (data.products || []).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
     } catch (e) { console.warn("Segment page unavailable", key, page, e); return []; }
   }
   async function loadInitialSegments() {
@@ -1117,6 +1258,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
   }
 
   function candidatePagesExhausted() {
+    if(state.v20Active)return true;
     return state.plan.segmentKeys.every(key => {
       const meta = segmentMeta(key);
       const st = state.segmentState.get(key);
@@ -1124,6 +1266,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     });
   }
   function scannedCandidateCount() {
+    if(state.v20Active)return Number(state.v20Meta?.totalMainForType||state.products.length||0);
     return state.plan.segmentKeys.reduce((total,key) => {
       const meta=segmentMeta(key), st=state.segmentState.get(key);
       const loaded=st?.loaded?.size || 0;
@@ -1264,11 +1407,11 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     return n;
   }
   function mergeProducts(rows) {
-  rows = (rows || []).filter(tpCjPublicAllowed);
+  rows = (rows || []).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
 
   const map = new Map(
     state.products
-      .filter(tpCjPublicAllowed)
+      .filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed)
       .map(p => [p.clusterKey || p.id,p])
   );
 
@@ -1282,7 +1425,7 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
     }
   });
 
-  state.products = [...map.values()].filter(tpCjPublicAllowed);
+  state.products = [...map.values()].filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
 
   // TP_HYBRID_SOFT_EXACT_POOL_V16_2_5
 const rankedExact=state.products
@@ -1329,7 +1472,7 @@ const rankedExact=state.products
   }
   function savedIds() { return new Set(readStore(savedStore,[]).map(p=>p.id)); }
   function compareIds() { return new Set(readStore(compareStore,[]).map(p=>p.id)); }
-  function snapshot(p) { const keep=["id","clusterKey","name","url","image","images","advertiser","group","family","audience","quality","rating","reviews","sold","price","oldPrice","currency","shippingPrice","delivery","material","condition","offerCount","storeCount","variantCount","offers","brand","category","description","specs","videoUrl","videoSource","rareScore","raritySignals","generatedAt"]; return Object.fromEntries(keep.filter(k=>p[k]!==undefined).map(k=>[k,p[k]])); }
+  function snapshot(p) { const keep=["id","clusterKey","name","url","image","images","advertiser","group","family","audience","quality","rating","reviews","sold","price","oldPrice","currency","shippingPrice","delivery","material","condition","offerCount","storeCount","variantCount","offers","brand","category","description","specs","videoUrl","videoSource","rareScore","raritySignals","generatedAt","_tpV20_3","_tpV20Role","_tpV20Type","_tpV20Channel"]; return Object.fromEntries(keep.filter(k=>p[k]!==undefined).map(k=>[k,p[k]])); }
   function detailUrl(p) {
     const params = new URLSearchParams({id:p.id});
     if (state.originalQuery && state.originalQuery !== "popular products") params.set("q", state.originalQuery);
@@ -1478,7 +1621,7 @@ const rankedExact=state.products
     const cached=productCacheLookup(id); if(cached?.name&&cached?.url&&cached?.description) return {product:cached,peers:state.products};
     const m=await loadManifest();
     const cjProducts=await loadCjProducts();
-    const featured=[...(m.featured||[]),...(m.dealCandidates||[]),...(m.rareUsed||[])].map(normalizeProduct).filter(tpCjPublicAllowed);
+    const featured=[...(m.featured||[]),...(m.dealCandidates||[]),...(m.rareUsed||[])].map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
     const direct=featured.find(p=>p.id===id)||state.products.find(p=>p.id===id)||cjProducts.find(p=>p.id===id);
     const base=clean(m.productIndexBase||"/data/search-catalog/product-index").replace(/\/$/,"");
     if (id && base) {
@@ -1489,7 +1632,7 @@ const rankedExact=state.products
           if (Array.isArray(entry)&&entry[0]) {
             const shardResponse=await fetch(entry[0],{cache:"no-store"});
             if (shardResponse.ok) {
-              const shard=await shardResponse.json(); const peers=(shard.products||[]).map(normalizeProduct).filter(tpCjPublicAllowed); const product=normalizeProduct(peers[Number(entry[1])]||peers.find(p=>p.id===id));
+              const shard=await shardResponse.json(); const peers=(shard.products||[]).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed); const product=normalizeProduct(peers[Number(entry[1])]||peers.find(p=>p.id===id));
               if (product?.id && tpCjPublicAllowed(product)) {product.generatedAt=shard.generatedAt||m.generatedAt; cacheProduct(product); return {product,peers};}
             }
           }
@@ -1605,7 +1748,7 @@ const rankedExact=state.products
     const sort=$('[data-filter-sort]');if(sort)sort.value="smart";
   }
   function populateFilters() {
-    const rows=state.products.filter(tpCjPublicAllowed);
+    const rows=state.products.filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
     const group=$('[data-filter-group]'), family=$('[data-filter-family]'), audience=$('[data-filter-audience]'), merchant=$('[data-filter-merchant]');
     if(group){const current=group.value; group.innerHTML='<option value="">All categories</option>'+uniq(rows.map(p=>p.group)).sort().map(v=>`<option value="${esc(v)}">${esc(GROUP_LABELS[v]||v)}</option>`).join(""); group.value=current|| (state.plan.groups.length===1?state.plan.groups[0]:"");}
     if(family){const current=family.value; const g=group?.value; const vals=uniq(rows.filter(p=>!g||p.group===g).map(p=>p.family)).filter(v=>!v.includes(":")).sort(); const parent=state.plan.family&&state.plan.families?.length>1&&(!g||state.plan.groups.includes(g))?`<option value="${esc(state.plan.family)}">${esc(familyLabelValue(state.plan.family))}</option>`:""; family.innerHTML='<option value="">All specific types</option>'+parent+vals.map(v=>`<option value="${esc(v)}">${esc(familyLabelValue(v))}</option>`).join(""); family.value=current||state.plan.family||"";}
@@ -1661,16 +1804,20 @@ const rankedExact=state.products
     if(title)title.textContent=`${state.activeTab==="exact"?"Exact matches":"Related alternatives"} for “${state.query}”`;
     if(count)count.textContent=selectedSeller&&renderRows!==rows?`${fmt.format(renderRows.length)} seller matches`:resultCountLabel();
     if(status){
-      const scan=scannedCandidateCount();
-      const progress=candidatePagesExhausted()?"Catalogue check complete.":"More relevant catalogue pages can still be checked.";
-      const correction=state.queryCorrected?`Corrected “${state.originalQuery}” to “${state.query}”. `:"";
-      const hybridStatusV16_2_1=state.hybridMeta
-        ? (state.hybridMeta.fallbackUsed
-            ? " Wider live/catalogue sources were added."
-            : " V16 hybrid index active.")
-        : "";
-      status.textContent=`${correction}Showing ${fmt.format(visible.length)} of ${fmt.format(renderRows.length)} ${selectedSeller&&renderRows!==rows?"seller matches":noun}. ${fmt.format(scan)} candidates checked. ${progress}${hybridStatusV16_2_1}`;
-    }
+    const scan=scannedCandidateCount();
+    const progress=state.v20Active
+      ? "Verified V20 projection loaded."
+      : (candidatePagesExhausted()?"Catalogue check complete.":"More relevant catalogue pages can still be checked.");
+    const correction=state.queryCorrected?`Corrected “${state.originalQuery}” to “${state.query}”. `:"";
+    const engineStatusV20_3=state.v20Active
+      ? ` V20 controlled search active${state.v20Meta?.type?` (${state.v20Meta.type})`:""}.`
+      : (state.hybridMeta
+          ? (state.hybridMeta.fallbackUsed
+              ? " Wider live/catalogue sources were added."
+              : " Legacy fallback search active.")
+          : "");
+    status.textContent=`${correction}Showing ${fmt.format(visible.length)} of ${fmt.format(renderRows.length)} ${selectedSeller&&renderRows!==rows?"seller matches":noun}. ${fmt.format(scan)} candidates checked. ${progress}${engineStatusV20_3}`;
+  }
     const more=$('[data-tp-load-more]'); if(more){
       const moreLoaded=renderRows.length>state.shown;
       const moreRemote=state.activeTab==="exact"&&!candidatePagesExhausted();
@@ -1687,51 +1834,92 @@ const rankedExact=state.products
   }
 
   async function performSearch(query,push=true,scope=""){
-  // TP_PRESERVE_SELLER_V15_6_5
+  // TP_V20_3_CONTROLLED_PERFORM
   const merchantBeforeSearch=$('[data-filter-merchant]');
   const preservedSeller=state.selectedSeller||tpCanonicalSellerV15_1(merchantBeforeSearch?.value)||merchantBeforeSearch?.value||"";
-  state.selectedSeller=preservedSeller;
+  state.selectedSeller=TP_PUBLIC_PRODUCT_SELLERS_V17_2.has(preservedSeller)?preservedSeller:"";
+
   const normalized=normalizeQuery(query);
-  state.originalQuery=normalized.original; state.query=normalized.query; state.queryCorrected=normalized.corrected;
-  state.scope=scope||""; state.shown=24; state.activeTab="exact"; state.products=[]; state.exact=[]; state.alternatives=[]; state.segmentState.clear(); state.loading=true;
-  const cjLiveQueryV15_7_1=state.query;
+  state.originalQuery=normalized.original;
+  state.query=normalized.query;
+  state.queryCorrected=normalized.corrected;
+  state.scope=scope||"";
+  state.shown=24;
+  state.activeTab="exact";
+  state.products=[];
+  state.exact=[];
+  state.alternatives=[];
+  state.segmentState.clear();
+  state.loading=true;
+  state.v20Active=false;
+  state.v20Meta=null;
+  state.hybridMeta=null;
 
-    // V16.2.1: hybrid owns all-seller live fallback.
-    // Keep direct CJ only for an explicitly selected CJ seller.
-    const cjLivePromiseV15_7_1=(preservedSeller && TP_CJ_LIVE_SELLERS_V15_7_1.has(preservedSeller))
-      ? tpLoadSelectedLiveSellerV15_8_9(preservedSeller,cjLiveQueryV15_7_1)
-      : Promise.resolve([]);
-
-    const hybridPromiseV16_2_1=tpLoadHybridProductsV16_2_1(
-      state.query,
-      preservedSeller
-    );
   resetFilterControls();
   const grid=$('[data-tp-product-grid]');
-  if(grid)grid.innerHTML='<div class="tp-empty"><h3>Checking matching products…</h3><p>TrendPilot is loading the most relevant catalogue records.</p></div>';
-  try {
-    const m=await loadManifest(); state.plan=makePlan(state.query,m,state.scope); state.segments=state.plan.segmentKeys.map(segmentMeta).filter(Boolean);
-    if(push){const params=new URLSearchParams({q:state.query});if(state.scope)params.set("scope",state.scope);history.replaceState(null,"",`/find/?${params.toString()}`);}
-    const input=$('[data-tp-finder-input]');if(input)input.value=state.query;
-    const scopeSelect=$('[data-tp-finder-scope]');if(scopeSelect)scopeSelect.value=state.scope;
+  if(grid)grid.innerHTML='<div class="tp-empty"><h3>Checking matching products…</h3><p>TrendPilot is loading the verified product projection first.</p></div>';
+
+  try{
+    const [m,v20]=await Promise.all([
+      loadManifest(),
+      tpLoadV20ControlledV20_3(state.query,state.selectedSeller)
+    ]);
+
+    state.plan=makePlan(state.query,m,state.scope);
+    state.segments=state.plan.segmentKeys.map(segmentMeta).filter(Boolean);
+
+    if(push){
+      const params=new URLSearchParams({q:state.query});
+      if(state.scope)params.set("scope",state.scope);
+      history.replaceState(null,"",`/find/?${params.toString()}`);
+    }
+    const input=$('[data-tp-finder-input]');
+    if(input)input.value=state.query;
+    const scopeSelect=$('[data-tp-finder-scope]');
+    if(scopeSelect)scopeSelect.value=state.scope;
+
+    if(v20?.usable){
+      tpApplyV20ControlledV20_3(v20);
+      populateFilters();
+      if(state.selectedSeller){
+        const merchant=$('[data-filter-merchant]');
+        if(merchant && [...merchant.options].some(o=>o.value===state.selectedSeller)){
+          merchant.value=state.selectedSeller;
+        }
+      }
+      renderFinder();
+      return;
+    }
+
+    // Controlled fallback: preserve the proven V16/V17 behavior only
+    // when V20 does not cover this query or cannot provide a main row.
+    state.v20Active=false;
+    state.v20Meta=v20?.meta||null;
+
+    const cjLiveQuery=state.query;
+    const cjLivePromise=(state.selectedSeller && TP_CJ_LIVE_SELLERS_V15_7_1.has(state.selectedSeller))
+      ? tpLoadSelectedLiveSellerV15_8_9(state.selectedSeller,cjLiveQuery)
+      : Promise.resolve([]);
+
     const results=await Promise.allSettled([
-      hybridPromiseV16_2_1,
+      tpLoadHybridProductsV16_2_1(state.query,state.selectedSeller),
       state.manifest.version==="fallback"?Promise.resolve(state.products):loadInitialSegments(),
       loadCjProducts(),
       typeof tpLoadBalancedSellerRowsV15_1==="function"?tpLoadBalancedSellerRowsV15_1():Promise.resolve([]),
       loadAdmitadProductsV15_4()
     ]);
 
-    const hybridPayload=results[0].status==="fulfilled"
-      ? results[0].value
-      : {rows:[],meta:null};
-
+    const hybridPayload=results[0].status==="fulfilled"?results[0].value:{rows:[],meta:null};
     const rows=results[1].status==="fulfilled"?results[1].value:[];
     const cjRows=results[2].status==="fulfilled"?results[2].value:[];
     const balancedRows=results[3].status==="fulfilled"?results[3].value:[];
     const admitadRows=results[4].status==="fulfilled"?results[4].value:[];
 
-    state.hybridMeta=hybridPayload?.meta||null;
+    state.hybridMeta={
+      ...(hybridPayload?.meta||{}),
+      engine:"legacy-fallback",
+      v20Reason:v20?.reason||"not-used"
+    };
 
     mergeProducts([
       ...(hybridPayload?.rows||[]),
@@ -1739,7 +1927,7 @@ const rankedExact=state.products
       ...cjRows,
       ...balancedRows,
       ...admitadRows
-    ]);
+    ].filter(tpPublicSellerAllowed));
 
     if(state.exact.length<24){
       await Promise.race([
@@ -1747,36 +1935,41 @@ const rankedExact=state.products
         new Promise(resolve=>setTimeout(resolve,6500))
       ]);
     }
+
     populateFilters();
-    if(preservedSeller){
-      const merchantAfterSearch=$('[data-filter-merchant]');
-      if(merchantAfterSearch && [...merchantAfterSearch.options].some(o=>o.value===preservedSeller)){
-        merchantAfterSearch.value=preservedSeller;
+    if(state.selectedSeller){
+      const merchant=$('[data-filter-merchant]');
+      if(merchant && [...merchant.options].some(o=>o.value===state.selectedSeller)){
+        merchant.value=state.selectedSeller;
       }
     }
     renderFinder();
 
-    cjLivePromiseV15_7_1.then(liveRows=>{
-      if(cjLiveQueryV15_7_1!==state.query || !Array.isArray(liveRows) || !liveRows.length) return;
-      mergeProducts(liveRows);
+    cjLivePromise.then(liveRows=>{
+      if(cjLiveQuery!==state.query || state.v20Active || !Array.isArray(liveRows) || !liveRows.length)return;
+      mergeProducts(liveRows.filter(tpPublicSellerAllowed));
       populateFilters();
-      if(preservedSeller){
-        const liveMerchant=$('[data-filter-merchant]');
-        if(liveMerchant && [...liveMerchant.options].some(o=>o.value===preservedSeller)){
-          liveMerchant.value=preservedSeller;
+      if(state.selectedSeller){
+        const merchant=$('[data-filter-merchant]');
+        if(merchant && [...merchant.options].some(o=>o.value===state.selectedSeller)){
+          merchant.value=state.selectedSeller;
         }
       }
       renderFinder();
     }).catch(()=>{});
-  } catch(error) {
-    console.error("TrendPilot product search failed safely",error);
-    if(!state.plan){state.plan={q:state.query,groups:[],family:"",families:[],audience:"",segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};}
-    try { populateFilters(); renderFinder(); } catch(renderError) {
+  }catch(error){
+    console.error("TrendPilot V20.3 product search failed safely",error);
+    state.v20Active=false;
+    if(!state.plan){
+      state.plan={q:state.query,groups:[],family:"",families:[],audience:"",segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};
+    }
+    try{populateFilters();renderFinder();}catch(renderError){
       console.error("TrendPilot finder fallback failed",renderError);
       if(grid)grid.innerHTML='<div class="tp-empty"><h3>Products could not be displayed.</h3><p>Refresh once or try another search. No unrelated products were substituted.</p></div>';
     }
-    const status=$('[data-tp-finder-status]');if(status)status.textContent="The catalogue could not finish loading. Try again or change the search.";
-  } finally {
+    const status=$('[data-tp-finder-status]');
+    if(status)status.textContent="The catalogue could not finish loading. Try again or change the search.";
+  }finally{
     state.loading=false;
   }
 }
@@ -1812,7 +2005,7 @@ const rankedExact=state.products
     ["Material",p.material||"Not provided"],["Audience",AUDIENCE_LABELS[p.audience]||p.audience],["Offers",`${p.offerCount||1} from ${p.storeCount||1} store(s)`],["Condition",p.condition||"Not stated"]
   ];}
   function renderStoredCompare(){
-    const host=$('[data-tp-compare-page]');if(!host)return; const rows=readStore(compareStore,[]).map(normalizeProduct).filter(tpCjPublicAllowed); state.products=uniqProducts([...state.products,...rows]);
+    const host=$('[data-tp-compare-page]');if(!host)return; const rows=readStore(compareStore,[]).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed); state.products=uniqProducts([...state.products,...rows]);
     if(!rows.length){host.innerHTML=`<div class="tp-empty tp-empty-large"><h2>Your comparison is empty.</h2><p>Find products, then add two or three options of the same exact type.</p><a class="tp-btn tp-btn-primary" href="/find/">Find products</a></div>`;return;}
     const labels=comparisonRows(rows[0]).map(r=>r[0]);
     host.innerHTML=`<div class="tp-compare-products">${rows.map(p=>`<article><a href="${esc(detailUrl(p))}" data-product-detail-id="${esc(p.id)}">${imageMarkup(p)}</a><h2><a href="${esc(detailUrl(p))}" data-product-detail-id="${esc(p.id)}">${esc(p.name)}</a></h2><strong>${money(p.price,currency(p))}</strong><div><a class="tp-btn tp-btn-primary tp-btn-small" href="${esc(p.url)}" target="_blank" rel="nofollow sponsored noopener" data-tp-outbound data-product-id="${esc(p.id)}" data-merchant="${esc(p.advertiser)}">Check price ↗</a><button data-remove-compare="${esc(p.id)}" type="button">Remove</button></div></article>`).join("")}</div><div class="tp-compare-table">${labels.map((label,i)=>`<div class="tp-compare-row"><b>${esc(label)}</b>${rows.map(p=>`<span>${esc(comparisonRows(p)[i][1])}</span>`).join("")}</div>`).join("")}</div><div class="tp-decision-summary"><span>TrendPilot decision view</span><h2>${esc(decisionText(rows))}</h2><p>Recommendation uses only the supplied feed evidence. Missing fields remain visible instead of being guessed.</p></div>`; bindImages(host);
@@ -1825,7 +2018,7 @@ const rankedExact=state.products
   }
 
   function renderSaved(){
-    const host=$('[data-tp-saved-page]');if(!host)return; const rows=readStore(savedStore,[]).map(normalizeProduct).filter(tpCjPublicAllowed),targets=readStore(targetStore,{}); state.products=uniqProducts([...state.products,...rows]);
+    const host=$('[data-tp-saved-page]');if(!host)return; const rows=readStore(savedStore,[]).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed),targets=readStore(targetStore,{}); state.products=uniqProducts([...state.products,...rows]);
     if(!rows.length){host.innerHTML=`<div class="tp-empty tp-empty-large"><h2>No products are being watched.</h2><p>Save a product from search results to build your personal watch list.</p><a class="tp-btn tp-btn-primary" href="/find/">Find products</a></div>`;return;}
     host.innerHTML=`<div class="tp-watch-grid">${rows.map(p=>`<article class="tp-watch-card" data-product-id="${esc(p.id)}"><a class="tp-watch-image" href="${esc(detailUrl(p))}" data-product-detail-id="${esc(p.id)}">${imageMarkup(p)}</a><div><span>${esc(familyLabel(p))}</span><h2><a class="tp-product-name-link" href="${esc(detailUrl(p))}" data-product-detail-id="${esc(p.id)}">${esc(p.name)}</a></h2><strong>${money(p.price,currency(p))}</strong><label>Notify target<input data-target-id="${esc(p.id)}" type="number" min="0" step="0.01" value="${esc(targets[p.id]||'')}" placeholder="Target price"></label><div><a href="${esc(p.url)}" target="_blank" rel="nofollow sponsored noopener" data-tp-outbound data-product-id="${esc(p.id)}" data-merchant="${esc(p.advertiser)}">Check price ↗</a><button data-save-id="${esc(p.id)}" type="button">Remove</button></div></div></article>`).join("")}</div><p class="tp-watch-note">This version stores your watch list and target prices on this device. Automated email alerts require the next account/notification phase.</p>`;bindImages(host);
   }
@@ -1872,7 +2065,7 @@ const rankedExact=state.products
   function renderDeals(){
     const productHost=$('[data-tp-deal-products]'); if(!productHost&&!$('[data-tp-coupon-grid]'))return;
     loadManifest().then(m=>{
-      const deals=(m.dealCandidates||[]).map(normalizeProduct).filter(tpCjPublicAllowed).slice(0,60); state.products=uniqProducts([...state.products,...deals]);
+      const deals=(m.dealCandidates||[]).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed).slice(0,60); state.products=uniqProducts([...state.products,...deals]);
       if(productHost){productHost.innerHTML=deals.length?deals.slice(0,12).map(p=>productCard(p,true)).join(""):`<div class="tp-empty"><h3>No seller price-drop records are available yet.</h3><p>TrendPilot will not invent a verified deal without price evidence.</p></div>`;bindImages(productHost);}
       renderCouponGrid();
     });
@@ -1882,7 +2075,7 @@ const rankedExact=state.products
 
   function renderHome(){
     loadManifest().then(m=>{
-      const featured=(m.featured||[]).map(normalizeProduct).filter(tpCjPublicAllowed),deals=(m.dealCandidates||[]).map(normalizeProduct).filter(tpCjPublicAllowed),rare=(m.rareUsed||[]).map(normalizeProduct).filter(tpCjPublicAllowed);
+      const featured=(m.featured||[]).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed),deals=(m.dealCandidates||[]).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed),rare=(m.rareUsed||[]).map(normalizeProduct).filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
       state.products=uniqProducts([...state.products,...featured,...deals,...rare]);
       const f=$('[data-tp-home-products]');if(f){f.innerHTML=featured.length?featured.slice(0,6).map(p=>productCard(p,true)).join(""):'<div class="tp-empty">Product data is refreshing.</div>';bindImages(f);}
       const de=$('[data-tp-home-deals]');if(de){de.innerHTML=deals.length?deals.slice(0,4).map(p=>productCard(p,true)).join(""):'<div class="tp-empty">No price-drop evidence yet.</div>';bindImages(de);}
@@ -1911,8 +2104,9 @@ const rankedExact=state.products
     }));
   }
   function initFinder(){
-  // TP_SELLER_DEPTH_STABLE_V16_2_7
-  const form=$('[data-tp-finder-form]');if(!form)return;
+  // TP_V20_3_SELLER_STABLE
+  const form=$('[data-tp-finder-form]');
+  if(!form)return;
 
   form.addEventListener('submit',e=>{
     e.preventDefault();
@@ -1942,56 +2136,10 @@ const rankedExact=state.products
 
       if(x.matches('[data-filter-merchant]')){
         const selected=tpCanonicalSellerV15_1(x.value)||clean(x.value);
-        state.selectedSeller=selected;
-
-        if(selected){
-          state.loading=true;
-          renderFinder();
-
-          const [hybridResult,liveRows]=await Promise.all([
-            tpLoadHybridProductsV16_2_1(state.query,selected),
-            TP_CJ_LIVE_SELLERS_V15_7_1.has(selected)
-              ? tpLoadSelectedLiveSellerV15_8_9(selected,state.query)
-              : Promise.resolve([])
-          ]);
-
-          if(hybridResult?.rows?.length){
-            state.hybridMeta=hybridResult.meta||state.hybridMeta;
-            mergeProducts(hybridResult.rows);
-          }
-
-          if(Array.isArray(liveRows) && liveRows.length){
-            mergeProducts(liveRows);
-          }
-
-          let sellerCount=state.exact.filter(p=>{
-            const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
-            return rowSeller===selected;
-          }).length;
-
-          // Hybrid returning even one row must not stop deeper loading.
-          if(
-            sellerCount<24 &&
-            typeof tpLoadSellerSpecificV15_1==="function"
-          ){
-            await tpLoadSellerSpecificV15_1(selected);
-            sellerCount=state.exact.filter(p=>{
-              const rowSeller=tpCanonicalSellerV15_1(p.advertiser)||clean(p.advertiser);
-              return rowSeller===selected;
-            }).length;
-          }
-
-          state.loading=false;
-          populateFilters();
-
-          const merchant=$('[data-filter-merchant]');
-          if(merchant)merchant.value=selected;
-        }else{
-          state.selectedSeller="";
-          state.shown=24;
-          await performSearch(state.query,false,state.scope);
-          return;
-        }
+        state.selectedSeller=TP_PUBLIC_PRODUCT_SELLERS_V17_2.has(selected)?selected:"";
+        state.shown=24;
+        await performSearch(state.query,false,state.scope);
+        return;
       }
 
       state.shown=24;
@@ -2003,7 +2151,7 @@ const rankedExact=state.products
     $$('[data-filter-panel] select').forEach(x=>x.value='');
     $$('[data-filter-panel] input[type="checkbox"]').forEach(x=>x.checked=false);
     state.shown=24;
-    renderFinder();
+    performSearch(state.query,false,state.scope);
   });
 
   $('[data-tp-filter-toggle]')?.addEventListener('click',e=>{
@@ -2022,7 +2170,6 @@ const rankedExact=state.products
     params.get('scope')||''
   );
 }
-
   function initEvents(){
     d.addEventListener('click',e=>{
       const allSellers=e.target.closest('[data-tp-search-all-sellers]');if(allSellers){state.selectedSeller='';const merchant=$('[data-filter-merchant]');if(merchant)merchant.value="";state.shown=24;performSearch(state.query,false,state.scope);return;}

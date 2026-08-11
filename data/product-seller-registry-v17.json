@@ -1,5 +1,5 @@
 {
-  "version": "18.1.4",
+  "version": "20.3.2",
   "policy": "explicit-approved-product-sellers-only",
   "notes": [
     "Only explicitly approved product sellers may be indexed or returned by product search.",
@@ -7,7 +7,8 @@
     "Temu is excluded until it appears as an active/accepted CJ advertiser for this publisher.",
     "CJ software, travel, and ticket partners are active affiliates but are kept outside product comparison.",
     "Raw archived data may remain on disk without being indexed or exposed.",
-    "FilamentPRO EU CPS is intentionally excluded from public product sellers by publisher decision."
+    "FilamentPRO EU CPS is intentionally excluded from public product sellers by publisher decision.",
+    "V20.3.2 controlled cutover: FilamentPRO EU CPS, Temu and Joom are blocked from public product comparison."
   ],
   "sellers": [
     {
