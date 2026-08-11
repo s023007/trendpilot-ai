@@ -1,0 +1,210 @@
+name: TrendPilot V20.3.4 — Autocomplete Visibility Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v20-3-4-autocomplete-visibility-fix
+  cancel-in-progress: false
+
+jobs:
+  autocomplete-visibility:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Verify V20.3.3 foundation and legacy conflict
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s js/smart-suggestions-v20.js
+          test -s js/product-touch-recovery-v16-0-2.js
+          test -s css/product-touch-recovery-v16-0-2.css
+          test -s find/index.html
+          test -s data/search-v20/manifest.json
+          test -s netlify/functions/products-v20-suggest.mjs
+
+          grep -q 'tp-amazon-suggest' js/smart-suggestions-v20.js
+          grep -q 'tp-amazon-suggest' js/product-touch-recovery-v16-0-2.js
+          grep -q 'tp-amazon-suggest' css/product-touch-recovery-v16-0-2.css
+
+          python3 - <<'PY'
+          import json
+          m=json.load(open('data/search-v20/manifest.json',encoding='utf-8'))
+          sellers=[x if isinstance(x,str) else x.get('name','') for x in m.get('publicSellers',[])]
+          assert len(sellers)==13, sellers
+          for blocked in ['Temu','Joom','FilamentPRO EU CPS']:
+              assert blocked not in sellers, blocked
+          print('V20.3.3 foundation PASS; legacy .tp-amazon-suggest conflict confirmed.')
+          PY
+
+      - name: Install isolated V20 suggestion container and CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          js_path=Path('js/smart-suggestions-v20.js')
+          s=js_path.read_text(encoding='utf-8')
+
+          s=s.replace('.tp-amazon-suggest[data-v20-suggest]', '.tp-v20-suggest[data-v20-suggest]')
+          s=s.replace("p.className='tp-amazon-suggest'", "p.className='tp-v20-suggest'")
+          s=s.replace("e.target.closest('.tp-amazon-suggest')", "e.target.closest('.tp-v20-suggest')")
+
+          if '.tp-amazon-suggest' in s:
+              raise SystemExit('Legacy .tp-amazon-suggest selector remains in V20 autocomplete JS.')
+          if 'tp-v20-suggest' not in s:
+              raise SystemExit('New V20 suggestion container was not installed.')
+          js_path.write_text(s,encoding='utf-8')
+
+          css_path=Path('css/smart-suggestions-v20-3-4.css')
+          css_path.write_text('''/* TrendPilot V20.3.4 — isolated Finder autocomplete. */
+          .tp-amazon-search-host{position:relative!important}
+          .tp-v20-suggest{position:absolute!important;z-index:20000!important;left:0!important;right:0!important;top:calc(100% + 2px)!important;display:block!important;overflow:hidden!important;border:1px solid #cfd6d4!important;border-radius:0 0 14px 14px!important;background:#fff!important;box-shadow:0 12px 28px rgba(0,0,0,.22)!important;pointer-events:auto!important}
+          .tp-v20-suggest[hidden]{display:none!important;pointer-events:none!important}
+          .tp-v20-suggest .tp-amazon-list{display:block!important;max-height:min(390px,48vh)!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important}
+          .tp-v20-suggest .tp-amazon-row{display:grid!important;width:100%!important;grid-template-columns:44px minmax(0,1fr)!important;align-items:center!important;gap:10px!important;min-height:56px!important;padding:7px 12px!important;border:0!important;border-bottom:1px solid #eef0ef!important;background:#fff!important;color:#111!important;text-align:left!important;font:inherit!important;cursor:pointer!important;pointer-events:auto!important}
+          .tp-v20-suggest .tp-amazon-row:last-child{border-bottom:0!important}
+          .tp-v20-suggest .tp-amazon-row:active,.tp-v20-suggest .tp-amazon-row:hover{background:#f4f6f6!important}
+          .tp-v20-suggest .tp-amazon-thumb{display:grid!important;width:40px!important;height:40px!important;place-items:center!important;overflow:hidden!important;border-radius:7px!important;background:#f1f2f2!important}
+          .tp-v20-suggest .tp-amazon-thumb img{width:100%!important;height:100%!important;object-fit:contain!important}
+          .tp-v20-suggest .tp-amazon-search-icon{display:grid!important;width:40px!important;height:40px!important;place-items:center!important;color:#303735!important;font-size:1.45rem!important}
+          .tp-v20-suggest .tp-amazon-copy{min-width:0!important}
+          .tp-v20-suggest .tp-amazon-copy b{display:block!important;overflow:hidden!important;color:#111!important;font-size:.98rem!important;font-weight:760!important;line-height:1.2!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+          .tp-v20-suggest .tp-amazon-copy small{display:block!important;overflow:hidden!important;margin-top:3px!important;color:#68726e!important;font-size:.72rem!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+          @media(max-width:680px){.tp-v20-suggest{left:0!important;right:0!important;top:calc(100% + 1px)!important;max-height:min(360px,46dvh)!important}.tp-v20-suggest .tp-amazon-list{max-height:min(340px,44dvh)!important}.tp-v20-suggest .tp-amazon-row{grid-template-columns:42px minmax(0,1fr)!important;min-height:54px!important;padding:6px 10px!important}}
+          ''',encoding='utf-8')
+
+          page=Path('find/index.html')
+          h=page.read_text(encoding='utf-8')
+          h=re.sub(r'\s*<link[^>]+href=["\']/css/smart-suggestions-v20-3-4\.css\?[^"\']*["\'][^>]*>','',h,count=1,flags=re.I)
+          css_tag='<link rel="stylesheet" href="/css/smart-suggestions-v20-3-4.css?v=20.3.4">'
+          if '</head>' not in h:
+              raise SystemExit('Finder </head> marker not found.')
+          h=h.replace('</head>',css_tag+'\n</head>',1)
+          h,n=re.subn(r'/js/smart-suggestions-v20\.js\?v=[^"\']+','/js/smart-suggestions-v20.js?v=20.3.4',h,count=1)
+          if n!=1:
+              raise SystemExit(f'V20 autocomplete script tag not found uniquely: {n}')
+          page.write_text(h,encoding='utf-8')
+          PY
+
+          node --check js/smart-suggestions-v20.js
+          grep -q 'tp-v20-suggest' js/smart-suggestions-v20.js
+          ! grep -q 'tp-amazon-suggest' js/smart-suggestions-v20.js
+          grep -q '/css/smart-suggestions-v20-3-4.css?v=20.3.4' find/index.html
+          grep -q '/js/smart-suggestions-v20.js?v=20.3.4' find/index.html
+          git diff --check
+
+      - name: Validate V16 cannot hide or remove V20 container
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          legacy_js=Path('js/product-touch-recovery-v16-0-2.js').read_text(encoding='utf-8')
+          legacy_css=Path('css/product-touch-recovery-v16-0-2.css').read_text(encoding='utf-8')
+          new_js=Path('js/smart-suggestions-v20.js').read_text(encoding='utf-8')
+          new_css=Path('css/smart-suggestions-v20-3-4.css').read_text(encoding='utf-8')
+          assert '.tp-amazon-suggest' in legacy_js
+          assert '.tp-amazon-suggest' in legacy_css
+          assert '.tp-v20-suggest' not in legacy_js
+          assert '.tp-v20-suggest' not in legacy_css
+          assert '.tp-v20-suggest' in new_js
+          assert '.tp-v20-suggest' in new_css
+          assert '.tp-amazon-suggest' not in new_js
+          print('Isolation PASS: V16 legacy cleanup does not target V20.3.4 container.')
+          PY
+
+      - name: Commit V20.3.4 visibility fix
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/smart-suggestions-v20.js css/smart-suggestions-v20-3-4.css find/index.html
+          git diff --cached --check
+          if git diff --cached --quiet; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+          else
+            git commit -m 'fix: isolate V20 autocomplete from legacy V16 cleanup'
+            git push origin HEAD:main
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Wait for Netlify V20.3.4 deployment
+        id: deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=false
+          for i in $(seq 1 72); do
+            PAGE_CODE=$(curl -sS -o "$RUNNER_TEMP/find.html" -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://trendpilotchoice.com/find/?q=phone&v=${GITHUB_RUN_ID}-${i}" || true)
+            JS_CODE=$(curl -sS -o "$RUNNER_TEMP/suggest.js" -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://trendpilotchoice.com/js/smart-suggestions-v20.js?v=20.3.4-${GITHUB_RUN_ID}-${i}" || true)
+            CSS_CODE=$(curl -sS -o "$RUNNER_TEMP/suggest.css" -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://trendpilotchoice.com/css/smart-suggestions-v20-3-4.css?v=${GITHUB_RUN_ID}-${i}" || true)
+            API_CODE=$(curl -sS -o "$RUNNER_TEMP/iph.json" -w '%{http_code}' --connect-timeout 10 --max-time 20 "https://trendpilotchoice.com/api/products-v20-suggest?q=iph&limit=8&v=${GITHUB_RUN_ID}-${i}" || true)
+            if [ "$PAGE_CODE" = '200' ] && [ "$JS_CODE" = '200' ] && [ "$CSS_CODE" = '200' ] && [ "$API_CODE" = '200' ]; then
+              if grep -q '/js/smart-suggestions-v20.js?v=20.3.4' "$RUNNER_TEMP/find.html" \
+                && grep -q '/css/smart-suggestions-v20-3-4.css?v=20.3.4' "$RUNNER_TEMP/find.html" \
+                && grep -q 'tp-v20-suggest' "$RUNNER_TEMP/suggest.js" \
+                && ! grep -q 'tp-amazon-suggest' "$RUNNER_TEMP/suggest.js" \
+                && grep -q '.tp-v20-suggest' "$RUNNER_TEMP/suggest.css" \
+                && python3 - "$RUNNER_TEMP/iph.json" <<'PY'
+          import json,sys,re
+          x=json.load(open(sys.argv[1]))
+          rows=x.get('rows') or []
+          assert x.get('ok') is True
+          assert rows
+          assert any('iphone' in str(r.get('value','')).lower() for r in rows)
+          dirty=re.compile(r'\b(case|cases|cover|covers|charger|chargers|screen protector|accessor(?:y|ies)|replacement part)\b',re.I)
+          blocked={'temu','joom','filamentpro','filamentpro eu cps'}
+          for r in rows:
+              assert str(r.get('seller','')).strip().lower() not in blocked
+              assert not dirty.search(str(r.get('value','')))
+          PY
+              then
+                ready=true
+                break
+              fi
+            fi
+            sleep 5
+          done
+          [ "$ready" = 'true' ] || { echo 'V20.3.4 live deployment did not pass.'; exit 1; }
+          echo 'ready=1' >> "$GITHUB_OUTPUT"
+
+      - name: Publish V20.3.4 summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo '# TrendPilot V20.3.4 — Autocomplete Visibility Fix'
+            echo
+            echo '## Root cause'
+            echo '- V20.3.3 suggestion API/data: **working**'
+            echo '- Legacy V16.0.2 CSS/MutationObserver targeted `.tp-amazon-suggest` and hid/removed the new panel.'
+            echo
+            echo '## Fix'
+            echo '- New isolated container: **`.tp-v20-suggest`**'
+            echo '- Legacy V16 cleanup cannot target the new container.'
+            echo '- Dedicated mobile-safe V20 autocomplete CSS installed.'
+            echo '- V19 seller catalogs: **unchanged**'
+            echo '- V20.3.2 product search: **unchanged**'
+            echo '- V20.3.3 suggestion corpus/API: **unchanged**'
+            echo "- Live deployment probe: **${{ steps.deploy.outputs.ready || 'not-passed' }}**"
+            echo
+            echo '## Safety'
+            echo '- Public sellers remain: **13**'
+            echo '- Temu / Joom / FilamentPRO remain blocked.'
+          } >> "$GITHUB_STEP_SUMMARY"
