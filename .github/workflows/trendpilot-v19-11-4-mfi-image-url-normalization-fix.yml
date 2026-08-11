@@ -1,0 +1,883 @@
+name: TrendPilot V19.11.4 — MFI Direct Catalog + Image URL Normalization Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v19-11-4-mfi-image-url-normalization-fix
+  cancel-in-progress: false
+
+jobs:
+  mfi-direct-ingestion:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    env:
+      CJ_API_TOKEN: ${{ secrets.CJ_API_TOKEN }}
+      CJ_TOKEN: ${{ secrets.CJ_TOKEN }}
+      CJ_PAT: ${{ secrets.CJ_PAT }}
+      CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+      CJ_WEBSITE_PID: ${{ secrets.CJ_WEBSITE_PID }}
+      CJ_PID: ${{ secrets.CJ_PID }}
+      CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Verify MFI needs direct-source ingestion
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s scripts/catalog-v19/build-canonical-seller.mjs
+          test -s scripts/catalog-v19/discover-seller-sources.mjs
+          test -s scripts/catalog-v19/build-global-resolver.mjs
+          test -s scripts/catalog-v19/build-source-aware-seller-queue.mjs
+          test -s data/catalog-v19/catalog-set-v1.json
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          catalog = json.loads((root/"catalog-set-v1.json").read_text())
+
+          expected = [
+              "Geekbuying","AliExpress","Alibaba","PandaHall","Karaca EU",
+              "FragranceShop.com","Govee Many GEOs","Harfington Many GEOs",
+              "Sunsky-online WW","Diecast"
+          ]
+          assert [x["name"] for x in catalog["sellers"]] == expected
+
+          queue = json.loads((root/"seller-build-queue-v3.json").read_text())
+          mfi = next((x for x in queue.get("remaining",[]) if x.get("seller") == "MFI Medical"), None)
+          assert mfi is not None
+          assert int(mfi.get("qualifiedProducts",0)) == 0
+
+          cj_audit = root/"source-ingestion/mfi-medical-cj-live-audit.json"
+          if cj_audit.exists():
+              audit = json.loads(cj_audit.read_text())
+              assert int(audit.get("stagedProducts",0)) == 0
+
+          print("MFI direct-source ingestion is appropriate.")
+          print(json.dumps(mfi,indent=2))
+          PY
+
+      - name: Discover CJ deep-link base for MFI
+        id: deeplink
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p data/catalog-v19/source-ingestion
+
+          python3 - <<'PY'
+          import os, re, json, html, urllib.request, urllib.parse, urllib.error
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          SELLER = "MFI Medical"
+          ADVERTISER_ID = "7227612"
+          VERSION = "19.11.4"
+
+          def first(*names):
+              for name in names:
+                  value = (os.environ.get(name) or "").strip()
+                  if value:
+                      return value
+              return ""
+
+          token = first("CJ_API_TOKEN","CJ_TOKEN","CJ_PAT","CJ_PERSONAL_ACCESS_TOKEN")
+          website_id = first("CJ_WEBSITE_PID","CJ_PID","CJ_WEBSITE_ID") or "100655394"
+
+          audit = {
+              "version": VERSION,
+              "seller": SELLER,
+              "advertiserId": ADVERTISER_ID,
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "websiteId": website_id,
+              "deepLinkAvailable": False,
+              "baseAffiliateUrl": "",
+              "linkSearchHttpStatus": None,
+              "allowDeepLinking": False,
+              "linkSearchFilter": "allow-deep-linking=true",
+              "reason": "",
+          }
+
+          audit_file = Path("data/catalog-v19/source-ingestion/mfi-medical-deeplink-audit.json")
+
+          def finish(ok, reason=""):
+              audit["deepLinkAvailable"] = bool(ok)
+              audit["reason"] = reason
+              audit_file.write_text(json.dumps(audit,indent=2)+"\n")
+              with open(os.environ["GITHUB_OUTPUT"],"a") as f:
+                  f.write(f"ready={'true' if ok else 'false'}\n")
+              print(json.dumps(audit,indent=2))
+
+          if not token:
+              finish(False, "CJ token secret is unavailable.")
+              raise SystemExit(0)
+
+          base_params = {
+              "website-id": website_id,
+              "advertiser-ids": ADVERTISER_ID,
+              "records-per-page": "100",
+              "page-number": "1",
+          }
+
+          def make_url(include_deep_filter=True):
+              params = dict(base_params)
+              if include_deep_filter:
+                  params["allow-deep-linking"] = "true"
+              return "https://link-search.api.cj.com/v2/link-search?" + urllib.parse.urlencode(params)
+
+          url = make_url(True)
+
+          def request(auth_value):
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      "Authorization": auth_value,
+                      "Accept": "application/xml",
+                      "User-Agent": "TrendPilot-MFI-Direct-Ingestion/19.11.4",
+                  }
+              )
+              try:
+                  with urllib.request.urlopen(req,timeout=60) as r:
+                      return r.status, r.read().decode("utf-8","replace")
+              except urllib.error.HTTPError as e:
+                  return e.code, e.read().decode("utf-8","replace")
+
+          status, body = request("Bearer " + token)
+          if status in (401,403):
+              status, body = request(token)
+
+          audit["linkSearchHttpStatus"] = status
+          if status >= 400:
+              finish(False, f"CJ Link Search HTTP {status}: {body[:500]}")
+              raise SystemExit(0)
+
+          def local(tag):
+              return tag.split("}")[-1].lower()
+
+          def parse_candidates(xml_text):
+              try:
+                  root = ET.fromstring(xml_text)
+              except Exception as e:
+                  raise RuntimeError(f"CJ Link Search XML parse failed: {e}")
+
+              found = []
+              for node in root.iter():
+                  if local(node.tag) not in ("link","cj-link"):
+                      continue
+
+                  fields = {}
+                  for child in node.iter():
+                      key = local(child.tag)
+                      value = (child.text or "").strip()
+                      if value and key not in fields:
+                          fields[key] = value
+
+                  allow = fields.get("allow-deep-linking","").lower() == "true"
+                  if not allow:
+                      continue
+
+                  href = fields.get("click-url","")
+                  if not href:
+                      code = html.unescape(fields.get("link-code-html",""))
+                      m = re.search(r"href=[\"']([^\"']+)[\"']", code, re.I)
+                      if m:
+                          href = html.unescape(m.group(1))
+
+                  if href:
+                      found.append((href,fields))
+              return found
+
+          try:
+              candidates = parse_candidates(body)
+          except Exception as e:
+              finish(False, str(e))
+              raise SystemExit(0)
+
+          if not candidates:
+              audit["linkSearchFilter"] = "retry without filter; inspect allow-deep-linking response field"
+              url = make_url(False)
+              status, body = request("Bearer " + token)
+              if status in (401,403):
+                  status, body = request(token)
+              audit["linkSearchHttpStatus"] = status
+              if status >= 400:
+                  finish(False, f"CJ Link Search retry HTTP {status}: {body[:500]}")
+                  raise SystemExit(0)
+              try:
+                  candidates = parse_candidates(body)
+              except Exception as e:
+                  finish(False, str(e))
+                  raise SystemExit(0)
+
+          if not candidates:
+              finish(False, "CJ relationship exists, but no deep-link-enabled MFI link was returned after both Link Search modes.")
+              raise SystemExit(0)
+
+          href, fields = candidates[0]
+          audit["allowDeepLinking"] = True
+          audit["baseAffiliateUrl"] = href
+          audit["linkName"] = fields.get("link-name","")
+          audit["advertiserName"] = fields.get("advertiser-name","")
+
+          finish(True)
+          PY
+
+      - name: Crawl official MFI product catalog and build affiliate rows
+        id: crawl
+        if: steps.deeplink.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p data/source-ingestion-v19
+
+          python3 - <<'PY'
+          import json, re, html, urllib.request, urllib.parse
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          from concurrent.futures import ThreadPoolExecutor, as_completed
+          from datetime import datetime, timezone
+          import os
+
+          VERSION = "19.11.4"
+          SELLER = "MFI Medical"
+          BASE = "https://mfimedical.com"
+          audit_file = Path("data/catalog-v19/source-ingestion/mfi-medical-direct-source-audit.json")
+          output_file = Path("data/source-ingestion-v19/mfi-medical-direct-catalog.json")
+
+          deeplink_audit = json.loads(
+              Path("data/catalog-v19/source-ingestion/mfi-medical-deeplink-audit.json").read_text()
+          )
+          base_aff = deeplink_audit["baseAffiliateUrl"]
+
+          audit = {
+              "version": VERSION,
+              "seller": SELLER,
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "strategy": "",
+              "productUrlsDiscovered": 0,
+              "rawProductsFetched": 0,
+              "physicalProductsStaged": 0,
+              "priceCoverage": 0,
+              "imageCoverage": 0,
+              "skuCoverage": 0,
+              "affiliateCoverage": 0,
+              "errors": [],
+              "ready": False,
+              "reason": "",
+          }
+
+          UA = "Mozilla/5.0 (compatible; TrendPilotCatalogBot/19.11.4; +https://trendpilotchoice.com)"
+
+          def fetch(url, timeout=45):
+              req = urllib.request.Request(
+                  url,
+                  headers={
+                      "User-Agent": UA,
+                      "Accept": "application/json,text/xml,application/xml,text/html,*/*",
+                  }
+              )
+              with urllib.request.urlopen(req,timeout=timeout) as r:
+                  return r.status, r.headers.get("content-type",""), r.read()
+
+          def clean(v):
+              return html.unescape(re.sub(r"\s+"," ",str(v or ""))).strip()
+
+          def absolute_http_url(v):
+              value = clean(v)
+              if not value:
+                  return ""
+              if value.startswith("//"):
+                  value = "https:" + value
+              elif value.startswith("/"):
+                  value = urllib.parse.urljoin(BASE + "/", value)
+              elif not urllib.parse.urlsplit(value).scheme:
+                  value = urllib.parse.urljoin(BASE + "/", value)
+
+              parts = urllib.parse.urlsplit(value)
+              if parts.scheme not in ("http","https") or not parts.netloc:
+                  return ""
+              return value
+
+          def strip_html(v):
+              return clean(re.sub(r"<[^>]+>"," ",str(v or "")))
+
+          def affiliate_url(destination):
+              parts = urllib.parse.urlsplit(base_aff)
+              q = urllib.parse.parse_qsl(parts.query,keep_blank_values=True)
+              q = [(k,v) for k,v in q if k.lower() not in ("url","destination-url","destination")]
+              q.append(("url",destination))
+              return urllib.parse.urlunsplit((
+                  parts.scheme,parts.netloc,parts.path,
+                  urllib.parse.urlencode(q,doseq=True),
+                  parts.fragment
+              ))
+
+          def positive_price(value):
+              try:
+                  x = float(value)
+                  return x if x > 0 else None
+              except Exception:
+                  return None
+
+          def variant_price(v):
+              p = v.get("price")
+              if isinstance(p,(int,float)):
+                  return p/100 if p >= 100 else float(p)
+              return positive_price(p)
+
+          service_rx = re.compile(
+              r"\b(replacement plan|protection plan|extended warranty|year medical devices .* replacement)\b",
+              re.I
+          )
+
+          def normalize_shopify_product(p):
+              title = clean(p.get("title"))
+              handle = clean(p.get("handle"))
+              if not title or not handle:
+                  return None
+              if service_rx.search(title):
+                  return None
+
+              variants = p.get("variants") or []
+              available = [v for v in variants if v.get("available",True)]
+              chosen = (available or variants or [{}])[0]
+
+              prices = [variant_price(v) for v in variants]
+              prices = [x for x in prices if x is not None]
+              price = min(prices) if prices else None
+
+              images = p.get("images") or []
+              image = ""
+              if images:
+                  if isinstance(images[0],dict):
+                      image = clean(images[0].get("src"))
+                  else:
+                      image = clean(images[0])
+
+              if not image:
+                  raw_image = p.get("image")
+                  if isinstance(raw_image,dict):
+                      image = clean(raw_image.get("src"))
+                  else:
+                      image = clean(raw_image)
+
+              # Shopify .js endpoints frequently expose protocol-relative image URLs
+              # such as //cdn.shopify.com/... . The shared TrendPilot normalizer
+              # accepts only absolute http(s) URLs, so canonicalize here before
+              # measuring image coverage or writing the source file.
+              image = absolute_http_url(image)
+
+              product_id = clean(p.get("id"))
+              variant_id = clean(chosen.get("id"))
+              sku = clean(chosen.get("sku"))
+              direct = f"{BASE}/products/{handle}"
+
+              return {
+                  "seller": SELLER,
+                  "advertiser": SELLER,
+                  "sourceProductId": product_id or variant_id or sku or handle,
+                  "id": product_id or variant_id or sku or handle,
+                  "sku": sku,
+                  "title": title,
+                  "description": strip_html(p.get("body_html") or p.get("description")),
+                  "brand": clean(p.get("vendor")) or SELLER,
+                  "category": clean(p.get("product_type")),
+                  "price": price,
+                  "currency": "USD",
+                  "imageUrl": image,
+                  "affiliateUrl": affiliate_url(direct),
+                  "destinationUrl": direct,
+                  "availability": "in_stock" if chosen.get("available",True) else "out_of_stock",
+                  "condition": "new",
+                  "sourceNetwork": "MFI Direct + CJ Deep Link",
+                  "sourceMode": "official-site-catalog",
+                  "sourceVersion": VERSION,
+                  "variants": [
+                      {
+                          "id": clean(v.get("id")),
+                          "sku": clean(v.get("sku")),
+                          "title": clean(v.get("title")),
+                          "price": variant_price(v),
+                          "available": bool(v.get("available",True)),
+                      }
+                      for v in variants[:100]
+                  ],
+              }
+
+          products = []
+          strategy = ""
+
+          try:
+              for page in range(1,1000):
+                  url = f"{BASE}/products.json?limit=250&page={page}"
+                  _,_,raw = fetch(url)
+                  payload = json.loads(raw.decode("utf-8","replace"))
+                  batch = payload.get("products") or []
+                  if not batch:
+                      break
+                  products.extend(batch)
+                  if len(batch) < 250:
+                      break
+              if products:
+                  strategy = "shopify-products-json"
+          except Exception as e:
+              audit["errors"].append("products.json: " + str(e)[:300])
+              products = []
+
+          if not products:
+              product_urls = []
+              try:
+                  _,_,raw = fetch(BASE + "/sitemap.xml")
+                  root = ET.fromstring(raw)
+                  locs = [
+                      (node.text or "").strip()
+                      for node in root.iter()
+                      if node.tag.split("}")[-1] == "loc"
+                  ]
+                  product_sitemaps = [x for x in locs if "sitemap_products" in x]
+
+                  for sm in product_sitemaps:
+                      try:
+                          _,_,smraw = fetch(sm)
+                          smroot = ET.fromstring(smraw)
+                          for node in smroot.iter():
+                              if node.tag.split("}")[-1] == "loc":
+                                  u = (node.text or "").strip()
+                                  if "/products/" in u:
+                                      product_urls.append(u.split("?")[0])
+                      except Exception as e:
+                          audit["errors"].append(f"sitemap {sm}: {str(e)[:180]}")
+
+                  product_urls = sorted(set(product_urls))
+                  audit["productUrlsDiscovered"] = len(product_urls)
+
+                  def fetch_product(u):
+                      handle = u.rstrip("/").split("/products/")[-1]
+                      jsurl = f"{BASE}/products/{handle}.js"
+                      try:
+                          _,_,raw = fetch(jsurl,timeout=35)
+                          return json.loads(raw.decode("utf-8","replace"))
+                      except Exception as e:
+                          return {"__error":str(e)[:180],"__url":u}
+
+                  with ThreadPoolExecutor(max_workers=12) as ex:
+                      futures = [ex.submit(fetch_product,u) for u in product_urls]
+                      for fut in as_completed(futures):
+                          p = fut.result()
+                          if p.get("__error"):
+                              if len(audit["errors"]) < 100:
+                                  audit["errors"].append(f"{p['__url']}: {p['__error']}")
+                          else:
+                              products.append(p)
+
+                  if products:
+                      strategy = "sitemap-plus-product-js"
+              except Exception as e:
+                  audit["errors"].append("sitemap fallback: " + str(e)[:300])
+
+          audit["strategy"] = strategy
+          audit["rawProductsFetched"] = len(products)
+
+          normalized = []
+          seen = set()
+          for p in products:
+              row = normalize_shopify_product(p)
+              if not row:
+                  continue
+              key = row["sourceProductId"]
+              if not key or key in seen:
+                  continue
+              seen.add(key)
+              normalized.append(row)
+
+          normalized.sort(key=lambda x:(x["title"].casefold(),x["sourceProductId"]))
+
+          n = len(normalized)
+          price_count = sum(x.get("price") is not None for x in normalized)
+          image_count = sum(bool(absolute_http_url(x.get("imageUrl"))) for x in normalized)
+          sku_count = sum(bool(x.get("sku")) for x in normalized)
+          aff_count = sum(bool(x.get("affiliateUrl")) for x in normalized)
+
+          pct = lambda c: round(100*c/n,1) if n else 0
+          audit.update({
+              "physicalProductsStaged": n,
+              "priceCoverage": pct(price_count),
+              "imageCoverage": pct(image_count),
+              "skuCoverage": pct(sku_count),
+              "affiliateCoverage": pct(aff_count),
+          })
+
+          if n < 20:
+              audit["reason"] = f"Only {n} physical product rows were staged."
+          elif price_count/n < 0.70:
+              audit["reason"] = f"Price coverage too low: {pct(price_count)}%."
+          elif image_count/n < 0.70:
+              audit["reason"] = f"Image coverage too low: {pct(image_count)}%."
+          elif aff_count != n:
+              audit["reason"] = "Affiliate deep-link coverage is not 100%."
+          else:
+              audit["ready"] = True
+              output_file.write_text(json.dumps(normalized,ensure_ascii=False,indent=2)+"\n")
+
+          audit_file.write_text(json.dumps(audit,ensure_ascii=False,indent=2)+"\n")
+
+          with open(os.environ["GITHUB_OUTPUT"],"a") as f:
+              f.write(f"ready={'true' if audit['ready'] else 'false'}\n")
+              f.write(f"count={n}\n")
+
+          print(json.dumps(audit,ensure_ascii=False,indent=2))
+          PY
+
+      - name: Discover and validate MFI direct product source
+        if: steps.crawl.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node scripts/catalog-v19/discover-seller-sources.mjs \
+            --seller="MFI Medical" \
+            --slug=mfi-medical \
+            --version=19.11.4
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          p = Path("data/catalog-v19/source-manifests/mfi-medical.json")
+          intake = json.loads(p.read_text())
+
+          assert intake["seller"] == "MFI Medical"
+          assert intake["qualifiedFileCount"] >= 1
+          assert intake["qualifiedUniqueProducts"] >= 20
+          assert "data/source-ingestion-v19/mfi-medical-direct-catalog.json" in intake["qualifiedFiles"]
+
+          row = next(
+              x for x in intake["files"]
+              if x["file"] == "data/source-ingestion-v19/mfi-medical-direct-catalog.json"
+          )
+          print("Direct-source manifest metrics:", json.dumps({
+              "uniqueProducts": row["uniqueProducts"],
+              "stableIdPercent": row["stableIdPercent"],
+              "pricePercent": row["pricePercent"],
+              "imagePercent": row["imagePercent"],
+              "linkPercent": row["linkPercent"],
+              "qualifies": row["qualifies"],
+          }, indent=2))
+
+          assert row["qualifies"] is True, row
+          assert row["linkPercent"] == 100, row
+          assert row["pricePercent"] >= 70, row
+          assert row["imagePercent"] >= 70, row
+
+          print("MFI direct source qualification PASS.")
+          print("Qualified products:", intake["qualifiedUniqueProducts"])
+          PY
+
+      - name: Build Seller 11 — MFI Medical
+        if: steps.crawl.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node scripts/catalog-v19/build-canonical-seller.mjs \
+            --seller="MFI Medical" \
+            --slug=mfi-medical \
+            --version=19.11.4 \
+            --role=eleventh-canonical-catalog \
+            --source-manifest=data/catalog-v19/source-manifests/mfi-medical.json
+
+      - name: Validate MFI canonical catalog
+        if: steps.crawl.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, math
+
+          root = Path("data/catalog-v19")
+          intake = json.loads((root/"source-manifests/mfi-medical.json").read_text())
+          seller = root/"sellers/mfi-medical"
+
+          manifest = json.loads((seller/"manifest.json").read_text())
+          audit = json.loads((seller/"audit.json").read_text())
+
+          total = manifest["metrics"]["totalProducts"]
+          source_total = intake["qualifiedUniqueProducts"]
+
+          assert manifest["version"] == "19.11.4"
+          assert manifest["seller"]["name"] == "MFI Medical"
+          assert total >= 20
+          assert total >= math.floor(source_total * 0.90)
+          assert manifest["metrics"]["sourceQualified"] == total
+          assert manifest["metrics"]["link"] == total
+          assert manifest["metrics"]["price"] / total >= 0.70
+          assert manifest["metrics"]["image"] / total >= 0.70
+
+          assert audit["sourceLeak"] is False
+          assert audit["blockedSellerLeak"] is False
+          assert audit["duplicateProductKeys"] is False
+
+          failed = [x for x in audit.get("roundTripSamples",[]) if not x.get("resolved")]
+          assert not failed, failed[:5]
+
+          print("MFI canonical catalog PASS.")
+          print("Canonical products:",total)
+          PY
+
+      - name: Install deterministic eleven-seller catalog set
+        if: steps.crawl.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          expected = [
+              ("Geekbuying","geekbuying"),
+              ("AliExpress","aliexpress"),
+              ("Alibaba","alibaba"),
+              ("PandaHall","pandahall"),
+              ("Karaca EU","karaca-eu"),
+              ("FragranceShop.com","fragranceshop-com"),
+              ("Govee Many GEOs","govee-many-geos"),
+              ("Harfington Many GEOs","harfington-many-geos"),
+              ("Sunsky-online WW","sunsky-online-ww"),
+              ("Diecast","diecast"),
+              ("MFI Medical","mfi-medical"),
+          ]
+
+          for name,slug in expected:
+              manifest_file = root/"sellers"/slug/"manifest.json"
+              assert manifest_file.exists(), name
+              m = json.loads(manifest_file.read_text())
+              assert m["seller"]["name"] == name
+
+          catalog = {
+              "version":"19.11.4",
+              "purpose":"Validated canonical seller catalogs allowed into the V19 global resolver.",
+              "sellers":[{"name":n,"slug":s} for n,s in expected],
+          }
+          (root/"catalog-set-v1.json").write_text(json.dumps(catalog,indent=2)+"\n")
+          PY
+
+      - name: Build eleven-seller resolver and next-source queue
+        if: steps.crawl.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          for file in [
+              Path("scripts/catalog-v19/build-global-resolver.mjs"),
+              Path("scripts/catalog-v19/build-source-aware-seller-queue.mjs"),
+          ]:
+              s = file.read_text()
+              s,n = re.subn(
+                  r'const VERSION = "[^"]+";',
+                  'const VERSION = "19.11.4";',
+                  s,
+                  count=1
+              )
+              assert n == 1, file
+              file.write_text(s)
+          PY
+
+          node --check scripts/catalog-v19/build-global-resolver.mjs
+          node --check scripts/catalog-v19/build-source-aware-seller-queue.mjs
+          node scripts/catalog-v19/build-global-resolver.mjs
+          node scripts/catalog-v19/build-source-aware-seller-queue.mjs
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          cross = json.loads((root/"cross-seller-audit-v1.json").read_text())
+          queue = json.loads((root/"seller-build-queue-v3.json").read_text())
+
+          assert cross["version"] == "19.11.4"
+          assert len(cross["sellers"]) == 11
+          assert cross["sellerCounts"]["MFI Medical"] >= 20
+          assert cross["blockedSellerLeak"] is False
+          assert cross["duplicateGlobalProductKeys"] is False
+          assert not cross.get("insertionFailures")
+          assert not cross.get("failedRoundTrips")
+
+          assert "MFI Medical" in queue["completedSellers"]
+          for blocked in ["FilamentPRO EU CPS","Temu","Joom"]:
+              assert blocked not in queue["completedSellers"]
+
+          print("Eleven-seller resolver PASS.")
+          print("Total canonical records:",cross["totalRecords"])
+          print("Remaining queue:",json.dumps(queue.get("remaining",[]),indent=2))
+          PY
+
+      - name: Create V19.11.4 report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          deep_file = root/"source-ingestion/mfi-medical-deeplink-audit.json"
+          crawl_file = root/"source-ingestion/mfi-medical-direct-source-audit.json"
+          report = root/"V19.11.4-REPORT.md"
+
+          deep = json.loads(deep_file.read_text()) if deep_file.exists() else {}
+          crawl = json.loads(crawl_file.read_text()) if crawl_file.exists() else {}
+
+          lines = [
+              "# TrendPilot V19.11.4 — MFI Medical Direct Catalog",
+              "",
+              "> CJ has no MFI product feed rows, so this version uses the official MFI product catalog as the product source and CJ only for affiliate deep-link tracking.",
+              "",
+              "## CJ affiliate-link gate",
+              f"- Deep linking available: **{'PASS' if deep.get('deepLinkAvailable') else 'NO'}**",
+              f"- Link Search HTTP status: **{deep.get('linkSearchHttpStatus','—')}**",
+              f"- Link Search mode: **{deep.get('linkSearchFilter','—')}**",
+              f"- Advertiser ID: **{deep.get('advertiserId','7227612')}**",
+              "",
+              "## Official MFI catalog crawl",
+              "- Image URL rule: **protocol-relative/relative URLs are converted to absolute HTTPS URLs before qualification**",
+              f"- Crawl strategy: **{crawl.get('strategy') or 'not run'}**",
+              f"- Product URLs discovered: **{int(crawl.get('productUrlsDiscovered',0)):,}**",
+              f"- Raw products fetched: **{int(crawl.get('rawProductsFetched',0)):,}**",
+              f"- Physical products staged: **{int(crawl.get('physicalProductsStaged',0)):,}**",
+              f"- Price coverage: **{crawl.get('priceCoverage',0)}%**",
+              f"- Image coverage: **{crawl.get('imageCoverage',0)}%**",
+              f"- SKU coverage: **{crawl.get('skuCoverage',0)}%**",
+              f"- CJ affiliate-link coverage: **{crawl.get('affiliateCoverage',0)}%**",
+              "",
+          ]
+
+          manifest_file = root/"sellers/mfi-medical/manifest.json"
+          cross_file = root/"cross-seller-audit-v1.json"
+          queue_file = root/"seller-build-queue-v3.json"
+
+          if crawl.get("ready") and manifest_file.exists():
+              manifest = json.loads(manifest_file.read_text())
+              cross = json.loads(cross_file.read_text())
+              queue = json.loads(queue_file.read_text())
+              lines.extend([
+                  "## Seller 11 — MFI Medical",
+                  f"- Canonical products: **{manifest['metrics']['totalProducts']:,}**",
+                  f"- Price: **{manifest['metrics']['price']:,}**",
+                  f"- Image: **{manifest['metrics']['image']:,}**",
+                  f"- Affiliate links: **{manifest['metrics']['link']:,}**",
+                  "",
+                  "## Eleven-seller shared resolver",
+                  f"- Total canonical records: **{cross['totalRecords']:,}**",
+                  f"- Automatic exact groups: **{cross['autoExactGroups']:,}**",
+                  f"- Brand/model discovery overlaps: **{cross['brandModelDiscoveryOverlaps']:,}**",
+                  "",
+                  "## Next source-ingestion gate",
+              ])
+              remaining = queue.get("remaining",[])
+              if remaining:
+                  lines.append(
+                      "Remaining approved sellers needing source work: "
+                      + ", ".join(f"**{x['seller']}**" for x in remaining) + "."
+                  )
+              else:
+                  lines.append("No approved seller remains in the source-ingestion queue.")
+          else:
+              lines.extend([
+                  "## Ingestion gate",
+                  f"**SOURCE NOT READY — {crawl.get('reason') or deep.get('reason') or 'direct catalog could not be safely staged'}**",
+                  "",
+                  "No MFI canonical catalog or resolver state was changed."
+              ])
+
+          report.write_text("\n".join(lines)+"\n")
+          print(report.read_text())
+          PY
+
+      - name: Commit successful MFI direct-source catalog
+        if: steps.crawl.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            data/source-ingestion-v19/mfi-medical-direct-catalog.json \
+            data/catalog-v19/source-ingestion/mfi-medical-deeplink-audit.json \
+            data/catalog-v19/source-ingestion/mfi-medical-direct-source-audit.json \
+            data/catalog-v19/source-manifests/mfi-medical.json \
+            data/catalog-v19/sellers/mfi-medical \
+            data/catalog-v19/catalog-set-v1.json \
+            data/catalog-v19/global-resolver-v1.json \
+            data/catalog-v19/cross-seller-audit-v1.json \
+            data/catalog-v19/seller-build-queue-v3.json \
+            data/catalog-v19/V19.11.4-REPORT.md \
+            scripts/catalog-v19/build-global-resolver.mjs \
+            scripts/catalog-v19/build-source-aware-seller-queue.mjs
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "MFI V19.11.4 is already current."
+          else
+            git commit -m "feat: build MFI catalog from official source with CJ deep links"
+            if ! git push origin HEAD:main; then
+              git pull --rebase origin main
+              git push origin HEAD:main
+            fi
+          fi
+
+      - name: Publish concise summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -s data/catalog-v19/V19.11.4-REPORT.md ]; then
+            cat data/catalog-v19/V19.11.4-REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload MFI direct-source audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v19-11-4-mfi-direct-catalog
+          path: |
+            data/catalog-v19/V19.11.4-REPORT.md
+            data/catalog-v19/source-ingestion/mfi-medical-deeplink-audit.json
+            data/catalog-v19/source-ingestion/mfi-medical-direct-source-audit.json
+            data/source-ingestion-v19/mfi-medical-direct-catalog.json
+            data/catalog-v19/source-manifests/mfi-medical.json
+            data/catalog-v19/sellers/mfi-medical/manifest.json
+            data/catalog-v19/sellers/mfi-medical/audit.json
+            data/catalog-v19/seller-build-queue-v3.json
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 9
