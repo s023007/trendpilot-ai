@@ -1,0 +1,978 @@
+name: TrendPilot V19.12.2 — Seller 12 Lenovo Verified Feed + Browser Fallback
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v19-12-1-lenovo
+  cancel-in-progress: false
+
+jobs:
+  seller-12-lenovo:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      WEBSITE_ID: "2980568"
+      VERSION: "19.12.2"
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Verify V19 state before Lenovo
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s scripts/catalog-v19/build-canonical-seller.mjs
+          test -s scripts/catalog-v19/discover-seller-sources.mjs
+          test -s scripts/catalog-v19/build-global-resolver.mjs
+          test -s scripts/catalog-v19/build-source-aware-seller-queue.mjs
+          test -s data/catalog-v19/catalog-set-v1.json
+          test -s data/catalog-v19/seller-build-queue-v3.json
+          test -s data/product-seller-registry-v17.json
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          registry = json.loads(Path("data/product-seller-registry-v17.json").read_text())
+          public = {x["name"] for x in registry["sellers"] if x.get("public")}
+
+          assert "Lenovo" in public
+          for blocked in ["Joom", "Temu", "FilamentPRO EU CPS"]:
+              assert blocked not in public, blocked
+
+          catalog = json.loads((root/"catalog-set-v1.json").read_text())
+          names = [x["name"] for x in catalog["sellers"]]
+
+          assert len(names) == 11, names
+          assert "MFI Medical" in names
+          assert "Lenovo" not in names
+          assert len(names) == len(set(names))
+
+          queue = json.loads((root/"seller-build-queue-v3.json").read_text())
+          remaining = {x["seller"]: x for x in queue.get("remaining", [])}
+          assert "Lenovo" in remaining, remaining
+          assert int(remaining["Lenovo"].get("qualifiedProducts", 0)) == 0
+
+          print("V19 pre-Lenovo state PASS.")
+          print("Completed sellers:", len(names))
+          print("Remaining:", list(remaining))
+          PY
+
+      - name: Inspect active Lenovo Admitad campaign and feed purity
+        id: admitad
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p data/catalog-v19/source-ingestion
+          mkdir -p /tmp/lenovo-v19
+
+          python3 - <<'PY'
+          import base64, csv, gzip, io, json, os, re, socket
+          import urllib.parse, urllib.request
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          API = "https://api.admitad.com"
+          WEBSITE_ID = int(os.environ["WEBSITE_ID"])
+          VERSION = os.environ["VERSION"]
+          socket.setdefaulttimeout(40)
+
+          def env_first(*names):
+              for name in names:
+                  value = (os.environ.get(name) or "").strip()
+                  if value:
+                      return value
+              return ""
+
+          cid = env_first("ADMITAD_CLIENT_ID_PRIMARY", "ADMITAD_CLIENT_ID_ALT")
+          secret = env_first("ADMITAD_CLIENT_SECRET_PRIMARY", "ADMITAD_CLIENT_SECRET_ALT")
+          if not cid or not secret:
+              raise SystemExit("Missing Admitad credentials.")
+
+          def request(url, method="GET", headers=None, data=None, timeout=40):
+              req = urllib.request.Request(
+                  url,
+                  data=data,
+                  method=method,
+                  headers={
+                      "Accept": "*/*",
+                      "User-Agent": "TrendPilot-Lenovo-V19.12/1.0",
+                      **(headers or {})
+                  }
+              )
+              return urllib.request.urlopen(req, timeout=timeout)
+
+          def request_json(url, method="GET", headers=None, data=None):
+              with request(url, method, headers, data) as resp:
+                  return json.loads(resp.read().decode("utf-8", "replace"))
+
+          basic = base64.b64encode(f"{cid}:{secret}".encode()).decode()
+          token_body = urllib.parse.urlencode({
+              "grant_type": "client_credentials",
+              "client_id": cid,
+              "scope": "websites advcampaigns_for_website deeplink_generator"
+          }).encode()
+
+          token = request_json(
+              f"{API}/token/",
+              method="POST",
+              headers={
+                  "Authorization": f"Basic {basic}",
+                  "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+              },
+              data=token_body
+          ).get("access_token")
+          if not token:
+              raise SystemExit("Admitad access token was not returned.")
+
+          auth = {"Authorization": f"Bearer {token}"}
+          q = urllib.parse.urlencode({
+              "limit": 200,
+              "offset": 0,
+              "connection_status": "active"
+          })
+          campaigns = request_json(
+              f"{API}/advcampaigns/website/{WEBSITE_ID}/?{q}",
+              headers=auth
+          ).get("results", [])
+
+          lenovo_candidates = [
+              c for c in campaigns
+              if "lenovo" in str(c.get("name") or "").casefold()
+          ]
+          if not lenovo_candidates:
+              raise SystemExit("No active Lenovo campaign is attached to this Admitad website.")
+
+          lenovo_candidates.sort(
+              key=lambda c: (
+                  bool(c.get("allow_deeplink")),
+                  bool(c.get("show_products_links")),
+                  int(c.get("id") or 0)
+              ),
+              reverse=True
+          )
+          campaign = lenovo_candidates[0]
+          campaign_id = int(campaign.get("id") or 0)
+          campaign_name = str(campaign.get("name") or "").strip()
+          allow_deeplink = bool(campaign.get("allow_deeplink"))
+
+          if not campaign_id:
+              raise SystemExit("Lenovo campaign ID is missing.")
+          if not allow_deeplink:
+              raise SystemExit(
+                  f"Lenovo campaign {campaign_name} ({campaign_id}) does not allow deeplinks."
+              )
+
+          def nk(v):
+              return re.sub(r"[^a-z0-9]+", "", str(v or "").casefold())
+
+          def pick(row, keys):
+              mapping = {nk(k): v for k, v in row.items()}
+              for key in keys:
+                  value = mapping.get(nk(key))
+                  if value not in (None, ""):
+                      return str(value).strip()
+              return ""
+
+          TITLE = ["name", "title", "productname", "product_name", "product", "offername"]
+          BRAND = ["vendor", "brand", "manufacturer", "producer"]
+          CATEGORY = ["category", "categoryname", "category_name", "type", "section"]
+
+          lenovo_signal = re.compile(
+              r"\b("
+              r"lenovo|thinkpad|ideapad|thinkbook|yoga|legion|loq|"
+              r"thinkcentre|ideacentre|thinkstation|thinkvision|tab|motorola"
+              r")\b",
+              re.I
+          )
+          obvious_noise = re.compile(
+              r"\b("
+              r"baby|makeup|cosmetic|wig|shoe|dress|handbag|pet food|"
+              r"teapot|scaffolding|hydraulic|sardine|sex toy|dildo|"
+              r"garden pergola|false eyelash|nail polish"
+              r")\b",
+              re.I
+          )
+
+          def stream_csv(url, limit=300):
+              with request(url, timeout=50) as resp:
+                  raw = resp
+                  enc = (resp.headers.get("Content-Encoding") or "").lower()
+                  ctype = (resp.headers.get("Content-Type") or "").lower()
+                  if "gzip" in enc or "gzip" in ctype or url.lower().endswith(".gz"):
+                      raw = gzip.GzipFile(fileobj=resp)
+                  text = io.TextIOWrapper(raw, encoding="utf-8-sig", errors="replace", newline="")
+                  probe = text.read(256 * 1024)
+                  if not probe:
+                      return
+                  try:
+                      dialect = csv.Sniffer().sniff(probe[:20000], delimiters=",;\t|")
+                  except Exception:
+                      dialect = csv.excel
+                  reader = csv.DictReader(io.StringIO(probe), dialect=dialect)
+                  count = 0
+                  for row in reader:
+                      if isinstance(row, dict):
+                          yield {str(k or ""): v for k, v in row.items()}
+                          count += 1
+                          if count >= limit:
+                              break
+
+          def stream_xml(url, limit=300):
+              with request(url, timeout=50) as resp:
+                  count = 0
+                  for _, elem in ET.iterparse(resp, events=("end",)):
+                      tag = str(elem.tag).split("}", 1)[-1].lower()
+                      if tag not in ("offer", "product", "item", "entry"):
+                          continue
+                      row = {}
+                      for child in list(elem):
+                          ctag = str(child.tag).split("}", 1)[-1]
+                          value = (child.text or "").strip()
+                          if value:
+                              row[ctag] = value
+                      if row:
+                          yield row
+                          count += 1
+                      elem.clear()
+                      if count >= limit:
+                          break
+
+          feeds = []
+          if campaign.get("products_csv_link"):
+              feeds.append(("main-csv", "csv", campaign["products_csv_link"]))
+          if campaign.get("products_xml_link"):
+              feeds.append(("main-xml", "xml", campaign["products_xml_link"]))
+          for i, info in enumerate(campaign.get("feeds_info") or [], start=1):
+              if not isinstance(info, dict):
+                  continue
+              name = str(info.get("name") or f"feed-{i}")
+              if info.get("csv_link"):
+                  feeds.append((name, "csv", info["csv_link"]))
+              if info.get("xml_link"):
+                  feeds.append((name, "xml", info["xml_link"]))
+
+          unique = []
+          seen_urls = set()
+          for name, kind, url in feeds:
+              if url in seen_urls:
+                  continue
+              seen_urls.add(url)
+              unique.append((name, kind, url))
+
+          reports = []
+          for index, (name, kind, url) in enumerate(unique, start=1):
+              r = {
+                  "index": index,
+                  "name": name,
+                  "kind": kind,
+                  "sampled": 0,
+                  "lenovoLike": 0,
+                  "noiseLike": 0,
+                  "purityPercent": 0,
+                  "noisePercent": 0,
+                  "cleanEnoughForCatalog": False,
+                  "examples": [],
+                  "error": ""
+              }
+              try:
+                  parser = stream_csv if kind == "csv" else stream_xml
+                  for row in parser(url):
+                      title = pick(row, TITLE)
+                      if not title:
+                          continue
+                      brand = pick(row, BRAND)
+                      category = pick(row, CATEGORY)
+                      combined = f"{title} {brand} {category}"
+
+                      is_lenovo = bool(lenovo_signal.search(combined))
+                      is_noise = bool(obvious_noise.search(combined))
+                      r["sampled"] += 1
+                      r["lenovoLike"] += int(is_lenovo)
+                      r["noiseLike"] += int(is_noise)
+
+                      if len(r["examples"]) < 8:
+                          r["examples"].append({
+                              "title": title[:180],
+                              "brand": brand[:60],
+                              "category": category[:100],
+                              "lenovoLike": is_lenovo,
+                              "noiseLike": is_noise
+                          })
+              except Exception as exc:
+                  r["error"] = str(exc)[:300]
+
+              if r["sampled"]:
+                  r["purityPercent"] = round(100 * r["lenovoLike"] / r["sampled"], 1)
+                  r["noisePercent"] = round(100 * r["noiseLike"] / r["sampled"], 1)
+                  r["cleanEnoughForCatalog"] = (
+                      r["sampled"] >= 50
+                      and r["purityPercent"] >= 90
+                      and r["noisePercent"] <= 2
+                  )
+              reports.append(r)
+
+          best = max(
+              reports,
+              key=lambda r: (r["cleanEnoughForCatalog"], r["purityPercent"], -r["noisePercent"], r["sampled"]),
+              default=None
+          )
+
+          audit = {
+              "version": VERSION,
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "websiteId": WEBSITE_ID,
+              "campaignId": campaign_id,
+              "campaignName": campaign_name,
+              "allowDeeplink": allow_deeplink,
+              "showProductsLinks": bool(campaign.get("show_products_links")),
+              "feedCount": len(reports),
+              "bestFeed": best,
+              "feeds": reports,
+              "decision": (
+                  "official-lenovo-direct"
+                  if not best or not best["cleanEnoughForCatalog"]
+                  else "official-lenovo-direct-preferred-even-though-feed-now-clean"
+              ),
+              "safety": {
+                  "feedUrlsCommitted": False,
+                  "feedRowsUsedForCanonicalCatalog": False,
+                  "reason": (
+                      "Previous Lenovo feed audit was contaminated. V19.12 uses the official Lenovo site "
+                      "as identity/product source and retains feed inspection only as a safety diagnostic."
+                  )
+              }
+          }
+
+          audit_path = Path("data/catalog-v19/source-ingestion/lenovo-admitad-audit.json")
+          audit_path.write_text(json.dumps(audit, ensure_ascii=False, indent=2) + "\n")
+
+          runtime = {
+              "campaignId": campaign_id,
+              "campaignName": campaign_name,
+              "allowDeeplink": allow_deeplink
+          }
+          Path("/tmp/lenovo-v19/campaign.json").write_text(json.dumps(runtime))
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as fh:
+              fh.write(f"campaign_id={campaign_id}\n")
+              fh.write("allow_deeplink=true\n")
+
+          print(f"Lenovo campaign: {campaign_name} ({campaign_id})")
+          print("Deeplink allowed: YES")
+          print("Feeds inspected:", len(reports))
+          if best:
+              print(
+                  "Best feed sample:",
+                  f"sampled={best['sampled']}",
+                  f"purity={best['purityPercent']}%",
+                  f"noise={best['noisePercent']}%",
+                  f"clean={best['cleanEnoughForCatalog']}"
+              )
+          print("Canonical source decision: official Lenovo direct catalog.")
+          PY
+
+      - name: Build Lenovo source — full Admitad domain filter, then browser fallback
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/source-ingestion-v19 data/catalog-v19/source-ingestion /tmp/lenovo-v19
+
+          cat > /tmp/lenovo-feed.py <<'PYFEED'
+          import base64,csv,gzip,io,json,os,re,socket,urllib.parse,urllib.request
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+          from datetime import datetime,timezone
+
+          API='https://api.admitad.com'; WEBSITE_ID=int(os.environ['WEBSITE_ID']); VERSION=os.environ['VERSION']
+          MAX_ROWS=0; socket.setdefaulttimeout(60)
+          source=Path('data/source-ingestion-v19/lenovo-direct-catalog.json')
+          auditp=Path('data/catalog-v19/source-ingestion/lenovo-direct-source-audit.json')
+
+          def env(*names):
+              for n in names:
+                  v=(os.environ.get(n) or '').strip()
+                  if v:return v
+              return ''
+          cid=env('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT'); secret=env('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          if not cid or not secret: raise SystemExit('Missing Admitad credentials')
+          def req(url,method='GET',headers=None,data=None,timeout=60):
+              r=urllib.request.Request(url,data=data,method=method,headers={'User-Agent':'TrendPilot-Lenovo-V19.12.2/1.0','Accept':'*/*',**(headers or {})})
+              return urllib.request.urlopen(r,timeout=timeout)
+          def jreq(url,method='GET',headers=None,data=None):
+              with req(url,method,headers,data) as r:return json.loads(r.read().decode('utf-8','replace'))
+          basic=base64.b64encode(f'{cid}:{secret}'.encode()).decode()
+          body=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':cid,'scope':'websites advcampaigns_for_website deeplink_generator coupons_for_website'}).encode()
+          token=jreq(f'{API}/token/','POST',{'Authorization':f'Basic {basic}','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},body).get('access_token')
+          if not token: raise SystemExit('No Admitad token')
+          auth={'Authorization':f'Bearer {token}'}
+          q=urllib.parse.urlencode({'limit':200,'offset':0,'connection_status':'active'})
+          camps=jreq(f'{API}/advcampaigns/website/{WEBSITE_ID}/?{q}',headers=auth).get('results',[])
+          cs=[x for x in camps if 'lenovo' in str(x.get('name') or '').casefold()]
+          if not cs: raise SystemExit('No active Lenovo campaign')
+          cs.sort(key=lambda x:(bool(x.get('show_products_links')),bool(x.get('allow_deeplink')),int(x.get('id') or 0)),reverse=True)
+          camp=cs[0]; campaign_id=int(camp['id']); campaign_name=str(camp.get('name') or 'Lenovo')
+          if not camp.get('allow_deeplink'): raise SystemExit('Lenovo deeplink not allowed')
+          Path('/tmp/lenovo-v19/runtime.json').write_text(json.dumps({'campaignId':campaign_id,'campaignName':campaign_name,'token':token}))
+
+          def nk(v): return re.sub(r'[^a-z0-9]+','',str(v or '').casefold())
+          TITLE=['title','name','product_name','productname','offer_name','offername','model_name','modelname']
+          IDS=['product_id','productid','offer_id','offerid','sku','mpn','article','articul','model','ean','gtin','id']
+          BRAND=['brand','vendor','manufacturer','producer','maker']
+          URLS=['url','link','product_url','producturl','offer_url','offerurl','destination_url','destinationurl','landing_page','landingpage','href']
+          IMAGE=['image','image_url','imageurl','picture','picture_url','pictureurl','photo','photo_url','image_link']
+          PRICE=['price','sale_price','saleprice','current_price','currentprice','final_price','finalprice']
+          CURRENCY=['currency','currency_code','currencycode','price_currency']
+          CATEGORY=['category','category_name','categoryname','type','section']
+          family=re.compile(r'\b(lenovo|thinkpad|thinkbook|ideapad|yoga|legion|loq|thinkcentre|ideacentre|thinkstation|thinkvision|legion go|motorola)\b',re.I)
+          noise=re.compile(r'\b(wig|dress|lingerie|makeup|eyelash|pet food|dog food|perfume|teapot|scaffolding|sex toy|dildo)\b',re.I)
+          def mapping(row): return {nk(k):v for k,v in row.items() if k is not None}
+          def pick(m,keys):
+              for k in keys:
+                  v=m.get(nk(k))
+                  if v not in (None,''):return str(v).strip()
+              return ''
+          def price(v):
+              m=re.search(r'\d+(?:\.\d+)?',str(v or '').replace(',',''))
+              if not m:return None
+              try:n=float(m.group(0))
+              except:return None
+              return round(n,2) if 0<n<=200000 else None
+          def absurl(v):
+              v=str(v or '').strip()
+              if v.startswith('//'):v='https:'+v
+              try:p=urllib.parse.urlsplit(v)
+              except:return ''
+              return urllib.parse.urlunsplit((p.scheme,p.netloc,p.path,p.query,'')) if p.scheme in ('http','https') and p.netloc else ''
+          def dest(v):
+              v=absurl(v)
+              if not v:return ''
+              p=urllib.parse.urlsplit(v); h=p.netloc.casefold().split(':')[0]
+              if not (h=='lenovo.com' or h.endswith('.lenovo.com')):return ''
+              low=p.path.casefold()
+              if any(x in low for x in ('/support','/glossary/','/solutions/','/services/','/privacy','/legal','/community')):return ''
+              return urllib.parse.urlunsplit(('https',p.netloc,p.path.rstrip('/') or '/','',''))
+          def product(row):
+              m=mapping(row); title=pick(m,TITLE); brand=pick(m,BRAND); url=dest(pick(m,URLS)); pid=pick(m,IDS); cat=pick(m,CATEGORY)
+              combined=f'{title} {brand} {cat}'
+              if not title or not pid or not url:return None
+              if not (brand.casefold()=='lenovo' or family.search(combined)):return None
+              if noise.search(combined):return None
+              return {'seller':'Lenovo','advertiser':campaign_name,'sourceProductId':pid,'id':pid,'sku':pick(m,['sku']) or pid,'mpn':pick(m,['mpn']),'model':pick(m,['model']),'title':title,'description':pick(m,['description'])[:8000],'brand':brand or 'Lenovo','category':cat,'subcategory':pick(m,['subcategory','sub_category']),'price':price(pick(m,PRICE)),'currency':pick(m,CURRENCY) or 'USD','imageUrl':absurl(pick(m,IMAGE)),'affiliateUrl':'','destinationUrl':url,'condition':'new','availability':pick(m,['availability','stock','in_stock']),'specs':{},'network':'Admitad','source':'Admitad Lenovo feed + official Lenovo destination-domain gate','sourceVersion':VERSION}
+          def csvrows(url):
+              with req(url,timeout=80) as r:
+                  raw=r; enc=(r.headers.get('Content-Encoding') or '').casefold(); typ=(r.headers.get('Content-Type') or '').casefold()
+                  if 'gzip' in enc or 'gzip' in typ or url.casefold().endswith('.gz'):raw=gzip.GzipFile(fileobj=r)
+                  text=io.TextIOWrapper(raw,encoding='utf-8-sig',errors='replace',newline='')
+                  sample=text.read(65536)
+                  if not sample:return
+                  try:d=csv.Sniffer().sniff(sample[:20000],delimiters=',;\t|')
+                  except:d=csv.excel
+                  rest=text.read(); reader=csv.DictReader(io.StringIO(sample+rest),dialect=d)
+                  yield from reader
+          def xmlrows(url):
+              with req(url,timeout=80) as r:
+                  stream=r; enc=(r.headers.get('Content-Encoding') or '').casefold()
+                  if 'gzip' in enc or url.casefold().endswith('.gz'):stream=gzip.GzipFile(fileobj=r)
+                  for _,e in ET.iterparse(stream,events=('end',)):
+                      if str(e.tag).split('}')[-1].casefold() not in ('offer','product','item','entry'):continue
+                      row={}
+                      for c in list(e):
+                          k=str(c.tag).split('}')[-1]; v=(c.text or '').strip()
+                          if v:row[k]=v
+                          if k.casefold()=='param' and c.attrib.get('name') and v:row[c.attrib['name']]=v
+                      if row:yield row
+                      e.clear()
+          feeds=[]
+          if camp.get('products_csv_link'):feeds.append(('campaign-csv','csv',camp['products_csv_link']))
+          if camp.get('products_xml_link'):feeds.append(('campaign-xml','xml',camp['products_xml_link']))
+          for i,f in enumerate(camp.get('feeds_info') or [],1):
+              if not isinstance(f,dict):continue
+              name=str(f.get('name') or f'feed-{i}')
+              if f.get('csv_link'):feeds.append((name,'csv',f['csv_link']))
+              elif f.get('xml_link'):feeds.append((name,'xml',f['xml_link']))
+          unique=[]; seen=set()
+          for x in feeds:
+              if x[2] and x[2] not in seen:seen.add(x[2]);unique.append(x)
+          scanned=0; accepted=0; byid={}; stats=[]; errors=[]
+          for name,kind,url in unique:
+              if scanned>=MAX_ROWS:break
+              s={'name':name,'kind':kind,'rows':0,'accepted':0,'error':''}
+              try:
+                  parser=csvrows if kind=='csv' else xmlrows
+                  for row in parser(url):
+                      scanned+=1;s['rows']+=1
+                      p=product(row)
+                      if p:
+                          accepted+=1;s['accepted']+=1;k=str(p['sourceProductId']).casefold();old=byid.get(k)
+                          score=lambda x:(4 if x.get('price') is not None else 0)+(3 if x.get('imageUrl') else 0)+len(x.get('title') or '')/200
+                          if not old or score(p)>score(old):byid[k]=p
+                      if scanned>=MAX_ROWS:break
+              except Exception as e:s['error']=str(e)[:300];errors.append(f'{name}: {e}')
+              stats.append(s)
+          rows=sorted(byid.values(),key=lambda x:(x['title'].casefold(),x['sourceProductId'].casefold()))
+          linkerr=''
+          for start in range(0,len(rows),100):
+              chunk=rows[start:start+100];qq=[('subid','trendpilot-v19-lenovo')]+[('ulp',x['destinationUrl']) for x in chunk]
+              try:r=jreq(f'{API}/deeplink/{WEBSITE_ID}/advcampaign/{campaign_id}/?'+urllib.parse.urlencode(qq),headers=auth)
+              except Exception as e:linkerr=f'{start}: {e}';break
+              if not isinstance(r,list) or len(r)!=len(chunk):linkerr=f'count mismatch at {start}';break
+              for x,y in zip(chunk,r):
+                  link=y.get('link') if isinstance(y,dict) else ''
+                  if isinstance(link,str) and link.startswith(('http://','https://')):x['affiliateUrl']=link
+          n=len(rows); count=lambda fn:sum(1 for x in rows if fn(x)); pc=count(lambda x:x.get('price') is not None);ic=count(lambda x:bool(x.get('imageUrl')));lc=count(lambda x:bool(x.get('affiliateUrl')));idc=count(lambda x:bool(x.get('sourceProductId')));pct=lambda c:round(100*c/n,1) if n else 0
+          coupons=[];couponerr=''
+          try:
+              cq=urllib.parse.urlencode({'limit':100,'offset':0,'campaign':campaign_id});d=jreq(f'{API}/coupons/website/{WEBSITE_ID}/?{cq}',headers=auth);coupons=d.get('results',[]) if isinstance(d,dict) else []
+          except Exception as e:couponerr=str(e)[:300]
+          ready=n>=20 and idc==n and lc==n and pc/n>=.50 and ic/n>=.70 and not linkerr
+          audit={'version':VERSION,'generatedAt':datetime.now(timezone.utc).isoformat(),'route':'admitad-feed-scan-skipped-after-600k-zero-match-audit','campaignId':campaign_id,'campaignName':campaign_name,'sitemapsFetched':0,'productUrlsDiscovered':n,'productsStaged':n,'stableIdCoverage':pct(idc),'priceCoverage':pct(pc),'imageCoverage':pct(ic),'structuredSpecsCoverage':0,'affiliateCoverage':pct(lc),'feedsScanned':len(unique),'rowsScanned':scanned,'acceptedBeforeDedupe':accepted,'feedStats':stats,'errors':errors[:30],'deeplinkError':linkerr,'couponsFound':len(coupons),'couponError':couponerr,'ready':ready,'reason':'' if ready else f'Feed route insufficient: products={n}, price={pct(pc)}%, image={pct(ic)}%, affiliate={pct(lc)}%'}
+          auditp.write_text(json.dumps(audit,ensure_ascii=False,indent=2)+'\n')
+          Path('data/catalog-v19/source-ingestion/lenovo-coupons.json').write_text(json.dumps(coupons,ensure_ascii=False,indent=2)+'\n')
+          if ready:source.write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n')
+          Path('/tmp/lenovo-v19/feed-ready').write_text('true' if ready else 'false')
+          print(json.dumps({k:audit[k] for k in ('route','campaignName','campaignId','feedsScanned','rowsScanned','productsStaged','priceCoverage','imageCoverage','affiliateCoverage','couponsFound','ready','reason')},indent=2))
+          PYFEED
+
+          python3 /tmp/lenovo-feed.py
+
+          if [ "$(cat /tmp/lenovo-v19/feed-ready)" != "true" ]; then
+            echo "Feed route did not pass. Starting real-browser fallback."
+            npm install --no-save playwright@1.54.2
+            npx playwright install --with-deps chromium
+
+            cat > /tmp/lenovo-browser.mjs <<'JS'
+            import fs from 'node:fs';
+            import { chromium } from 'playwright';
+            const VERSION=process.env.VERSION, WEBSITE_ID=Number(process.env.WEBSITE_ID), API='https://api.admitad.com';
+            const runtime=JSON.parse(fs.readFileSync('/tmp/lenovo-v19/runtime.json','utf8'));
+            const landings=['https://www.lenovo.com/us/en/site-map/','https://www.lenovo.com/us/en/site-map2/','https://www.lenovo.com/us/en/laptops/','https://www.lenovo.com/us/en/desktops/','https://www.lenovo.com/us/en/workstations/','https://www.lenovo.com/us/en/tablets/','https://www.lenovo.com/us/en/accessories-and-software/','https://www.lenovo.com/us/en/monitors/','https://www.lenovo.com/us/en/gaming/'];
+            function canon(u){try{const x=new URL(u,'https://www.lenovo.com/');if(!(x.hostname==='lenovo.com'||x.hostname.endsWith('.lenovo.com')))return '';if(!/^\/us\/en\/p\//i.test(x.pathname))return '';x.protocol='https:';x.hostname='www.lenovo.com';x.search='';x.hash='';return x.toString().replace(/\/$/,'')}catch{return ''}}
+            function collect(v,out,d=0){if(d>10||v==null)return;if(typeof v==='string'){if(v.includes('/us/en/p/')){const u=canon(v);if(u)out.add(u)}return}if(Array.isArray(v)){for(const x of v)collect(x,out,d+1);return}if(typeof v==='object')for(const x of Object.values(v))collect(x,out,d+1)}
+            const browser=await chromium.launch({headless:true});const ctx=await browser.newContext({userAgent:'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/127 Safari/537.36',locale:'en-US'});const urls=new Set(),landingErrors=[];
+            for(const landing of landings){const p=await ctx.newPage();p.on('response',async r=>{try{if((r.headers()['content-type']||'').toLowerCase().includes('json'))collect(await r.json(),urls)}catch{}});try{await p.goto(landing,{waitUntil:'domcontentloaded',timeout:60000});await p.waitForTimeout(2000);for(let i=0;i<12;i++){for(const a of await p.locator('a[href*="/us/en/p/"]').evaluateAll(as=>as.map(a=>a.href))){const u=canon(a);if(u)urls.add(u)}await p.mouse.wheel(0,1200);await p.waitForTimeout(300)}}catch(e){landingErrors.push(`${landing}: ${String(e).slice(0,160)}`)}finally{await p.close()}if(urls.size>=5000)break}
+            const productUrls=[...urls].slice(0,5000).sort();
+            async function scrape(url){const p=await ctx.newPage();try{await p.goto(url,{waitUntil:'domcontentloaded',timeout:60000});await p.waitForTimeout(900);const d=await p.evaluate(()=>{const c=v=>v==null?'':String(v).replace(/\s+/g,' ').trim(),meta=(...ss)=>{for(const s of ss){const e=document.querySelector(s);if(e?.content)return e.content.trim()}return ''};const ps=[];for(const s of document.querySelectorAll('script[type="application/ld+json"]')){try{const j=JSON.parse(s.textContent||'null');const w=x=>{if(!x)return;if(Array.isArray(x))return x.forEach(w);if(typeof x!=='object')return;if(x['@graph'])w(x['@graph']);const t=x['@type'],ts=Array.isArray(t)?t:[t];if(ts.some(z=>String(z).toLowerCase()==='product'))ps.push(x);for(const v of Object.values(x))if(v&&typeof v==='object')w(v)};w(j)}catch{}}const q=ps[0]||{};let o=q.offers||{};if(Array.isArray(o))o=o.find(x=>x&&typeof x==='object')||{};let b=q.brand||'';if(b&&typeof b==='object')b=b.name||'';let im=q.image||'';if(Array.isArray(im))im=im[0]||'';if(im&&typeof im==='object')im=im.url||im.contentUrl||'';const props={};let ap=q.additionalProperty||q.additionalProperties||[];if(!Array.isArray(ap))ap=[ap];for(const x of ap){if(!x||typeof x!=='object')continue;const n=c(x.name||x.propertyID),v=c(x.value||x.valueReference);if(n&&v&&n.length<=120&&v.length<=600)props[n]=v}return{title:c(q.name)||meta('meta[property="og:title"]')||c(document.querySelector('h1')?.textContent),description:c(q.description)||meta('meta[property="og:description"]','meta[name="description"]'),price:c(o.price||o.lowPrice)||meta('meta[property="product:price:amount"]'),currency:c(o.priceCurrency)||meta('meta[property="product:price:currency"]')||'USD',sku:c(q.sku),mpn:c(q.mpn),model:c(q.model),brand:c(b)||'Lenovo',image:c(im)||meta('meta[property="og:image"]'),specs:props}});const tail=new URL(url).pathname.replace(/\/$/,'').split('/').at(-1)||'',id=d.sku||d.mpn||tail,m=String(d.price||'').replace(/,/g,'').match(/\d+(?:\.\d+)?/),pr=m?Number(m[0]):null;if(!d.title||!id)return null;return{seller:'Lenovo',advertiser:runtime.campaignName,sourceProductId:id,id,sku:d.sku||id,mpn:d.mpn,model:d.model,title:d.title,description:d.description,brand:d.brand||'Lenovo',category:'',subcategory:'',price:Number.isFinite(pr)&&pr>0?pr:null,currency:d.currency||'USD',imageUrl:d.image,affiliateUrl:'',destinationUrl:url,condition:'new',availability:'unknown',specs:d.specs||{},network:'Admitad',source:'Lenovo official US browser-rendered product page',sourceVersion:VERSION}}catch{return null}finally{await p.close()}}
+            const rows=[];for(let i=0;i<productUrls.length;i+=6){for(const x of await Promise.all(productUrls.slice(i,i+6).map(scrape)))if(x)rows.push(x)}await browser.close();const by=new Map();for(const r of rows){const k=String(r.sourceProductId).toLowerCase(),old=by.get(k),score=x=>(x.price!=null?4:0)+(x.imageUrl?3:0)+Object.keys(x.specs||{}).length;if(!old||score(r)>score(old))by.set(k,r)}const unique=[...by.values()].sort((a,b)=>a.title.localeCompare(b.title));
+            for(let i=0;i<unique.length;i+=100){const chunk=unique.slice(i,i+100),q=new URLSearchParams();q.append('subid','trendpilot-v19-lenovo-browser-v19-12-2');for(const r of chunk)q.append('ulp',r.destinationUrl);const resp=await fetch(`${API}/deeplink/${WEBSITE_ID}/advcampaign/${runtime.campaignId}/?${q}`,{headers:{Authorization:`Bearer ${runtime.token}`}});if(!resp.ok)throw new Error(`deeplink HTTP ${resp.status}`);const rr=await resp.json();if(!Array.isArray(rr)||rr.length!==chunk.length)throw new Error('deeplink count mismatch');for(let j=0;j<chunk.length;j++)if(/^https?:\/\//i.test(rr[j]?.link||''))chunk[j].affiliateUrl=rr[j].link}
+            const n=unique.length,count=f=>unique.filter(f).length,pc=count(x=>x.price!=null),ic=count(x=>/^https?:\/\//i.test(x.imageUrl||'')),lc=count(x=>/^https?:\/\//i.test(x.affiliateUrl||'')),idc=count(x=>!!x.sourceProductId),sc=count(x=>Object.keys(x.specs||{}).length>0),pct=c=>n?Math.round(c*1000/n)/10:0,ready=n>=20&&idc===n&&lc===n&&pc/n>=.40&&ic/n>=.70;if(ready)fs.writeFileSync('data/source-ingestion-v19/lenovo-direct-catalog.json',JSON.stringify(unique,null,2)+'\n');const audit={version:VERSION,route:'playwright-browser-fallback',campaignId:runtime.campaignId,campaignName:runtime.campaignName,sitemapsFetched:0,productUrlsDiscovered:productUrls.length,productsStaged:n,stableIdCoverage:pct(idc),priceCoverage:pct(pc),imageCoverage:pct(ic),structuredSpecsCoverage:pct(sc),affiliateCoverage:pct(lc),landingErrors,ready,reason:ready?'':`Browser route insufficient: products=${n}, price=${pct(pc)}%, image=${pct(ic)}%, affiliate=${pct(lc)}%`};fs.writeFileSync('data/catalog-v19/source-ingestion/lenovo-direct-source-audit.json',JSON.stringify(audit,null,2)+'\n');fs.writeFileSync('/tmp/lenovo-v19/browser-ready',ready?'true':'false');console.log(JSON.stringify(audit,null,2));
+          JS
+
+            node --check /tmp/lenovo-browser.mjs
+            node /tmp/lenovo-browser.mjs
+          fi
+
+          python3 - <<'PYFINAL'
+          import json,os
+          from pathlib import Path
+          auditp=Path('data/catalog-v19/source-ingestion/lenovo-direct-source-audit.json')
+          source=Path('data/source-ingestion-v19/lenovo-direct-catalog.json')
+          audit=json.loads(auditp.read_text()) if auditp.exists() else {}
+          ready=bool(audit.get('ready') and source.exists() and source.stat().st_size>100)
+          with open(os.environ['GITHUB_OUTPUT'],'a') as fh:
+              fh.write(f"ready={'true' if ready else 'false'}\n")
+              fh.write(f"count={int(audit.get('productsStaged',0))}\n")
+          print('Selected Lenovo source route:',audit.get('route'))
+          print('Ready:',ready,'Products:',audit.get('productsStaged',0),'Reason:',audit.get('reason',''))
+          PYFINAL
+
+      - name: Discover Lenovo source through V19 intake
+        if: steps.source.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node scripts/catalog-v19/discover-seller-sources.mjs \
+            --seller="Lenovo" \
+            --slug=lenovo \
+            --version="${VERSION}"
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          p = Path("data/catalog-v19/source-manifests/lenovo.json")
+          manifest = json.loads(p.read_text())
+
+          assert manifest["seller"] == "Lenovo"
+          assert manifest["qualifiedFileCount"] >= 1
+          assert manifest["qualifiedUniqueProducts"] >= 20
+          assert "data/source-ingestion-v19/lenovo-direct-catalog.json" in manifest["qualifiedFiles"]
+
+          row = next(
+              x for x in manifest["files"]
+              if x["file"] == "data/source-ingestion-v19/lenovo-direct-catalog.json"
+          )
+
+          print("Lenovo intake metrics:", json.dumps({
+              "uniqueProducts": row["uniqueProducts"],
+              "stableIdPercent": row["stableIdPercent"],
+              "pricePercent": row["pricePercent"],
+              "imagePercent": row["imagePercent"],
+              "linkPercent": row["linkPercent"],
+              "qualifies": row["qualifies"]
+          }, indent=2))
+
+          assert row["qualifies"] is True, row
+          assert row["stableIdPercent"] == 100, row
+          assert row["linkPercent"] == 100, row
+          assert row["pricePercent"] >= 50, row
+          assert row["imagePercent"] >= 70, row
+
+          print("Lenovo V19 source intake PASS.")
+          PY
+
+      - name: Build Seller 12 — Lenovo
+        if: steps.source.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node scripts/catalog-v19/build-canonical-seller.mjs \
+            --seller="Lenovo" \
+            --slug=lenovo \
+            --version="${VERSION}" \
+            --role=twelfth-canonical-catalog \
+            --source-manifest=data/catalog-v19/source-manifests/lenovo.json
+
+      - name: Validate Lenovo canonical catalog
+        if: steps.source.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, math
+
+          root = Path("data/catalog-v19")
+          intake = json.loads((root/"source-manifests/lenovo.json").read_text())
+          seller = root/"sellers/lenovo"
+          manifest = json.loads((seller/"manifest.json").read_text())
+          audit = json.loads((seller/"audit.json").read_text())
+
+          total = int(manifest["metrics"]["totalProducts"])
+          source_total = int(intake["qualifiedUniqueProducts"])
+
+          assert manifest["version"] == "19.12.2"
+          assert manifest["seller"]["name"] == "Lenovo"
+          assert total >= 20
+          assert total >= math.floor(source_total * 0.95)
+
+          metrics = manifest["metrics"]
+          assert metrics["sourceQualified"] == total
+          assert metrics["stableSellerId"] == total
+          assert metrics["link"] == total
+          assert metrics["price"] / total >= 0.50
+          assert metrics["image"] / total >= 0.70
+          assert metrics["brand"] / total >= 0.95
+
+          assert audit["sourceLeak"] is False
+          assert audit["blockedSellerLeak"] is False
+          assert audit["duplicateProductKeys"] is False
+
+          failed = [x for x in audit.get("roundTripSamples", []) if not x.get("resolved")]
+          assert not failed, failed[:5]
+
+          print("Lenovo canonical catalog PASS.")
+          print(json.dumps({
+              "canonicalProducts": total,
+              "stableId": metrics["stableSellerId"],
+              "brand": metrics["brand"],
+              "modelAny": metrics["modelAny"],
+              "structuredSpecs": metrics["structuredSpecs"],
+              "derivedSpecs": metrics["derivedSpecs"],
+              "price": metrics["price"],
+              "image": metrics["image"],
+              "affiliateOrDestinationLink": metrics["link"]
+          }, indent=2))
+          PY
+
+      - name: Add Lenovo to validated catalog set
+        if: steps.source.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          path = Path("data/catalog-v19/catalog-set-v1.json")
+          catalog = json.loads(path.read_text())
+          sellers = list(catalog.get("sellers", []))
+
+          names = [x["name"] for x in sellers]
+          assert len(names) == 11, names
+          assert "MFI Medical" in names
+          assert "Lenovo" not in names
+
+          sellers.append({"name": "Lenovo", "slug": "lenovo"})
+
+          assert len({x["name"] for x in sellers}) == 12
+          for blocked in ["Joom", "Temu", "FilamentPRO EU CPS"]:
+              assert blocked not in {x["name"] for x in sellers}
+
+          catalog["version"] = "19.12.2"
+          catalog["sellers"] = sellers
+          path.write_text(json.dumps(catalog, indent=2) + "\n")
+          print("Lenovo appended to catalog-set-v1.json.")
+          PY
+
+      - name: Rebuild twelve-seller resolver and source queue
+        if: steps.source.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          for file in [
+              Path("scripts/catalog-v19/build-global-resolver.mjs"),
+              Path("scripts/catalog-v19/build-source-aware-seller-queue.mjs")
+          ]:
+              text = file.read_text()
+              text, n = re.subn(
+                  r'const VERSION = "[^"]+";',
+                  'const VERSION = "19.12.2";',
+                  text,
+                  count=1
+              )
+              assert n == 1, file
+              file.write_text(text)
+          PY
+
+          node --check scripts/catalog-v19/build-global-resolver.mjs
+          node --check scripts/catalog-v19/build-source-aware-seller-queue.mjs
+
+          node scripts/catalog-v19/build-global-resolver.mjs
+          node scripts/catalog-v19/build-source-aware-seller-queue.mjs
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          cross = json.loads((root/"cross-seller-audit-v1.json").read_text())
+          queue = json.loads((root/"seller-build-queue-v3.json").read_text())
+          catalog = json.loads((root/"catalog-set-v1.json").read_text())
+
+          assert cross["version"] == "19.12.2"
+          assert len(catalog["sellers"]) == 12
+          assert len(cross["sellers"]) == 12
+          assert cross["sellerCounts"]["Lenovo"] >= 20
+          assert cross["blockedSellerLeak"] is False
+          assert cross["duplicateGlobalProductKeys"] is False
+          assert not cross.get("insertionFailures")
+          assert not cross.get("failedRoundTrips")
+
+          completed = set(queue.get("completedSellers", []))
+          assert "Lenovo" in completed
+
+          remaining = {x["seller"] for x in queue.get("remaining", [])}
+          assert remaining <= {"TikTok Shop US"}, remaining
+
+          for blocked in ["Joom", "Temu", "FilamentPRO EU CPS"]:
+              assert blocked not in completed
+              assert blocked not in remaining
+
+          print("Twelve-seller resolver PASS.")
+          print("Total canonical records:", cross["totalRecords"])
+          print("Remaining source work:", sorted(remaining))
+          PY
+
+      - name: Create concise V19.12.2 report
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          report = root/"V19.12.2-REPORT.md"
+
+          admitad_file = root/"source-ingestion/lenovo-admitad-audit.json"
+          source_file = root/"source-ingestion/lenovo-direct-source-audit.json"
+          admitad = json.loads(admitad_file.read_text()) if admitad_file.exists() else {}
+          source = json.loads(source_file.read_text()) if source_file.exists() else {}
+
+          best = admitad.get("bestFeed") or {}
+
+          lines = [
+              "# TrendPilot V19.12.2 — Seller 12: Lenovo",
+              "",
+              "> Seller-by-seller canonical catalog build. Visitor UI/search API remain unchanged.",
+              "",
+              "## Admitad relationship + feed safety",
+              f"- Campaign: **{admitad.get('campaignName','—')}**",
+              f"- Campaign ID: **{admitad.get('campaignId','—')}**",
+              f"- Admitad deeplink allowed: **{'PASS' if admitad.get('allowDeeplink') else 'NO'}**",
+              f"- Feeds inspected: **{admitad.get('feedCount',0)}**",
+              f"- Best feed sample purity: **{best.get('purityPercent',0)}%**",
+              f"- Best feed obvious-noise rate: **{best.get('noisePercent',0)}%**",
+              "- Feed strategy: **scan all rows and accept only records whose destination is an official Lenovo domain plus an independent Lenovo brand/family signal; browser fallback is used only if that route is insufficient**",
+              "",
+              "## Selected Lenovo source",
+              f"- Direct sitemap fetches used: **{source.get('sitemapsFetched',0)}**",
+              f"- Verified Lenovo product URLs/rows discovered: **{int(source.get('productUrlsDiscovered',0)):,}**",
+              f"- Products staged: **{int(source.get('productsStaged',0)):,}**",
+              f"- Stable seller ID coverage: **{source.get('stableIdCoverage',0)}%**",
+              f"- Price coverage: **{source.get('priceCoverage',0)}%**",
+              f"- Image coverage: **{source.get('imageCoverage',0)}%**",
+              f"- Structured-spec coverage: **{source.get('structuredSpecsCoverage',0)}%**",
+              f"- Admitad deeplink coverage: **{source.get('affiliateCoverage',0)}%**",
+              "",
+          ]
+
+          manifest_file = root/"sellers/lenovo/manifest.json"
+          cross_file = root/"cross-seller-audit-v1.json"
+          queue_file = root/"seller-build-queue-v3.json"
+
+          if source.get("ready") and manifest_file.exists() and cross_file.exists():
+              manifest = json.loads(manifest_file.read_text())
+              metrics = manifest["metrics"]
+              cross = json.loads(cross_file.read_text())
+              queue = json.loads(queue_file.read_text())
+
+              lines.extend([
+                  "## Seller 12 — Lenovo",
+                  f"- Canonical products: **{metrics['totalProducts']:,}**",
+                  f"- Stable seller ID/SKU: **{metrics['stableSellerId']:,}**",
+                  f"- Brand: **{metrics['brand']:,}**",
+                  f"- Model/name hint: **{metrics['modelAny']:,}**",
+                  f"- Structured specs: **{metrics['structuredSpecs']:,}**",
+                  f"- Derived title specs: **{metrics['derivedSpecs']:,}**",
+                  f"- Price: **{metrics['price']:,}**",
+                  f"- Image: **{metrics['image']:,}**",
+                  f"- Affiliate/destination links: **{metrics['link']:,}**",
+                  "",
+                  "## Twelve-seller shared resolver",
+                  f"- Total canonical records: **{cross['totalRecords']:,}**",
+                  f"- Automatic exact cross-seller groups: **{cross['autoExactGroups']:,}**",
+                  f"- Brand/model discovery overlaps: **{cross['brandModelDiscoveryOverlaps']:,}**",
+                  "",
+                  "## Gate for Seller 13",
+                  "**PASS**",
+                  ""
+              ])
+
+              remaining = queue.get("remaining", [])
+              if remaining:
+                  lines.append(
+                      "Remaining approved seller needing source work: "
+                      + ", ".join(f"**{x['seller']}**" for x in remaining) + "."
+                  )
+              else:
+                  lines.append("No approved seller remains in the source-ingestion queue.")
+          else:
+              lines.extend([
+                  "## Lenovo ingestion gate",
+                  f"**SOURCE NOT READY — {source.get('reason') or 'Lenovo source did not pass all hard gates.'}**",
+                  "",
+                  "No Lenovo canonical catalog, shared resolver, visitor search, or UI state was committed."
+              ])
+
+          report.write_text("\n".join(lines) + "\n")
+          print(report.read_text())
+          PY
+
+      - name: Commit Seller 12 only after all V19.12.2 gates pass
+        if: steps.source.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s data/catalog-v19/sellers/lenovo/manifest.json
+          test -s data/catalog-v19/cross-seller-audit-v1.json
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          cross = json.loads(Path("data/catalog-v19/cross-seller-audit-v1.json").read_text())
+          queue = json.loads(Path("data/catalog-v19/seller-build-queue-v3.json").read_text())
+          assert cross["version"] == "19.12.2"
+          assert cross["sellerCounts"]["Lenovo"] >= 20
+          assert {x["seller"] for x in queue.get("remaining", [])} <= {"TikTok Shop US"}
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            data/source-ingestion-v19/lenovo-direct-catalog.json \
+            data/catalog-v19/source-ingestion/lenovo-admitad-audit.json \
+            data/catalog-v19/source-ingestion/lenovo-direct-source-audit.json \
+            data/catalog-v19/source-ingestion/lenovo-coupons.json \
+            data/catalog-v19/source-manifests/lenovo.json \
+            data/catalog-v19/sellers/lenovo \
+            data/catalog-v19/catalog-set-v1.json \
+            data/catalog-v19/global-resolver-v1.json \
+            data/catalog-v19/cross-seller-audit-v1.json \
+            data/catalog-v19/seller-build-queue-v3.json \
+            data/catalog-v19/V19.12.2-REPORT.md \
+            scripts/catalog-v19/build-global-resolver.mjs \
+            scripts/catalog-v19/build-source-aware-seller-queue.mjs
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "Lenovo V19.12.2 state is already current."
+          else
+            git commit -m "feat: add Lenovo canonical catalog with Admitad deeplinks"
+            if ! git push origin HEAD:main; then
+              git pull --rebase origin main
+              git push origin HEAD:main
+            fi
+          fi
+
+      - name: Publish V19.12.2 summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -s data/catalog-v19/V19.12.2-REPORT.md ]; then
+            cat data/catalog-v19/V19.12.2-REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload Lenovo audit artifact
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: trendpilot-v19-12-1-lenovo
+          path: |
+            data/catalog-v19/V19.12.2-REPORT.md
+            data/catalog-v19/source-ingestion/lenovo-admitad-audit.json
+            data/catalog-v19/source-ingestion/lenovo-direct-source-audit.json
+            data/source-ingestion-v19/lenovo-direct-catalog.json
+            data/catalog-v19/source-manifests/lenovo.json
+            data/catalog-v19/sellers/lenovo/manifest.json
+            data/catalog-v19/sellers/lenovo/audit.json
+            data/catalog-v19/seller-build-queue-v3.json
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 9
