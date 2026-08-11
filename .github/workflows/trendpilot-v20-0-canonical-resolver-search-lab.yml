@@ -1,0 +1,405 @@
+name: TrendPilot V20.0 — Canonical Resolver Search Lab
+
+on:
+  workflow_dispatch:
+    inputs:
+      queries:
+        description: "Comma-separated visitor queries to test"
+        required: false
+        default: "iPhone 16,Galaxy S25,ThinkPad,phone,laptop,smartwatch,headphones,perfume,dog food,power bank,air conditioner,3d filament"
+      max_results:
+        description: "Maximum main results shown per query"
+        required: false
+        default: "12"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v20-canonical-search-lab
+  cancel-in-progress: false
+
+jobs:
+  v20-search-lab:
+    name: Build canonical search projection and test resolver
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Verify V19 canonical foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/product-seller-registry-v17.json
+          test -d data/catalog-v19/sellers
+          test -f data/catalog-v19/schema-v1.json
+          python3 - <<'PY'
+          import json, pathlib
+          reg=json.load(open("data/product-seller-registry-v17.json",encoding="utf-8"))
+          sellers=[x["name"] for x in reg.get("sellers",[]) if x.get("public") is True]
+          print("Approved public sellers:", len(sellers))
+          for s in sellers:
+              print(" -",s)
+          assert len(sellers)==13, f"Expected 13 approved public sellers, got {len(sellers)}"
+          blocked={"Temu","Joom","FilamentPRO EU CPS"}
+          assert not (blocked & set(sellers)), f"Blocked seller leaked into policy: {blocked & set(sellers)}"
+          p=pathlib.Path("data/catalog-v19/sellers")
+          files=list(p.glob("*/products.ndjson"))
+          print("Canonical seller product files found:",len(files))
+          assert len(files)>=13, f"Expected at least 13 seller catalog files, got {len(files)}"
+          PY
+
+      - name: Build V20 canonical search lab
+        shell: bash
+        env:
+          V20_QUERIES: ${{ inputs.queries }}
+          V20_MAX_RESULTS: ${{ inputs.max_results }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/v20-lab"
+
+          cat > "$RUNNER_TEMP/v20-search-lab.mjs" <<'JS'
+          import fs from "node:fs";
+          import path from "node:path";
+
+          const ROOT = process.cwd();
+          const OUT = path.join(process.env.RUNNER_TEMP || "/tmp", "v20-lab");
+          fs.mkdirSync(OUT, { recursive: true });
+
+          const clean = (v) => String(v ?? "").trim();
+          const norm = (v) => clean(v)
+            .normalize("NFKD")
+            .replace(/\p{M}+/gu, "")
+            .toLowerCase()
+            .replace(/[’‘`´]/g, "'")
+            .replace(/[“”]/g, '"')
+            .replace(/[_/\\|]+/g, " ")
+            .replace(/[^\p{L}\p{N}.+\-'" ]+/gu, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+          const compact = (v) => norm(v).replace(/[^\p{L}\p{N}]+/gu, "");
+
+          const registryPath = path.join(ROOT, "data/product-seller-registry-v17.json");
+          const registry = JSON.parse(fs.readFileSync(registryPath, "utf8"));
+          const approved = registry.sellers.filter(s => s.public === true);
+          const approvedNames = new Set(approved.map(s => s.name));
+          const approvedByName = new Map(approved.map(s => [s.name, s]));
+
+          const blockedPatterns = [/^temu$/i, /^joom$/i, /filamentpro/i];
+          const isBlockedSeller = (name) => blockedPatterns.some(r => r.test(clean(name)));
+
+          function parseNdjson(file) {
+            const text = fs.readFileSync(file, "utf8");
+            const out = [];
+            let lineNo = 0;
+            for (const line of text.split(/\r?\n/)) {
+              lineNo++;
+              if (!line.trim()) continue;
+              try { out.push(JSON.parse(line)); }
+              catch (e) { throw new Error(`Invalid NDJSON ${file}:${lineNo}: ${e.message}`); }
+            }
+            return out;
+          }
+
+          // Discover canonical seller catalogs dynamically. Do not depend on a stale hard-coded seller list.
+          const sellersRoot = path.join(ROOT, "data/catalog-v19/sellers");
+          const sellerDirs = fs.readdirSync(sellersRoot, { withFileTypes: true })
+            .filter(d => d.isDirectory()).map(d => d.name).sort();
+
+          const catalogs = [];
+          const missingApproved = [];
+          const unexpectedCatalogs = [];
+          const productMap = new Map();
+          const duplicateKeys = [];
+          const sellerStats = new Map();
+
+          for (const dir of sellerDirs) {
+            const file = path.join(sellersRoot, dir, "products.ndjson");
+            if (!fs.existsSync(file)) continue;
+            const rows = parseNdjson(file);
+            if (!rows.length) continue;
+            const sellerName = clean(rows[0]?.seller?.name);
+            if (!approvedNames.has(sellerName)) {
+              unexpectedCatalogs.push({ dir, sellerName, rows: rows.length });
+              continue;
+            }
+            if (isBlockedSeller(sellerName)) throw new Error(`Blocked seller catalog entered V20: ${sellerName}`);
+
+            let accepted = 0, badSellerRows = 0;
+            for (const p of rows) {
+              if (clean(p?.seller?.name) !== sellerName) { badSellerRows++; continue; }
+              const key = clean(p.productKey);
+              if (!key) continue;
+              if (productMap.has(key)) { duplicateKeys.push(key); continue; }
+              productMap.set(key, p);
+              accepted++;
+            }
+            catalogs.push({ dir, sellerName, file, rows: rows.length, accepted, badSellerRows });
+            sellerStats.set(sellerName, {
+              seller: sellerName,
+              slug: clean(rows[0]?.seller?.slug) || dir,
+              network: clean(rows[0]?.seller?.network) || clean(approvedByName.get(sellerName)?.network),
+              records: accepted,
+              cpc: approvedByName.get(sellerName)?.cpc === true,
+              stableId: 0, price: 0, image: 0, link: 0, taxonomy: 0, model: 0,
+              mainClassified: 0, relatedSeparated: 0, unclassified: 0
+            });
+          }
+
+          for (const a of approved) if (!catalogs.some(c => c.sellerName === a.name)) missingApproved.push(a.name);
+          if (missingApproved.length) throw new Error(`Approved seller catalogs missing: ${missingApproved.join(", ")}`);
+
+          const products = [...productMap.values()];
+          const STOP = new Set(["the","a","an","and","or","for","with","to","of","in","on","by","from","new","hot","sale","best","top","quality","original","global","version","official","wholesale","factory","free","shipping","online","shopping"]);
+
+          const accessoryCommon = /\b(case|cover|protector|screen protector|film|sleeve|bag|strap|band|replacement|spare part|spare|repair|digitizer|lcd screen|screen assembly|tray|holder|mount|stand|tripod|cable|cord|adapter|dock|bracket|housing|shell|keyboard film|keyboard cover|skin|decal)\b/i;
+          const partCommon = /\b(board|pcb|module|valve|compressor|motor|fan replacement|flex cable|sensor|connector|socket|hinge|bezel|chassis|assembly|filter core|hose adapter)\b/i;
+
+          const defs = [
+            { type:"phone", aliases:["phone","phones","smartphone","smartphones","mobile phone","cell phone"],
+              positive:[/\bsmartphone\b/i,/\bmobile phone\b/i,/\bcell phone\b/i,/\bfeature phone\b/i,/\biphone\s*(?:1[0-9]|[6-9])\b/i,/\bgalaxy\s+s\d{1,2}\b/i,/\bsamsung\s+galaxy\s+s\d{1,2}\b/i,/\bpixel\s+\d{1,2}\b/i,/\bredmi\s+(?:note\s+)?\d{1,2}\b/i,/\b(?:oneplus|oppo|doogee|ulefone)\b.*\b(?:phone|smartphone)\b/i],
+              negative:[accessoryCommon,partCommon,/\b(earphone|earbud|headphone|headset|projector|lens|microphone|speaker|power supply|tester|tool|watch)\b/i] },
+            { type:"laptop", aliases:["laptop","laptops","notebook","notebook computer","ultrabook","chromebook","thinkpad"],
+              positive:[/\blaptop\b/i,/\bultrabook\b/i,/\bnotebook computer\b/i,/\bchromebook\b/i,/\bthinkpad\b/i,/\bideapad\b/i,/\bthinkbook\b/i,/\blegion\b.*\b(?:gen|laptop|inch|amd|intel)\b/i],
+              negative:[accessoryCommon,partCommon,/\b(screen protector|privacy filter|ram|memory|ssd|hard drive|monitor|extension monitor|cooling fan|battery|charger|mouse|desk|chair)\b/i] },
+            { type:"smartwatch", aliases:["smartwatch","smart watch","smartwatches"], positive:[/\bsmart\s*watch\b/i,/\bsmartwatch\b/i,/\bgps watch\b/i], negative:[accessoryCommon,partCommon,/\b(watch band|watch strap|screen|lcd|charger|charging)\b/i] },
+            { type:"headphones", aliases:["headphones","headphone","earbuds","earphones","earphone","headset"], positive:[/\bheadphones?\b/i,/\bearbuds?\b/i,/\bearphones?\b/i,/\bwireless headset\b/i,/\btws\b.*\b(?:earbud|earphone|headphone)\b/i], negative:[accessoryCommon,partCommon,/\b(vr|virtual reality|hook|storage bag|carrying case|upgrade cable|audio cable)\b/i] },
+            { type:"perfume", aliases:["perfume","perfumes","cologne","fragrance"], positive:[/\bperfume\b/i,/\beau de parfum\b/i,/\beau de toilette\b/i,/\bcologne\b/i], negative:[accessoryCommon,partCommon,/\b(teacup|tea cup|coat|airpod|keychain|pad|pads|machine|chuck|engraving)\b/i] },
+            { type:"dog_food", aliases:["dog food","dog treats","puppy food","pet food"], positive:[/\bdog food\b/i,/\bdog treats?\b/i,/\bpuppy food\b/i,/\bdog snack\b/i], negative:[accessoryCommon,partCommon,/\b(beads?|feeder|dispenser|pelletizer|extruder|production line|machine|bowl|container)\b/i] },
+            { type:"power_bank", aliases:["power bank","powerbank","portable charger"], positive:[/\bpower\s*bank\b/i,/\bpowerbank\b/i], negative:[partCommon,/\b(module|circuit board|pcb|kit|case|housing|replacement|for power bank)\b/i] },
+            { type:"air_conditioner", aliases:["air conditioner","air conditioning","ac unit"], positive:[/\bportable air conditioner\b/i,/\bwindow air conditioner\b/i,/\bsplit air conditioner\b/i,/\binverter air conditioner\b/i,/\bair conditioner\b.*\b(?:btu|cooling|heating|hp)\b/i,/\b(?:btu|cooling|heating|hp)\b.*\bair conditioner\b/i], negative:[accessoryCommon,partCommon,/\b(bracket|valve|receiver board|filter|hose|tool|cleaner|grille|grill|pipe|burner|drill)\b/i] },
+            { type:"3d_filament", aliases:["3d filament","filament","pla filament","petg filament"], positive:[/\b(?:pla|petg|abs|tpu|asa)\b.*\bfilament\b/i,/\bfilament\b.*\b(?:1\.75\s*mm|kg|pla|petg|abs|tpu|asa)\b/i], negative:[/\b(tea bag|filter bag|airpod|case|sleeve|cover)\b/i] },
+            { type:"cookware", aliases:["cookware","cookware set","frying pan","pots and pans"], positive:[/\bcookware set\b/i,/\bfrying pan\b/i,/\bsaucepan\b/i,/\bskillet\b/i,/\bpot set\b/i,/\bcasserole\b/i], negative:[/\b(chopping board|cutting board|utensil holder|replacement|spare)\b/i] },
+            { type:"lighting", aliases:["lighting","led lights","lamp","led strip"], positive:[/\bled strip lights?\b/i,/\bfloor lamp\b/i,/\bwall light\b/i,/\btable lamp\b/i,/\bsmart light\b/i], negative:[accessoryCommon,partCommon] },
+            { type:"tools", aliases:["tools","tool","drill bit","screwdriver","wrench"], positive:[/\bdrill bits?\b/i,/\bscrewdrivers?\b/i,/\bwrenches?\b/i,/\bpliers?\b/i,/\bhammer\b/i,/\bsocket set\b/i,/\btool set\b/i], negative:[/\b(screen protector|phone film|iphone|air conditioner tool)\b/i] }
+          ];
+
+          const aliasToType = new Map();
+          for (const d of defs) for (const a of d.aliases) aliasToType.set(norm(a), d.type);
+
+          function textFor(p) {
+            const tax=p.taxonomy||{};
+            return [p?.name?.display,p?.name?.normalized,p?.brand,tax.canonicalCategory,...(Array.isArray(tax.canonicalPath)?tax.canonicalPath:[]),tax.sourceCategory,tax.sourceSubcategory].map(clean).filter(Boolean).join(" ");
+          }
+          const titleFor = (p) => clean(p?.name?.display || p?.name?.normalized);
+
+          function classify(p) {
+            const title=titleFor(p), text=textFor(p);
+            for (const d of defs) {
+              const pos=d.positive.some(r=>r.test(title)||r.test(text));
+              if (!pos) continue;
+              const neg=d.negative.some(r=>r.test(title));
+              if (neg) return {type:d.type,role:"related",reason:"negative-gate"};
+              return {type:d.type,role:"main",reason:"direct-signal"};
+            }
+            if (accessoryCommon.test(title)||partCommon.test(title)) return {type:"",role:"related",reason:"generic-accessory-part"};
+            return {type:"",role:"unclassified",reason:"no-direct-type-signal"};
+          }
+
+          // Precompute the product search projection once. Visitor queries consume this projection only.
+          const projection=[];
+          for (const p of products) {
+            const c=classify(p), sellerName=clean(p?.seller?.name), stat=sellerStats.get(sellerName);
+            const ids=p.identifiers||{}, tax=p.taxonomy||{}, offer=p.offer||{}, media=p.media||{}, links=p.links||{};
+            const stableId=clean(ids.sellerProductId||ids.sku);
+            const hasPrice=Number.isFinite(Number(offer.price))&&Number(offer.price)>0;
+            const hasImage=/^https?:\/\//i.test(clean(media.imageUrl));
+            const hasLink=/^https?:\/\//i.test(clean(links.affiliateUrl||links.destinationUrl));
+            const hasTaxonomy=Boolean(clean(tax.canonicalCategory)||(Array.isArray(tax.canonicalPath)&&tax.canonicalPath.length));
+            const hasModel=Boolean(clean(ids.model||ids.mpn));
+            if (stat) {
+              if(stableId)stat.stableId++; if(hasPrice)stat.price++; if(hasImage)stat.image++; if(hasLink)stat.link++; if(hasTaxonomy)stat.taxonomy++; if(hasModel)stat.model++;
+              if(c.role==="main")stat.mainClassified++; else if(c.role==="related")stat.relatedSeparated++; else stat.unclassified++;
+            }
+            projection.push({
+              productKey:clean(p.productKey),seller:sellerName,sellerSlug:clean(p?.seller?.slug),network:clean(p?.seller?.network),name:clean(p?.name?.display),
+              nameNorm:norm(p?.name?.normalized||p?.name?.display),nameCompact:compact(p?.name?.compact||p?.name?.display),aliases:Array.isArray(p?.name?.aliases)?p.name.aliases.map(norm).filter(Boolean):[],brand:norm(p.brand),
+              type:c.type,role:c.role,classificationReason:c.reason,
+              identifiers:{sellerProductId:clean(ids.sellerProductId),sku:clean(ids.sku),model:clean(ids.model),mpn:clean(ids.mpn),gtin:clean(ids.gtin),ean:clean(ids.ean),upc:clean(ids.upc),isbn:clean(ids.isbn)},
+              modelConfidence:clean(p?.identity?.modelConfidence),taxonomy:{canonicalCategory:clean(tax.canonicalCategory),canonicalPath:Array.isArray(tax.canonicalPath)?tax.canonicalPath.map(clean):[],sourceCategory:clean(tax.sourceCategory),sourceSubcategory:clean(tax.sourceSubcategory)},
+              specs:p.specs||{},price:hasPrice?Number(offer.price):null,currency:clean(offer.currency),imageUrl:clean(media.imageUrl),affiliateUrl:clean(links.affiliateUrl),destinationUrl:clean(links.destinationUrl),quality:Number(p?.quality?.inputQuality||0),cpc:approvedByName.get(sellerName)?.cpc===true
+            });
+          }
+
+          const idIndex=new Map(),nameIndex=new Map(),compactIndex=new Map(),aliasIndex=new Map(),typeMain=new Map(),typeRelated=new Map();
+          function addIndex(map,key,idx){ if(!key)return; const k=norm(key); if(!k)return; if(!map.has(k))map.set(k,[]); map.get(k).push(idx); }
+          for(let i=0;i<projection.length;i++){
+            const r=projection[i];
+            for(const v of Object.values(r.identifiers)) addIndex(idIndex,v,i);
+            addIndex(nameIndex,r.nameNorm,i);
+            if(r.nameCompact){if(!compactIndex.has(r.nameCompact))compactIndex.set(r.nameCompact,[]);compactIndex.get(r.nameCompact).push(i);}
+            for(const a of r.aliases)addIndex(aliasIndex,a,i);
+            if(r.type){const target=r.role==="main"?typeMain:typeRelated;if(!target.has(r.type))target.set(r.type,[]);target.get(r.type).push(i);}
+          }
+
+          function strongGlobalKeys(r){
+            const ids=r.identifiers,keys=[];
+            for(const f of ["gtin","ean","upc","isbn"]){const v=compact(ids[f]);if(v.length>=6)keys.push(`${f}:${v}`);}
+            const b=compact(r.brand),mpn=compact(ids.mpn); if(b&&b!=="other"&&b!=="unknown"&&mpn)keys.push(`brand-mpn:${b}:${mpn}`);
+            const model=compact(ids.model); if(b&&b!=="other"&&b!=="unknown"&&model&&r.modelConfidence==="explicit")keys.push(`brand-model:${b}:${model}`);
+            return [...new Set(keys)];
+          }
+          const globalGroups=new Map(),exactNameGroups=new Map();
+          for(let i=0;i<projection.length;i++){
+            const r=projection[i];
+            for(const k of strongGlobalKeys(r)){if(!globalGroups.has(k))globalGroups.set(k,[]);globalGroups.get(k).push(i);}
+            if(r.nameNorm){if(!exactNameGroups.has(r.nameNorm))exactNameGroups.set(r.nameNorm,[]);exactNameGroups.get(r.nameNorm).push(i);}
+          }
+          const multiSellerGlobal=[...globalGroups.entries()].filter(([,arr])=>new Set(arr.map(i=>projection[i].seller)).size>=2);
+          const multiSellerExactName=[...exactNameGroups.entries()].filter(([,arr])=>new Set(arr.map(i=>projection[i].seller)).size>=2);
+
+          function inferQueryType(q){
+            const nq=norm(q); if(aliasToType.has(nq))return aliasToType.get(nq);
+            if(/\biphone\s*\d+/i.test(q)||/\bgalaxy\s+s\d+/i.test(q)||/\bpixel\s+\d+/i.test(q))return "phone";
+            if(/\bthinkpad\b/i.test(q)||/\bideapad\b/i.test(q)||/\bchromebook\b/i.test(q)||/\blaptop\b/i.test(q))return "laptop";
+            if(/\bsmart\s*watch\b/i.test(q)||/\bsmartwatch\b/i.test(q))return "smartwatch";
+            return "";
+          }
+          const queryTokens=(q)=>norm(q).split(" ").filter(t=>t.length>=2&&!STOP.has(t));
+          function scoreText(r,q){
+            const nq=norm(q),cq=compact(q),toks=queryTokens(q); let s=0;
+            if(r.nameNorm===nq)s+=1000; if(cq&&r.nameCompact===cq)s+=950; if(r.nameNorm.includes(nq)&&nq.length>=3)s+=300;
+            for(const t of toks){if(r.nameNorm.includes(t))s+=40;if(r.brand&&r.brand.includes(t))s+=25;if(Object.values(r.identifiers).some(v=>norm(v).includes(t)))s+=35;}
+            if(r.role==="main")s+=80;if(r.price!=null)s+=5;if(r.imageUrl)s+=5;if(r.affiliateUrl||r.destinationUrl)s+=5;s+=Math.min(20,r.quality/5);return s;
+          }
+          function roundRobinBySeller(rows,limit){
+            const buckets=new Map();for(const r of rows){if(!buckets.has(r.seller))buckets.set(r.seller,[]);buckets.get(r.seller).push(r);}
+            for(const arr of buckets.values())arr.sort((a,b)=>(b._score||0)-(a._score||0));
+            const names=[...buckets.keys()].sort((a,b)=>(buckets.get(b)[0]?._score||0)-(buckets.get(a)[0]?._score||0));
+            const out=[];let cursor=0;while(out.length<limit&&names.length){let progressed=false;for(const name of names){const arr=buckets.get(name);if(cursor<arr.length&&out.length<limit){out.push(arr[cursor]);progressed=true;}}if(!progressed)break;cursor++;}return out;
+          }
+
+          function resolveQuery(q,maxResults){
+            const nq=norm(q),cq=compact(q),inferredType=inferQueryType(q),broadType=aliasToType.get(nq)||"",isBroad=Boolean(broadType);
+            if(isBroad){
+              const mainRows=(typeMain.get(broadType)||[]).map(i=>({...projection[i],_score:scoreText(projection[i],q)}));
+              const relatedRows=(typeRelated.get(broadType)||[]).map(i=>projection[i]);
+              const shown=roundRobinBySeller(mainRows,maxResults);
+              return {query:q,mode:"broad",type:broadType,exactIdentity:[],exactName:[],main:shown,mainPool:mainRows.length,relatedCount:relatedRows.length,relatedSample:relatedRows.slice(0,3),alternatives:[]};
+            }
+            const exactIdentityIdx=new Set(idIndex.get(nq)||[]);
+            const exactNameIdx=new Set([...(nameIndex.get(nq)||[]),...(aliasIndex.get(nq)||[]),...(compactIndex.get(cq)||[])]);
+            const exactIdentity=[...exactIdentityIdx].map(i=>projection[i]);
+            const exactName=[...exactNameIdx].map(i=>projection[i]);
+            const phraseCandidates=[],relatedCandidates=[];
+            if(!exactIdentity.length&&!exactName.length){
+              for(const r of projection){if(!nq||!r.nameNorm.includes(nq))continue;if(inferredType&&r.type===inferredType&&r.role==="main")phraseCandidates.push({...r,_score:scoreText(r,q)});else relatedCandidates.push(r);}
+            }
+            let main=[];
+            if(exactIdentity.length)main=exactIdentity.slice(0,maxResults);
+            else if(exactName.length){const preferred=inferredType?exactName.filter(r=>r.type===inferredType&&r.role==="main"):exactName;main=(preferred.length?preferred:exactName).slice(0,maxResults);}
+            else main=roundRobinBySeller(phraseCandidates,maxResults);
+            let alternatives=[];
+            if(inferredType&&main.length<Math.min(4,maxResults)){
+              const pool=(typeMain.get(inferredType)||[]).map(i=>({...projection[i],_score:scoreText(projection[i],q)})).filter(r=>!main.some(m=>m.productKey===r.productKey)).filter(r=>r._score>=85).sort((a,b)=>b._score-a._score);
+              alternatives=roundRobinBySeller(pool,Math.max(0,Math.min(6,maxResults-main.length)));
+            }
+            const related=relatedCandidates.length?relatedCandidates:projection.filter(r=>{if(!inferredType||r.type!==inferredType||r.role!=="related")return false;const toks=queryTokens(q);return toks.length&&toks.some(t=>r.nameNorm.includes(t));});
+            return {query:q,mode:"specific",type:inferredType,exactIdentity,exactName,main,mainPool:main.length,relatedCount:related.length,relatedSample:related.slice(0,3),alternatives};
+          }
+
+          const roundTrips=[];
+          for(const c of catalogs){
+            const rows=projection.filter(r=>r.seller===c.sellerName&&clean(r.identifiers.sellerProductId||r.identifiers.sku)).slice(0,5);
+            for(const r of rows){const q=clean(r.identifiers.sellerProductId||r.identifiers.sku),hits=idIndex.get(norm(q))||[],pass=hits.some(i=>projection[i].productKey===r.productKey);roundTrips.push({seller:r.seller,query:q,productKey:r.productKey,pass});}
+          }
+
+          const queries=(process.env.V20_QUERIES||"").split(",").map(s=>s.trim()).filter(Boolean);
+          const maxResults=Math.max(3,Math.min(24,Number(process.env.V20_MAX_RESULTS||12)||12));
+          const queryResults=queries.map(q=>resolveQuery(q,maxResults));
+          const blockedLeak=projection.filter(r=>isBlockedSeller(r.seller));
+          const roundTripPass=roundTrips.filter(x=>x.pass).length,roundTripTotal=roundTrips.length;
+          const typeCounts={};for(const d of defs)typeCounts[d.type]={main:(typeMain.get(d.type)||[]).length,related:(typeRelated.get(d.type)||[]).length};
+          const criticalPass=approved.length===13&&missingApproved.length===0&&blockedLeak.length===0&&duplicateKeys.length===0&&roundTripTotal>0&&roundTripPass===roundTripTotal;
+          const sellerRows=[...sellerStats.values()].sort((a,b)=>b.records-a.records);
+
+          const summary={version:"20.0.0",readOnly:true,approvedPublicSellers:approved.length,catalogFilesLoaded:catalogs.length,canonicalRecords:projection.length,duplicateProductKeys:duplicateKeys.length,blockedSellerLeaks:blockedLeak.length,roundTrip:{pass:roundTripPass,total:roundTripTotal},multiSellerStrongIdentityGroups:multiSellerGlobal.length,multiSellerExactNameDiscoveryOverlaps:multiSellerExactName.length,typeCounts,queryResults:queryResults.map(r=>({query:r.query,mode:r.mode,type:r.type,exactIdentity:r.exactIdentity.length,exactName:r.exactName.length,mainPool:r.mainPool,shown:r.main.length,alternatives:r.alternatives.length,sellers:[...new Set([...r.main,...r.alternatives].map(x=>x.seller))],relatedSeparated:r.relatedCount})),criticalPass};
+          fs.writeFileSync(path.join(OUT,"summary.json"),JSON.stringify(summary,null,2));
+          fs.writeFileSync(path.join(OUT,"search-projection.json"),JSON.stringify(projection,null,2));
+          const csv=["seller,records,stable_id,price,image,link,taxonomy,model,main_classified,related_separated,unclassified,cpc",...sellerRows.map(s=>[s.seller,s.records,s.stableId,s.price,s.image,s.link,s.taxonomy,s.model,s.mainClassified,s.relatedSeparated,s.unclassified,s.cpc?"yes":"no"].map(v=>`"${String(v).replaceAll('"','""')}"`).join(","))].join("\n")+"\n";
+          fs.writeFileSync(path.join(OUT,"seller-coverage.csv"),csv);
+
+          function money(r){return r.price==null?"price n/a":`${r.price} ${r.currency||""}`.trim();}
+          function sampleLine(r){return `- **${r.seller}** — ${r.name} — ${money(r)}${r.cpc?" • CPC seller":""}`;}
+          let md=`# TrendPilot V20.0 — Canonical Resolver Search Lab\n\n`;
+          md+=`> **Read-only.** Visitor UI, production search API, Netlify Blobs and V19 catalogs were not changed.\n\n`;
+          md+=`## Foundation gate\n\n- Public product sellers in policy: **${approved.length}**\n- Canonical seller catalogs loaded: **${catalogs.length}**\n- Canonical product records: **${projection.length.toLocaleString()}**\n- Duplicate product keys: **${duplicateKeys.length}**\n- Blocked seller leaks (Temu/Joom/FilamentPRO): **${blockedLeak.length}**\n- Seller-ID/SKU resolver round-trip: **${roundTripPass}/${roundTripTotal}**\n- Strong exact identity groups across 2+ sellers: **${multiSellerGlobal.length}**\n- Exact-name discovery overlaps across 2+ sellers: **${multiSellerExactName.length}**\n\n`;
+          md+=`## Important V20 rule\n\nEach product is classified **before** visitor search into a persistent search projection. Broad queries read that projection; they do not decide product identity at query-time. Parts/accessories that hit a negative gate are kept in a separate related channel.\n\n`;
+          md+=`## Precomputed product-type projection\n\n| Type | Main products | Related/parts separated |\n|---|---:|---:|\n`;
+          for(const d of defs){const x=typeCounts[d.type];md+=`| ${d.type} | ${x.main.toLocaleString()} | ${x.related.toLocaleString()} |\n`;}
+          md+=`\n## Seller catalog coverage\n\n| Seller | Records | Stable ID | Price | Image | Link | Taxonomy | Model/MPN | Main typed | Related separated | Unclassified | CPC |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|\n`;
+          for(const s of sellerRows)md+=`| ${s.seller} | ${s.records.toLocaleString()} | ${s.stableId.toLocaleString()} | ${s.price.toLocaleString()} | ${s.image.toLocaleString()} | ${s.link.toLocaleString()} | ${s.taxonomy.toLocaleString()} | ${s.model.toLocaleString()} | ${s.mainClassified.toLocaleString()} | ${s.relatedSeparated.toLocaleString()} | ${s.unclassified.toLocaleString()} | ${s.cpc?"yes":"no"} |\n`;
+          md+=`\n## Visitor-query tests\n\n| Query | Mode | Type | Exact ID | Exact name | Main shown | Alternatives | Sellers | Related separated | Result |\n|---|---|---|---:|---:|---:|---:|---|---:|---|\n`;
+          for(const r of queryResults){const sellers=[...new Set([...r.main,...r.alternatives].map(x=>x.seller))];let result="PASS";if(r.mode==="specific"&&r.main.length===0&&r.alternatives.length===0)result="NO_MAIN_PRODUCT";else if(r.mode==="specific"&&r.main.length===0&&r.relatedCount>0)result="RELATED_ONLY";else if(sellers.length===1)result="ONE_SELLER";md+=`| ${r.query} | ${r.mode} | ${r.type||"—"} | ${r.exactIdentity.length} | ${r.exactName.length} | ${r.main.length} | ${r.alternatives.length} | ${sellers.join(", ")||"—"} | ${r.relatedCount} | **${result}** |\n`;}
+          md+=`\n## Short result samples\n\n`;
+          for(const r of queryResults){
+            md+=`### ${r.query}\n\n`;
+            if(r.exactIdentity.length)md+=`**Exact identifier matches**\n${r.exactIdentity.slice(0,4).map(sampleLine).join("\n")}\n\n`;
+            else if(r.exactName.length)md+=`**Exact name matches**\n${r.exactName.slice(0,4).map(sampleLine).join("\n")}\n\n`;
+            if(r.main.length)md+=`**Main products**\n${r.main.slice(0,4).map(sampleLine).join("\n")}\n\n`;
+            if(r.alternatives.length)md+=`**Safe alternatives**\n${r.alternatives.slice(0,4).map(sampleLine).join("\n")}\n\n`;
+            if(r.relatedCount){md+=`**Related/accessories kept separate: ${r.relatedCount}**\n`;for(const x of r.relatedSample)md+=`${sampleLine(x)}\n`;md+=`\n`;}
+            if(!r.main.length&&!r.exactIdentity.length&&!r.exactName.length&&!r.alternatives.length)md+=`No main product is returned. V20 does **not** substitute an accessory as the requested product.\n\n`;
+          }
+          md+=`## V20.1 production gate\n\n${criticalPass?"**FOUNDATION PASS.** Identity resolution is deterministic and blocked sellers do not leak. Review the query samples before production. If samples are clean, V20.1 can persist this search projection/index and connect the visitor Search API without rescanning raw feeds.":"**FOUNDATION FAIL.** Do not connect the visitor UI. Fix catalog/index integrity first."}\n`;
+          fs.writeFileSync(path.join(OUT,"report.md"),md);
+          console.log(JSON.stringify(summary,null,2));
+          if(!criticalPass)process.exit(2);
+          JS
+
+          node --check "$RUNNER_TEMP/v20-search-lab.mjs"
+          node "$RUNNER_TEMP/v20-search-lab.mjs"
+
+      - name: Validate V20 lab outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/v20-lab"
+          test -s "$OUT/report.md"
+          test -s "$OUT/summary.json"
+          test -s "$OUT/search-projection.json"
+          test -s "$OUT/seller-coverage.csv"
+          python3 - <<'PY'
+          import json, os
+          out=os.path.join(os.environ["RUNNER_TEMP"],"v20-lab")
+          s=json.load(open(os.path.join(out,"summary.json"),encoding="utf-8"))
+          assert s["approvedPublicSellers"] == 13
+          assert s["catalogFilesLoaded"] >= 13
+          assert s["canonicalRecords"] > 40000
+          assert s["duplicateProductKeys"] == 0
+          assert s["blockedSellerLeaks"] == 0
+          assert s["roundTrip"]["pass"] == s["roundTrip"]["total"]
+          assert s["criticalPass"] is True
+          print("V20 integrity gate: PASS")
+          PY
+
+      - name: Publish V20 summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/v20-lab"
+          if [ -s "$OUT/report.md" ]; then
+            cat "$OUT/report.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "# TrendPilot V20.0 — Canonical Resolver Search Lab"
+              echo
+              echo "**FAILED before report generation.** Open the failed step log; no production state was changed."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload V20 lab artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v20-0-canonical-resolver-search-lab
+          path: ${{ runner.temp }}/v20-lab/
+          if-no-files-found: warn
+          retention-days: 14
