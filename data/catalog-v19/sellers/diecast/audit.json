@@ -1,0 +1,152 @@
+{
+  "version": "19.10.0",
+  "seller": "Diecast",
+  "generatedAt": "2026-08-11T00:20:39.761Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/cj-products.json"
+    ],
+    "normalizedRowsForSeller": 3
+  },
+  "metrics": {
+    "totalProducts": 3,
+    "sourceFiles": 1,
+    "stableSellerId": 3,
+    "brand": 3,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 0,
+    "price": 3,
+    "image": 3,
+    "link": 3,
+    "variants": 0,
+    "sourceQualified": 3
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 3,
+      "percent": 100
+    },
+    "brand": {
+      "count": 3,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "price": {
+      "count": 3,
+      "percent": 100
+    },
+    "image": {
+      "count": 3,
+      "percent": 100
+    },
+    "link": {
+      "count": 3,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 3,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [
+      {
+        "key": "p",
+        "productKeys": [
+          "diecast:f86f8f3ebbd481a8d0f53ecc",
+          "diecast:c3a2c25d1154f4be4296e97c",
+          "diecast:dcb77fa0dc4c03c9292be223"
+        ]
+      }
+    ],
+    "sku": [],
+    "brandModel": []
+  },
+  "roundTripSamples": [
+    {
+      "query": "cj-product-96800b1c6f98973560615be6",
+      "indexKey": "p",
+      "expectedProductKey": "diecast:f86f8f3ebbd481a8d0f53ecc",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 3
+    },
+    {
+      "query": "cj-product-6c257697e67d4023e2e04f78",
+      "indexKey": "p",
+      "expectedProductKey": "diecast:c3a2c25d1154f4be4296e97c",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 3
+    },
+    {
+      "query": "cj-product-2c41d4cada5dcd8a58c29d51",
+      "indexKey": "p",
+      "expectedProductKey": "diecast:dcb77fa0dc4c03c9292be223",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 3
+    },
+    {
+      "query": "Boeing EA-18G Growler Aircraft \"VAQ-132 Scorpions\" United States Navy 1/72 Diecast Model by JC Wings",
+      "indexKey": "p",
+      "expectedProductKey": "diecast:f86f8f3ebbd481a8d0f53ecc",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Jordan 198 #9 Damon Hill \"Benson & Hedges Jordan-Honda\" Formula One F1 \"San Marino-Imola GP\" (1998) with Driver Figure and Display Case \"Mythos Series",
+      "indexKey": "p p",
+      "expectedProductKey": "diecast:c3a2c25d1154f4be4296e97c",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Peterbilt 589 Day Cab and Fontaine Renegade LXT40 Lowboy Trailer with Fliptail \"Cappello Heavy Transport\" Black with Light Blue Hood 1/64 Diecast Mode",
+      "indexKey": "p p pp p",
+      "expectedProductKey": "diecast:dcb77fa0dc4c03c9292be223",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    }
+  ],
+  "sourceManifest": "data/catalog-v19/source-manifests/diecast.json",
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}

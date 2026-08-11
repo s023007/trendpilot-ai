@@ -1,0 +1,57 @@
+{
+  "version": "19.10.0",
+  "seller": "Diecast",
+  "slug": "diecast",
+  "generatedAt": "2026-08-11T00:20:39.306Z",
+  "policy": {
+    "purpose": "Discover all repository product-feed sources for one approved seller before building its canonical V19 catalog.",
+    "productCatalogOnly": true,
+    "couponsAndPromotionsExcluded": true,
+    "auditsAndGeneratedAnalysisExcluded": true
+  },
+  "candidateFiles": 3,
+  "qualifiedFileCount": 1,
+  "discoveredUniqueProductsAcrossAllCandidateFiles": 183,
+  "qualifiedUniqueProducts": 3,
+  "qualifiedFiles": [
+    "data/cj-products.json"
+  ],
+  "files": [
+    {
+      "file": "data/cj-products.json",
+      "rows": 3,
+      "uniqueProducts": 3,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/cj-link-catalog.json",
+      "rows": 150,
+      "uniqueProducts": 150,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 0,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "no-price-or-image-signal"
+    },
+    {
+      "file": "data/cj-offers.json",
+      "rows": 30,
+      "uniqueProducts": 30,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 0,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "no-price-or-image-signal"
+    }
+  ]
+}

@@ -1,0 +1,105 @@
+{
+  "version": "19.10.0",
+  "architecture": "seller-catalog-first",
+  "seller": {
+    "name": "Diecast",
+    "slug": "diecast",
+    "network": "CJ",
+    "mode": "catalog",
+    "role": "tenth-canonical-catalog"
+  },
+  "generatedAt": "2026-08-11T00:20:39.761Z",
+  "schema": "../../schema-v1.json",
+  "sourcePolicy": "../../source-policy-v1.json",
+  "files": {
+    "products": "products.ndjson",
+    "identityIndex": "identity-index.json",
+    "categoryIndex": "category-index.json",
+    "audit": "audit.json"
+  },
+  "metrics": {
+    "totalProducts": 3,
+    "sourceFiles": 1,
+    "stableSellerId": 3,
+    "brand": 3,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 0,
+    "price": 3,
+    "image": 3,
+    "link": 3,
+    "variants": 0,
+    "sourceQualified": 3
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 3,
+      "percent": 100
+    },
+    "brand": {
+      "count": 3,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "price": {
+      "count": 3,
+      "percent": 100
+    },
+    "image": {
+      "count": 3,
+      "percent": 100
+    },
+    "link": {
+      "count": 3,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 3,
+      "percent": 100
+    }
+  },
+  "identityPolicy": {
+    "exactMergeAllowedBy": [
+      "GTIN/EAN/UPC/ISBN exact match",
+      "brand + explicit MPN exact match",
+      "brand + explicit model exact match"
+    ],
+    "neverAutoMergeBy": [
+      "title alone",
+      "price alone",
+      "image alone",
+      "title-inferred model alone",
+      "semantic clusterKey alone"
+    ]
+  }
+}

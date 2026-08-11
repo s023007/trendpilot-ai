@@ -1,7 +1,7 @@
 {
-  "version": "19.9.0",
-  "generatedAt": "2026-08-11T00:01:42.816Z",
-  "catalogSetVersion": "19.9.0",
+  "version": "19.10.0",
+  "generatedAt": "2026-08-11T00:20:42.054Z",
+  "catalogSetVersion": "19.10.0",
   "sellers": [
     {
       "name": "Geekbuying",
@@ -38,9 +38,13 @@
     {
       "name": "Sunsky-online WW",
       "slug": "sunsky-online-ww"
+    },
+    {
+      "name": "Diecast",
+      "slug": "diecast"
     }
   ],
-  "totalRecords": 39156,
+  "totalRecords": 39159,
   "sellerCounts": {
     "Geekbuying": 1107,
     "AliExpress": 16206,
@@ -50,7 +54,8 @@
     "FragranceShop.com": 100,
     "Govee Many GEOs": 100,
     "Harfington Many GEOs": 100,
-    "Sunsky-online WW": 100
+    "Sunsky-online WW": 100,
+    "Diecast": 3
   },
   "autoExactGroups": 0,
   "autoGroupConflicts": [],
@@ -1736,6 +1741,54 @@
       "query": "High Sensitivity Stylus Pen For Samsung Galaxy Tab S7/S7+/S7 FE/S8/S8+/S8 Ultra/S9/S9+/S9 Ultra/S10/S10+/S10 Ultra (Black)",
       "indexKey": "high sensitivity stylus pen for samsung galaxy tab s7 s7 s7 fe s8 s8 s8 ultra s9 s9 s9 ultra s10 s10 s10 ultra black",
       "expectedProductKey": "sunsky-online-ww:1dc08e832cac73e376905318",
+      "resolved": true
+    },
+    {
+      "seller": "Diecast",
+      "kind": "seller-product-id",
+      "query": "cj-product-96800b1c6f98973560615be6",
+      "indexKey": "diecast:cjproduct96800b1c6f98973560615be6",
+      "expectedProductKey": "diecast:f86f8f3ebbd481a8d0f53ecc",
+      "resolved": true
+    },
+    {
+      "seller": "Diecast",
+      "kind": "seller-product-id",
+      "query": "cj-product-6c257697e67d4023e2e04f78",
+      "indexKey": "diecast:cjproduct6c257697e67d4023e2e04f78",
+      "expectedProductKey": "diecast:c3a2c25d1154f4be4296e97c",
+      "resolved": true
+    },
+    {
+      "seller": "Diecast",
+      "kind": "seller-product-id",
+      "query": "cj-product-2c41d4cada5dcd8a58c29d51",
+      "indexKey": "diecast:cjproduct2c41d4cada5dcd8a58c29d51",
+      "expectedProductKey": "diecast:dcb77fa0dc4c03c9292be223",
+      "resolved": true
+    },
+    {
+      "seller": "Diecast",
+      "kind": "exact-name",
+      "query": "Boeing EA-18G Growler Aircraft \"VAQ-132 Scorpions\" United States Navy 1/72 Diecast Model by JC Wings",
+      "indexKey": "boeing ea 18g growler aircraft vaq 132 scorpions united states navy 1 72 diecast model by jc wings",
+      "expectedProductKey": "diecast:f86f8f3ebbd481a8d0f53ecc",
+      "resolved": true
+    },
+    {
+      "seller": "Diecast",
+      "kind": "exact-name",
+      "query": "Jordan 198 #9 Damon Hill \"Benson & Hedges Jordan-Honda\" Formula One F1 \"San Marino-Imola GP\" (1998) with Driver Figure and Display Case \"Mythos Series",
+      "indexKey": "jordan 198 9 damon hill benson hedges jordan honda formula one f1 san marino imola gp 1998 with driver figure and display case mythos series",
+      "expectedProductKey": "diecast:c3a2c25d1154f4be4296e97c",
+      "resolved": true
+    },
+    {
+      "seller": "Diecast",
+      "kind": "exact-name",
+      "query": "Peterbilt 589 Day Cab and Fontaine Renegade LXT40 Lowboy Trailer with Fliptail \"Cappello Heavy Transport\" Black with Light Blue Hood 1/64 Diecast Mode",
+      "indexKey": "peterbilt 589 day cab and fontaine renegade lxt40 lowboy trailer with fliptail cappello heavy transport black with light blue hood 1 64 diecast mode",
+      "expectedProductKey": "diecast:dcb77fa0dc4c03c9292be223",
       "resolved": true
     }
   ],
