@@ -1,0 +1,291 @@
+{
+  "version": "20.2.1",
+  "generatedAt": "2026-08-11T15:21:30.915Z",
+  "source": "data/catalog-v19",
+  "publicSellers": [
+    {
+      "name": "AliExpress",
+      "network": "Admitad",
+      "cpc": true
+    },
+    {
+      "name": "Alibaba",
+      "network": "Admitad",
+      "cpc": true
+    },
+    {
+      "name": "Geekbuying",
+      "network": "Admitad",
+      "cpc": true
+    },
+    {
+      "name": "Govee Many GEOs",
+      "network": "Admitad",
+      "cpc": false
+    },
+    {
+      "name": "Harfington Many GEOs",
+      "network": "Admitad",
+      "cpc": false
+    },
+    {
+      "name": "Sunsky-online WW",
+      "network": "Admitad",
+      "cpc": false
+    },
+    {
+      "name": "Lenovo",
+      "network": "Admitad",
+      "cpc": false
+    },
+    {
+      "name": "Diecast",
+      "network": "CJ",
+      "cpc": false
+    },
+    {
+      "name": "FragranceShop.com",
+      "network": "CJ",
+      "cpc": false
+    },
+    {
+      "name": "Karaca EU",
+      "network": "CJ",
+      "cpc": false
+    },
+    {
+      "name": "MFI Medical",
+      "network": "CJ",
+      "cpc": false
+    },
+    {
+      "name": "PandaHall",
+      "network": "CJ",
+      "cpc": false
+    },
+    {
+      "name": "TikTok Shop US",
+      "network": "CJ",
+      "cpc": false
+    }
+  ],
+  "catalogFilesLoaded": 13,
+  "canonicalRecords": 52032,
+  "duplicateProductKeys": 0,
+  "blockedSellerLeaks": 0,
+  "roleCounts": {
+    "main": 10609,
+    "accessory": 6900,
+    "replacement_part": 1066,
+    "related": 823,
+    "unclassified": 32634
+  },
+  "typeCounts": {
+    "phone": {
+      "main": 1326,
+      "related": 5175,
+      "sellers": [
+        "AliExpress",
+        "Alibaba",
+        "Geekbuying",
+        "Sunsky-online WW",
+        "TikTok Shop US"
+      ]
+    },
+    "laptop": {
+      "main": 643,
+      "related": 552,
+      "sellers": [
+        "AliExpress",
+        "Alibaba",
+        "Geekbuying",
+        "Lenovo",
+        "TikTok Shop US"
+      ]
+    },
+    "smartwatch": {
+      "main": 1248,
+      "related": 738,
+      "sellers": [
+        "Alibaba",
+        "TikTok Shop US"
+      ]
+    },
+    "headphones": {
+      "main": 3653,
+      "related": 830,
+      "sellers": [
+        "AliExpress",
+        "Alibaba",
+        "Geekbuying",
+        "Lenovo",
+        "TikTok Shop US"
+      ]
+    },
+    "perfume": {
+      "main": 211,
+      "related": 8,
+      "sellers": [
+        "AliExpress",
+        "Alibaba",
+        "FragranceShop.com",
+        "TikTok Shop US"
+      ]
+    },
+    "dog_food": {
+      "main": 25,
+      "related": 78,
+      "sellers": [
+        "AliExpress",
+        "TikTok Shop US"
+      ]
+    },
+    "power_bank": {
+      "main": 536,
+      "related": 395,
+      "sellers": [
+        "AliExpress",
+        "Alibaba",
+        "TikTok Shop US"
+      ]
+    },
+    "air_conditioner": {
+      "main": 12,
+      "related": 3,
+      "sellers": [
+        "AliExpress",
+        "TikTok Shop US"
+      ]
+    },
+    "3d_filament": {
+      "main": 58,
+      "related": 0,
+      "sellers": [
+        "Geekbuying"
+      ]
+    },
+    "cookware": {
+      "main": 422,
+      "related": 14,
+      "sellers": [
+        "AliExpress",
+        "Karaca EU",
+        "TikTok Shop US"
+      ]
+    },
+    "lighting": {
+      "main": 1439,
+      "related": 310,
+      "sellers": [
+        "AliExpress",
+        "Alibaba",
+        "Diecast",
+        "Geekbuying",
+        "Govee Many GEOs",
+        "Harfington Many GEOs",
+        "MFI Medical",
+        "Sunsky-online WW",
+        "TikTok Shop US"
+      ]
+    },
+    "tools": {
+      "main": 1036,
+      "related": 686,
+      "sellers": [
+        "AliExpress",
+        "Alibaba",
+        "Geekbuying",
+        "Harfington Many GEOs",
+        "MFI Medical",
+        "TikTok Shop US"
+      ]
+    }
+  },
+  "sellerCounts": {
+    "Geekbuying": {
+      "records": 1107,
+      "main": 155,
+      "related": 38,
+      "unclassified": 914
+    },
+    "AliExpress": {
+      "records": 16206,
+      "main": 1362,
+      "related": 783,
+      "unclassified": 14061
+    },
+    "Alibaba": {
+      "records": 21216,
+      "main": 6987,
+      "related": 6672,
+      "unclassified": 7557
+    },
+    "PandaHall": {
+      "records": 127,
+      "main": 0,
+      "related": 0,
+      "unclassified": 127
+    },
+    "Karaca EU": {
+      "records": 100,
+      "main": 100,
+      "related": 0,
+      "unclassified": 0
+    },
+    "FragranceShop.com": {
+      "records": 100,
+      "main": 100,
+      "related": 0,
+      "unclassified": 0
+    },
+    "Govee Many GEOs": {
+      "records": 100,
+      "main": 67,
+      "related": 0,
+      "unclassified": 33
+    },
+    "Harfington Many GEOs": {
+      "records": 100,
+      "main": 3,
+      "related": 1,
+      "unclassified": 96
+    },
+    "Sunsky-online WW": {
+      "records": 100,
+      "main": 3,
+      "related": 59,
+      "unclassified": 38
+    },
+    "Diecast": {
+      "records": 3,
+      "main": 1,
+      "related": 0,
+      "unclassified": 2
+    },
+    "MFI Medical": {
+      "records": 402,
+      "main": 5,
+      "related": 2,
+      "unclassified": 395
+    },
+    "Lenovo": {
+      "records": 756,
+      "main": 286,
+      "related": 18,
+      "unclassified": 452
+    },
+    "TikTok Shop US": {
+      "records": 11715,
+      "main": 1540,
+      "related": 1216,
+      "unclassified": 8959
+    }
+  },
+  "trustedIdentityEntries": 16515,
+  "policy": {
+    "exactIdentity": "global-id-or-globally-unique-seller-id-or-brand-explicit-model-or-brand-mpn",
+    "modelNames": "discovery-only",
+    "unclassified": "not-exposed-by-v20.2-shadow",
+    "productionVisitorUI": "unchanged"
+  }
+}
