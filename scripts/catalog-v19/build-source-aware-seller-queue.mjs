@@ -9,7 +9,7 @@ import {
   canonicalProductSeller
 } from "../../netlify/functions/product-seller-policy-v17.mjs";
 
-const VERSION = "19.12.6";
+const VERSION = "19.13.0";
 const ROOT = "data";
 const CATALOG_SET = "data/catalog-v19/catalog-set-v1.json";
 

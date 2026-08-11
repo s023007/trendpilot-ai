@@ -1,0 +1,33 @@
+{
+  "version": "19.13.0",
+  "seller": "TikTok Shop US",
+  "slug": "tiktok-shop-us",
+  "generatedAt": "2026-08-11T10:16:52.490Z",
+  "policy": {
+    "purpose": "Discover all repository product-feed sources for one approved seller before building its canonical V19 catalog.",
+    "productCatalogOnly": true,
+    "couponsAndPromotionsExcluded": true,
+    "auditsAndGeneratedAnalysisExcluded": true
+  },
+  "candidateFiles": 1,
+  "qualifiedFileCount": 1,
+  "discoveredUniqueProductsAcrossAllCandidateFiles": 11715,
+  "qualifiedUniqueProducts": 11715,
+  "qualifiedFiles": [
+    "data/source-ingestion-v19/tiktok-shop-us-live-catalog.json"
+  ],
+  "files": [
+    {
+      "file": "data/source-ingestion-v19/tiktok-shop-us-live-catalog.json",
+      "rows": 11715,
+      "uniqueProducts": 11715,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 100,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    }
+  ]
+}

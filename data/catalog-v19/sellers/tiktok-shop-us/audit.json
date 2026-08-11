@@ -1,0 +1,780 @@
+{
+  "version": "19.13.0",
+  "seller": "TikTok Shop US",
+  "generatedAt": "2026-08-11T10:16:54.447Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/source-ingestion-v19/tiktok-shop-us-live-catalog.json"
+    ],
+    "normalizedRowsForSeller": 11715
+  },
+  "metrics": {
+    "totalProducts": 11715,
+    "sourceFiles": 1,
+    "stableSellerId": 11715,
+    "brand": 11715,
+    "modelAny": 212,
+    "modelExplicit": 0,
+    "modelInferred": 212,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 1135,
+    "price": 11715,
+    "image": 11715,
+    "link": 11715,
+    "variants": 0,
+    "sourceQualified": 11715
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 11715,
+      "percent": 100
+    },
+    "brand": {
+      "count": 11715,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 212,
+      "percent": 1.8
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 212,
+      "percent": 1.8
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 1135,
+      "percent": 9.7
+    },
+    "price": {
+      "count": 11715,
+      "percent": 100
+    },
+    "image": {
+      "count": 11715,
+      "percent": 100
+    },
+    "link": {
+      "count": 11715,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 11715,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [],
+    "sku": [],
+    "brandModel": [
+      {
+        "key": "brand-model:techvalue:p",
+        "productKeys": [
+          "tiktok-shop-us:01b17dd39fc4161de333d3cf",
+          "tiktok-shop-us:b54c89fca66692b7dd186fc6"
+        ]
+      },
+      {
+        "key": "brand-model:pp:p",
+        "productKeys": [
+          "tiktok-shop-us:a4726c6c1d879e4178030fe6",
+          "tiktok-shop-us:5379f1f89ea90c66596d44e3",
+          "tiktok-shop-us:7e5442bef33b490b8987a350",
+          "tiktok-shop-us:4e0fe98d7623ceaee24d7372",
+          "tiktok-shop-us:591b9ff87dfe8d2cb8f759b1"
+        ]
+      },
+      {
+        "key": "brand-model:p:p",
+        "productKeys": [
+          "tiktok-shop-us:71995f8e1a0fc61e8816c851",
+          "tiktok-shop-us:b9bbebde909e52c9100568e5",
+          "tiktok-shop-us:d9fd51629def281d2be5979b",
+          "tiktok-shop-us:e9bf8130849a256f36d4c447",
+          "tiktok-shop-us:1321b29237cc83ceec4824e1",
+          "tiktok-shop-us:5eb11aac0e55188bd2f6ee7a",
+          "tiktok-shop-us:95737cc4c862263353a2280e",
+          "tiktok-shop-us:99f821dd6fec405a599c75e4",
+          "tiktok-shop-us:9e0536c8bfe33c9db1870f68",
+          "tiktok-shop-us:b80feabf1ee0d842bad11d98",
+          "tiktok-shop-us:6f77b0992c1c0efd8d657195",
+          "tiktok-shop-us:722b9759e54606f83b377526",
+          "tiktok-shop-us:74b623a63670ef941898042a",
+          "tiktok-shop-us:c3276bf3edd365dab0539a3c",
+          "tiktok-shop-us:d54300a9498eedb08832acfc",
+          "tiktok-shop-us:d5cca50824b167e60f8bc855",
+          "tiktok-shop-us:03e42bba73657483d4ff03ff",
+          "tiktok-shop-us:13ce9b1f89497baea03c60ef",
+          "tiktok-shop-us:29daa5ad8686abf4e867b2fc",
+          "tiktok-shop-us:48f82490f8ee22987c0be48b",
+          "tiktok-shop-us:12e1fa253b816aa5024a654e",
+          "tiktok-shop-us:9afbe3f5df5c8d7921982266",
+          "tiktok-shop-us:b5f1760046214a2da6877ab5",
+          "tiktok-shop-us:d45b19f2d5a4f5946ecadbff",
+          "tiktok-shop-us:f8bb8f920ff370e56ce4a5b4",
+          "tiktok-shop-us:08a902b98f97de4e55a0ae36",
+          "tiktok-shop-us:0c50050eac81421c3a8099ea",
+          "tiktok-shop-us:47db7830aeb5b616291d890d",
+          "tiktok-shop-us:531bd05ee2aa72263df95316",
+          "tiktok-shop-us:6fe5381b55607aa3bddf2bdd",
+          "tiktok-shop-us:7f3bfb37391d6a476837d8d4",
+          "tiktok-shop-us:85d03879edafe5f5ac18a912",
+          "tiktok-shop-us:88d776a326fff30877f60c48",
+          "tiktok-shop-us:8fe0bf8677059e240e74995b",
+          "tiktok-shop-us:e5845600dbee1aa4ae59fec4",
+          "tiktok-shop-us:f83f8880202d92f045664cbb",
+          "tiktok-shop-us:3ee1df63edc36252050ed509",
+          "tiktok-shop-us:a138788082239ee11428cc68",
+          "tiktok-shop-us:b044a2157c5de977174ee256",
+          "tiktok-shop-us:1a03fc36b713e55d76e3ad80",
+          "tiktok-shop-us:fa2e09614abdf06769374ab3"
+        ]
+      },
+      {
+        "key": "brand-model:ugreen.us:p",
+        "productKeys": [
+          "tiktok-shop-us:123d90ad91bb1331b56c311b",
+          "tiktok-shop-us:d13d9658a886009bf9c3ce79",
+          "tiktok-shop-us:e5996b0b8f2ff1f4346dc8e7"
+        ]
+      },
+      {
+        "key": "brand-model:kraftgeek:p",
+        "productKeys": [
+          "tiktok-shop-us:6cdee5275c132bc5827d9c29",
+          "tiktok-shop-us:01a00f5068dd61258ec2f3d1",
+          "tiktok-shop-us:e69e2abf957053a1672b1b1a"
+        ]
+      },
+      {
+        "key": "brand-model:nyzfexkinc:p",
+        "productKeys": [
+          "tiktok-shop-us:a6c8283ec21f444520dce306",
+          "tiktok-shop-us:60391fa622ba3d09cbb10d0b",
+          "tiktok-shop-us:2752ccaf56c9776ddfb891cc"
+        ]
+      },
+      {
+        "key": "brand-model:p:pp",
+        "productKeys": [
+          "tiktok-shop-us:e864f2a43384f4f3556054ef",
+          "tiktok-shop-us:bd4574eed0bd8b07e138162d",
+          "tiktok-shop-us:5079beb7074eaa6b4a1bca53"
+        ]
+      },
+      {
+        "key": "brand-model:funcat-global:p",
+        "productKeys": [
+          "tiktok-shop-us:617dcb1f769b2f74b2e31adb",
+          "tiktok-shop-us:919adadcfa6f1c4254846a72",
+          "tiktok-shop-us:8db4c00318a9bea1c235d316"
+        ]
+      },
+      {
+        "key": "brand-model:velvetcaviar:p",
+        "productKeys": [
+          "tiktok-shop-us:e2c5a983184ba20b37570f51",
+          "tiktok-shop-us:e380eb06c5d6e2b97f860491",
+          "tiktok-shop-us:dbf53ac3ec9db5aca976aed3"
+        ]
+      },
+      {
+        "key": "brand-model:chicgoods:p",
+        "productKeys": [
+          "tiktok-shop-us:38e5f81004280e541a9a5ddd",
+          "tiktok-shop-us:7e8784602fc370130985639d",
+          "tiktok-shop-us:d27177b3d6d05110b1a6308d"
+        ]
+      },
+      {
+        "key": "brand-model:shanliang:p",
+        "productKeys": [
+          "tiktok-shop-us:a8d5241a156a19e6dae26f89",
+          "tiktok-shop-us:41a8299fc4dc5e27d27017ae"
+        ]
+      },
+      {
+        "key": "brand-model:allcolours:p",
+        "productKeys": [
+          "tiktok-shop-us:2a8cdeaf81a8cc202fbde97e",
+          "tiktok-shop-us:915369161ead96bc8978c1b2",
+          "tiktok-shop-us:df4e1783a34e365f8db17fd5",
+          "tiktok-shop-us:5a72af31adbd422b7abeff4d",
+          "tiktok-shop-us:b0c672ca5d8d8fcb120f718f",
+          "tiktok-shop-us:b0d023bcb1c362c673766f8e",
+          "tiktok-shop-us:3212d40d98c3802c12ad9120",
+          "tiktok-shop-us:7c9248361b0f4d432c6d33a1",
+          "tiktok-shop-us:d4fa48718499de17405874e6",
+          "tiktok-shop-us:fdb659928f6c271b8281f4a4"
+        ]
+      },
+      {
+        "key": "brand-model:tenmadigital3c:p",
+        "productKeys": [
+          "tiktok-shop-us:65234ba6e6449152a33e132d",
+          "tiktok-shop-us:d55e0a989193842f02b95f62"
+        ]
+      },
+      {
+        "key": "brand-model:saoin3ccase:p",
+        "productKeys": [
+          "tiktok-shop-us:1b8384f3d4d177fe60d7eb34",
+          "tiktok-shop-us:a1c01861e7b184dfb58e9ad9"
+        ]
+      },
+      {
+        "key": "brand-model:lyntech:p",
+        "productKeys": [
+          "tiktok-shop-us:533056d45f2cf0a33e4915c3",
+          "tiktok-shop-us:769c07c4190d323bddc85455"
+        ]
+      },
+      {
+        "key": "brand-model:kaishengtechnology:p",
+        "productKeys": [
+          "tiktok-shop-us:5fb17f6c8d1639e8bfb8ea4e",
+          "tiktok-shop-us:cff421a99d0977fed9d61986"
+        ]
+      },
+      {
+        "key": "brand-model:moistenhair:p",
+        "productKeys": [
+          "tiktok-shop-us:69fed0ba3724fbfc7ca5094d",
+          "tiktok-shop-us:ddc150f8c3e48e6316434fa9"
+        ]
+      },
+      {
+        "key": "brand-model:bluemystery:p",
+        "productKeys": [
+          "tiktok-shop-us:78fab24a56ef1be642b9019d",
+          "tiktok-shop-us:0390fc473040898183db6f75"
+        ]
+      },
+      {
+        "key": "brand-model:liangkezaicase:p",
+        "productKeys": [
+          "tiktok-shop-us:bd2d717176484778b09322b0",
+          "tiktok-shop-us:3653180124e045c041a6a4ff"
+        ]
+      },
+      {
+        "key": "brand-model:kk3c:p",
+        "productKeys": [
+          "tiktok-shop-us:84db4a14987b17a1bd8c2276",
+          "tiktok-shop-us:88615318705a2f71024f1813"
+        ]
+      },
+      {
+        "key": "brand-model:xinjietechnology:pp",
+        "productKeys": [
+          "tiktok-shop-us:283534798ead572ea8e4c91d",
+          "tiktok-shop-us:ea4f8e85e094a4a32b6c02a3"
+        ]
+      }
+    ]
+  },
+  "roundTripSamples": [
+    {
+      "query": "iPhone 13",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:01b17dd39fc4161de333d3cf",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 15",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:126d5c5f7e034ddb07ec3b77",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 16",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:70ceae2b4015b468495647e0",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "Galaxy S24 Ultra",
+      "indexKey": "galaxys24ultra",
+      "expectedProductKey": "tiktok-shop-us:71b4aa46808f968bf16bf7be",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "MacBook Pro",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:87af2106e7fb286f9ad9a15a",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "ONEPLUS 7T",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:a4726c6c1d879e4178030fe6",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 16",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:b1aec02278056aef93076f9b",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 16",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:00607a342420371d228e82af",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 15",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:0f5865ad6aeafbaabe4375c6",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 17",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:33060c1c51b079d2c0fa9374",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 12",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:42c92da228e8c95c9ca108bc",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "Galaxy S23",
+      "indexKey": "galaxys23",
+      "expectedProductKey": "tiktok-shop-us:6983b416d840f0d82a5a451a",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 2
+    },
+    {
+      "query": "iPhone 15",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:6d233d47fa83b08dbe88eee1",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 16",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:71995f8e1a0fc61e8816c851",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "Galaxy S23",
+      "indexKey": "galaxys23",
+      "expectedProductKey": "tiktok-shop-us:728d4f0d2ea0b810dd10f4f6",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 2
+    },
+    {
+      "query": "iPhone13",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:91a8d2d08fd79ee2866a7478",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 15 Pro",
+      "indexKey": "pp",
+      "expectedProductKey": "tiktok-shop-us:a114b5ac0648a9dbb3d60ce4",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 26
+    },
+    {
+      "query": "iPhone 16",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:b255b58c0f68da5f9b17d033",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 16",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:b9bbebde909e52c9100568e5",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "iPhone 12",
+      "indexKey": "p",
+      "expectedProductKey": "tiktok-shop-us:d9fd51629def281d2be5979b",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 176
+    },
+    {
+      "query": "1729403856804418080",
+      "indexKey": "1729403856804418080",
+      "expectedProductKey": "tiktok-shop-us:0d8b35910135e9c8c5796dff",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729388510380462655",
+      "indexKey": "1729388510380462655",
+      "expectedProductKey": "tiktok-shop-us:e600da65826d6681d0542c0f",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729396484490236144",
+      "indexKey": "1729396484490236144",
+      "expectedProductKey": "tiktok-shop-us:37e9805ccff959a82bf4b249",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1730252959549002646",
+      "indexKey": "1730252959549002646",
+      "expectedProductKey": "tiktok-shop-us:6bfe28f5761638a8ba62b959",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1731317154977780711",
+      "indexKey": "1731317154977780711",
+      "expectedProductKey": "tiktok-shop-us:1c200963d794c771519f1f3c",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729869852159742200",
+      "indexKey": "1729869852159742200",
+      "expectedProductKey": "tiktok-shop-us:49e5d5aa171ed8ac718eb4d1",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729869842460741880",
+      "indexKey": "1729869842460741880",
+      "expectedProductKey": "tiktok-shop-us:8f23b1243b74be6a1ed1c485",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729396548491841616",
+      "indexKey": "1729396548491841616",
+      "expectedProductKey": "tiktok-shop-us:c8d67f0142ed517968e3b195",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729718141631565851",
+      "indexKey": "1729718141631565851",
+      "expectedProductKey": "tiktok-shop-us:eb7a396b692ac49cd9141038",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729569202446766328",
+      "indexKey": "1729569202446766328",
+      "expectedProductKey": "tiktok-shop-us:6a1315efdb7ab8e13ddcbbcc",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729569384190677240",
+      "indexKey": "1729569384190677240",
+      "expectedProductKey": "tiktok-shop-us:0ca84ae1469044d7b5734913",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729569356978032888",
+      "indexKey": "1729569356978032888",
+      "expectedProductKey": "tiktok-shop-us:6b44de2a6389dd323a5a3407",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729569181367374072",
+      "indexKey": "1729569181367374072",
+      "expectedProductKey": "tiktok-shop-us:142348496c547d85e7702b96",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729693576069877995",
+      "indexKey": "1729693576069877995",
+      "expectedProductKey": "tiktok-shop-us:cdd85d08a1ecc0f99edb9515",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729550127253590251",
+      "indexKey": "1729550127253590251",
+      "expectedProductKey": "tiktok-shop-us:58791ef1c10cdbfed2aff340",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729446749588197611",
+      "indexKey": "1729446749588197611",
+      "expectedProductKey": "tiktok-shop-us:4d0caab8ec4d9266f5df3f67",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1731332437628129515",
+      "indexKey": "1731332437628129515",
+      "expectedProductKey": "tiktok-shop-us:0509b0c8e5c71e075ef92229",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1730568829113832232",
+      "indexKey": "1730568829113832232",
+      "expectedProductKey": "tiktok-shop-us:5c47275ab37ef8261bc4ac75",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1730855397491643087",
+      "indexKey": "1730855397491643087",
+      "expectedProductKey": "tiktok-shop-us:8268ecdc40f895691feec1ed",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "1729419597773312719",
+      "indexKey": "1729419597773312719",
+      "expectedProductKey": "tiktok-shop-us:ec0a774bebbeb21ff6e389f6",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "“Beauty In The Ordinary” Rear Windshield Banner",
+      "indexKey": "“beauty in the ordinary” rear windshield banner",
+      "expectedProductKey": "tiktok-shop-us:0d8b35910135e9c8c5796dff",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "”Heart eyes” bracelet",
+      "indexKey": "”heart eyes” bracelet",
+      "expectedProductKey": "tiktok-shop-us:e600da65826d6681d0542c0f",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "\"Nostalgia\" Hoodie",
+      "indexKey": "\"nostalgia\" hoodie",
+      "expectedProductKey": "tiktok-shop-us:37e9805ccff959a82bf4b249",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "(Akeleo)Remote Control Excavator Toy Set 2.4GHz 680, ideal gift for children, durable metal structure - Remote Control 11-channel remote control loade",
+      "indexKey": "(akeleo)remote control excavator toy set 2.4ghz 680, ideal gift for children, durable metal structure - remote control 11-channel remote control loade",
+      "expectedProductKey": "tiktok-shop-us:6bfe28f5761638a8ba62b959",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[100% Cotton] Fish Hook Minimal Art Cool Fishing Lover Art Lover Gift T-Shirt",
+      "indexKey": "[100% cotton] fish hook minimal art cool fishing lover art lover gift t-shirt",
+      "expectedProductKey": "tiktok-shop-us:1c200963d794c771519f1f3c",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[22] Cheese Board with Cutlery Set & Cutting Board Set of 3",
+      "indexKey": "[22] cheese board with cutlery set & cutting board set of 3",
+      "expectedProductKey": "tiktok-shop-us:49e5d5aa171ed8ac718eb4d1",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[29] Cheese Board with Side Trays & Slim Cutting Board Set of 3",
+      "indexKey": "[29] cheese board with side trays & slim cutting board set of 3",
+      "expectedProductKey": "tiktok-shop-us:8f23b1243b74be6a1ed1c485",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[Black Friday Deal] Anker 543 USB-C to USB-C Cable (Bio-Braided)",
+      "indexKey": "[black friday deal] anker 543 usb-c to usb-c cable (bio-braided)",
+      "expectedProductKey": "tiktok-shop-us:c8d67f0142ed517968e3b195",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[Dr.Melaxin Official] Cemenrete Calcium Multi Balm | Anti-aging, Sagging | Korean Cosmetics",
+      "indexKey": "[dr.melaxin official] cemenrete calcium multi balm | anti-aging, sagging | korean cosmetics",
+      "expectedProductKey": "tiktok-shop-us:eb7a396b692ac49cd9141038",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[FallFreshness]LHBCRAFT 360° Swivel Jewelry Cabinet with LED Light, mirror cabinet, jewelry armoire, Mirror with Storage, Standing Jewelry Armoire Org",
+      "indexKey": "[fallfreshness]lhbcraft 360° swivel jewelry cabinet with led light, mirror cabinet, jewelry armoire, mirror with storage, standing jewelry armoire org",
+      "expectedProductKey": "tiktok-shop-us:6a1315efdb7ab8e13ddcbbcc",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[FallFreshness]LHBCRAFT Jewelry Armoire, Mirror Jewelry Cabinet Standing, jewelry organization, jewelry armoire, Mirror with Storage, Mirror Cabinet C",
+      "indexKey": "[fallfreshness]lhbcraft jewelry armoire, mirror jewelry cabinet standing, jewelry organization, jewelry armoire, mirror with storage, mirror cabinet c",
+      "expectedProductKey": "tiktok-shop-us:0ca84ae1469044d7b5734913",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[FallFreshness]LHBCRAFT Mirror Jewelry Cabinet Standing with Frame, jewelry armoire, Mirror with Storage, Standing Jewelry Armoire Organizer, Mirror C",
+      "indexKey": "[fallfreshness]lhbcraft mirror jewelry cabinet standing with frame, jewelry armoire, mirror with storage, standing jewelry armoire organizer, mirror c",
+      "expectedProductKey": "tiktok-shop-us:6b44de2a6389dd323a5a3407",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[FallFreshness]LHBCRAFT Mirror Jewelry Cabinet Standing, jewelry armoire, Mirror with Storage, Standing Jewelry Armoire Organizer, Mirror Cabinet Earr",
+      "indexKey": "[fallfreshness]lhbcraft mirror jewelry cabinet standing, jewelry armoire, mirror with storage, standing jewelry armoire organizer, mirror cabinet earr",
+      "expectedProductKey": "tiktok-shop-us:142348496c547d85e7702b96",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[LIVE Exclusive] [medicube] Age-R Ultra Tune 40.68 High-tech 2 in 1 massager Comfort Facial",
+      "indexKey": "[live exclusive] [medicube] age-r ultra tune 40.68 high-tech 2 in 1 massager comfort facial",
+      "expectedProductKey": "tiktok-shop-us:cdd85d08a1ecc0f99edb9515",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[medicube] Affordable Glow 7-Day Skincare Set",
+      "indexKey": "[medicube] affordable glow 7-day skincare set",
+      "expectedProductKey": "tiktok-shop-us:58791ef1c10cdbfed2aff340",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[medicube] Collagen Glow Bubble Serum | Collagen Bubbles | Bubble Skincare glass glow Kbeauty Korean Skincare",
+      "indexKey": "[medicube] collagen glow bubble serum | collagen bubbles | bubble skincare glass glow kbeauty korean skincare",
+      "expectedProductKey": "tiktok-shop-us:4d0caab8ec4d9266f5df3f67",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[medicube] Kojic Acid Golden Glow & Radiance Full SET | Turmeric, Niacinamide, Vitamin C, Korean Skincare",
+      "indexKey": "[medicube] kojic acid golden glow & radiance full set | turmeric, niacinamide, vitamin c, korean skincare",
+      "expectedProductKey": "tiktok-shop-us:0509b0c8e5c71e075ef92229",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[mixsoon] Bean Essence 1.69 fl.oz / 50ml - Exfoliating Hydrating Korean Skin Care Glass skin Hyaluronic Acid Serum",
+      "indexKey": "[mixsoon] bean essence 1.69 fl.oz / 50ml - exfoliating hydrating korean skin care glass skin hyaluronic acid serum",
+      "expectedProductKey": "tiktok-shop-us:5c47275ab37ef8261bc4ac75",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[RoC Skincare] DERM CORREXION Firming Serum Stick",
+      "indexKey": "[roc skincare] derm correxion firming serum stick",
+      "expectedProductKey": "tiktok-shop-us:8268ecdc40f895691feec1ed",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "[RoC Skincare] MULTI CORREXION Revive Glow Eye Balm",
+      "indexKey": "[roc skincare] multi correxion revive glow eye balm",
+      "expectedProductKey": "tiktok-shop-us:ec0a774bebbeb21ff6e389f6",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    }
+  ],
+  "sourceManifest": "data/catalog-v19/source-manifests/tiktok-shop-us.json",
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}

@@ -1,0 +1,105 @@
+{
+  "version": "19.13.0",
+  "architecture": "seller-catalog-first",
+  "seller": {
+    "name": "TikTok Shop US",
+    "slug": "tiktok-shop-us",
+    "network": "CJ",
+    "mode": "live",
+    "role": "canonical-seller-catalog"
+  },
+  "generatedAt": "2026-08-11T10:16:54.447Z",
+  "schema": "../../schema-v1.json",
+  "sourcePolicy": "../../source-policy-v1.json",
+  "files": {
+    "products": "products.ndjson",
+    "identityIndex": "identity-index.json",
+    "categoryIndex": "category-index.json",
+    "audit": "audit.json"
+  },
+  "metrics": {
+    "totalProducts": 11715,
+    "sourceFiles": 1,
+    "stableSellerId": 11715,
+    "brand": 11715,
+    "modelAny": 212,
+    "modelExplicit": 0,
+    "modelInferred": 212,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 1135,
+    "price": 11715,
+    "image": 11715,
+    "link": 11715,
+    "variants": 0,
+    "sourceQualified": 11715
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 11715,
+      "percent": 100
+    },
+    "brand": {
+      "count": 11715,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 212,
+      "percent": 1.8
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 212,
+      "percent": 1.8
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 1135,
+      "percent": 9.7
+    },
+    "price": {
+      "count": 11715,
+      "percent": 100
+    },
+    "image": {
+      "count": 11715,
+      "percent": 100
+    },
+    "link": {
+      "count": 11715,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 11715,
+      "percent": 100
+    }
+  },
+  "identityPolicy": {
+    "exactMergeAllowedBy": [
+      "GTIN/EAN/UPC/ISBN exact match",
+      "brand + explicit MPN exact match",
+      "brand + explicit model exact match"
+    ],
+    "neverAutoMergeBy": [
+      "title alone",
+      "price alone",
+      "image alone",
+      "title-inferred model alone",
+      "semantic clusterKey alone"
+    ]
+  }
+}
