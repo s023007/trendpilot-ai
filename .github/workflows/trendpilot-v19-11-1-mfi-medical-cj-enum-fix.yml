@@ -1,0 +1,870 @@
+name: TrendPilot V19.11.1 — MFI Medical Source Ingestion — CJ Enum Fix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v19-11-1-mfi-medical-source-ingestion
+  cancel-in-progress: false
+
+jobs:
+  mfi-source-ingestion:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    env:
+      CJ_API_TOKEN: ${{ secrets.CJ_API_TOKEN }}
+      CJ_TOKEN: ${{ secrets.CJ_TOKEN }}
+      CJ_PAT: ${{ secrets.CJ_PAT }}
+      CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+      CJ_COMPANY_ID: ${{ secrets.CJ_COMPANY_ID }}
+      CJ_CID: ${{ secrets.CJ_CID }}
+      CJ_PUBLISHER_CID: ${{ secrets.CJ_PUBLISHER_CID }}
+      CJ_WEBSITE_PID: ${{ secrets.CJ_WEBSITE_PID }}
+      CJ_PID: ${{ secrets.CJ_PID }}
+      CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          clean: true
+
+      - name: Verify ten completed canonical seller foundations
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s scripts/catalog-v19/build-canonical-seller.mjs
+          test -s scripts/catalog-v19/discover-seller-sources.mjs
+          test -s scripts/catalog-v19/build-global-resolver.mjs
+          test -s scripts/catalog-v19/build-source-aware-seller-queue.mjs
+          test -s data/product-seller-registry-v17.json
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          expected = [
+              ("geekbuying","Geekbuying"),
+              ("aliexpress","AliExpress"),
+              ("alibaba","Alibaba"),
+              ("pandahall","PandaHall"),
+              ("karaca-eu","Karaca EU"),
+              ("fragranceshop-com","FragranceShop.com"),
+              ("govee-many-geos","Govee Many GEOs"),
+              ("harfington-many-geos","Harfington Many GEOs"),
+              ("sunsky-online-ww","Sunsky-online WW"),
+              ("diecast","Diecast"),
+          ]
+
+          for slug,name in expected:
+              seller = root/"sellers"/slug
+              manifest_file = seller/"manifest.json"
+              audit_file = seller/"audit.json"
+              products_file = seller/"products.ndjson"
+
+              assert manifest_file.exists(), f"Missing manifest: {name}"
+              assert audit_file.exists(), f"Missing audit: {name}"
+              assert products_file.exists(), f"Missing products: {name}"
+
+              manifest = json.loads(manifest_file.read_text())
+              audit = json.loads(audit_file.read_text())
+
+              assert manifest["seller"]["name"] == name
+              assert manifest["seller"]["slug"] == slug
+              assert manifest["metrics"]["totalProducts"] > 0
+              assert manifest["metrics"]["sourceQualified"] == manifest["metrics"]["totalProducts"]
+              assert audit["sourceLeak"] is False
+              assert audit["blockedSellerLeak"] is False
+              assert audit["duplicateProductKeys"] is False
+
+          registry = json.loads(Path("data/product-seller-registry-v17.json").read_text())
+          public = [x["name"] for x in registry["sellers"] if x.get("public")]
+          assert "MFI Medical" in public
+          for blocked in ["FilamentPRO EU CPS","Temu","Joom"]:
+              assert blocked not in public, blocked
+
+          print("Ten canonical foundations PASS.")
+          print("MFI Medical is an approved public CJ product seller.")
+          PY
+
+      - name: Snapshot current MFI queue state
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          queue_file = Path("data/catalog-v19/seller-build-queue-v3.json")
+          state = {
+              "candidateFiles": 0,
+              "qualifiedFiles": 0,
+              "allCandidateUniqueProducts": 0,
+              "qualifiedProducts": 0
+          }
+
+          if queue_file.exists():
+              queue = json.loads(queue_file.read_text())
+              row = next((x for x in queue.get("remaining",[]) if x.get("seller") == "MFI Medical"), None)
+              if row:
+                  state.update({
+                      "candidateFiles": int(row.get("candidateFiles",0)),
+                      "qualifiedFiles": int(row.get("qualifiedFiles",0)),
+                      "allCandidateUniqueProducts": int(row.get("allCandidateUniqueProducts",0)),
+                      "qualifiedProducts": int(row.get("qualifiedProducts",0)),
+                  })
+
+          Path("/tmp/mfi-before.json").write_text(json.dumps(state,indent=2)+"\n")
+          print(json.dumps(state,indent=2))
+          PY
+
+      - name: Fetch and stage MFI Medical directly from CJ
+        id: cj
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p data/source-ingestion-v19
+          mkdir -p data/catalog-v19/source-ingestion
+
+          python3 - <<'PY'
+          import os, json, urllib.request, urllib.error, html
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          ENDPOINT = "https://ads.api.cj.com/query"
+          PARTNER_ID = 7227612
+          SELLER = "MFI Medical"
+          VERSION = "19.11.1"
+
+          def first(*names):
+              for name in names:
+                  value = (os.environ.get(name) or "").strip()
+                  if value:
+                      return value
+              return ""
+
+          token = first("CJ_API_TOKEN","CJ_TOKEN","CJ_PAT","CJ_PERSONAL_ACCESS_TOKEN")
+          company = first("CJ_COMPANY_ID","CJ_CID","CJ_PUBLISHER_CID") or "5917965"
+          pid = first("CJ_WEBSITE_PID","CJ_PID","CJ_WEBSITE_ID") or "100655394"
+
+          before = {}
+          before_file = Path("/tmp/mfi-before.json")
+          if before_file.exists():
+              before = json.loads(before_file.read_text())
+
+          audit = {
+              "version": VERSION,
+              "seller": SELLER,
+              "network": "CJ",
+              "advertiserId": str(PARTNER_ID),
+              "generatedAt": datetime.now(timezone.utc).isoformat(),
+              "repositoryBefore": before,
+              "ready": False,
+              "reason": "",
+              "feeds": [],
+              "shopping": {},
+              "generic": {},
+              "rawUniqueProducts": 0,
+              "stagedProducts": 0,
+              "coverage": {},
+          }
+
+          report_file = Path("data/catalog-v19/V19.11-REPORT.md")
+          audit_file = Path("data/catalog-v19/source-ingestion/mfi-medical-cj-live-audit.json")
+          source_file = Path("data/source-ingestion-v19/mfi-medical-cj-live.json")
+
+          def write_outputs(ready, reason=""):
+              audit["ready"] = bool(ready)
+              audit["reason"] = reason
+              audit_file.write_text(json.dumps(audit,ensure_ascii=False,indent=2)+"\n")
+
+              lines = [
+                  "# TrendPilot V19.11 — MFI Medical Source Ingestion",
+                  "",
+                  "> Source-ingestion phase. Existing ten canonical seller catalogs are not replaced.",
+                  "",
+                  "## Repository state before CJ ingestion",
+                  f"- Existing MFI candidate files: **{int(before.get('candidateFiles',0))}**",
+                  f"- Existing MFI candidate products: **{int(before.get('allCandidateUniqueProducts',0))}**",
+                  f"- Existing qualified MFI products: **{int(before.get('qualifiedProducts',0))}**",
+                  "",
+                  "## CJ source ingestion",
+                  "- CJ GraphQL relationship filter: **PartnerStatus.JOINED**",
+                  f"- MFI Medical advertiser ID: **{PARTNER_ID}**",
+                  f"- CJ feed summaries returned: **{len(audit.get('feeds',[]))}**",
+                  f"- CJ feed-reported products: **{sum(int(x.get('productCount') or 0) for x in audit.get('feeds',[]))}**",
+                  f"- Shopping API rows: **{int(audit.get('shopping',{}).get('count',0))}**",
+                  f"- Generic Products API rows: **{int(audit.get('generic',{}).get('count',0))}**",
+                  f"- Unique live CJ product IDs discovered: **{int(audit.get('rawUniqueProducts',0))}**",
+                  f"- Products staged with title + ID + affiliate link: **{int(audit.get('stagedProducts',0))}**",
+              ]
+
+              cov = audit.get("coverage") or {}
+              if cov:
+                  lines.extend([
+                      f"- Positive price coverage: **{cov.get('pricePercent',0)}%**",
+                      f"- Image coverage: **{cov.get('imagePercent',0)}%**",
+                      f"- Affiliate-link coverage: **{cov.get('linkPercent',0)}%**",
+                      f"- Brand coverage: **{cov.get('brandPercent',0)}%**",
+                  ])
+
+              lines.extend(["", "## Ingestion gate"])
+              if ready:
+                  lines.append("**PASS — a real CJ product source was staged. Canonical MFI build will continue.**")
+              else:
+                  lines.append(f"**SOURCE NOT READY — {reason}**")
+                  lines.append("")
+                  lines.append("No MFI catalog, resolver, search or visitor-facing data was changed.")
+
+              report_file.write_text("\n".join(lines)+"\n")
+
+              gh = os.environ.get("GITHUB_OUTPUT")
+              if gh:
+                  with open(gh,"a",encoding="utf-8") as f:
+                      f.write(f"ready={'true' if ready else 'false'}\n")
+                      f.write(f"staged={int(audit.get('stagedProducts',0))}\n")
+
+          if not token:
+              write_outputs(False, "CJ Personal Access Token is not available in GitHub Secrets.")
+              raise SystemExit(0)
+
+          def gql(query):
+              req = urllib.request.Request(
+                  ENDPOINT,
+                  data=json.dumps({"query": query}).encode("utf-8"),
+                  method="POST",
+                  headers={
+                      "Authorization": f"Bearer {token}",
+                      "Content-Type": "application/json",
+                      "Accept": "application/json",
+                      "User-Agent": "TrendPilot-MFI-Source-Ingestion/19.11.1",
+                  },
+              )
+              try:
+                  with urllib.request.urlopen(req,timeout=75) as r:
+                      raw = r.read().decode("utf-8","replace")
+                      status = r.status
+              except urllib.error.HTTPError as e:
+                  raw = e.read().decode("utf-8","replace")
+                  status = e.code
+
+              try:
+                  payload = json.loads(raw)
+              except Exception:
+                  raise RuntimeError(f"CJ returned non-JSON HTTP {status}: {raw[:800]}")
+
+              if status >= 400:
+                  raise RuntimeError(f"CJ HTTP {status}: {json.dumps(payload)[:1200]}")
+              if payload.get("errors"):
+                  raise RuntimeError(f"CJ GraphQL errors: {json.dumps(payload['errors'])[:1600]}")
+              return payload.get("data") or {}
+
+          company_gql = json.dumps(str(company))
+          pid_gql = json.dumps(str(pid))
+
+          feed_query = f"""
+          query TrendPilotMfiFeedSummary {{
+            productFeeds(
+              companyId: {company_gql}
+              partnerIds: [{PARTNER_ID}]
+              limit: 100
+              offset: 0
+            ) {{
+              totalCount
+              count
+              resultList {{
+                adId
+                feedName
+                advertiserId
+                advertiserName
+                productCount
+                advertiserCountry
+                language
+                currency
+                sourceFeedType
+                lastUpdated
+              }}
+            }}
+          }}
+          """
+
+          shopping_query = f"""
+          query TrendPilotMfiShopping {{
+            shoppingProducts(
+              companyId: {company_gql}
+              partnerIds: [{PARTNER_ID}]
+              partnerStatus: JOINED
+              limit: 1000
+              offset: 0
+            ) {{
+              totalCount
+              count
+              resultList {{
+                advertiserId
+                catalogId
+                id
+                title
+                description
+                imageLink
+                brand
+                availability
+                condition
+                price {{
+                  amount
+                  currency
+                }}
+                linkCode(pid: {pid_gql}) {{
+                  clickUrl
+                }}
+              }}
+            }}
+          }}
+          """
+
+          generic_query = f"""
+          query TrendPilotMfiGeneric {{
+            products(
+              companyId: {company_gql}
+              partnerIds: [{PARTNER_ID}]
+              partnerStatus: JOINED
+              limit: 1000
+              offset: 0
+            ) {{
+              totalCount
+              count
+              resultList {{
+                advertiserId
+                catalogId
+                id
+                title
+                description
+                price {{
+                  amount
+                  currency
+                }}
+                linkCode(pid: {pid_gql}) {{
+                  clickUrl
+                }}
+              }}
+            }}
+          }}
+          """
+
+          try:
+              feed_data = gql(feed_query)
+              feed_block = feed_data.get("productFeeds") or {}
+              feeds = feed_block.get("resultList") or []
+              audit["feeds"] = feeds
+
+              shopping_data = gql(shopping_query)
+              shopping = shopping_data.get("shoppingProducts") or {}
+              shopping_rows = shopping.get("resultList") or []
+              audit["shopping"] = {
+                  "totalCount": int(shopping.get("totalCount") or 0),
+                  "count": len(shopping_rows),
+              }
+
+              generic_rows = []
+              try:
+                  generic_data = gql(generic_query)
+                  generic = generic_data.get("products") or {}
+                  generic_rows = generic.get("resultList") or []
+                  audit["generic"] = {
+                      "totalCount": int(generic.get("totalCount") or 0),
+                      "count": len(generic_rows),
+                  }
+              except Exception as e:
+                  audit["generic"] = {"totalCount":0,"count":0,"warning":str(e)[:500]}
+
+          except Exception as e:
+              write_outputs(False, str(e)[:700])
+              raise SystemExit(0)
+
+          def clean(v):
+              return html.unescape(str(v or "")).strip()
+
+          def price_value(obj):
+              try:
+                  value = float((obj or {}).get("amount"))
+                  return value if value > 0 else None
+              except Exception:
+                  return None
+
+          merged = {}
+
+          def merge_row(raw, shopping=False):
+              if clean(raw.get("advertiserId")) != str(PARTNER_ID):
+                  return
+
+              pid_value = clean(raw.get("id"))
+              title = clean(raw.get("title"))
+              click = clean((raw.get("linkCode") or {}).get("clickUrl"))
+              if not pid_value or not title or not click:
+                  return
+
+              current = merged.get(pid_value,{})
+              price = price_value(raw.get("price"))
+              currency = clean((raw.get("price") or {}).get("currency"))
+              image = clean(raw.get("imageLink"))
+              brand = clean(raw.get("brand"))
+
+              candidate = {
+                  "seller": SELLER,
+                  "advertiser": SELLER,
+                  "sourceProductId": pid_value,
+                  "id": pid_value,
+                  "title": title,
+                  "description": clean(raw.get("description")),
+                  "brand": brand,
+                  "price": price,
+                  "currency": currency,
+                  "imageUrl": image,
+                  "affiliateUrl": click,
+                  "destinationUrl": click,
+                  "availability": clean(raw.get("availability")),
+                  "condition": clean(raw.get("condition")),
+                  "catalogId": clean(raw.get("catalogId")),
+                  "cjAdvertiserId": str(PARTNER_ID),
+                  "sourceNetwork": "CJ",
+                  "sourceMode": "shoppingProducts" if shopping else "products",
+              }
+
+              if not current:
+                  merged[pid_value] = candidate
+                  return
+
+              # Merge richer CJ fields without changing product identity.
+              for key,value in candidate.items():
+                  if current.get(key) in (None,"") and value not in (None,""):
+                      current[key] = value
+              if shopping:
+                  current["sourceMode"] = "shoppingProducts"
+
+          for row in generic_rows:
+              merge_row(row,False)
+          for row in shopping_rows:
+              merge_row(row,True)
+
+          products = list(merged.values())
+          products.sort(key=lambda x: (x.get("title") or "").casefold())
+
+          audit["rawUniqueProducts"] = len({
+              clean(x.get("id"))
+              for x in [*shopping_rows,*generic_rows]
+              if clean(x.get("id")) and clean(x.get("advertiserId")) == str(PARTNER_ID)
+          })
+          audit["stagedProducts"] = len(products)
+
+          n = len(products)
+          price_count = sum(x.get("price") is not None for x in products)
+          image_count = sum(bool(clean(x.get("imageUrl"))) for x in products)
+          link_count = sum(bool(clean(x.get("affiliateUrl"))) for x in products)
+          brand_count = sum(bool(clean(x.get("brand"))) for x in products)
+
+          pct = lambda c: round((100*c/n),1) if n else 0
+          audit["coverage"] = {
+              "price": price_count,
+              "image": image_count,
+              "link": link_count,
+              "brand": brand_count,
+              "pricePercent": pct(price_count),
+              "imagePercent": pct(image_count),
+              "linkPercent": pct(link_count),
+              "brandPercent": pct(brand_count),
+          }
+
+          if n < 3:
+              write_outputs(False, f"CJ returned only {n} staged products with title + ID + affiliate link.")
+              raise SystemExit(0)
+
+          if link_count != n:
+              write_outputs(False, "Not every staged CJ product has a publisher affiliate click URL.")
+              raise SystemExit(0)
+
+          if price_count / n < 0.25 and image_count / n < 0.25:
+              write_outputs(False, "CJ live rows still have insufficient price/image coverage for a product catalog.")
+              raise SystemExit(0)
+
+          source_file.write_text(json.dumps(products,ensure_ascii=False,indent=2)+"\n")
+          write_outputs(True)
+          print(f"Staged {n} MFI Medical CJ products.")
+          print(json.dumps(audit["coverage"],indent=2))
+          PY
+
+      - name: Discover qualified MFI source after live ingestion
+        if: steps.cj.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node scripts/catalog-v19/discover-seller-sources.mjs \
+            --seller="MFI Medical" \
+            --slug=mfi-medical \
+            --version=19.11.1
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          p = Path("data/catalog-v19/source-manifests/mfi-medical.json")
+          intake = json.loads(p.read_text())
+
+          assert intake["seller"] == "MFI Medical"
+          assert intake["qualifiedFileCount"] >= 1
+          assert intake["qualifiedUniqueProducts"] >= 3
+          assert "data/source-ingestion-v19/mfi-medical-cj-live.json" in intake["qualifiedFiles"]
+
+          row = next(
+              x for x in intake["files"]
+              if x["file"] == "data/source-ingestion-v19/mfi-medical-cj-live.json"
+          )
+          assert row["qualifies"] is True
+          assert row["linkPercent"] == 100
+          assert row["pricePercent"] >= 25 or row["imagePercent"] >= 25
+
+          print("MFI live CJ source qualification PASS.")
+          print("Qualified products:", intake["qualifiedUniqueProducts"])
+          PY
+
+      - name: Build Seller 11 — MFI Medical canonical catalog
+        if: steps.cj.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check scripts/catalog-v19/build-canonical-seller.mjs
+
+          node scripts/catalog-v19/build-canonical-seller.mjs \
+            --seller="MFI Medical" \
+            --slug=mfi-medical \
+            --version=19.11.1 \
+            --role=eleventh-canonical-catalog \
+            --source-manifest=data/catalog-v19/source-manifests/mfi-medical.json
+
+      - name: Validate MFI canonical catalog
+        if: steps.cj.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json, math
+
+          root = Path("data/catalog-v19")
+          intake = json.loads((root/"source-manifests/mfi-medical.json").read_text())
+          seller = root/"sellers/mfi-medical"
+          manifest = json.loads((seller/"manifest.json").read_text())
+          audit = json.loads((seller/"audit.json").read_text())
+
+          total = manifest["metrics"]["totalProducts"]
+          source_total = intake["qualifiedUniqueProducts"]
+
+          assert manifest["version"] == "19.11.1"
+          assert manifest["seller"]["name"] == "MFI Medical"
+          assert manifest["seller"]["slug"] == "mfi-medical"
+          assert total >= 3
+          assert total >= math.floor(source_total * 0.90), (total,source_total)
+          assert manifest["metrics"]["sourceQualified"] == total
+          assert manifest["metrics"]["link"] == total
+          assert (
+              manifest["metrics"]["price"] / total >= 0.25 or
+              manifest["metrics"]["image"] / total >= 0.25
+          )
+
+          assert audit["sourceLeak"] is False
+          assert audit["blockedSellerLeak"] is False
+          assert audit["duplicateProductKeys"] is False
+
+          failed = [x for x in audit.get("roundTripSamples",[]) if not x.get("resolved")]
+          assert not failed, failed[:5]
+
+          rows = [
+              json.loads(line)
+              for line in (seller/"products.ndjson").read_text().splitlines()
+              if line.strip()
+          ]
+          assert len(rows) == total
+          assert len({x["productKey"] for x in rows}) == total
+          assert all(x["seller"]["name"] == "MFI Medical" for x in rows)
+          assert all(x["links"]["affiliateUrl"] for x in rows)
+
+          print("MFI canonical catalog PASS.")
+          print("Canonical products:", total)
+          print("Price:", manifest["metrics"]["price"])
+          print("Image:", manifest["metrics"]["image"])
+          print("Link:", manifest["metrics"]["link"])
+          PY
+
+      - name: Install deterministic eleven-seller catalog set
+        if: steps.cj.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          expected = [
+              ("Geekbuying","geekbuying"),
+              ("AliExpress","aliexpress"),
+              ("Alibaba","alibaba"),
+              ("PandaHall","pandahall"),
+              ("Karaca EU","karaca-eu"),
+              ("FragranceShop.com","fragranceshop-com"),
+              ("Govee Many GEOs","govee-many-geos"),
+              ("Harfington Many GEOs","harfington-many-geos"),
+              ("Sunsky-online WW","sunsky-online-ww"),
+              ("Diecast","diecast"),
+              ("MFI Medical","mfi-medical"),
+          ]
+
+          for name,slug in expected:
+              manifest = root/"sellers"/slug/"manifest.json"
+              assert manifest.exists(), f"Missing canonical manifest: {name}"
+              data = json.loads(manifest.read_text())
+              assert data["seller"]["name"] == name
+              assert data["seller"]["slug"] == slug
+
+          blocked = {"FilamentPRO EU CPS","Temu","Joom"}
+          assert not blocked.intersection(name for name,_ in expected)
+
+          catalog = {
+              "version":"19.11.1",
+              "purpose":"Explicit list of validated canonical seller catalogs allowed into the global V19 resolver.",
+              "sellers":[{"name":name,"slug":slug} for name,slug in expected],
+          }
+          (root/"catalog-set-v1.json").write_text(json.dumps(catalog,indent=2)+"\n")
+          print("Installed deterministic 11-seller catalog set.")
+          PY
+
+      - name: Bump reusable resolver and queue to V19.11
+        if: steps.cj.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          for file in [
+              Path("scripts/catalog-v19/build-global-resolver.mjs"),
+              Path("scripts/catalog-v19/build-source-aware-seller-queue.mjs"),
+          ]:
+              s = file.read_text()
+              s2,n = re.subn(
+                  r'const VERSION = "[^"]+";',
+                  'const VERSION = "19.11.1";',
+                  s,
+                  count=1
+              )
+              if n != 1:
+                  raise SystemExit(f"{file}: VERSION constant not found exactly once")
+              file.write_text(s2)
+          PY
+
+          node --check scripts/catalog-v19/build-global-resolver.mjs
+          node --check scripts/catalog-v19/build-source-aware-seller-queue.mjs
+
+      - name: Build eleven-seller resolver and remaining-source queue
+        if: steps.cj.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node scripts/catalog-v19/build-global-resolver.mjs
+          node scripts/catalog-v19/build-source-aware-seller-queue.mjs
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          cross = json.loads((root/"cross-seller-audit-v1.json").read_text())
+          queue = json.loads((root/"seller-build-queue-v3.json").read_text())
+
+          assert cross["version"] == "19.11.1"
+          assert cross["catalogSetVersion"] == "19.11.1"
+          assert len(cross["sellers"]) == 11
+          assert cross["sellerCounts"]["MFI Medical"] >= 3
+          assert cross["blockedSellerLeak"] is False
+          assert cross["duplicateGlobalProductKeys"] is False
+          assert not cross.get("insertionFailures")
+          assert not cross.get("failedRoundTrips")
+
+          completed = queue["completedSellers"]
+          assert "MFI Medical" in completed
+          for blocked in ["FilamentPRO EU CPS","Temu","Joom"]:
+              assert blocked not in completed
+              assert all(x.get("seller") != blocked for x in queue.get("remaining",[]))
+
+          print("Eleven-seller resolver PASS.")
+          print("Total canonical records:", cross["totalRecords"])
+          print("Remaining source queue:", json.dumps(queue.get("remaining",[]),indent=2))
+          PY
+
+      - name: Complete V19.11 report
+        if: steps.cj.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          root = Path("data/catalog-v19")
+          report_file = root/"V19.11-REPORT.md"
+          audit = json.loads((root/"source-ingestion/mfi-medical-cj-live-audit.json").read_text())
+          intake = json.loads((root/"source-manifests/mfi-medical.json").read_text())
+          manifest = json.loads((root/"sellers/mfi-medical/manifest.json").read_text())
+          cross = json.loads((root/"cross-seller-audit-v1.json").read_text())
+          queue = json.loads((root/"seller-build-queue-v3.json").read_text())
+
+          before = audit.get("repositoryBefore") or {}
+          feeds = audit.get("feeds") or []
+          cov = audit.get("coverage") or {}
+
+          def rate(key):
+              return manifest["fillRates"][key]["percent"]
+
+          lines = [
+              "# TrendPilot V19.11 — MFI Medical Source Ingestion + Canonical Catalog",
+              "",
+              "> MFI Medical was missing a qualified persisted feed. V19.11 uses the publisher's joined CJ relationship directly and persists only real CJ product rows.",
+              "",
+              "## Before ingestion",
+              f"- Repository MFI candidate products: **{int(before.get('allCandidateUniqueProducts',0))}**",
+              f"- Qualified products before live CJ ingestion: **{int(before.get('qualifiedProducts',0))}**",
+              "",
+              "## CJ ingestion",
+              f"- CJ feed summaries: **{len(feeds)}**",
+              f"- CJ feed-reported products: **{sum(int(x.get('productCount') or 0) for x in feeds)}**",
+              f"- Unique CJ product IDs discovered: **{int(audit.get('rawUniqueProducts',0))}**",
+              f"- Staged products with title + stable CJ ID + publisher affiliate link: **{int(audit.get('stagedProducts',0))}**",
+              f"- Positive price coverage: **{cov.get('pricePercent',0)}%**",
+              f"- Image coverage: **{cov.get('imagePercent',0)}%**",
+              f"- Link coverage: **{cov.get('linkPercent',0)}%**",
+              "",
+              "## Seller 11 — MFI Medical",
+              f"- Canonical products: **{manifest['metrics']['totalProducts']:,}**",
+              f"- Stable seller ID/SKU: **{manifest['metrics']['stableSellerId']:,} ({rate('stableSellerId')}%)**",
+              f"- Brand: **{manifest['metrics']['brand']:,} ({rate('brand')}%)**",
+              f"- Model/name hint: **{manifest['metrics']['modelAny']:,} ({rate('modelAny')}%)**",
+              f"- Structured specs: **{manifest['metrics']['structuredSpecs']:,} ({rate('structuredSpecs')}%)**",
+              f"- Derived title specs: **{manifest['metrics']['derivedSpecs']:,} ({rate('derivedSpecs')}%)**",
+              f"- Price: **{manifest['metrics']['price']:,} ({rate('price')}%)**",
+              f"- Image: **{manifest['metrics']['image']:,} ({rate('image')}%)**",
+              f"- Affiliate link: **{manifest['metrics']['link']:,} ({rate('link')}%)**",
+              "",
+              "## Eleven-seller shared resolver",
+              f"- Total canonical records: **{cross['totalRecords']:,}**",
+              f"- Automatic exact cross-seller groups: **{cross['autoExactGroups']:,}**",
+              f"- Exact-name discovery overlaps: **{cross['exactNameCrossSellerOverlaps']:,}**",
+              f"- Brand/model discovery overlaps: **{cross['brandModelDiscoveryOverlaps']:,}**",
+              "",
+              "## Next source-ingestion gate",
+          ]
+
+          remaining = queue.get("remaining",[])
+          ready = [x for x in remaining if int(x.get("qualifiedProducts",0)) > 0]
+          if ready:
+              nxt = ready[0]
+              lines.extend([
+                  "**PASS — another qualified persisted source is available.**",
+                  "",
+                  f"Next seller: **{nxt['seller']}** — **{int(nxt['qualifiedProducts']):,}** qualified products."
+              ])
+          else:
+              names = [x.get("seller") for x in remaining]
+              lines.extend([
+                  "**PASS — no additional qualified persisted feed exists yet.**",
+                  "",
+                  "Remaining approved sellers requiring source ingestion/adapters: "
+                  + ", ".join(f"**{x}**" for x in names) + "."
+              ])
+
+          report_file.write_text("\n".join(lines)+"\n")
+          print(report_file.read_text())
+          PY
+
+      - name: Commit MFI source and canonical catalog
+        if: steps.cj.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            data/source-ingestion-v19/mfi-medical-cj-live.json \
+            data/catalog-v19/source-ingestion/mfi-medical-cj-live-audit.json \
+            data/catalog-v19/source-manifests/mfi-medical.json \
+            data/catalog-v19/sellers/mfi-medical \
+            data/catalog-v19/catalog-set-v1.json \
+            data/catalog-v19/global-resolver-v1.json \
+            data/catalog-v19/cross-seller-audit-v1.json \
+            data/catalog-v19/seller-build-queue-v3.json \
+            data/catalog-v19/V19.11-REPORT.md \
+            scripts/catalog-v19/build-global-resolver.mjs \
+            scripts/catalog-v19/build-source-aware-seller-queue.mjs
+
+          git diff --cached --check
+
+          if git diff --cached --quiet; then
+            echo "MFI V19.11.1 state is already current."
+          else
+            git commit -m "fix: ingest MFI Medical with CJ JOINED enum"
+            if ! git push origin HEAD:main; then
+              echo "Main moved; rebasing once."
+              git pull --rebase origin main
+              git push origin HEAD:main
+            fi
+          fi
+
+      - name: Publish V19.11.1 summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -s data/catalog-v19/V19.11-REPORT.md ]; then
+            cat data/catalog-v19/V19.11-REPORT.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "# TrendPilot V19.11 — MFI Medical Source Ingestion"
+              echo
+              echo "**No report was produced. Inspect the preceding workflow step.**"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload MFI ingestion audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v19-11-1-mfi-medical-source-ingestion
+          path: |
+            data/catalog-v19/V19.11-REPORT.md
+            data/catalog-v19/source-ingestion/mfi-medical-cj-live-audit.json
+            data/source-ingestion-v19/mfi-medical-cj-live.json
+            data/catalog-v19/source-manifests/mfi-medical.json
+            data/catalog-v19/sellers/mfi-medical/manifest.json
+            data/catalog-v19/sellers/mfi-medical/audit.json
+            data/catalog-v19/seller-build-queue-v3.json
+          if-no-files-found: warn
+          retention-days: 14
+          compression-level: 9
