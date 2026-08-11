@@ -1,7 +1,7 @@
 {
-  "version": "19.8.0",
-  "generatedAt": "2026-08-10T23:42:53.601Z",
-  "catalogSetVersion": "19.8.0",
+  "version": "19.9.0",
+  "generatedAt": "2026-08-11T00:01:42.816Z",
+  "catalogSetVersion": "19.9.0",
   "sellers": [
     {
       "name": "Geekbuying",
@@ -34,9 +34,13 @@
     {
       "name": "Harfington Many GEOs",
       "slug": "harfington-many-geos"
+    },
+    {
+      "name": "Sunsky-online WW",
+      "slug": "sunsky-online-ww"
     }
   ],
-  "totalRecords": 39056,
+  "totalRecords": 39156,
   "sellerCounts": {
     "Geekbuying": 1107,
     "AliExpress": 16206,
@@ -45,12 +49,13 @@
     "Karaca EU": 100,
     "FragranceShop.com": 100,
     "Govee Many GEOs": 100,
-    "Harfington Many GEOs": 100
+    "Harfington Many GEOs": 100,
+    "Sunsky-online WW": 100
   },
   "autoExactGroups": 0,
   "autoGroupConflicts": [],
   "exactNameCrossSellerOverlaps": 0,
-  "brandModelDiscoveryOverlaps": 2,
+  "brandModelDiscoveryOverlaps": 7,
   "insertionFailures": [],
   "roundTrips": [
     {
@@ -1651,6 +1656,86 @@
       "query": "394mil 6.4sqft Car Firewall Heat Sound Deadener Insulation Mat 40\" x 24\"",
       "indexKey": "394mil 6 4sqft car firewall heat sound deadener insulation mat 40 x 24",
       "expectedProductKey": "harfington-many-geos:7daf6ec59944600d2dd2158a",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "AUTOOL 12V Automotive Fault Relay Detector",
+      "indexKey": "autool 12v automotive fault relay detector",
+      "expectedProductKey": "sunsky-online-ww:934d237e59a3a73960685044",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "For Honor Magic V6 IMAK Rear Camera Lens Glass Film Black Version",
+      "indexKey": "for honor magic v6 imak rear camera lens glass film black version",
+      "expectedProductKey": "sunsky-online-ww:380fda3110c81ed21162d46b",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "For TCL K33 5G T513V LCD Screen with Digitizer Full Assembly",
+      "indexKey": "for tcl k33 5g t513v lcd screen with digitizer full assembly",
+      "expectedProductKey": "sunsky-online-ww:4050cc9b1d83e5e14b44f883",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "For Xiaomi Smart Band 10 / 9 / 8 xDfind Reverse Buckle Silicone Watch Band(White)",
+      "indexKey": "for xiaomi smart band 10 9 8 xdfind reverse buckle silicone watch band white",
+      "expectedProductKey": "sunsky-online-ww:2625e44874cea11446f305b9",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "JSR DSLR Camera Round Color Filter Camera Digital Filters, Size: 30.5mm(Red)",
+      "indexKey": "jsr dslr camera round color filter camera digital filters size 30 5mm red",
+      "expectedProductKey": "sunsky-online-ww:690c4bc30a0220e5e7250ec6",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "LCD Screen and Digitizer Full Assembly For Samsung Galaxy A21S",
+      "indexKey": "lcd screen and digitizer full assembly for samsung galaxy a21s",
+      "expectedProductKey": "sunsky-online-ww:e2f134510814edf1a9d784e9",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "OEM LCD Screen for Samsung Galaxy A12/A32 5G/M12 SM-A125 SM-A326 SM-M127 With Digitizer Full Assembly",
+      "indexKey": "oem lcd screen for samsung galaxy a12 a32 5g m12 sm a125 sm a326 sm m127 with digitizer full assembly",
+      "expectedProductKey": "sunsky-online-ww:ad896b0ebad236cb6830c70a",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "Original LCD Screen for Samsung Galaxy A04 SM-A045F Digitizer Full Assembly",
+      "indexKey": "original lcd screen for samsung galaxy a04 sm a045f digitizer full assembly",
+      "expectedProductKey": "sunsky-online-ww:3bb258f1f79d934ee418aa83",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "JK incell LCD Screen for iPhone 11(Black)",
+      "indexKey": "jk incell lcd screen for iphone 11 black",
+      "expectedProductKey": "sunsky-online-ww:15481b8723191ddd2c1d35d4",
+      "resolved": true
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "kind": "exact-name",
+      "query": "High Sensitivity Stylus Pen For Samsung Galaxy Tab S7/S7+/S7 FE/S8/S8+/S8 Ultra/S9/S9+/S9 Ultra/S10/S10+/S10 Ultra (Black)",
+      "indexKey": "high sensitivity stylus pen for samsung galaxy tab s7 s7 s7 fe s8 s8 s8 ultra s9 s9 s9 ultra s10 s10 s10 ultra black",
+      "expectedProductKey": "sunsky-online-ww:1dc08e832cac73e376905318",
       "resolved": true
     }
   ],
