@@ -1,0 +1,950 @@
+{
+  "version": "19.12.6",
+  "seller": "Lenovo",
+  "generatedAt": "2026-08-11T09:36:10.568Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/source-ingestion-v19/lenovo-direct-catalog.json"
+    ],
+    "normalizedRowsForSeller": 756
+  },
+  "metrics": {
+    "totalProducts": 756,
+    "sourceFiles": 1,
+    "stableSellerId": 756,
+    "brand": 756,
+    "modelAny": 38,
+    "modelExplicit": 0,
+    "modelInferred": 38,
+    "comparableExact": 488,
+    "structuredSpecs": 739,
+    "derivedSpecs": 32,
+    "price": 756,
+    "image": 756,
+    "link": 756,
+    "variants": 0,
+    "sourceQualified": 756
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 756,
+      "percent": 100
+    },
+    "brand": {
+      "count": 756,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 38,
+      "percent": 5
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 38,
+      "percent": 5
+    },
+    "comparableExact": {
+      "count": 488,
+      "percent": 64.6
+    },
+    "structuredSpecs": {
+      "count": 739,
+      "percent": 97.8
+    },
+    "derivedSpecs": {
+      "count": 32,
+      "percent": 4.2
+    },
+    "price": {
+      "count": 756,
+      "percent": 100
+    },
+    "image": {
+      "count": 756,
+      "percent": 100
+    },
+    "link": {
+      "count": 756,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 756,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [
+      {
+        "key": "mpn:lenovo:p",
+        "productKeys": [
+          "lenovo:65d7f1a859b8a9e98dd1dbd7",
+          "lenovo:9e960e410732161e11f5fe44",
+          "lenovo:062428c599b00300a9cd92ee",
+          "lenovo:90b3ba1ac3c5cbc9fb0185f3",
+          "lenovo:7cd8317717965cb7c4275014",
+          "lenovo:8880a298e53e2a13eee405da"
+        ]
+      },
+      {
+        "key": "mpn:p:p",
+        "productKeys": [
+          "lenovo:9f638ce6f3cf69cfdcc796eb",
+          "lenovo:d3601dd6756298189ba6c9d8",
+          "lenovo:002b8e0eb63bcd67482bd7f7",
+          "lenovo:01cf959e4c4da125d0663df1",
+          "lenovo:036789a3969d9e4e71f95e1e",
+          "lenovo:06321b4dc43cff96772533f9",
+          "lenovo:070f68a4ac308a7f4ae6ee43",
+          "lenovo:07223037b01fa6c7c015bf5d",
+          "lenovo:0957ac563a9ea0d7b55363de",
+          "lenovo:0bcca726a9cd9635320d711d",
+          "lenovo:15510d2c0733fca931335dec",
+          "lenovo:17084423276e3c9aad71c706",
+          "lenovo:17c1b28f705ce493ce996c9e",
+          "lenovo:198e0a0ba283fc9d951c693a",
+          "lenovo:1dc6d25e94ef3b9a6d22fb7e",
+          "lenovo:1e958abc1dfbee6069941bf6",
+          "lenovo:203c7904b1ea6e23dc870213",
+          "lenovo:2750753a804a0ee9c7540238",
+          "lenovo:3078ff1f118758f4091b8b98",
+          "lenovo:33ca78d2fdf888cfff5b6a10",
+          "lenovo:3727c84e88f2003dfeaeb1ef",
+          "lenovo:393394fd6960026c1bc665d7",
+          "lenovo:3ca198d6ad0c1e38e913f234",
+          "lenovo:45253e7c76a228032238e7f5",
+          "lenovo:466b5c2a4a21a1a59ab9cd82",
+          "lenovo:4fe6381cfb493328dc0b0414",
+          "lenovo:52d20936e731c86c00cef7cd",
+          "lenovo:63c7ceabae2d0e03d277e11c",
+          "lenovo:6574b97e62409759f3f6c99f",
+          "lenovo:6595fa7308d40cc9fb73e737",
+          "lenovo:6987698222afbc4b40ac6c8b",
+          "lenovo:7158ceef48c233a202c10e1b",
+          "lenovo:736d5a93cedfe0a65f2a3325",
+          "lenovo:7a7c394c6b0a5d283135071d",
+          "lenovo:85adc4708c9ce65d700cbca6",
+          "lenovo:97b9e2e7007dc44cc5ee3b43",
+          "lenovo:9c88586fc77c57c1fba13bda",
+          "lenovo:a65d08384645bf5c48e9582b",
+          "lenovo:aa3c837a637e949ce66929a9",
+          "lenovo:add4d5feb1cfc22a79041dd3",
+          "lenovo:b752861bdee9f70395c50343",
+          "lenovo:b8df172d3e80349c4b5ee180",
+          "lenovo:c1b84eca8609c264c96d3a3f",
+          "lenovo:cbe7ec4ce50246101eaedc8d",
+          "lenovo:d32bb4fa143413c808801710",
+          "lenovo:db325c9e85980680ddb2a2dd",
+          "lenovo:dc864ef78c096f84b5085d2d",
+          "lenovo:dd8b3f7cea0b4a8c64dab056",
+          "lenovo:e71bd8a4589a00513ffb4a1d",
+          "lenovo:f2adb1447413398f01f488c1",
+          "lenovo:f717fb0cf25a72830274a485",
+          "lenovo:f73be4e97f2d1187faf6a853",
+          "lenovo:f86759408b240f9a07230a25",
+          "lenovo:fd57a8b47931e0b50ee1bc24",
+          "lenovo:fd91df45f3e7b9eba6f410e7",
+          "lenovo:1439263e2823b235327ffba8",
+          "lenovo:26ab900977d729c8ee57a306",
+          "lenovo:5637929c59d2606b6a6b07f8",
+          "lenovo:58c80024c52c4b3317a47f93",
+          "lenovo:6384e4827f9379da9ff0e2f6",
+          "lenovo:713d2768a2074c4d198a1b63",
+          "lenovo:945ed7f421673478e458291e",
+          "lenovo:950c0dcdc56c54c30749b9ac",
+          "lenovo:c5b20bb6076a2f7f80985c6a",
+          "lenovo:d82157bc83e0e71f3961c66b",
+          "lenovo:0259384ad8b85bd0d8fbc545",
+          "lenovo:08aa14827435ab13086d456d",
+          "lenovo:12cc70e53d6f06502747b3c7",
+          "lenovo:188a11b648840097f96fff89",
+          "lenovo:1e9af269c188766485db5ed2",
+          "lenovo:3a72c07a1d611168bba3a0c4",
+          "lenovo:4798a97a09672e25d340f103",
+          "lenovo:5fa338887f7b5a52c607aded",
+          "lenovo:726e662afaf93393cb699382",
+          "lenovo:7f0608e500a1a21c4512c5f7",
+          "lenovo:8cdc63134465afd872350950",
+          "lenovo:a585bba833fac4267b6c81d4",
+          "lenovo:ac419409b6649c92a2e601e5",
+          "lenovo:dd956632120dc3843eb909b4",
+          "lenovo:df8c9e4946d3795e77224893",
+          "lenovo:fab828e787b59f7de57eb49c",
+          "lenovo:6d772886ccd042ab68d700dc",
+          "lenovo:bf9b4a25d0c59579e774f748",
+          "lenovo:c52d4b22cbd88ffcd27d96a4"
+        ]
+      },
+      {
+        "key": "mpn:lenovo:len101l0066",
+        "productKeys": [
+          "lenovo:b46cacae0a7b00fa69983c49",
+          "lenovo:b6ec75d4766614480550b310"
+        ]
+      }
+    ],
+    "sellerProductId": [
+      {
+        "key": "p",
+        "productKeys": [
+          "lenovo:65d7f1a859b8a9e98dd1dbd7",
+          "lenovo:9e960e410732161e11f5fe44",
+          "lenovo:9f638ce6f3cf69cfdcc796eb",
+          "lenovo:062428c599b00300a9cd92ee",
+          "lenovo:d3601dd6756298189ba6c9d8",
+          "lenovo:002b8e0eb63bcd67482bd7f7",
+          "lenovo:01cf959e4c4da125d0663df1",
+          "lenovo:036789a3969d9e4e71f95e1e",
+          "lenovo:06321b4dc43cff96772533f9",
+          "lenovo:070f68a4ac308a7f4ae6ee43",
+          "lenovo:07223037b01fa6c7c015bf5d",
+          "lenovo:0957ac563a9ea0d7b55363de",
+          "lenovo:0bcca726a9cd9635320d711d",
+          "lenovo:15510d2c0733fca931335dec",
+          "lenovo:17084423276e3c9aad71c706",
+          "lenovo:17c1b28f705ce493ce996c9e",
+          "lenovo:198e0a0ba283fc9d951c693a",
+          "lenovo:1dc6d25e94ef3b9a6d22fb7e",
+          "lenovo:1e958abc1dfbee6069941bf6",
+          "lenovo:203c7904b1ea6e23dc870213",
+          "lenovo:2750753a804a0ee9c7540238",
+          "lenovo:3078ff1f118758f4091b8b98",
+          "lenovo:33ca78d2fdf888cfff5b6a10",
+          "lenovo:3727c84e88f2003dfeaeb1ef",
+          "lenovo:393394fd6960026c1bc665d7",
+          "lenovo:3ca198d6ad0c1e38e913f234",
+          "lenovo:45253e7c76a228032238e7f5",
+          "lenovo:466b5c2a4a21a1a59ab9cd82",
+          "lenovo:4fe6381cfb493328dc0b0414",
+          "lenovo:52d20936e731c86c00cef7cd",
+          "lenovo:63c7ceabae2d0e03d277e11c",
+          "lenovo:6574b97e62409759f3f6c99f",
+          "lenovo:6595fa7308d40cc9fb73e737",
+          "lenovo:6987698222afbc4b40ac6c8b",
+          "lenovo:7158ceef48c233a202c10e1b",
+          "lenovo:736d5a93cedfe0a65f2a3325",
+          "lenovo:7a7c394c6b0a5d283135071d",
+          "lenovo:85adc4708c9ce65d700cbca6",
+          "lenovo:90b3ba1ac3c5cbc9fb0185f3",
+          "lenovo:97b9e2e7007dc44cc5ee3b43",
+          "lenovo:9c88586fc77c57c1fba13bda",
+          "lenovo:a65d08384645bf5c48e9582b",
+          "lenovo:aa3c837a637e949ce66929a9",
+          "lenovo:add4d5feb1cfc22a79041dd3",
+          "lenovo:b752861bdee9f70395c50343",
+          "lenovo:b8df172d3e80349c4b5ee180",
+          "lenovo:c1b84eca8609c264c96d3a3f",
+          "lenovo:cbe7ec4ce50246101eaedc8d",
+          "lenovo:cca4c65926f4e4ab349f8eb1",
+          "lenovo:d32bb4fa143413c808801710",
+          "lenovo:db325c9e85980680ddb2a2dd",
+          "lenovo:dc864ef78c096f84b5085d2d",
+          "lenovo:dd8b3f7cea0b4a8c64dab056",
+          "lenovo:e71bd8a4589a00513ffb4a1d",
+          "lenovo:f2adb1447413398f01f488c1",
+          "lenovo:f717fb0cf25a72830274a485",
+          "lenovo:f73be4e97f2d1187faf6a853",
+          "lenovo:f86759408b240f9a07230a25",
+          "lenovo:fd57a8b47931e0b50ee1bc24",
+          "lenovo:fd91df45f3e7b9eba6f410e7",
+          "lenovo:1439263e2823b235327ffba8",
+          "lenovo:18ed87cd8b04783e14af9793",
+          "lenovo:26ab900977d729c8ee57a306",
+          "lenovo:5637929c59d2606b6a6b07f8",
+          "lenovo:58c80024c52c4b3317a47f93",
+          "lenovo:6384e4827f9379da9ff0e2f6",
+          "lenovo:713d2768a2074c4d198a1b63",
+          "lenovo:7cd8317717965cb7c4275014",
+          "lenovo:8880a298e53e2a13eee405da",
+          "lenovo:945ed7f421673478e458291e",
+          "lenovo:950c0dcdc56c54c30749b9ac",
+          "lenovo:abc6bdbda113b746b6a11a1c",
+          "lenovo:c5b20bb6076a2f7f80985c6a",
+          "lenovo:d82157bc83e0e71f3961c66b",
+          "lenovo:f046d239330e998c5fb7ca11",
+          "lenovo:0259384ad8b85bd0d8fbc545",
+          "lenovo:08aa14827435ab13086d456d",
+          "lenovo:12cc70e53d6f06502747b3c7",
+          "lenovo:188a11b648840097f96fff89",
+          "lenovo:1e9af269c188766485db5ed2",
+          "lenovo:3a72c07a1d611168bba3a0c4",
+          "lenovo:4798a97a09672e25d340f103",
+          "lenovo:5fa338887f7b5a52c607aded",
+          "lenovo:726e662afaf93393cb699382",
+          "lenovo:7f0608e500a1a21c4512c5f7",
+          "lenovo:8cdc63134465afd872350950",
+          "lenovo:a585bba833fac4267b6c81d4",
+          "lenovo:ac419409b6649c92a2e601e5",
+          "lenovo:dd956632120dc3843eb909b4",
+          "lenovo:df8c9e4946d3795e77224893",
+          "lenovo:fab828e787b59f7de57eb49c",
+          "lenovo:6d772886ccd042ab68d700dc",
+          "lenovo:bf9b4a25d0c59579e774f748",
+          "lenovo:c52d4b22cbd88ffcd27d96a4"
+        ]
+      }
+    ],
+    "sku": [
+      {
+        "key": "p",
+        "productKeys": [
+          "lenovo:65d7f1a859b8a9e98dd1dbd7",
+          "lenovo:9e960e410732161e11f5fe44",
+          "lenovo:9f638ce6f3cf69cfdcc796eb",
+          "lenovo:062428c599b00300a9cd92ee",
+          "lenovo:d3601dd6756298189ba6c9d8",
+          "lenovo:002b8e0eb63bcd67482bd7f7",
+          "lenovo:01cf959e4c4da125d0663df1",
+          "lenovo:036789a3969d9e4e71f95e1e",
+          "lenovo:06321b4dc43cff96772533f9",
+          "lenovo:070f68a4ac308a7f4ae6ee43",
+          "lenovo:07223037b01fa6c7c015bf5d",
+          "lenovo:0957ac563a9ea0d7b55363de",
+          "lenovo:0bcca726a9cd9635320d711d",
+          "lenovo:15510d2c0733fca931335dec",
+          "lenovo:17084423276e3c9aad71c706",
+          "lenovo:17c1b28f705ce493ce996c9e",
+          "lenovo:198e0a0ba283fc9d951c693a",
+          "lenovo:1dc6d25e94ef3b9a6d22fb7e",
+          "lenovo:1e958abc1dfbee6069941bf6",
+          "lenovo:203c7904b1ea6e23dc870213",
+          "lenovo:2750753a804a0ee9c7540238",
+          "lenovo:3078ff1f118758f4091b8b98",
+          "lenovo:33ca78d2fdf888cfff5b6a10",
+          "lenovo:3727c84e88f2003dfeaeb1ef",
+          "lenovo:393394fd6960026c1bc665d7",
+          "lenovo:3ca198d6ad0c1e38e913f234",
+          "lenovo:45253e7c76a228032238e7f5",
+          "lenovo:466b5c2a4a21a1a59ab9cd82",
+          "lenovo:4fe6381cfb493328dc0b0414",
+          "lenovo:52d20936e731c86c00cef7cd",
+          "lenovo:63c7ceabae2d0e03d277e11c",
+          "lenovo:6574b97e62409759f3f6c99f",
+          "lenovo:6595fa7308d40cc9fb73e737",
+          "lenovo:6987698222afbc4b40ac6c8b",
+          "lenovo:7158ceef48c233a202c10e1b",
+          "lenovo:736d5a93cedfe0a65f2a3325",
+          "lenovo:7a7c394c6b0a5d283135071d",
+          "lenovo:85adc4708c9ce65d700cbca6",
+          "lenovo:90b3ba1ac3c5cbc9fb0185f3",
+          "lenovo:97b9e2e7007dc44cc5ee3b43",
+          "lenovo:9c88586fc77c57c1fba13bda",
+          "lenovo:a65d08384645bf5c48e9582b",
+          "lenovo:aa3c837a637e949ce66929a9",
+          "lenovo:add4d5feb1cfc22a79041dd3",
+          "lenovo:b752861bdee9f70395c50343",
+          "lenovo:b8df172d3e80349c4b5ee180",
+          "lenovo:c1b84eca8609c264c96d3a3f",
+          "lenovo:cbe7ec4ce50246101eaedc8d",
+          "lenovo:cca4c65926f4e4ab349f8eb1",
+          "lenovo:d32bb4fa143413c808801710",
+          "lenovo:db325c9e85980680ddb2a2dd",
+          "lenovo:dc864ef78c096f84b5085d2d",
+          "lenovo:dd8b3f7cea0b4a8c64dab056",
+          "lenovo:e71bd8a4589a00513ffb4a1d",
+          "lenovo:f2adb1447413398f01f488c1",
+          "lenovo:f717fb0cf25a72830274a485",
+          "lenovo:f73be4e97f2d1187faf6a853",
+          "lenovo:f86759408b240f9a07230a25",
+          "lenovo:fd57a8b47931e0b50ee1bc24",
+          "lenovo:fd91df45f3e7b9eba6f410e7",
+          "lenovo:1439263e2823b235327ffba8",
+          "lenovo:18ed87cd8b04783e14af9793",
+          "lenovo:26ab900977d729c8ee57a306",
+          "lenovo:5637929c59d2606b6a6b07f8",
+          "lenovo:58c80024c52c4b3317a47f93",
+          "lenovo:6384e4827f9379da9ff0e2f6",
+          "lenovo:713d2768a2074c4d198a1b63",
+          "lenovo:7cd8317717965cb7c4275014",
+          "lenovo:8880a298e53e2a13eee405da",
+          "lenovo:945ed7f421673478e458291e",
+          "lenovo:950c0dcdc56c54c30749b9ac",
+          "lenovo:abc6bdbda113b746b6a11a1c",
+          "lenovo:c5b20bb6076a2f7f80985c6a",
+          "lenovo:d82157bc83e0e71f3961c66b",
+          "lenovo:f046d239330e998c5fb7ca11",
+          "lenovo:0259384ad8b85bd0d8fbc545",
+          "lenovo:08aa14827435ab13086d456d",
+          "lenovo:12cc70e53d6f06502747b3c7",
+          "lenovo:188a11b648840097f96fff89",
+          "lenovo:1e9af269c188766485db5ed2",
+          "lenovo:3a72c07a1d611168bba3a0c4",
+          "lenovo:4798a97a09672e25d340f103",
+          "lenovo:5fa338887f7b5a52c607aded",
+          "lenovo:726e662afaf93393cb699382",
+          "lenovo:7f0608e500a1a21c4512c5f7",
+          "lenovo:8cdc63134465afd872350950",
+          "lenovo:a585bba833fac4267b6c81d4",
+          "lenovo:ac419409b6649c92a2e601e5",
+          "lenovo:dd956632120dc3843eb909b4",
+          "lenovo:df8c9e4946d3795e77224893",
+          "lenovo:fab828e787b59f7de57eb49c",
+          "lenovo:6d772886ccd042ab68d700dc",
+          "lenovo:bf9b4a25d0c59579e774f748",
+          "lenovo:c52d4b22cbd88ffcd27d96a4"
+        ]
+      }
+    ],
+    "brandModel": [
+      {
+        "key": "brand-model:cases&bags:p",
+        "productKeys": [
+          "lenovo:16258981515c2e39e51de52e",
+          "lenovo:54999cdca1c522fa020f882d",
+          "lenovo:ded6b525ff4cbe1f253b0e85",
+          "lenovo:539c2854505c1228a15b639c",
+          "lenovo:deb1032f5a3df311c8da4a93",
+          "lenovo:fa9fde4556390c3307f2686b",
+          "lenovo:b8c1bf0f1dd46f6ea1a74b2c",
+          "lenovo:bb6fa8c1719e94908b7e05e5"
+        ]
+      },
+      {
+        "key": "brand-model:p:p",
+        "productKeys": [
+          "lenovo:17084423276e3c9aad71c706",
+          "lenovo:e71bd8a4589a00513ffb4a1d",
+          "lenovo:ae2bca19c03ebc0692ce547a",
+          "lenovo:0259384ad8b85bd0d8fbc545",
+          "lenovo:1e9af269c188766485db5ed2",
+          "lenovo:3ccc528cc44c95653902634a",
+          "lenovo:46e8f4de24881e386d4e040a",
+          "lenovo:531df985de150a25963bf91e",
+          "lenovo:ac419409b6649c92a2e601e5",
+          "lenovo:b17ae50fceb9b67b2c2746ad",
+          "lenovo:b20136bd15a31dff28da3192",
+          "lenovo:b647e55d0949f6c697964a1b"
+        ]
+      },
+      {
+        "key": "brand-model:keyboardsandmice:p",
+        "productKeys": [
+          "lenovo:5a9faa7726b71f622265a117",
+          "lenovo:6140de2f0a27eb9faea284d6",
+          "lenovo:295a4356af025d4b9771bcee",
+          "lenovo:b5293c480b20bfa4b5944a21",
+          "lenovo:d81b4d1fee17c48b8f1c4e48"
+        ]
+      },
+      {
+        "key": "brand-model:pp:p",
+        "productKeys": [
+          "lenovo:b57d1d3cecbc97501bef4d99",
+          "lenovo:bbfa9bc9be51ff9a7f708e26"
+        ]
+      },
+      {
+        "key": "brand-model:chargers,batteries&chargingcarts:p",
+        "productKeys": [
+          "lenovo:185ca7b8f4eac9edc790743e",
+          "lenovo:bca569e7f8617c32aed86289",
+          "lenovo:c5a416c92fdacfe373ce3806",
+          "lenovo:db083d92d5e47314d80a7b88",
+          "lenovo:f3befb252d05e5f9af20847b",
+          "lenovo:f9dfe423698e7eb6eeb52ab4"
+        ]
+      },
+      {
+        "key": "brand-model:ppp:pp",
+        "productKeys": [
+          "lenovo:3f0d9edaf62e24a1e53c3ad2",
+          "lenovo:ae59e9bd8f455de07e3d342c",
+          "lenovo:edecca4df81b7cf24f1a7c40"
+        ]
+      }
+    ]
+  },
+  "roundTripSamples": [
+    {
+      "query": "ThinkPad 14",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:16258981515c2e39e51de52e",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad X1",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:17084423276e3c9aad71c706",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad 12",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:54999cdca1c522fa020f882d",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad Bluetooth",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:5a9faa7726b71f622265a117",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad Wireless",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:6140de2f0a27eb9faea284d6",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad Universal",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:b57d1d3cecbc97501bef4d99",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad Hybrid",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:bbfa9bc9be51ff9a7f708e26",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad 16",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:ded6b525ff4cbe1f253b0e85",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad X13",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:e71bd8a4589a00513ffb4a1d",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad 65W",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:185ca7b8f4eac9edc790743e",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad USB-C",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:295a4356af025d4b9771bcee",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad 16",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:539c2854505c1228a15b639c",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad Ethernet",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:ae2bca19c03ebc0692ce547a",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad USB-C",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:b5293c480b20bfa4b5944a21",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad 16",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:deb1032f5a3df311c8da4a93",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad 13-14",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:fa9fde4556390c3307f2686b",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad X395",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:0259384ad8b85bd0d8fbc545",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad X390",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:1e9af269c188766485db5ed2",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad X1",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:3ccc528cc44c95653902634a",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 33
+    },
+    {
+      "query": "ThinkPad Pen",
+      "indexKey": "pp",
+      "expectedProductKey": "lenovo:3f0d9edaf62e24a1e53c3ad2",
+      "resolutionKind": "model-index",
+      "resolved": true,
+      "resultCount": 4
+    },
+    {
+      "query": "88EL10S0968",
+      "indexKey": "88el10s0968",
+      "expectedProductKey": "lenovo:472f967eb47e7eaa8b772051",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "88ELC1S9999",
+      "indexKey": "88elc1s9999",
+      "expectedProductKey": "lenovo:f102814c92c02be9b24471df",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "88ELC1S8035",
+      "indexKey": "88elc1s8035",
+      "expectedProductKey": "lenovo:422f4606a0856703b3d69a80",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "88EL10S1024",
+      "indexKey": "88el10s1024",
+      "expectedProductKey": "lenovo:1dc6ea474e27b0694586faed",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "88ELC1S9998",
+      "indexKey": "88elc1s9998",
+      "expectedProductKey": "lenovo:d01d3b4d321700f3bbaa2966",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "WMD00000481",
+      "indexKey": "wmd00000481",
+      "expectedProductKey": "lenovo:9cd87bbdc3db5cbfb980707f",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "LEN101G0017",
+      "indexKey": "len101g0017",
+      "expectedProductKey": "lenovo:af446de4d7b8d3b427d64453",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "LEN101L0047",
+      "indexKey": "len101l0047",
+      "expectedProductKey": "lenovo:7a7f33dc6604ec2cc7dbc17d",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "88IPFC31601",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:65d7f1a859b8a9e98dd1dbd7",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 94
+    },
+    {
+      "query": "88IPFC31451",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:9e960e410732161e11f5fe44",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 94
+    },
+    {
+      "query": "LEN101I0001",
+      "indexKey": "len101i0001",
+      "expectedProductKey": "lenovo:437c04b636929331aadcd5ef",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "88IP8FX0831",
+      "indexKey": "p",
+      "expectedProductKey": "lenovo:9f638ce6f3cf69cfdcc796eb",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 94
+    },
+    {
+      "query": "WMD00000479",
+      "indexKey": "wmd00000479",
+      "expectedProductKey": "lenovo:67844448afa929ecd365cf14",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "4XE0N80915",
+      "indexKey": "4xe0n80915",
+      "expectedProductKey": "lenovo:425b3fbda6a74448a2f8ee18",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "LEN106G0001",
+      "indexKey": "len106g0001",
+      "expectedProductKey": "lenovo:24d723333b1cc563c69efe46",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "LEN106G0004",
+      "indexKey": "len106g0004",
+      "expectedProductKey": "lenovo:db7fc0bd79b7c50f0c0ab1fe",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "LEN106G0003",
+      "indexKey": "len106g0003",
+      "expectedProductKey": "lenovo:b373c4ede7fde92feb4f1e14",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "LEN106G0002",
+      "indexKey": "len106g0002",
+      "expectedProductKey": "lenovo:d8bd76517bcf96b959a71cb3",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "4XD1B61617",
+      "indexKey": "4xd1b61617",
+      "expectedProductKey": "lenovo:836f3b3f82e71ac2ba0fbc88",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "GXD1B60597",
+      "indexKey": "gxd1b60597",
+      "expectedProductKey": "lenovo:498948ff14779338c6e03207",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "100e",
+      "indexKey": "100e",
+      "expectedProductKey": "lenovo:472f967eb47e7eaa8b772051",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "100e Chromebook",
+      "indexKey": "100e chromebook",
+      "expectedProductKey": "lenovo:f102814c92c02be9b24471df",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "100e Chromebook 2nd Gen (11.6”, AMD)",
+      "indexKey": "100e chromebook 2nd gen (11.6”, amd)",
+      "expectedProductKey": "lenovo:422f4606a0856703b3d69a80",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "300e",
+      "indexKey": "300e",
+      "expectedProductKey": "lenovo:1dc6ea474e27b0694586faed",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "500e Chromebook",
+      "indexKey": "500e chromebook",
+      "expectedProductKey": "lenovo:d01d3b4d321700f3bbaa2966",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "5i Chromebook Gen 6 (14 Intel)",
+      "indexKey": "5i chromebook gen 6 (14 intel)",
+      "expectedProductKey": "lenovo:9cd87bbdc3db5cbfb980707f",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7 Gen 7 (16″ AMD)",
+      "indexKey": "7 gen 7 (16′′ amd)",
+      "expectedProductKey": "lenovo:af446de4d7b8d3b427d64453",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Chromebook Duet Gen 9 (11″ MediaTek)",
+      "indexKey": "chromebook duet gen 9 (11′′ mediatek)",
+      "expectedProductKey": "lenovo:7a7f33dc6604ec2cc7dbc17d",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Chromebook Flex 3 (11”)",
+      "indexKey": "chromebook flex 3 (11”)",
+      "expectedProductKey": "lenovo:65d7f1a859b8a9e98dd1dbd7",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Chromebook Flex 3i (11”)",
+      "indexKey": "chromebook flex 3i (11”)",
+      "expectedProductKey": "lenovo:9e960e410732161e11f5fe44",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Flex 3i Chromebook (11”, Intel)",
+      "indexKey": "flex 3i chromebook (11”, intel)",
+      "expectedProductKey": "lenovo:437c04b636929331aadcd5ef",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Flex 5 (14)",
+      "indexKey": "flex 5 (14)",
+      "expectedProductKey": "lenovo:9f638ce6f3cf69cfdcc796eb",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Gaming 3 Gen 6 (15 AMD)",
+      "indexKey": "gaming 3 gen 6 (15 amd)",
+      "expectedProductKey": "lenovo:67844448afa929ecd365cf14",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Kensington MicroSaver 2.0 Twin Cable Lock from Lenovo",
+      "indexKey": "kensington microsaver 2.0 twin cable lock from lenovo",
+      "expectedProductKey": "lenovo:425b3fbda6a74448a2f8ee18",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Legion Go",
+      "indexKey": "legion go",
+      "expectedProductKey": "lenovo:24d723333b1cc563c69efe46",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Legion Go 2 Gen 2 (8.8″)",
+      "indexKey": "legion go 2 gen 2 (8.8′′)",
+      "expectedProductKey": "lenovo:db7fc0bd79b7c50f0c0ab1fe",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Legion Go S (AMD Ryzen™ Z1 Extreme)",
+      "indexKey": "legion go s (amd ryzentm z1 extreme)",
+      "expectedProductKey": "lenovo:b373c4ede7fde92feb4f1e14",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Legion Go S (AMD Ryzen™ Z2 GO)",
+      "indexKey": "legion go s (amd ryzentm z2 go)",
+      "expectedProductKey": "lenovo:d8bd76517bcf96b959a71cb3",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Lenovo 100 Mono USB Headset",
+      "indexKey": "lenovo 100 mono usb headset",
+      "expectedProductKey": "lenovo:836f3b3f82e71ac2ba0fbc88",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Lenovo 100 Stereo Analog Headset",
+      "indexKey": "lenovo 100 stereo analog headset",
+      "expectedProductKey": "lenovo:498948ff14779338c6e03207",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    }
+  ],
+  "sourceManifest": "data/catalog-v19/source-manifests/lenovo.json",
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}

@@ -1,0 +1,105 @@
+{
+  "version": "19.12.6",
+  "architecture": "seller-catalog-first",
+  "seller": {
+    "name": "Lenovo",
+    "slug": "lenovo",
+    "network": "Admitad",
+    "mode": "catalog/direct",
+    "role": "twelfth-canonical-catalog"
+  },
+  "generatedAt": "2026-08-11T09:36:10.568Z",
+  "schema": "../../schema-v1.json",
+  "sourcePolicy": "../../source-policy-v1.json",
+  "files": {
+    "products": "products.ndjson",
+    "identityIndex": "identity-index.json",
+    "categoryIndex": "category-index.json",
+    "audit": "audit.json"
+  },
+  "metrics": {
+    "totalProducts": 756,
+    "sourceFiles": 1,
+    "stableSellerId": 756,
+    "brand": 756,
+    "modelAny": 38,
+    "modelExplicit": 0,
+    "modelInferred": 38,
+    "comparableExact": 488,
+    "structuredSpecs": 739,
+    "derivedSpecs": 32,
+    "price": 756,
+    "image": 756,
+    "link": 756,
+    "variants": 0,
+    "sourceQualified": 756
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 756,
+      "percent": 100
+    },
+    "brand": {
+      "count": 756,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 38,
+      "percent": 5
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 38,
+      "percent": 5
+    },
+    "comparableExact": {
+      "count": 488,
+      "percent": 64.6
+    },
+    "structuredSpecs": {
+      "count": 739,
+      "percent": 97.8
+    },
+    "derivedSpecs": {
+      "count": 32,
+      "percent": 4.2
+    },
+    "price": {
+      "count": 756,
+      "percent": 100
+    },
+    "image": {
+      "count": 756,
+      "percent": 100
+    },
+    "link": {
+      "count": 756,
+      "percent": 100
+    },
+    "variants": {
+      "count": 0,
+      "percent": 0
+    },
+    "sourceQualified": {
+      "count": 756,
+      "percent": 100
+    }
+  },
+  "identityPolicy": {
+    "exactMergeAllowedBy": [
+      "GTIN/EAN/UPC/ISBN exact match",
+      "brand + explicit MPN exact match",
+      "brand + explicit model exact match"
+    ],
+    "neverAutoMergeBy": [
+      "title alone",
+      "price alone",
+      "image alone",
+      "title-inferred model alone",
+      "semantic clusterKey alone"
+    ]
+  }
+}
