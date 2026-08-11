@@ -1,6 +1,6 @@
 {
-  "version": "19.10.0",
-  "purpose": "Explicit list of validated canonical seller catalogs allowed into the global V19 resolver.",
+  "version": "19.11.4",
+  "purpose": "Validated canonical seller catalogs allowed into the V19 global resolver.",
   "sellers": [
     {
       "name": "Geekbuying",
@@ -41,6 +41,10 @@
     {
       "name": "Diecast",
       "slug": "diecast"
+    },
+    {
+      "name": "MFI Medical",
+      "slug": "mfi-medical"
     }
   ]
 }

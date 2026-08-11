@@ -1,0 +1,105 @@
+{
+  "version": "19.11.4",
+  "architecture": "seller-catalog-first",
+  "seller": {
+    "name": "MFI Medical",
+    "slug": "mfi-medical",
+    "network": "CJ",
+    "mode": "catalog",
+    "role": "eleventh-canonical-catalog"
+  },
+  "generatedAt": "2026-08-11T02:04:30.789Z",
+  "schema": "../../schema-v1.json",
+  "sourcePolicy": "../../source-policy-v1.json",
+  "files": {
+    "products": "products.ndjson",
+    "identityIndex": "identity-index.json",
+    "categoryIndex": "category-index.json",
+    "audit": "audit.json"
+  },
+  "metrics": {
+    "totalProducts": 402,
+    "sourceFiles": 1,
+    "stableSellerId": 402,
+    "brand": 402,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 15,
+    "price": 402,
+    "image": 353,
+    "link": 402,
+    "variants": 402,
+    "sourceQualified": 402
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 402,
+      "percent": 100
+    },
+    "brand": {
+      "count": 402,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 15,
+      "percent": 3.7
+    },
+    "price": {
+      "count": 402,
+      "percent": 100
+    },
+    "image": {
+      "count": 353,
+      "percent": 87.8
+    },
+    "link": {
+      "count": 402,
+      "percent": 100
+    },
+    "variants": {
+      "count": 402,
+      "percent": 100
+    },
+    "sourceQualified": {
+      "count": 402,
+      "percent": 100
+    }
+  },
+  "identityPolicy": {
+    "exactMergeAllowedBy": [
+      "GTIN/EAN/UPC/ISBN exact match",
+      "brand + explicit MPN exact match",
+      "brand + explicit model exact match"
+    ],
+    "neverAutoMergeBy": [
+      "title alone",
+      "price alone",
+      "image alone",
+      "title-inferred model alone",
+      "semantic clusterKey alone"
+    ]
+  }
+}

@@ -2,7 +2,7 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { PUBLIC_PRODUCT_SELLER_NAMES } from "../../netlify/functions/product-seller-policy-v17.mjs";
 
-const VERSION = "19.10.0";
+const VERSION = "19.11.4";
 const ROOT = "data/catalog-v19";
 const SET_FILE = `${ROOT}/catalog-set-v1.json`;
 

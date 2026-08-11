@@ -1,0 +1,57 @@
+{
+  "version": "19.11.4",
+  "seller": "MFI Medical",
+  "slug": "mfi-medical",
+  "generatedAt": "2026-08-11T02:04:30.568Z",
+  "policy": {
+    "purpose": "Discover all repository product-feed sources for one approved seller before building its canonical V19 catalog.",
+    "productCatalogOnly": true,
+    "couponsAndPromotionsExcluded": true,
+    "auditsAndGeneratedAnalysisExcluded": true
+  },
+  "candidateFiles": 3,
+  "qualifiedFileCount": 1,
+  "discoveredUniqueProductsAcrossAllCandidateFiles": 424,
+  "qualifiedUniqueProducts": 402,
+  "qualifiedFiles": [
+    "data/source-ingestion-v19/mfi-medical-direct-catalog.json"
+  ],
+  "files": [
+    {
+      "file": "data/source-ingestion-v19/mfi-medical-direct-catalog.json",
+      "rows": 402,
+      "uniqueProducts": 402,
+      "stableIdPercent": 100,
+      "pricePercent": 100,
+      "imagePercent": 87.8,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": true,
+      "reason": "qualified-product-source"
+    },
+    {
+      "file": "data/cj-link-catalog.json",
+      "rows": 11,
+      "uniqueProducts": 11,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 0,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "no-price-or-image-signal"
+    },
+    {
+      "file": "data/cj-offers.json",
+      "rows": 11,
+      "uniqueProducts": 11,
+      "stableIdPercent": 100,
+      "pricePercent": 0,
+      "imagePercent": 0,
+      "linkPercent": 100,
+      "alreadyQualifiedShard": false,
+      "qualifies": false,
+      "reason": "no-price-or-image-signal"
+    }
+  ]
+}

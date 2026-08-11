@@ -1,0 +1,501 @@
+{
+  "version": "19.11.4",
+  "seller": "MFI Medical",
+  "generatedAt": "2026-08-11T02:04:30.789Z",
+  "input": {
+    "sourceRoot": "data/search-catalog/shards",
+    "sourceFilesContainingSeller": [
+      "data/source-ingestion-v19/mfi-medical-direct-catalog.json"
+    ],
+    "normalizedRowsForSeller": 402
+  },
+  "metrics": {
+    "totalProducts": 402,
+    "sourceFiles": 1,
+    "stableSellerId": 402,
+    "brand": 402,
+    "modelAny": 0,
+    "modelExplicit": 0,
+    "modelInferred": 0,
+    "comparableExact": 0,
+    "structuredSpecs": 0,
+    "derivedSpecs": 15,
+    "price": 402,
+    "image": 353,
+    "link": 402,
+    "variants": 402,
+    "sourceQualified": 402
+  },
+  "fillRates": {
+    "stableSellerId": {
+      "count": 402,
+      "percent": 100
+    },
+    "brand": {
+      "count": 402,
+      "percent": 100
+    },
+    "modelAny": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelExplicit": {
+      "count": 0,
+      "percent": 0
+    },
+    "modelInferred": {
+      "count": 0,
+      "percent": 0
+    },
+    "comparableExact": {
+      "count": 0,
+      "percent": 0
+    },
+    "structuredSpecs": {
+      "count": 0,
+      "percent": 0
+    },
+    "derivedSpecs": {
+      "count": 15,
+      "percent": 3.7
+    },
+    "price": {
+      "count": 402,
+      "percent": 100
+    },
+    "image": {
+      "count": 353,
+      "percent": 87.8
+    },
+    "link": {
+      "count": 402,
+      "percent": 100
+    },
+    "variants": {
+      "count": 402,
+      "percent": 100
+    },
+    "sourceQualified": {
+      "count": 402,
+      "percent": 100
+    }
+  },
+  "conflicts": {
+    "globalId": [],
+    "sellerProductId": [],
+    "sku": [
+      {
+        "key": "p",
+        "productKeys": [
+          "mfi-medical:137ec048af9de70a01ab4254",
+          "mfi-medical:2d8a6e9503192710f4ea81aa",
+          "mfi-medical:30445bb0beb022b4a3bb0c00",
+          "mfi-medical:31f2c1ac1fc529e74e8e32f9",
+          "mfi-medical:6219e5bf9413dba6cadd3cf5",
+          "mfi-medical:67870cc8fb3ecfc1515c1217",
+          "mfi-medical:69afa08d09359adc72393390",
+          "mfi-medical:81479cc7e589723b45157bea",
+          "mfi-medical:8dcd17ad2aef5316b9fa6090",
+          "mfi-medical:9c2edd8cf759699dc9f16b0a",
+          "mfi-medical:9f3854b7886aa172b9447659",
+          "mfi-medical:b6a60643c08977af897e4c35",
+          "mfi-medical:bac499177dd1b5b571ac1d16",
+          "mfi-medical:bc4d5134c2bb5a50a5b9e21c",
+          "mfi-medical:c3d71a51642982cedaa88c03",
+          "mfi-medical:c3e43fb8fb04a451d4cbbe92",
+          "mfi-medical:c4b7f16a81d7f4a5ba6a2c1e",
+          "mfi-medical:ce94ea9f5a27093cc9f5dc60",
+          "mfi-medical:d925c7f8f860bef407162b37",
+          "mfi-medical:e374aecde05966261d4e20cb",
+          "mfi-medical:f133b998e9121d90c817bd5f",
+          "mfi-medical:f96a0ab7f61ebe0308af1240",
+          "mfi-medical:0fc4b58ec950389d22b57e86",
+          "mfi-medical:15b7a44c5c35640686001b22",
+          "mfi-medical:26f53f6e61206151f817f496",
+          "mfi-medical:27a9bbe28e011d0e2b4dd642",
+          "mfi-medical:34147e22fc7d97b326b457ff",
+          "mfi-medical:591ce008c5a0e5eb22f5b8d7",
+          "mfi-medical:5993a0d3fad2613c1a877af5",
+          "mfi-medical:687027b2a2e6e78f33193fbf",
+          "mfi-medical:723a9d641877cbcf0a877a65",
+          "mfi-medical:7268e7e4be9f3eec55829d46",
+          "mfi-medical:8259fb5e8b45c0b91cd2f77d",
+          "mfi-medical:8c7c823a55bdb82efa020772",
+          "mfi-medical:9d0bba2bdb7a73315881b2dc",
+          "mfi-medical:c6c561b3a8f65ae72d7d53f6",
+          "mfi-medical:c8c2e120a3272a221b741841",
+          "mfi-medical:d415a68b3d63bf141e7d928c",
+          "mfi-medical:d92ee41ddcb2b271d1a88511",
+          "mfi-medical:e4400e87079c356b4a852d00",
+          "mfi-medical:e5eab3dc36e806e7533b10dc",
+          "mfi-medical:ecc5e6eccb8aae18c51508a3",
+          "mfi-medical:f9b57ef2df50d8e450cd26eb",
+          "mfi-medical:fb7a0a816df7b18410dd9273",
+          "mfi-medical:fea74b16295cfbd25b15719a",
+          "mfi-medical:169446271adbf3b0b4693031",
+          "mfi-medical:16fdad66cd18e774d9878d44",
+          "mfi-medical:56fb195cc0d58c0515aa9f21",
+          "mfi-medical:5b36d4c8a6a66baac2b2bab6",
+          "mfi-medical:a2fe312ae4638759e663016a",
+          "mfi-medical:a46061cfe1524729a91a2b99",
+          "mfi-medical:a9fbec610c9fd306c1d323da",
+          "mfi-medical:c6ed8292fc7bcb0ff0021b73",
+          "mfi-medical:3ed1e5d64f7b1ec62c44e38e",
+          "mfi-medical:654d2eda1caaec631c6b5b0e",
+          "mfi-medical:b461c2bdda6a15585a925e84",
+          "mfi-medical:0c8ce0ff2c9317c3cc1c8e2a",
+          "mfi-medical:d0a8ebc10d7cfecdc214433e",
+          "mfi-medical:6c3eab89ac28d1ed7bed6e66",
+          "mfi-medical:5fd4611429ed9ad3e62057e1"
+        ]
+      },
+      {
+        "key": "pp",
+        "productKeys": [
+          "mfi-medical:06dcc9893770b21ac0006640",
+          "mfi-medical:0706f0942c53d3173fd53a28",
+          "mfi-medical:1cedb189983c3869f9a96e46",
+          "mfi-medical:46b7eae4a93f44406f2cbccf",
+          "mfi-medical:a3ac907e668571e9ac7f3888",
+          "mfi-medical:c519a4db97715185375be13f",
+          "mfi-medical:3cff916305f7b0425b8b5f04",
+          "mfi-medical:805dd039eecfc81add1d9975"
+        ]
+      },
+      {
+        "key": "ppp",
+        "productKeys": [
+          "mfi-medical:abf6913757a3032cfae13045",
+          "mfi-medical:4841ae3f7e932935632d6f04"
+        ]
+      }
+    ],
+    "brandModel": []
+  },
+  "roundTripSamples": [
+    {
+      "query": "6534333507",
+      "indexKey": "6534333507",
+      "expectedProductKey": "mfi-medical:3d149ea587f4e46ed50e4fbf",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "173402193934",
+      "indexKey": "173402193934",
+      "expectedProductKey": "mfi-medical:2431b929eaae4082effa3008",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726203404365",
+      "indexKey": "7726203404365",
+      "expectedProductKey": "mfi-medical:d19cfa766f618ae309517923",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726203306061",
+      "indexKey": "7726203306061",
+      "expectedProductKey": "mfi-medical:1eb8f974c263756f56ca07d6",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726082916429",
+      "indexKey": "7726082916429",
+      "expectedProductKey": "mfi-medical:31233be756e83b0d41bfc3da",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726083014733",
+      "indexKey": "7726083014733",
+      "expectedProductKey": "mfi-medical:a10a8391ab8de760d4a96dbf",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726203240525",
+      "indexKey": "7726203240525",
+      "expectedProductKey": "mfi-medical:8dadf1f2dc53a7faebe576f9",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726082949197",
+      "indexKey": "7726082949197",
+      "expectedProductKey": "mfi-medical:7283959caba5001564b0ae8f",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726335656013",
+      "indexKey": "7726335656013",
+      "expectedProductKey": "mfi-medical:7059b5925990637481e6abc7",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726335230029",
+      "indexKey": "7726335230029",
+      "expectedProductKey": "mfi-medical:a02e732cc12c365ff9ea98cd",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726335590477",
+      "indexKey": "7726335590477",
+      "expectedProductKey": "mfi-medical:c8f01e114d29d6f375bb6772",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726725234765",
+      "indexKey": "7726725234765",
+      "expectedProductKey": "mfi-medical:db2be5d2491b459218dd3fd4",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726725267533",
+      "indexKey": "7726725267533",
+      "expectedProductKey": "mfi-medical:6a8c438b6bab921c76224e83",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726071152717",
+      "indexKey": "7726071152717",
+      "expectedProductKey": "mfi-medical:3c8c756c5bad4e7bd7138f74",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726204616781",
+      "indexKey": "7726204616781",
+      "expectedProductKey": "mfi-medical:14e07e617cac6d9b5b2bd984",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7726084522061",
+      "indexKey": "7726084522061",
+      "expectedProductKey": "mfi-medical:b394d1a3e42d3832688b6f18",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7725757268045",
+      "indexKey": "7725757268045",
+      "expectedProductKey": "mfi-medical:0cd150fd9dc6ce52c1a47ff3",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7200951435341",
+      "indexKey": "7200951435341",
+      "expectedProductKey": "mfi-medical:d66379a90c1a7d8cfd22469a",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7801136840781",
+      "indexKey": "7801136840781",
+      "expectedProductKey": "mfi-medical:cd5c59e7fbcdb3f1605987dd",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "7801136480333",
+      "indexKey": "7801136480333",
+      "expectedProductKey": "mfi-medical:688c5be5774039e773a7ac6a",
+      "resolutionKind": "seller-product-id-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "10/20 BraiNet Jack Box Overlay",
+      "indexKey": "10/20 brainet jack box overlay",
+      "expectedProductKey": "mfi-medical:3d149ea587f4e46ed50e4fbf",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "ADC Adstation Wallboard",
+      "indexKey": "adc adstation wallboard",
+      "expectedProductKey": "mfi-medical:2431b929eaae4082effa3008",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BRUNS Bone Curette, straight, 9\" (23cm), size 000",
+      "indexKey": "br surgical bruns bone curette, straight, 9\" (23cm), size 000",
+      "expectedProductKey": "mfi-medical:d19cfa766f618ae309517923",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BRUNS Bone Curette, straight, size 0, 9\" (23cm)",
+      "indexKey": "br surgical bruns bone curette, straight, size 0, 9\" (23cm)",
+      "expectedProductKey": "mfi-medical:1eb8f974c263756f56ca07d6",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BRUNS Bone Curette, straight,size 0, black coated handle, 9\"",
+      "indexKey": "br surgical bruns bone curette, straight,size 0, black coated handle, 9\"",
+      "expectedProductKey": "mfi-medical:31233be756e83b0d41bfc3da",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BRUNS Bone Curette, straight,size 00, black coated handle, 9\"",
+      "indexKey": "br surgical bruns bone curette, straight,size 00, black coated handle, 9\"",
+      "expectedProductKey": "mfi-medical:a10a8391ab8de760d4a96dbf",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BRUNS Bone Curette, straight,size 000, black coated handle, 9\"",
+      "indexKey": "br surgical bruns bone curette, straight,size 000, black coated handle, 9\"",
+      "expectedProductKey": "mfi-medical:8dadf1f2dc53a7faebe576f9",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BRUNS Bone Curette, straight,size 1, black coated handle, 9\"",
+      "indexKey": "br surgical bruns bone curette, straight,size 1, black coated handle, 9\"",
+      "expectedProductKey": "mfi-medical:7283959caba5001564b0ae8f",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BUCK Ear Curette, angled, blunt, size 0",
+      "indexKey": "br surgical buck ear curette, angled, blunt, size 0",
+      "expectedProductKey": "mfi-medical:7059b5925990637481e6abc7",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BUCK Ear Curette, angled, blunt, size 00",
+      "indexKey": "br surgical buck ear curette, angled, blunt, size 00",
+      "expectedProductKey": "mfi-medical:a02e732cc12c365ff9ea98cd",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BUCK Ear Curette, angled, blunt, size 1",
+      "indexKey": "br surgical buck ear curette, angled, blunt, size 1",
+      "expectedProductKey": "mfi-medical:c8f01e114d29d6f375bb6772",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BUCK ear curette, angled, blunt, size 2",
+      "indexKey": "br surgical buck ear curette, angled, blunt, size 2",
+      "expectedProductKey": "mfi-medical:db2be5d2491b459218dd3fd4",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical BUCK ear curette, angled, blunt, size 3",
+      "indexKey": "br surgical buck ear curette, angled, blunt, size 3",
+      "expectedProductKey": "mfi-medical:6a8c438b6bab921c76224e83",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical LEMMON needleholder, TC 17 cm cross serrated",
+      "indexKey": "br surgical lemmon needleholder, tc 17 cm cross serrated",
+      "expectedProductKey": "mfi-medical:3c8c756c5bad4e7bd7138f74",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical LEXER Mini Chisel Osteotome, 6mm, 7\"",
+      "indexKey": "br surgical lexer mini chisel osteotome, 6mm, 7\"",
+      "expectedProductKey": "mfi-medical:14e07e617cac6d9b5b2bd984",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical LEXER Mini Chisel Osteotome, 8mm, 7\"",
+      "indexKey": "br surgical lexer mini chisel osteotome, 8mm, 7\"",
+      "expectedProductKey": "mfi-medical:b394d1a3e42d3832688b6f18",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "BR Surgical LEXER-BABY Scissors, curved, 4\"",
+      "indexKey": "br surgical lexer-baby scissors, curved, 4\"",
+      "expectedProductKey": "mfi-medical:0cd150fd9dc6ce52c1a47ff3",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "Brewer Drawer for Blood Drawing Chair",
+      "indexKey": "brewer drawer for blood drawing chair",
+      "expectedProductKey": "mfi-medical:d66379a90c1a7d8cfd22469a",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "CanDo Inflatable Balance Wedge, Child (Each)",
+      "indexKey": "cando inflatable balance wedge, child (each)",
+      "expectedProductKey": "mfi-medical:cd5c59e7fbcdb3f1605987dd",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    },
+    {
+      "query": "CanDo Vestibular Seat Wedge, 13-1/2 x 13-1/2 in., Blue (Each)",
+      "indexKey": "cando vestibular seat wedge, 13-1/2 x 13-1/2 in., blue (each)",
+      "expectedProductKey": "mfi-medical:688c5be5774039e773a7ac6a",
+      "resolutionKind": "exact-name-index",
+      "resolved": true,
+      "resultCount": 1
+    }
+  ],
+  "sourceManifest": "data/catalog-v19/source-manifests/mfi-medical.json",
+  "sourceLeak": false,
+  "blockedSellerLeak": false,
+  "duplicateProductKeys": false
+}
