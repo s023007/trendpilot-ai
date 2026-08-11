@@ -1,0 +1,684 @@
+name: TrendPilot V20.1.1 — Product-Type Purity Gate Lab
+
+on:
+  workflow_dispatch:
+    inputs:
+      queries:
+        description: "Comma-separated visitor queries to test"
+        required: false
+        default: "iPhone 16,Galaxy S25,ThinkPad,phone,laptop,smartwatch,headphones,perfume,dog food,power bank,air conditioner,3d filament,cookware,lighting,tools"
+      max_results:
+        description: "Maximum main results shown per query"
+        required: false
+        default: "12"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v20-1-1-product-type-purity-lab
+  cancel-in-progress: false
+
+jobs:
+  v20-1-1-purity-lab:
+    name: Build strict identity with catalog-wide product-type purity gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Verify canonical foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/product-seller-registry-v17.json
+          test -d data/catalog-v19/sellers
+          test -f data/catalog-v19/schema-v1.json
+          python3 - <<'PY'
+          import json, pathlib
+          reg=json.load(open("data/product-seller-registry-v17.json",encoding="utf-8"))
+          sellers=[x["name"] for x in reg.get("sellers",[]) if x.get("public") is True]
+          blocked={"Temu","Joom","FilamentPRO EU CPS"}
+          print("Public product sellers:",len(sellers))
+          for s in sellers: print(" -",s)
+          assert len(sellers)==13, f"Expected 13 public product sellers, got {len(sellers)}"
+          assert not (blocked & set(sellers)), f"Blocked seller leaked into public policy: {blocked & set(sellers)}"
+          root=pathlib.Path("data/catalog-v19/sellers")
+          files=list(root.glob("*/products.ndjson"))
+          print("Canonical product files found:",len(files))
+          assert len(files)>=13, f"Expected at least 13 canonical seller files, got {len(files)}"
+          PY
+
+      - name: Build V20.1.1 product-type purity lab
+        shell: bash
+        env:
+          V20_QUERIES: ${{ inputs.queries }}
+          V20_MAX_RESULTS: ${{ inputs.max_results }}
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/v20-1-1-lab"
+          mkdir -p "$OUT"
+
+          cat > "$RUNNER_TEMP/v20-1-1-purity-lab.mjs" <<'JS'
+          import fs from "node:fs";
+          import path from "node:path";
+
+          const ROOT = process.cwd();
+          const OUT = path.join(process.env.RUNNER_TEMP || "/tmp", "v20-1-1-lab");
+          fs.mkdirSync(OUT, { recursive: true });
+
+          const clean = (v) => String(v ?? "").trim();
+          const norm = (v) => clean(v)
+            .normalize("NFKD")
+            .replace(/\p{M}+/gu, "")
+            .toLowerCase()
+            .replace(/[’‘`´]/g, "'")
+            .replace(/[“”]/g, '"')
+            .replace(/[_/\\|]+/g, " ")
+            .replace(/[^\p{L}\p{N}.+\-'" ]+/gu, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+          const compact = (v) => norm(v).replace(/[^\p{L}\p{N}]+/gu, "");
+          const uniq = (arr) => [...new Set(arr.filter(Boolean))];
+          const pct = (n,d) => d ? Math.round(n*1000/d)/10 : 0;
+
+          function parseNdjson(file) {
+            const rows=[];
+            const text=fs.readFileSync(file,"utf8");
+            let lineNo=0;
+            for(const line of text.split(/\r?\n/)){
+              lineNo++;
+              if(!line.trim()) continue;
+              try { rows.push(JSON.parse(line)); }
+              catch(e){ throw new Error(`Invalid NDJSON ${file}:${lineNo}: ${e.message}`); }
+            }
+            return rows;
+          }
+
+          const registry=JSON.parse(fs.readFileSync(path.join(ROOT,"data/product-seller-registry-v17.json"),"utf8"));
+          const approved=registry.sellers.filter(s=>s.public===true);
+          const approvedNames=new Set(approved.map(s=>s.name));
+          const approvedByName=new Map(approved.map(s=>[s.name,s]));
+          const blockedPatterns=[/^temu$/i,/^joom$/i,/filamentpro/i];
+          const isBlockedSeller=(name)=>blockedPatterns.some(r=>r.test(clean(name)));
+
+          const sellersRoot=path.join(ROOT,"data/catalog-v19/sellers");
+          const sellerDirs=fs.readdirSync(sellersRoot,{withFileTypes:true}).filter(x=>x.isDirectory()).map(x=>x.name).sort();
+          const catalogs=[];
+          const productMap=new Map();
+          const duplicateKeys=[];
+          const missingApproved=[];
+          const unexpectedCatalogs=[];
+
+          for(const dir of sellerDirs){
+            const file=path.join(sellersRoot,dir,"products.ndjson");
+            if(!fs.existsSync(file)) continue;
+            const rows=parseNdjson(file);
+            if(!rows.length) continue;
+            const sellerName=clean(rows[0]?.seller?.name);
+            if(!approvedNames.has(sellerName)){
+              unexpectedCatalogs.push({dir,sellerName,rows:rows.length});
+              continue;
+            }
+            if(isBlockedSeller(sellerName)) throw new Error(`Blocked seller catalog entered V20.1.1: ${sellerName}`);
+            let accepted=0,badSellerRows=0;
+            for(const p of rows){
+              if(clean(p?.seller?.name)!==sellerName){badSellerRows++;continue;}
+              const key=clean(p.productKey);
+              if(!key) continue;
+              if(productMap.has(key)){duplicateKeys.push(key);continue;}
+              productMap.set(key,p);accepted++;
+            }
+            catalogs.push({dir,sellerName,file,rows:rows.length,accepted,badSellerRows});
+          }
+          for(const a of approved) if(!catalogs.some(c=>c.sellerName===a.name)) missingApproved.push(a.name);
+          if(missingApproved.length) throw new Error(`Approved seller catalogs missing: ${missingApproved.join(", ")}`);
+          const products=[...productMap.values()];
+
+          // Always rebuild searchable names from display text. Some older canonical rows contain stale/corrupt normalized names.
+          const displayName=(p)=>clean(p?.name?.display || p?.name?.normalized);
+          const searchName=(p)=>norm(displayName(p));
+
+          const STOP=new Set(["the","a","an","and","or","for","with","to","of","in","on","by","from","new","hot","sale","best","top","quality","original","global","version","official","wholesale","factory","free","shipping","online","shopping"]);
+
+          // Role is decided BEFORE product type. V20.1.1 deliberately favors precision over recall.
+          // A product may enter a broad main-product pool only when its DISPLAY TITLE itself
+          // proves the requested product type. Taxonomy/URLs can support discovery, but can never
+          // promote an accessory, part, tool or unrelated item into a main product.
+          const HARD_PART=/\b(replacement|spare\s*part|spares?|repair\s*part|digitizer|lcd\s*(?:screen|assembly|display)|touch\s*screen|screen\s*assembly|motherboard|mainboard|logic\s*board|pcb|circuit\s*board|flex\s*cable|ribbon\s*cable|connector|socket|hinge|bezel|chassis|housing|shell|sim\s*tray|card\s*tray|receiver\s*board|expansion\s*valve|servo\s*motor|filter\s*core)\b/i;
+          const HARD_ACCESSORY=/\b(case|cover|screen\s*protector|protector|protective\s*case|privacy\s*filter|film|sleeve|handbag|briefcase|bag|backpack|pouch|strap|watch\s*band|band\s*for|phone\s*stand|stand\s*for|holder|mount|tripod|selfie\s*stick|cable|cord|adapter|dock|bracket|keyboard|keycap|skin|decal|sticker|stylus\s*pen|pen\s*for|charging\s*station|charger\s*for|wireless\s*charger|car\s*charger|lens\s*protector|camera\s*lens\s*protector|earpads?|ear\s*pads?|headphone\s*hook|cup\s*holder)\b/i;
+          const ACCESSORY_PREFIX=/^(?:for|compatible\s+with|suitable\s+for|fit\s+for|fits\s+for)\b/i;
+          const NON_DEVICE_CONTEXT=/\b(projector|monitor|speaker|microphone|radio|router|cctv|camera\s+reader|sd\s+card\s+reader|usb\s+hub|desk|chair|table|tray|water\s+bottle|garden|net|toaster|engraver|engraving\s+machine|teacup|tea\s+cup|plate|coat|keychain|tumbler|mug|briefcase|backpack|repair\s+kit|tool\s+kit|screwdriver\s+set|powerbank\s+case|power\s*bank\s+case)\b/i;
+
+          function roleSignal(title){
+            const t=clean(title);
+            if(HARD_PART.test(t)) return {role:"replacement_part",reason:"hard-part-signal"};
+            if(HARD_ACCESSORY.test(t)) return {role:"accessory",reason:"hard-accessory-signal"};
+            if(ACCESSORY_PREFIX.test(t) && /\b(iphone|galaxy|pixel|thinkpad|ideapad|macbook|watch|airpods?|headphones?|laptop|phone)\b/i.test(t)) return {role:"accessory",reason:"compatible-for-prefix"};
+            return {role:"unknown",reason:"none"};
+          }
+
+          const TYPE_DEFS=[
+            {type:"phone", broad:["phone","phones","smartphone","smartphones","mobile phone","cell phone"],
+             main:[/\bsmartphones?\b/i,/\bmobile\s+phones?\b/i,/\bcell\s+phones?\b/i,/\bfeature\s+phones?\b/i,/\biphone\s*(?:[6-9]|1[0-9])(?:\s*(?:pro|max|plus|mini|e))?\b/i,/\bsamsung\s+galaxy\s+s\d{1,2}\b/i,/\bgalaxy\s+s\d{1,2}\b/i,/\bgoogle\s+pixel\s+\d{1,2}\b/i,/\bpixel\s+\d{1,2}\b/i,/\bdoogee\b.*\b(?:smartphone|phone)\b/i,/\bulefone\b.*\b(?:smartphone|phone)\b/i,/\bfossibot\b.*\b(?:smartphone|phone)\b/i],
+             forbidden:/\b(case|cover|protector|screen|lcd|digitizer|charger|charging|cable|adapter|stand|holder|mount|tripod|selfie|fill\s*light|phone\s*light|ring\s*light|camera\s*light|lens|enclosure|ssd|keyboard|earphone|earbud|headphone|speaker|projector|module|board|replacement|spare|repair|strap|bracelet|wristband|smart\s*watch|smartwatch|power\s*bank|powerbank|hub|reader)\b/i},
+            {type:"laptop", broad:["laptop","laptops","notebook computer","notebook computers","ultrabook","ultrabooks","chromebook","chromebooks"],
+             main:[/\blaptops?\b/i,/\bnotebook\s+computers?\b/i,/\bultrabooks?\b/i,/\bchromebooks?\b/i,/\bthinkpad\s+[a-z0-9]/i,/\bideapad\s+[a-z0-9]/i,/\bthinkbook\s+[a-z0-9]/i,/\blegion\s+[a-z0-9]/i,/\blenovo\s+loq\b/i,/\bmacbook\s+(?:air|pro)\b/i],
+             forbidden:/\b(case|cover|protector|screen\s*protector|privacy\s*filter|film|sleeve|bag|handbag|briefcase|backpack|keyboard|keycap|ram|memory|ssd|hard\s*drive|monitor|cooling\s*fan|cooling\s*pad|notebook\s*cooler|laptop\s*cooler|battery|charger|adapter|dock|mouse|desk|chair|table|tray|pen|stylus|sticker|decal|skin|stand|screwdriver|repair\s*tool|repair\s*kit|tool\s*kit|module|wwan|lte\s*(?:4g|5g)?\s*module|wireless\s*card|network\s*card|replacement|spare|caddy|hub|&\s*more)\b/i},
+            {type:"smartwatch", broad:["smartwatch","smartwatches","smart watch","smart watches"],
+             main:[/\bsmart\s*watch(?:es)?\b/i,/\bsmartwatch(?:es)?\b/i,/\bgps\s+watch\b/i],
+             forbidden:/\b(case|cover|protector|screen|lcd|band|strap|charger|charging|dock|adapter|replacement|spare|film|garden|net|sticker|decal|box|holder|stand)\b/i},
+            {type:"headphones", broad:["headphones","headphone","earbuds","earbud","earphones","earphone","headset","headsets"],
+             main:[/\bheadphones?\b/i,/\bearbuds?\b/i,/\bearphones?\b/i,/\bwireless\s+headsets?\b/i,/\btws\b.*\b(?:earbud|earphone|headphone)\b/i],
+             forbidden:/\b(cable|cord|adapter|hook|case|cover|bag|earpad|ear\s*pad|replacement|spare|speaker|monitor|vr|virtual\s+reality|radio|microphone|cup\s*holder|tumbler|mug|cup|cap|hoodie|toy|stand|holder|earphone\s*(?:jack|port)|headphone\s*(?:jack|port))\b/i},
+            {type:"perfume", broad:["perfume","perfumes","cologne","colognes","fragrance","fragrances"],
+             main:[/\beau\s+de\s+parfum\b/i,/\beau\s+de\s+toilette\b/i,/\bpure\s+perfume\b/i,/\bperfume\s+(?:for|spray|oil)\b/i,/\bcologne\s+(?:for|spray)\b/i,/\bperfume\b/i],
+             forbidden:/\b(case|cover|airpod|keychain|power\s*bank|powerbank|cup|teacup|plate|coat|pad|pads|machine|chuck|engraving|bottle\s*case|atomizer\s*case|empty\s+perfume\s+bottle|empty\s+bottle|refillable\s+bottle|spray\s+bottle|perfume\s+atomizer|car\s*perfume|cars\s*perfume|car\s*fragrance|auto\s*fragrance|automotive|air\s*freshener|car\s*air\s*freshener)\b/i},
+            {type:"dog_food", broad:["dog food","dog treats","dog treat","puppy food","pet food"],
+             main:[/\bdog\s+food\b/i,/\bdog\s+treats?\b/i,/\bpuppy\s+food\b/i,/\bdog\s+snacks?\b/i],
+             forbidden:/\b(beads?|feeder|dispenser|pelletizer|extruder|production\s+line|machine|bowl|container|opener|can\s*opener|tab\s+buddy|kitchen\s+gadget|food\s+can\s+tab|slow\s+feeder)\b/i},
+            {type:"power_bank", broad:["power bank","power banks","powerbank","powerbanks"],
+             main:[/\bpower\s*banks?\b/i,/\bpowerbanks?\b/i],
+             forbidden:/\b(module|circuit\s*board|pcb|kit|case|housing|replacement|spare|repair|adapter\s+for|inverter\s+adapter|battery\s+adapter|holder\s+for|mount\s+for)\b/i},
+            {type:"air_conditioner", broad:["air conditioner","air conditioners","air conditioning","ac unit","ac units"],
+             main:[/\bportable\s+air\s+conditioner\b/i,/\bwindow\s+air\s+conditioner\b/i,/\bsplit\s+air\s+conditioner\b/i,/\bduct(?:ed)?\s+(?:type\s+)?air\s+conditioner\b/i,/\binverter\s+air\s+conditioner\b/i,/\bair\s+conditioner\b.*\b(?:btu|cooling\s+capacity|heat\s+pump|\d+\s*hp)\b/i,/\b(?:btu|cooling\s+capacity|heat\s+pump|\d+\s*hp)\b.*\bair\s+conditioner\b/i],
+             forbidden:/\b(bracket|valve|receiver\s*board|filter|hose|adapter|tool|cleaner|cleaning|brush|gap\s+cleaning|grille|grill|pipe|drill|motor|compressor\s+(?:part|replacement)|connector|cover|remote\s*control|remote|control\s*board|sensor|capacitor|thermostat|drain\s*(?:pipe|hose)|cooling\s+fan|air\s+conditioner\s+fan|evaporative\s+air\s+cooler|air\s+cooler|mist\s+humidif|humidifying|water\s+cooler)\b/i},
+            {type:"3d_filament", broad:["3d filament","filament","pla filament","petg filament"],
+             main:[/\b(?:pla|petg|abs|tpu|asa|nylon)\b.*\bfilament\b/i,/\bfilament\b.*\b(?:1\.75\s*mm|2\.85\s*mm|kg|pla|petg|abs|tpu|asa|nylon)\b/i],
+             forbidden:/\b(case|cover|bag|filter|airpod|tea\s+bag|rewinder|re-winder|winder|coiler|winding\s+machine|spool\s+rewinder|spooler|filament\s+dryer|dryer\s+box|filament\s+storage|filament\s+sensor|3d\s+printer\s*\+|3d\s+printer\s+combo|combo\s+3d\s+printer|printer\s*\+.*\bfilament\b)\b/i},
+            {type:"cookware", broad:["cookware","cookware set","cookware sets","frying pan","frying pans","pots and pans"],
+             main:[/\bcookware\s+sets?\b/i,/\bfrying\s+pans?\b/i,/\bsaucepans?\b/i,/\bskillets?\b/i,/\bpot\s+sets?\b/i,/\bcasseroles?\b/i],
+             forbidden:/\b(chopping\s+board|cutting\s+board|utensil\s+holder|replacement|spare|case|cover|knife\s+set|food\s+cutting\s+block)\b/i},
+            {type:"lighting", broad:["lighting","led lights","light","lights","lamp","lamps","led strip","led strips"],
+             main:[/\bled\s+strip\s+lights?\b/i,/\bfloor\s+lamps?\b/i,/\bwall\s+lights?\b/i,/\btable\s+lamps?\b/i,/\bsmart\s+lights?\b/i,/\bceiling\s+lights?\b/i],
+             forbidden:/\b(replacement|spare|adapter|cable|connector|cover|case|bracket|mount|power\s+supply\s+only|controller\s+only)\b/i},
+            {type:"tools", broad:["tools","tool","drill bit","drill bits","screwdriver","screwdrivers","wrench","wrenches"],
+             main:[/\bdrill\s+bits?\b/i,/\bscrewdrivers?\b/i,/\bwrenches?\b/i,/\bpliers?\b/i,/\bhammer\b/i,/\bsocket\s+sets?\b/i,/\btool\s+sets?\b/i,/\bnut\s+driver\s+sets?\b/i],
+             forbidden:/\b(screen\s+protector|phone\s+film|iphone|air\s+conditioner\s+tool|phone\s+repair\s+kit|mobile\s+phone\s+repair)\b/i}
+          ];
+
+          const DEF_BY_TYPE=new Map(TYPE_DEFS.map(d=>[d.type,d]));
+          const broadAliasToType=new Map();
+          for(const d of TYPE_DEFS) for(const a of d.broad) broadAliasToType.set(norm(a),d.type);
+
+          function textFor(p){
+            const tax=p.taxonomy||{};
+            return [displayName(p),p.brand,tax.canonicalCategory,...(Array.isArray(tax.canonicalPath)?tax.canonicalPath:[]),tax.sourceCategory,tax.sourceSubcategory,clean(p?.links?.destinationUrl)]
+              .map(clean).filter(Boolean).join(" ");
+          }
+
+          function targetTypeForRelated(title){
+            const t=clean(title);
+            if(/\b(iphone|galaxy\s+s\d+|samsung\s+galaxy|pixel\s+\d+|smartphone|mobile\s+phone|cell\s+phone|phone)\b/i.test(t)) return "phone";
+            if(/\b(thinkpad|ideapad|thinkbook|legion|lenovo\s+loq|macbook|chromebook|ultrabook|laptop|notebook)\b/i.test(t)) return "laptop";
+            if(/\b(smart\s*watch|smartwatch|apple\s+watch|galaxy\s+watch)\b/i.test(t)) return "smartwatch";
+            if(/\b(headphone|earphone|earbud|headset)\b/i.test(t)) return "headphones";
+            if(/\b(perfume|cologne|fragrance)\b/i.test(t)) return "perfume";
+            if(/\bdog\s+(?:food|treat|snack)\b|\bpuppy\s+food\b/i.test(t)) return "dog_food";
+            if(/\b(power\s*bank|powerbank)\b/i.test(t)) return "power_bank";
+            if(/\bair\s+conditioner\b/i.test(t)) return "air_conditioner";
+            if(/\b(?:3d\s+)?filament\b|\bpla\b|\bpetg\b/i.test(t)) return "3d_filament";
+            if(/\b(cookware|frying\s+pan|saucepan|skillet|casserole)\b/i.test(t)) return "cookware";
+            if(/\b(led\s+strip|floor\s+lamp|wall\s+light|table\s+lamp|ceiling\s+light|smart\s+light)\b/i.test(t)) return "lighting";
+            if(/\b(drill\s+bit|screwdriver|wrench|pliers|hammer|socket\s+set|nut\s+driver)\b/i.test(t)) return "tools";
+            return "";
+          }
+
+          function sellerAwareOverride(p,title,role){
+            const seller=clean(p?.seller?.name);
+            const dest=clean(p?.links?.destinationUrl);
+            if(role!=="unknown") return null;
+            if(seller==="Lenovo"){
+              // Official Lenovo paths alone are not enough. A real consumer family must be in the display title.
+              const family=/\b(thinkpad|ideapad|thinkbook|legion|lenovo\s+loq|yoga)\b/i;
+              const bad=/\b(pen|stylus|adapter|dock|charger|case|cover|sleeve|bag|briefcase|keyboard|mouse|monitor|accessor|module|wwan|lte|replacement|spare|&\s*more)\b/i;
+              if(/\/p\/laptops\//i.test(dest) && family.test(title) && !bad.test(title)) return {type:"laptop",role:"main",reason:"seller-lenovo-official-family-product"};
+            }
+            if(seller==="FragranceShop.com" && /\b(perfume|cologne|fragrance|eau\s+de\s+parfum|eau\s+de\s+toilette)\b/i.test(title) && !DEF_BY_TYPE.get("perfume").forbidden.test(title)) return {type:"perfume",role:"main",reason:"seller-fragranceshop-product"};
+            if(seller==="Govee Many GEOs" && /\b(light|lamp|led|strip|wall\s+light|floor\s+lamp)\b/i.test(title) && !DEF_BY_TYPE.get("lighting").forbidden.test(title)) return {type:"lighting",role:"main",reason:"seller-govee-lighting"};
+            if(seller==="Karaca EU" && /\b(cookware|pan|pot|casserole|skillet)\b/i.test(title) && !DEF_BY_TYPE.get("cookware").forbidden.test(title)) return {type:"cookware",role:"main",reason:"seller-karaca-cookware"};
+            return null;
+          }
+
+          function classify(p){
+            const title=displayName(p);
+            const rs=roleSignal(title);
+            if(rs.role!=="unknown") return {type:targetTypeForRelated(title),role:rs.role,reason:rs.reason};
+            const sellerOverride=sellerAwareOverride(p,title,rs.role);
+            if(sellerOverride) return sellerOverride;
+            for(const d of TYPE_DEFS){
+              // Critical V20.1.1 change: only DISPLAY TITLE can establish main product type.
+              // Taxonomy/category/URL never promote a record into main.
+              const hit=d.main.some(r=>r.test(title));
+              if(!hit) continue;
+              if(d.forbidden.test(title)) return {type:d.type,role:"related",reason:"type-forbidden-gate"};
+              if(NON_DEVICE_CONTEXT.test(title) && ["phone","laptop","smartwatch","headphones","perfume"].includes(d.type)) return {type:d.type,role:"related",reason:"non-device-context"};
+              return {type:d.type,role:"main",reason:"title-proved-main"};
+            }
+            if(HARD_ACCESSORY.test(title)||HARD_PART.test(title)) return {type:targetTypeForRelated(title),role:"related",reason:"generic-related"};
+            return {type:"",role:"unclassified",reason:"no-trusted-type"};
+          }
+
+          function trustedExplicitModel(p){
+            const ids=p.identifiers||{};
+            const confidence=clean(p?.identity?.modelConfidence).toLowerCase();
+            const model=clean(ids.model);
+            return confidence==="explicit" && model ? model : "";
+          }
+
+          function safeMpn(p){
+            const ids=p.identifiers||{};
+            const mpn=clean(ids.mpn);
+            if(!mpn) return "";
+            // MPN is safe as an exact value, but never infer a consumer model phrase from it.
+            return mpn;
+          }
+
+          const sellerStats=new Map();
+          for(const a of approved) sellerStats.set(a.name,{seller:a.name,records:0,main:0,accessory:0,replacementPart:0,related:0,unclassified:0,stableId:0,globalId:0,explicitModel:0,price:0,image:0,link:0,cpc:a.cpc===true});
+
+          const projection=[];
+          for(const p of products){
+            const c=classify(p);
+            const ids=p.identifiers||{},offer=p.offer||{},media=p.media||{},links=p.links||{},tax=p.taxonomy||{};
+            const seller=clean(p?.seller?.name),stat=sellerStats.get(seller);
+            const stable=clean(ids.sellerProductId||ids.sku);
+            const globalIds={gtin:clean(ids.gtin),ean:clean(ids.ean),upc:clean(ids.upc),isbn:clean(ids.isbn)};
+            const explicitModel=trustedExplicitModel(p);
+            const hasPrice=Number.isFinite(Number(offer.price))&&Number(offer.price)>0;
+            const imageUrl=clean(media.imageUrl);
+            const affiliateUrl=clean(links.affiliateUrl);
+            const destinationUrl=clean(links.destinationUrl);
+            const row={
+              productKey:clean(p.productKey),seller,sellerSlug:clean(p?.seller?.slug),network:clean(p?.seller?.network),
+              name:displayName(p),nameNorm:searchName(p),nameCompact:compact(displayName(p)),brand:clean(p.brand),brandNorm:norm(p.brand),
+              productType:c.type,productRole:c.role,classificationReason:c.reason,
+              identifiers:{sellerProductId:clean(ids.sellerProductId),sku:clean(ids.sku),mpn:safeMpn(p),model:clean(ids.model),explicitModel, ...globalIds},
+              modelConfidence:clean(p?.identity?.modelConfidence),
+              taxonomy:{canonicalCategory:clean(tax.canonicalCategory),canonicalPath:Array.isArray(tax.canonicalPath)?tax.canonicalPath.map(clean):[],sourceCategory:clean(tax.sourceCategory),sourceSubcategory:clean(tax.sourceSubcategory)},
+              specs:p.specs||{},price:hasPrice?Number(offer.price):null,currency:clean(offer.currency),imageUrl,affiliateUrl,destinationUrl,
+              quality:Number(p?.quality?.inputQuality||0),cpc:approvedByName.get(seller)?.cpc===true
+            };
+            projection.push(row);
+            if(stat){
+              stat.records++; if(c.role==="main")stat.main++; else if(c.role==="accessory")stat.accessory++; else if(c.role==="replacement_part")stat.replacementPart++; else if(c.role==="related")stat.related++; else stat.unclassified++;
+              if(stable)stat.stableId++; if(Object.values(globalIds).some(Boolean))stat.globalId++; if(explicitModel)stat.explicitModel++; if(hasPrice)stat.price++; if(/^https?:\/\//i.test(imageUrl))stat.image++; if(/^https?:\/\//i.test(affiliateUrl||destinationUrl))stat.link++;
+            }
+          }
+
+          // Exact indexes are deliberately separated from discovery indexes.
+          const exactGlobalIdIndex=new Map();
+          const uniqueStableValueTemp=new Map();
+          const exactBrandModelIndex=new Map();
+          const exactBrandMpnIndex=new Map();
+          const exactNameMainIndex=new Map();
+          const typeMain=new Map();
+          const typeRelated=new Map();
+
+          function pushIndex(map,key,idx){
+            const k=norm(key); if(!k)return;
+            if(!map.has(k))map.set(k,[]);
+            map.get(k).push(idx);
+          }
+          function pushCompactIndex(map,key,idx){
+            const k=compact(key); if(!k)return;
+            if(!map.has(k))map.set(k,[]);
+            map.get(k).push(idx);
+          }
+
+          for(let i=0;i<projection.length;i++){
+            const r=projection[i],ids=r.identifiers;
+            for(const f of ["gtin","ean","upc","isbn"]) if(compact(ids[f]).length>=6) pushCompactIndex(exactGlobalIdIndex,ids[f],i);
+            for(const v of [ids.sellerProductId,ids.sku]){
+              const k=compact(v); if(!k)continue;
+              if(!uniqueStableValueTemp.has(k))uniqueStableValueTemp.set(k,[]);
+              uniqueStableValueTemp.get(k).push(i);
+            }
+            if(r.brandNorm && ids.explicitModel) pushCompactIndex(exactBrandModelIndex,`${r.brandNorm} ${ids.explicitModel}`,i);
+            if(r.brandNorm && ids.mpn) pushCompactIndex(exactBrandMpnIndex,`${r.brandNorm} ${ids.mpn}`,i);
+            if(r.productRole==="main") pushIndex(exactNameMainIndex,r.nameNorm,i);
+            if(r.productType){
+              const target=r.productRole==="main"?typeMain:typeRelated;
+              if(!target.has(r.productType))target.set(r.productType,[]);
+              target.get(r.productType).push(i);
+            }
+          }
+          const exactUniqueStableIndex=new Map([...uniqueStableValueTemp.entries()].filter(([,arr])=>arr.length===1));
+
+          function inferSpecificType(q){
+            const nq=norm(q);
+            if(broadAliasToType.has(nq)) return {type:broadAliasToType.get(nq),mode:"broad",family:""};
+            if(/\biphone\s*(?:[6-9]|1[0-9])\b/i.test(q)) return {type:"phone",mode:"specific",family:"iphone"};
+            if(/\b(?:samsung\s+)?galaxy\s+s\d{1,2}\b/i.test(q)) return {type:"phone",mode:"specific",family:"galaxy-s"};
+            if(/\bpixel\s+\d{1,2}\b/i.test(q)) return {type:"phone",mode:"specific",family:"pixel"};
+            if(/\b(?:thinkpad|ideapad|thinkbook|macbook)\b/i.test(q)) return {type:"laptop",mode:"specific",family:norm(q).split(" ")[0]};
+            if(/\b(?:apple\s+watch|galaxy\s+watch)\b/i.test(q)) return {type:"smartwatch",mode:"specific",family:"watch"};
+            return {type:"",mode:"specific",family:""};
+          }
+
+          function queryTokens(q){return norm(q).split(" ").filter(t=>t.length>=2&&!STOP.has(t));}
+          function idLikeQuery(q){
+            const s=clean(q);
+            return !/\s/.test(s) && s.length>=4 && /\d/.test(s) && /^[A-Za-z0-9._:+\-/]+$/.test(s);
+          }
+          function brandFromQuery(q){
+            const n=norm(q);
+            const pairs=[
+              ["apple",/\biphone|\bmacbook|\bapple\s+watch/i],["samsung",/\bgalaxy/i],["google",/\bpixel/i],["lenovo",/\bthinkpad|\bideapad|\bthinkbook|\blenovo/i],
+              ["xiaomi",/\bxiaomi|\bredmi|\bpoco/i],["oneplus",/\boneplus/i],["oppo",/\boppo/i],["doogee",/\bdoogee/i],["ulefone",/\bulefone/i]
+            ];
+            for(const [b,re] of pairs) if(re.test(n)) return b;
+            return "";
+          }
+          function brandCompatible(r,qBrand){
+            if(!qBrand)return true;
+            const b=norm(r.brand);
+            if(qBrand==="apple") return b.includes("apple") || /\biphone|\bmacbook|\bapple\s+watch/i.test(r.name);
+            if(qBrand==="samsung") return b.includes("samsung") || /\bgalaxy/i.test(r.name);
+            if(qBrand==="google") return b.includes("google") || /\bpixel/i.test(r.name);
+            if(qBrand==="lenovo") return b.includes("lenovo") || /\bthinkpad|\bideapad|\bthinkbook/i.test(r.name);
+            if(qBrand==="xiaomi") return b.includes("xiaomi") || /\bxiaomi|\bredmi|\bpoco/i.test(r.name);
+            return b.includes(qBrand) || r.nameNorm.includes(qBrand);
+          }
+
+          function scoreDiscovery(r,q){
+            const nq=norm(q),toks=queryTokens(q);let s=0;
+            if(r.nameNorm===nq)s+=1000;
+            if(nq.length>=3&&r.nameNorm.includes(nq))s+=500;
+            for(const t of toks){if(r.nameNorm.includes(t))s+=45;if(r.brandNorm.includes(t))s+=25;}
+            if(r.productRole==="main")s+=100;if(r.price!=null)s+=5;if(r.imageUrl)s+=5;if(r.affiliateUrl||r.destinationUrl)s+=5;
+            return s;
+          }
+          function roundRobinBySeller(rows,limit){
+            const buckets=new Map();
+            for(const r of rows){if(!buckets.has(r.seller))buckets.set(r.seller,[]);buckets.get(r.seller).push(r);}
+            for(const arr of buckets.values())arr.sort((a,b)=>(b._score||0)-(a._score||0));
+            const names=[...buckets.keys()].sort((a,b)=>(buckets.get(b)[0]?._score||0)-(buckets.get(a)[0]?._score||0));
+            const out=[];let cursor=0;
+            while(out.length<limit&&names.length){let progressed=false;for(const n of names){const arr=buckets.get(n);if(cursor<arr.length&&out.length<limit){out.push(arr[cursor]);progressed=true;}}if(!progressed)break;cursor++;}
+            return out;
+          }
+
+          function trustedExactIdentity(q,expectedType){
+            const cq=compact(q),nq=norm(q);const idx=new Set();
+            for(const i of exactGlobalIdIndex.get(cq)||[])idx.add(i);
+            if(idLikeQuery(q)) for(const i of exactUniqueStableIndex.get(cq)||[])idx.add(i);
+            for(const i of exactBrandModelIndex.get(cq)||[])idx.add(i);
+            for(const i of exactBrandMpnIndex.get(cq)||[])idx.add(i);
+            return [...idx].map(i=>projection[i]).filter(r=>r.productRole==="main"&&(!expectedType||r.productType===expectedType));
+          }
+
+          function resolveQuery(q,maxResults){
+            const meta=inferSpecificType(q),nq=norm(q),expectedType=meta.type,qBrand=brandFromQuery(q);
+            if(meta.mode==="broad"){
+              const pool=(typeMain.get(expectedType)||[]).map(i=>({...projection[i],_score:scoreDiscovery(projection[i],q)}));
+              const shown=roundRobinBySeller(pool,maxResults);
+              const related=(typeRelated.get(expectedType)||[]).map(i=>projection[i]);
+              return {query:q,mode:"broad",type:expectedType,trustedExact:[],specificMatches:[],main:shown,alternatives:[],related,mainPool:pool.length};
+            }
+
+            const trustedExact=trustedExactIdentity(q,expectedType);
+            const exactNameIdx=exactNameMainIndex.get(nq)||[];
+            const exactName=exactNameIdx.map(i=>projection[i]).filter(r=>(!expectedType||r.productType===expectedType)&&brandCompatible(r,qBrand));
+            let specificMatches=[];
+            if(expectedType){
+              specificMatches=(typeMain.get(expectedType)||[]).map(i=>projection[i]).filter(r=>r.nameNorm.includes(nq)&&brandCompatible(r,qBrand)).map(r=>({...r,_score:scoreDiscovery(r,q)}));
+              specificMatches.sort((a,b)=>b._score-a._score);
+            }
+            let main=[];
+            if(trustedExact.length) main=trustedExact.slice(0,maxResults);
+            else if(exactName.length) main=roundRobinBySeller(exactName.map(r=>({...r,_score:scoreDiscovery(r,q)})),maxResults);
+            else if(specificMatches.length) main=roundRobinBySeller(specificMatches,maxResults);
+
+            let alternatives=[];
+            if(expectedType && main.length){
+              const mainKeys=new Set(main.map(r=>r.productKey));
+              const pool=(typeMain.get(expectedType)||[]).map(i=>projection[i]).filter(r=>!mainKeys.has(r.productKey)&&brandCompatible(r,qBrand)).map(r=>({...r,_score:scoreDiscovery(r,q)})).filter(r=>r._score>=100).sort((a,b)=>b._score-a._score);
+              alternatives=roundRobinBySeller(pool,Math.min(6,Math.max(0,maxResults-main.length)));
+            }
+
+            const toks=queryTokens(q);
+            const related=projection.filter(r=>{
+              if(r.productRole==="main"||r.productRole==="unclassified")return false;
+              if(expectedType&&r.productType&&r.productType!==expectedType)return false;
+              if(!toks.length)return false;
+              return toks.every(t=>r.nameNorm.includes(t)) || (toks.length>1&&toks.filter(t=>r.nameNorm.includes(t)).length>=2);
+            });
+            return {query:q,mode:"specific",type:expectedType,trustedExact,specificMatches,main,alternatives,related,mainPool:main.length};
+          }
+
+          function mainPurityReason(r){
+            const d=DEF_BY_TYPE.get(r.productType);
+            if(!d) return "unknown-product-type";
+            if(r.productRole!=="main") return `role=${r.productRole}`;
+            if(!d.main.some(re=>re.test(r.name))) return "no-display-title-core-signal";
+            if(d.forbidden.test(r.name)) return "type-forbidden-term";
+            if(NON_DEVICE_CONTEXT.test(r.name) && ["phone","laptop","smartwatch","headphones","perfume"].includes(r.productType)) return "non-device-context";
+            return "";
+          }
+          function forbiddenMain(r){ return Boolean(mainPurityReason(r)); }
+
+          const queries=(process.env.V20_QUERIES||"").split(",").map(x=>x.trim()).filter(Boolean);
+          const maxResults=Math.max(3,Math.min(24,Number(process.env.V20_MAX_RESULTS||12)||12));
+          const results=queries.map(q=>resolveQuery(q,maxResults));
+
+          // Regression gate: every displayed main result must be preclassified main, correct type, and pass the type forbidden gate.
+          const regressionFailures=[];
+          for(const r of results){
+            for(const x of r.main){
+              if(x.productRole!=="main")regressionFailures.push({query:r.query,productKey:x.productKey,reason:`main-result-role=${x.productRole}`,name:x.name});
+              if(r.type&&x.productType!==r.type)regressionFailures.push({query:r.query,productKey:x.productKey,reason:`wrong-type=${x.productType}`,name:x.name});
+              if(forbiddenMain(x))regressionFailures.push({query:r.query,productKey:x.productKey,reason:"forbidden-main-term",name:x.name});
+            }
+            for(const x of r.trustedExact){
+              if(x.productRole!=="main")regressionFailures.push({query:r.query,productKey:x.productKey,reason:"trusted-exact-not-main",name:x.name});
+            }
+          }
+
+          // Named regression checks specifically targeting false positives seen in V20.0.
+          const namedRules=[
+            {q:/^iphone\s*16$/i, bad:/\b(case|cover|stand|tripod|selfie|fill\s*light|phone\s*light|enclosure|ssd|charger|cable|adapter|protector|screen|lens|bracelet|watch)\b/i},
+            {q:/^galaxy\s*s25$/i, bad:/\b(charger|cable|case|cover|protector|screen|adapter|stand|holder|module)\b/i},
+            {q:/^thinkpad$/i, bad:/\b(keyboard|sticker|decal|sleeve|bag|briefcase|case|cover|pen|stylus|adapter|dock|charger|monitor|module|wwan|lte|screen\s*protector)\b/i},
+            {q:/^phone$/i, bad:/\b(usb\s*hub|card\s*reader|case|cover|protector|lcd|digitizer|charger|cable|adapter|stand|holder|mount|tripod|lens|screen|bracelet|wristband|smart\s*watch|fill\s*light|phone\s*light)\b/i},
+            {q:/^laptop$/i, bad:/\b(sticker|decal|sleeve|bag|briefcase|case|cover|keyboard|pen|stylus|adapter|dock|charger|screen\s*protector|privacy\s*filter|desk|chair|table|tray|screwdriver|repair\s*tool|repair\s*kit|module|wwan|lte|cooling\s*pad)\b/i},
+            {q:/^smartwatch$/i, bad:/\b(garden|net|case|cover|protector|band|strap|charger|dock|screen|lcd|box|holder|stand)\b/i},
+            {q:/^headphones$/i, bad:/\b(speaker|monitor|hook|case|cover|bag|cable|cord|adapter|vr|radio|tumbler|mug|cup|stand|holder)\b/i},
+            {q:/^perfume$/i, bad:/\b(power\s*bank|powerbank|plate|cup|teacup|coat|keychain|case|cover|airpod|car\s*perfume|air\s*freshener|empty\s*bottle|atomizer)\b/i},
+            {q:/^dog\s+food$/i, bad:/\b(feeder|dispenser|bowl|opener|can\s*opener|tab\s+buddy|machine|extruder|pelletizer|bead)\b/i},
+            {q:/^air\s+conditioner$/i, bad:/\b(cleaner|cleaning|brush|bracket|valve|remote|sensor|filter|tool|air\s+cooler|evaporative|humidif|fan)\b/i},
+            {q:/^3d\s+filament$/i, bad:/\b(rewinder|winder|coiler|winding\s+machine|dryer|sensor|3d\s+printer\s*\+|3d\s+printer\s+combo)\b/i},
+            {q:/^cookware$/i, bad:/\b(chopping\s+board|cutting\s+board|utensil\s+holder|case|cover)\b/i},
+            {q:/^lighting$/i, bad:/\b(adapter|cable|connector|bracket|mount|controller\s+only|power\s+supply\s+only)\b/i},
+            {q:/^tools$/i, bad:/\b(screen\s+protector|phone\s+film|iphone|mobile\s+phone\s+repair)\b/i}
+          ];
+          for(const r of results){
+            const rule=namedRules.find(x=>x.q.test(r.query));if(!rule)continue;
+            for(const x of r.main) if(rule.bad.test(x.name)) regressionFailures.push({query:r.query,productKey:x.productKey,reason:"named-regression-false-positive",name:x.name});
+          }
+
+          // Catalog-wide gate, not merely top-result testing.
+          // Every precomputed main record must independently prove its product type from its display title.
+          const catalogPurityFailures=[];
+          for(const x of projection){
+            if(x.productRole!=="main") continue;
+            const reason=mainPurityReason(x);
+            if(reason) catalogPurityFailures.push({productKey:x.productKey,seller:x.seller,type:x.productType,reason,name:x.name});
+          }
+
+          function fakeProduct(name,seller="Alibaba",dest=""){
+            return {name:{display:name},seller:{name:seller},links:{destinationUrl:dest},taxonomy:{},identifiers:{},offer:{},media:{}};
+          }
+          const negativeProbes=[
+            ["phone-selfie-light","phone","Stable LED Selfie Phone Light Rechargeable Clip on Fill Light for iPhone Camera"],
+            ["phone-smart-bracelet","phone","smart bracelet wristband m2 Heart Rate Fitness Wrist android Smart Watch smartphone 2019"],
+            ["phone-case","phone","Magnetic Vegan Leather Phone Case for iPhone 16 Pro Max"],
+            ["thinkpad-lte-module","laptop","GENUINE FOR LENOVO Thinkpad X1 Gen 4 T14 X13 LTE 4G Module EM05-CE"],
+            ["laptop-screwdriver","laptop","44 in 1 Screwdriver Set Mini Electric Screwdriver Repair Tool Kit for Electronics Camera Laptop"],
+            ["laptop-briefcase","laptop","NAIDUN New Portable Laptop Briefcase with Multi-Compartments"],
+            ["headphones-tumbler","headphones","Stainless Steel Tumbler Cool Capybara Headphone Hoodie Coffee Mug"],
+            ["headphones-monitor-port","headphones","27 inch Gaming Monitor HDMI DP USB Earphone Port 320Hz"],
+            ["dog-food-can-opener","dog_food","Tab Buddy XL Food Can Tab Opener for Cat Dog Food Kitchen Gadget"],
+            ["aircon-cleaning-brush","air_conditioner","Bathroom 2 in 1 Cleaning Brush for Window Air Conditioner Gap"],
+            ["aircon-evaporative-cooler","air_conditioner","Portable Air Conditioner 4-in-1 Evaporative Air Cooler 700ml Water Tank"],
+            ["filament-rewinder","3d_filament","Manual 3D Filament Spool Rewinder Wire Coiler Winding Machine for PLA PETG"],
+            ["filament-printer-bundle","3d_filament","Creality K2 SE Combo 3D Printer + 2kg PETG Filament"],
+            ["perfume-car-scent","perfume","Cars Perfume Refreshing Fragrance for a Long Drive"]
+          ];
+          const positiveProbes=[
+            ["phone-real","phone","FOSSiBOT F109S Rugged Smartphone Android 15 5G 6GB 256GB"],
+            ["laptop-real","laptop","Lenovo ThinkPad X1 Carbon Gen 12 Laptop"],
+            ["smartwatch-real","smartwatch","SIMSONLAB 1.83 Inches Smartwatch Bluetooth Calling Sports Watch"],
+            ["headphones-real","headphones","Sennheiser MOMENTUM 4 Wireless Bluetooth Headphones"],
+            ["perfume-real","perfume","Lattafa Ajwad Eau De Parfum Spray for Unisex 60ml"],
+            ["dog-food-real","dog_food","Real Chicken Dog Food for All Breeds High Protein Low Fat"],
+            ["power-bank-real","power_bank","10000mAh Magnetic Wireless Power Bank USB-C Fast Charging"],
+            ["aircon-real","air_conditioner","AUX Split Air Conditioner 12000 BTU Inverter Cooling Heat Pump"],
+            ["filament-real","3d_filament","PETG Filament 1.75mm 1kg Black for 3D Printer"],
+            ["cookware-real","cookware","Karaca BioDiamond 9-Piece Cookware Set"],
+            ["lighting-real","lighting","Govee RGBICW LED Strip Lights"],
+            ["tools-real","tools","10pcs Cobalt Jobber Drill Bits 2.7mm for Hard Metal Wood Plastic"]
+          ];
+          const probeFailures=[];
+          for(const [label,type,name] of negativeProbes){
+            const c=classify(fakeProduct(name));
+            if(c.role==="main"&&c.type===type) probeFailures.push({probe:label,expected:"not-main",actual:`${c.type}/${c.role}`,name});
+          }
+          for(const [label,type,name] of positiveProbes){
+            const c=classify(fakeProduct(name));
+            if(!(c.role==="main"&&c.type===type)) probeFailures.push({probe:label,expected:`${type}/main`,actual:`${c.type||"none"}/${c.role}`,name});
+          }
+
+          const blockedLeak=projection.filter(r=>isBlockedSeller(r.seller));
+          const typeCounts={};
+          for(const d of TYPE_DEFS){
+            const main=(typeMain.get(d.type)||[]).length,related=(typeRelated.get(d.type)||[]).length;
+            typeCounts[d.type]={main,related};
+          }
+          const roleCounts={main:0,accessory:0,replacement_part:0,related:0,unclassified:0};
+          for(const r of projection) roleCounts[r.productRole]=(roleCounts[r.productRole]||0)+1;
+
+          const exactIndexStats={
+            globalIdentifiers:[...exactGlobalIdIndex.values()].reduce((a,b)=>a+b.length,0),
+            uniqueSellerIdOrSku:exactUniqueStableIndex.size,
+            explicitBrandModel:[...exactBrandModelIndex.values()].reduce((a,b)=>a+b.length,0),
+            brandMpn:[...exactBrandMpnIndex.values()].reduce((a,b)=>a+b.length,0)
+          };
+
+          const criticalPass=approved.length===13&&missingApproved.length===0&&duplicateKeys.length===0&&blockedLeak.length===0&&regressionFailures.length===0&&catalogPurityFailures.length===0&&probeFailures.length===0;
+          const sellerRows=[...sellerStats.values()].sort((a,b)=>b.records-a.records);
+          const summary={
+            version:"20.1.1",readOnly:true,approvedPublicSellers:approved.length,catalogFilesLoaded:catalogs.length,canonicalRecords:projection.length,
+            duplicateProductKeys:duplicateKeys.length,blockedSellerLeaks:blockedLeak.length,roleCounts,typeCounts,exactIndexStats,regressionFailures:regressionFailures.length,catalogPurityFailures:catalogPurityFailures.length,probeFailures:probeFailures.length,
+            queries:results.map(r=>({query:r.query,mode:r.mode,type:r.type,trustedExact:r.trustedExact.length,specificMatches:r.specificMatches.length,mainShown:r.main.length,alternatives:r.alternatives.length,sellers:uniq([...r.main,...r.alternatives].map(x=>x.seller)),relatedSeparated:r.related.length})),
+            criticalPass
+          };
+
+          fs.writeFileSync(path.join(OUT,"summary.json"),JSON.stringify(summary,null,2));
+          fs.writeFileSync(path.join(OUT,"strict-search-projection.json"),JSON.stringify(projection,null,2));
+          fs.writeFileSync(path.join(OUT,"query-results.json"),JSON.stringify(results,null,2));
+          fs.writeFileSync(path.join(OUT,"regression-failures.json"),JSON.stringify(regressionFailures,null,2));
+          fs.writeFileSync(path.join(OUT,"catalog-purity-failures.json"),JSON.stringify(catalogPurityFailures,null,2));
+          fs.writeFileSync(path.join(OUT,"synthetic-probe-failures.json"),JSON.stringify(probeFailures,null,2));
+          const csv=["seller,records,main,accessory,replacement_part,related,unclassified,stable_id,global_id,explicit_model,price,image,link,cpc",...sellerRows.map(s=>[s.seller,s.records,s.main,s.accessory,s.replacementPart,s.related,s.unclassified,s.stableId,s.globalId,s.explicitModel,s.price,s.image,s.link,s.cpc?"yes":"no"].map(v=>`"${String(v).replaceAll('"','""')}"`).join(","))].join("\n")+"\n";
+          fs.writeFileSync(path.join(OUT,"seller-coverage.csv"),csv);
+
+          function money(r){return r.price==null?"price n/a":`${r.price} ${r.currency||""}`.trim();}
+          function line(r){return `- **${r.seller}** — ${r.name} — ${money(r)}${r.cpc?" • CPC seller":""}`;}
+          let md=`# TrendPilot V20.1.1 — Product-Type Purity Gate Lab\n\n`;
+          md+=`> **Read-only.** Visitor UI, production Search API, Netlify Blobs and V19 canonical catalogs were not changed.\n\n`;
+          md+=`## Foundation\n\n- Public product sellers: **${approved.length}**\n- Canonical catalogs loaded: **${catalogs.length}**\n- Canonical records: **${projection.length.toLocaleString()}**\n- Duplicate product keys: **${duplicateKeys.length}**\n- Blocked seller leaks (Temu/Joom/FilamentPRO): **${blockedLeak.length}**\n\n`;
+          md+=`## V20.1.1 rule\n\nExact identity remains unchanged from V20.1. The new rule is stricter: **a display title itself must prove the product type before a record can enter a main-product pool**. Taxonomy, category paths and destination URLs may support discovery but cannot promote accessories, parts, repair tools or unrelated products into main results.\n\n`;
+          md+=`## Product roles\n\n| Role | Records |\n|---|---:|\n`;
+          for(const k of ["main","accessory","replacement_part","related","unclassified"])md+=`| ${k} | ${(roleCounts[k]||0).toLocaleString()} |\n`;
+          md+=`\n## Trusted exact-index coverage\n\n- Global identifier entries: **${exactIndexStats.globalIdentifiers.toLocaleString()}**\n- Globally unique seller ID/SKU values: **${exactIndexStats.uniqueSellerIdOrSku.toLocaleString()}**\n- Brand + explicit model entries: **${exactIndexStats.explicitBrandModel.toLocaleString()}**\n- Brand + MPN entries: **${exactIndexStats.brandMpn.toLocaleString()}**\n\n`;
+          md+=`## Precomputed product types\n\n| Type | Main | Related/accessories/parts |\n|---|---:|---:|\n`;
+          for(const d of TYPE_DEFS){const x=typeCounts[d.type];md+=`| ${d.type} | ${x.main.toLocaleString()} | ${x.related.toLocaleString()} |\n`;}
+          md+=`\n## Seller-aware coverage\n\n| Seller | Records | Main | Accessory | Parts | Related | Unclassified | Stable ID | Price | Image | Link | CPC |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|\n`;
+          for(const s of sellerRows)md+=`| ${s.seller} | ${s.records.toLocaleString()} | ${s.main.toLocaleString()} | ${s.accessory.toLocaleString()} | ${s.replacementPart.toLocaleString()} | ${s.related.toLocaleString()} | ${s.unclassified.toLocaleString()} | ${s.stableId.toLocaleString()} | ${s.price.toLocaleString()} | ${s.image.toLocaleString()} | ${s.link.toLocaleString()} | ${s.cpc?"yes":"no"} |\n`;
+          md+=`\n## Visitor-query regression tests\n\n| Query | Mode | Type | Trusted exact | Specific main matches | Main shown | Alternatives | Sellers | Related separated |\n|---|---|---|---:|---:|---:|---:|---|---:|\n`;
+          for(const r of results)md+=`| ${r.query} | ${r.mode} | ${r.type||"—"} | ${r.trustedExact.length} | ${r.specificMatches.length} | ${r.main.length} | ${r.alternatives.length} | ${uniq([...r.main,...r.alternatives].map(x=>x.seller)).join(", ")||"—"} | ${r.related.length} |\n`;
+          md+=`\n## Short samples\n\n`;
+          for(const r of results){
+            md+=`### ${r.query}\n\n`;
+            if(r.trustedExact.length)md+=`**Trusted exact identity**\n${r.trustedExact.slice(0,4).map(line).join("\n")}\n\n`;
+            if(r.main.length)md+=`**Main products**\n${r.main.slice(0,4).map(line).join("\n")}\n\n`;
+            else md+=`**No main product match.** Accessories are not promoted to the requested product.\n\n`;
+            if(r.alternatives.length)md+=`**Same-type safe alternatives**\n${r.alternatives.slice(0,4).map(line).join("\n")}\n\n`;
+            if(r.related.length)md+=`**Related/accessories kept separate: ${r.related.length}**\n${r.related.slice(0,3).map(line).join("\n")}\n\n`;
+          }
+          md+=`## Catalog-wide purity gate\n\n- Main products checked across the full projection: **${roleCounts.main.toLocaleString()}**\n- Catalog purity failures: **${catalogPurityFailures.length}**\n- Synthetic false-positive/positive-control probe failures: **${probeFailures.length}**\n- Query regression failures: **${regressionFailures.length}**\n\n`;
+          if(catalogPurityFailures.length){md+=`### First catalog purity failures\n\n`;for(const f of catalogPurityFailures.slice(0,20))md+=`- ${f.type} / ${f.seller}: ${f.reason} — ${f.name}\n`;md+=`\n`;}
+          if(probeFailures.length){md+=`### Synthetic probe failures\n\n`;for(const f of probeFailures.slice(0,20))md+=`- ${f.probe}: expected ${f.expected}, got ${f.actual} — ${f.name}\n`;md+=`\n`;}
+          md+=`## Precision gate\n\n- Regression failures: **${regressionFailures.length}**\n- Catalog purity failures: **${catalogPurityFailures.length}**\n- Probe failures: **${probeFailures.length}**\n- Result: **${criticalPass?"PASS":"FAIL"}**\n\n`;
+          if(regressionFailures.length){md+=`### First failures\n\n`;for(const f of regressionFailures.slice(0,20))md+=`- ${f.query}: ${f.reason} — ${f.name}\n`;md+=`\n`;}
+          md+=criticalPass
+            ? `**V20.1.1 LAB PASS.** The product-type purity gate passed catalog-wide and query-level checks. Do not deploy automatically from this lab; review the samples first.\n`
+            : `**V20.1.1 LAB FAIL.** Do not connect the visitor UI. Refine only the classifier/purity rules; canonical seller catalogs remain untouched.\n`;
+          fs.writeFileSync(path.join(OUT,"report.md"),md);
+
+          console.log(JSON.stringify(summary,null,2));
+          if(!criticalPass) process.exit(2);
+          JS
+
+          node --check "$RUNNER_TEMP/v20-1-1-purity-lab.mjs"
+          node "$RUNNER_TEMP/v20-1-1-purity-lab.mjs"
+
+      - name: Validate V20.1.1 purity lab outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/v20-1-1-lab"
+          test -s "$OUT/report.md"
+          test -s "$OUT/summary.json"
+          test -s "$OUT/strict-search-projection.json"
+          test -s "$OUT/query-results.json"
+          test -s "$OUT/regression-failures.json"
+          test -s "$OUT/catalog-purity-failures.json"
+          test -s "$OUT/synthetic-probe-failures.json"
+          test -s "$OUT/seller-coverage.csv"
+          python3 - <<'PY'
+          import json, os
+          out=os.path.join(os.environ["RUNNER_TEMP"],"v20-1-1-lab")
+          s=json.load(open(os.path.join(out,"summary.json"),encoding="utf-8"))
+          assert s["approvedPublicSellers"] == 13
+          assert s["catalogFilesLoaded"] >= 13
+          assert s["canonicalRecords"] > 50000
+          assert s["duplicateProductKeys"] == 0
+          assert s["blockedSellerLeaks"] == 0
+          assert s["regressionFailures"] == 0
+          assert s["catalogPurityFailures"] == 0
+          assert s["probeFailures"] == 0
+          assert s["criticalPass"] is True
+          print("V20.1.1 product-type purity gate: PASS")
+          PY
+
+      - name: Publish V20.1.1 summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/v20-1-1-lab"
+          if [ -s "$OUT/report.md" ]; then
+            cat "$OUT/report.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "# TrendPilot V20.1.1 — Product-Type Purity Gate Lab"
+              echo
+              echo "**FAILED before report generation.** No production state was changed."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload V20.1.1 purity lab artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v20-1-1-product-type-purity-gate-lab
+          path: ${{ runner.temp }}/v20-1-1-lab/
+          if-no-files-found: warn
+          retention-days: 14
