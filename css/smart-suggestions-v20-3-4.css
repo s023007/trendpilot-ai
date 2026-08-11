@@ -1,0 +1,15 @@
+/* TrendPilot V20.3.4 — isolated Finder autocomplete. */
+.tp-amazon-search-host{position:relative!important}
+.tp-v20-suggest{position:absolute!important;z-index:20000!important;left:0!important;right:0!important;top:calc(100% + 2px)!important;display:block!important;overflow:hidden!important;border:1px solid #cfd6d4!important;border-radius:0 0 14px 14px!important;background:#fff!important;box-shadow:0 12px 28px rgba(0,0,0,.22)!important;pointer-events:auto!important}
+.tp-v20-suggest[hidden]{display:none!important;pointer-events:none!important}
+.tp-v20-suggest .tp-amazon-list{display:block!important;max-height:min(390px,48vh)!important;overflow-x:hidden!important;overflow-y:auto!important;overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important}
+.tp-v20-suggest .tp-amazon-row{display:grid!important;width:100%!important;grid-template-columns:44px minmax(0,1fr)!important;align-items:center!important;gap:10px!important;min-height:56px!important;padding:7px 12px!important;border:0!important;border-bottom:1px solid #eef0ef!important;background:#fff!important;color:#111!important;text-align:left!important;font:inherit!important;cursor:pointer!important;pointer-events:auto!important}
+.tp-v20-suggest .tp-amazon-row:last-child{border-bottom:0!important}
+.tp-v20-suggest .tp-amazon-row:active,.tp-v20-suggest .tp-amazon-row:hover{background:#f4f6f6!important}
+.tp-v20-suggest .tp-amazon-thumb{display:grid!important;width:40px!important;height:40px!important;place-items:center!important;overflow:hidden!important;border-radius:7px!important;background:#f1f2f2!important}
+.tp-v20-suggest .tp-amazon-thumb img{width:100%!important;height:100%!important;object-fit:contain!important}
+.tp-v20-suggest .tp-amazon-search-icon{display:grid!important;width:40px!important;height:40px!important;place-items:center!important;color:#303735!important;font-size:1.45rem!important}
+.tp-v20-suggest .tp-amazon-copy{min-width:0!important}
+.tp-v20-suggest .tp-amazon-copy b{display:block!important;overflow:hidden!important;color:#111!important;font-size:.98rem!important;font-weight:760!important;line-height:1.2!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+.tp-v20-suggest .tp-amazon-copy small{display:block!important;overflow:hidden!important;margin-top:3px!important;color:#68726e!important;font-size:.72rem!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+@media(max-width:680px){.tp-v20-suggest{left:0!important;right:0!important;top:calc(100% + 1px)!important;max-height:min(360px,46dvh)!important}.tp-v20-suggest .tp-amazon-list{max-height:min(340px,44dvh)!important}.tp-v20-suggest .tp-amazon-row{grid-template-columns:42px minmax(0,1fr)!important;min-height:54px!important;padding:6px 10px!important}}
