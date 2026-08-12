@@ -671,6 +671,261 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
 }
 // TP_V16_2_1_HYBRID_FINDER_END
 
+// TP_V20_6_2_CONTROLLED_MASTER_START
+const TP_MASTER_ENGINE_SESSION_V20_6_2="trendpilot-engine-v206";
+
+function tpUseMasterEngineV20_6_2(){
+  try{
+    const requested=new URLSearchParams(location.search).get("engine");
+    if(requested==="v206"){
+      sessionStorage.setItem(TP_MASTER_ENGINE_SESSION_V20_6_2,"1");
+      return true;
+    }
+    if(requested==="legacy"){
+      sessionStorage.removeItem(TP_MASTER_ENGINE_SESSION_V20_6_2);
+      return false;
+    }
+    return sessionStorage.getItem(TP_MASTER_ENGINE_SESSION_V20_6_2)==="1";
+  }catch{
+    return false;
+  }
+}
+
+function tpMasterTypeV20_6_2(query){
+  const q=lower(query);
+  const routes=[
+    ["phone",/\b(?:phones?|smartphones?|mobile phones?|cell phones?|iphone|iph|galaxy|redmi|pixel|oneplus|poco|realme|xiaomi|oppo|vivo)\b/i],
+    ["laptop",/\b(?:laptops?|notebooks?|macbook|thinkpad|ideapad|chromebook|legion|thinkbook|yoga)\b/i],
+    ["headphones",/\b(?:headphones?|headsets?|earbuds?|earphones?|airpods?|tws)\b/i],
+    ["smartwatch",/\b(?:smart ?watch|apple watch|galaxy watch|fitness watch)\b/i],
+    ["power_bank",/\b(?:power ?banks?|portable battery pack|external battery pack)\b/i],
+    ["perfume",/\b(?:perfumes?|parfum|eau de parfum|eau de toilette|cologne|attar|body mist)\b/i],
+    ["3d_filament",/\b(?:3d filament|filament|pla filament|petg filament|abs filament)\b/i],
+    ["dog_food",/\b(?:dog food|dog treats?|dog topper|puppy food)\b/i],
+    ["air_conditioner",/\b(?:air conditioners?|portable ac|mini split|ductless ac)\b/i],
+    ["cookware",/\b(?:cookware|frying pans?|pots? and pans?|casserole)\b/i],
+    ["lighting",/\b(?:lighting|smart lights?|led strips?|light strips?|smart bulbs?)\b/i],
+    ["tools",/\b(?:tools?|drills?|angle grinder|screwdrivers?|multimeters?|saws?)\b/i]
+  ];
+  return (routes.find(([,re])=>re.test(q))||[""])[0];
+}
+
+function tpMasterStorageIntentV20_6_2(query){
+  const q=clean(query);
+  let m=q.match(/\b(?:2|3|4|6|8|12|16|18|24|32)\s*(?:GB|G)?\s*[+\/]\s*(32|64|128|256|512|1024|2048)\s*(?:GB|G)\b/i);
+  if(m)return `${m[1]}GB`;
+  m=q.match(/\b(32|64|128|256|512|1024|2048)\s*(?:GB|G)\s*(?:ROM|Storage|SSD|UFS)?\b/i);
+  if(m)return `${m[1]}GB`;
+  m=q.match(/\b(1|2|4)\s*TB\b/i);
+  return m?`${Number(m[1])*1024}GB`:"";
+}
+
+function tpMasterQueryBaseV20_6_2(query){
+  return clean(String(query||"")
+    .replace(/\b(?:2|3|4|6|8|12|16|18|24|32)\s*(?:GB|G)?\s*[+\/]\s*(?:32|64|128|256|512|1024|2048)\s*(?:GB|G)\b/ig," ")
+    .replace(/\b(?:32|64|128|256|512|1024|2048)\s*(?:GB|G)\s*(?:ROM|Storage|SSD|UFS)?\b/ig," ")
+    .replace(/\b(?:1|2|4)\s*TB\b/ig," "));
+}
+
+function tpMasterUiTaxonomyV20_6_2(type){
+  const map={
+    phone:["phones-tablets","smartphones"],
+    laptop:["computers","laptops"],
+    headphones:["audio","headphones"],
+    smartwatch:["jewelry-watches","watches"],
+    power_bank:["phones-tablets","power-banks"],
+    perfume:["beauty-care","fragrance"],
+    "3d_filament":["printing-3d","3d-filament"],
+    dog_food:["pet-supplies","dog-food"],
+    air_conditioner:["home-kitchen","air-conditioner"],
+    cookware:["home-kitchen","cookware"],
+    lighting:["smart-home","smart-lighting"],
+    tools:["tools","tools"]
+  };
+  return map[type]||["other",type||"other"];
+}
+
+function tpMasterProductScoreV20_6_2(product,query){
+  const q=lower(query);
+  const model=lower(product.model);
+  const label=lower(product.label);
+  const brand=lower(product.brand);
+  const text=lower(product.searchText);
+  if(!q)return 0;
+  if(model===q||label===q)return 1000;
+  if(model.startsWith(q)||label.startsWith(q))return 850;
+  if(model.includes(q)||label.includes(q))return 760;
+  const tokens=words(q);
+  if(tokens.length && tokens.every(t=>text.includes(t)))return 620+Math.min(tokens.length,6)*15;
+  if(brand===q)return 500;
+  return 0;
+}
+
+async function tpLoadMasterProductsV20_6_2(query,requestedSeller=""){
+  const q=clean(query);
+  const seller=tpCanonicalSellerV15_1(requestedSeller)||clean(requestedSeller);
+
+  if(q.length<2||lower(q)==="popular products"){
+    return {rows:[],meta:{engine:"v20.6.2.5",mode:"suggestions-only"}};
+  }
+
+  const type=tpMasterTypeV20_6_2(q);
+  if(!type){
+    return {rows:[],meta:{engine:"v20.6.2.5",mode:"unsupported-query",fallbackAllowed:true}};
+  }
+
+  try{
+    const response=await fetch(`/data/search-v20-6/visitor/types/${encodeURIComponent(type)}.json?v=20.6.2.5`,{
+      cache:"force-cache",
+      headers:{"accept":"application/json"}
+    });
+    if(!response.ok){
+      return {rows:[],meta:{engine:"v20.6.2.5",mode:"missing-type",type,fallbackAllowed:true}};
+    }
+
+    const payload=await response.json();
+    const baseQuery=tpMasterQueryBaseV20_6_2(q);
+    const storageIntent=tpMasterStorageIntentV20_6_2(q);
+    const [group,family]=tpMasterUiTaxonomyV20_6_2(type);
+
+    const matched=(Array.isArray(payload.products)?payload.products:[])
+      .map(product=>({product,score:tpMasterProductScoreV20_6_2(product,baseQuery)}))
+      .filter(x=>x.score>0)
+      .sort((a,b)=>b.score-a.score||Number(b.product.sellerCount||0)-Number(a.product.sellerCount||0))
+      .slice(0,40);
+
+    const rows=[];
+    for(const {product,score} of matched){
+      let offers=Array.isArray(product.offers)?product.offers.slice():[];
+      if(seller)offers=offers.filter(o=>(tpCanonicalSellerV15_1(o.seller)||clean(o.seller))===seller);
+      if(storageIntent)offers=offers.filter(o=>clean(o.storage)===storageIntent);
+      if(!offers.length)continue;
+
+      for(const offer of offers){
+        const canonicalSeller=tpCanonicalSellerV15_1(offer.seller)||clean(offer.seller);
+        const id=clean(offer.tpoid||`${product.tpid}-${canonicalSeller}`);
+        rows.push(normalizeProduct({
+          id,
+          clusterKey:id,
+          masterTpid:product.tpid,
+          masterMemberTpids:product.memberTpids,
+          tpvid:offer.tpvid,
+          name:product.label||product.model||offer.name,
+          description:`TrendPilot master product identity ${product.tpid}. Seller offer from ${canonicalSeller}.`,
+          brand:product.brand,
+          category:type,
+          url:offer.url,
+          image:offer.image,
+          advertiser:canonicalSeller,
+          network:"TrendPilot Master V20.6",
+          group,
+          family,
+          audience:"all",
+          price:offer.price,
+          currency:offer.currency||"USD",
+          condition:offer.condition||"",
+          quality:90,
+          offerCount:product.offerCount||1,
+          storeCount:product.sellerCount||1,
+          variantCount:1,
+          _tpMasterV20_6_2:true,
+          _tpHybridV16_2_1:true,
+          intentTier:5,
+          hybridMatchScore:score,
+          hybridFallbackSource:"v20.6.2.5-master-registry"
+        }));
+        if(rows.length>=100)break;
+      }
+      if(rows.length>=100)break;
+    }
+
+    return {
+      rows:rows.filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed),
+      meta:{
+        engine:"v20.6.2.5",
+        type,
+        storageIntent,
+        productMatches:matched.length,
+        returnedRows:rows.length,
+        fallbackUsed:false
+      }
+    };
+  }catch(error){
+    console.warn("TrendPilot V20.6.2.5 controlled master search unavailable",error);
+    return {rows:[],meta:{engine:"v20.6.2.5",mode:"error",fallbackAllowed:true}};
+  }
+}
+
+// ----------------------------------------------------------
+// Wrapper layer: no performSearch call-site patching.
+// ----------------------------------------------------------
+const tpLegacyHybridProductsV20_6_2=tpLoadHybridProductsV16_2_1;
+tpLoadHybridProductsV16_2_1=async function(query,requestedSeller=""){
+  if(!tpUseMasterEngineV20_6_2()){
+    return tpLegacyHybridProductsV20_6_2(query,requestedSeller);
+  }
+
+  const master=await tpLoadMasterProductsV20_6_2(query,requestedSeller);
+  if(master?.meta?.fallbackAllowed){
+    const legacy=await tpLegacyHybridProductsV20_6_2(query,requestedSeller);
+    return {
+      rows:legacy?.rows||[],
+      meta:Object.assign({},legacy?.meta||{},{
+        engine:"legacy-fallback-from-v20.6.2.5",
+        masterFallback:true
+      })
+    };
+  }
+  return master;
+};
+
+const tpLegacyLoadInitialSegmentsV20_6_2=loadInitialSegments;
+loadInitialSegments=async function(){
+  return tpUseMasterEngineV20_6_2()?[]:tpLegacyLoadInitialSegmentsV20_6_2();
+};
+
+const tpLegacyLoadCjProductsV20_6_2=loadCjProducts;
+loadCjProducts=async function(){
+  return tpUseMasterEngineV20_6_2()?[]:tpLegacyLoadCjProductsV20_6_2();
+};
+
+const tpLegacyBalancedRowsV20_6_2=tpLoadBalancedSellerRowsV15_1;
+tpLoadBalancedSellerRowsV15_1=async function(){
+  return tpUseMasterEngineV20_6_2()?[]:tpLegacyBalancedRowsV20_6_2();
+};
+
+const tpLegacyAdmitadProductsV20_6_2=loadAdmitadProductsV15_4;
+loadAdmitadProductsV15_4=async function(){
+  return tpUseMasterEngineV20_6_2()?[]:tpLegacyAdmitadProductsV20_6_2();
+};
+
+const tpLegacySelectedLiveSellerV20_6_2=tpLoadSelectedLiveSellerV15_8_9;
+tpLoadSelectedLiveSellerV15_8_9=async function(seller,query=state.query){
+  return tpUseMasterEngineV20_6_2()?[]:tpLegacySelectedLiveSellerV20_6_2(seller,query);
+};
+
+const tpLegacySellerSpecificV20_6_2=tpLoadSellerSpecificV15_1;
+tpLoadSellerSpecificV15_1=async function(seller){
+  if(tpUseMasterEngineV20_6_2())return;
+  return tpLegacySellerSpecificV20_6_2(seller);
+};
+
+const tpLegacyEnsureMinimumExactV20_6_2=ensureMinimumExact;
+ensureMinimumExact=async function(minimum=24){
+  if(tpUseMasterEngineV20_6_2())return;
+  return tpLegacyEnsureMinimumExactV20_6_2(minimum);
+};
+
+const tpLegacyMergeProductsV20_6_2=mergeProducts;
+mergeProducts=function(rows){
+  if(tpUseMasterEngineV20_6_2()){
+    rows=(rows||[]).filter(p=>p&&p._tpMasterV20_6_2);
+  }
+  return tpLegacyMergeProductsV20_6_2(rows);
+};
+// TP_V20_6_2_CONTROLLED_MASTER_END
+
+
 // TP_V20_3_CONTROLLED_START
 const TP_V20_3_BLOCKED_SELLERS = new Set(["Temu","Joom","FilamentPRO EU CPS","FilamentPRO"]);
 const TP_V20_3_UI_TYPE = Object.freeze({

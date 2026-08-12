@@ -1,0 +1,52 @@
+{
+  "version": "20.6.1",
+  "mode": "shadow-candidate",
+  "readOnly": true,
+  "sourceIdentityVersion": "20.6.0",
+  "publicSellers": 13,
+  "catalogOffersScanned": 52032,
+  "counts": {
+    "products": 13117,
+    "offers": 13407,
+    "variants": 13199,
+    "autocomplete": 1419,
+    "comparisonSets": 45,
+    "presentationGroups": 1,
+    "sellerIndex": 11,
+    "types": {
+      "3d_filament": 75,
+      "air_conditioner": 9,
+      "cookware": 434,
+      "dog_food": 68,
+      "headphones": 4522,
+      "laptop": 600,
+      "lighting": 590,
+      "perfume": 207,
+      "phone": 1303,
+      "power_bank": 932,
+      "smartwatch": 1765,
+      "tools": 2612
+    }
+  },
+  "checks": {
+    "sourceIdentityPass": true,
+    "sourceFinalMembershipResidualLeaks": 0,
+    "sourceFinalMasterMembershipLeaks": 0,
+    "sourceFinalDuplicateCanonicalGroups": 0,
+    "duplicateTPIDs": 0,
+    "duplicateTPOIDs": 0,
+    "duplicateTPVIDs": 0,
+    "blockedMasterLeaks": 0,
+    "blockedOfferLeaks": 0,
+    "orphanOffers": 0,
+    "orphanVariants": 0,
+    "comparisonSetOrphans": 0,
+    "presentationCollisionGroups": 1,
+    "presentationCollisionMemberTPIDs": 3,
+    "unresolvedPresentationCollisions": 0,
+    "oneCharProductRows": 0,
+    "typeCountSumMatchesProducts": true
+  },
+  "pass": true,
+  "failures": []
+}
