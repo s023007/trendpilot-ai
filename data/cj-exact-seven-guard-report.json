@@ -1,7 +1,7 @@
 {
-  "version": "13.8.8",
-  "generatedAt": "2026-08-10T04:59:29.798474+00:00",
-  "status": "exact-seven-installed",
+  "version": "13.8.9",
+  "generatedAt": "2026-08-12T05:09:00.119556+00:00",
+  "status": "exact-seven-hotfix-installed",
   "approvedAdvertiserCount": 7,
   "approvedAdvertisers": [
     {
@@ -34,13 +34,28 @@
     }
   ],
   "knownCjSellerKeysDiscovered": 28,
-  "cjEvidenceRecordsScanned": 2262,
+  "cjEvidenceRecordsScanned": 17346,
   "evidenceFiles": [
+    "data/catalog-v19/source-ingestion/mfi-medical-deeplink-audit.json",
+    "data/catalog-v19/source-ingestion/tiktok-shop-us-cj-audit.json",
     "data/cj-link-catalog.json",
     "data/cj-offers.json",
     "data/cj-products.json",
     "data/diagnostics/diecast-expansion-v15-6-6.json",
+    "data/search-v20/types/air_conditioner.json",
+    "data/search-v20/types/cookware.json",
+    "data/search-v20/types/dog_food.json",
+    "data/search-v20/types/headphones.json",
+    "data/search-v20/types/laptop.json",
+    "data/search-v20/types/lighting.json",
+    "data/search-v20/types/perfume.json",
+    "data/search-v20/types/phone.json",
+    "data/search-v20/types/power_bank.json",
+    "data/search-v20/types/smartwatch.json",
+    "data/search-v20/types/tools.json",
     "data/source-ingestion-report.json",
+    "data/source-ingestion-v19/mfi-medical-direct-catalog.json",
+    "data/source-ingestion-v19/tiktok-shop-us-live-catalog.json",
     "js/cj-joined-sellers.js"
   ],
   "javascript": [
@@ -50,7 +65,8 @@
       "changed": true,
       "patches": [
         "embedded-exact-allowlist",
-        "visible-results-filtered"
+        "visible-results-filtered",
+        "seller-dropdown-structure-aware"
       ],
       "guardPresent": true,
       "sellerFilterPresent": true
@@ -61,7 +77,8 @@
       "changed": true,
       "patches": [
         "embedded-exact-allowlist",
-        "visible-results-filtered"
+        "visible-results-filtered",
+        "seller-dropdown-structure-aware"
       ],
       "guardPresent": true,
       "sellerFilterPresent": true

@@ -10,9 +10,9 @@
   const validUrl = (v) => /^https?:\/\//i.test(clean(v));
 
   // TP_CJ_EXACT_GUARD_START
-  const TP_CJ_GUARD_VERSION = "20.3.2";
-  const TP_CJ_APPROVED_IDS = new Set(["2357926","7287203","5893489","7227612","4837117","4295086","7753674","2288710","7563286","4368684"]);
-  const TP_CJ_APPROVED_NAMES = new Set(["diecast","diecastcom","fragranceshop","fragranceshopcom","karaca","karacaeu","karacaeurope","mfi","mfimedical","nordvpn","pandahall","pandahallcom","sportsevents365","ticketnetwork","ticketnetworkcom","tiktok","tiktokshop","tiktokshopus","tripcom","tripcomglobal","thefragranceshop","thefragranceshopcom"]);
+  const TP_CJ_GUARD_VERSION = "13.8.9";
+  const TP_CJ_APPROVED_IDS = new Set(["2357926", "4295086", "4368684", "4837117", "5893489", "7227612", "7287203"]);
+  const TP_CJ_APPROVED_NAMES = new Set(["diecast", "diecastcom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "thefragranceshop", "thefragranceshopcom", "tripcom", "tripcomglobal"]);
   const TP_CJ_KNOWN_NAMES = new Set(["cjjoinedadvertisers", "diecast", "diecastcom", "diecastmodelswholesale", "diecastmodelswholesalecom", "fragranceshop", "fragranceshopcom", "karaca", "karacaeu", "karacaeurope", "mfi", "mfimedical", "nordvpn", "pandahall", "pandahallcom", "shoptemu", "sportsevents365", "temu", "temucom", "thefragranceshop", "thefragranceshopcom", "ticketnetwork", "ticketnetworkcom", "tiktok", "tiktokshop", "tiktokshopus", "tripcom", "tripcomglobal"]);
   const TP_CJ_TRACKING_HOST_RE = /(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
   const TP_CJ_GENERIC_TITLES = new Set(["browseproducts", "currentoffer", "currentoffers", "officialshop", "officialstore", "seller", "shop", "shopnow", "store", "viewproducts", "visitstore"]);
@@ -94,7 +94,6 @@
   }
 
   function tpCjPublicAllowed(p) {
-    if (p && p._tpV20_3 === true) return tpPublicSellerAllowed(p);
     if (!p || !tpIsCjItem(p)) return Boolean(p);
     return tpCjApproved(p) && tpCjSpecificEvidence(p);
   }
@@ -1724,7 +1723,7 @@ const rankedExact=state.products
   }
   function filterProducts(rows) {
     const f=filters(); const selectedFamilies=familyMembers(f.family,state.manifest); const relatedRows=rows===state.alternatives;
-    let out=rows.filter(p=>{if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpPublicSellerAllowed(p))return false;
+    let out=rows.filter(p=>{if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpCjPublicAllowed(p))return false;if(!tpPublicSellerAllowed(p))return false;
       if(f.group&&p.group!==f.group&&!(relatedRows&&state.plan?.family==="makeup"&&p.group==="bags-accessories"))return false;
       if(selectedFamilies.length&&!relatedRows&&!selectedFamilies.includes(p.family))return false; if(f.audience&&p.audience!==f.audience)return false;
       if(f.merchant){
@@ -1748,7 +1747,7 @@ const rankedExact=state.products
     const sort=$('[data-filter-sort]');if(sort)sort.value="smart";
   }
   function populateFilters() {
-    const rows=state.products.filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed);
+    const rows=state.products.filter(tpCjPublicAllowed);
     const group=$('[data-filter-group]'), family=$('[data-filter-family]'), audience=$('[data-filter-audience]'), merchant=$('[data-filter-merchant]');
     if(group){const current=group.value; group.innerHTML='<option value="">All categories</option>'+uniq(rows.map(p=>p.group)).sort().map(v=>`<option value="${esc(v)}">${esc(GROUP_LABELS[v]||v)}</option>`).join(""); group.value=current|| (state.plan.groups.length===1?state.plan.groups[0]:"");}
     if(family){const current=family.value; const g=group?.value; const vals=uniq(rows.filter(p=>!g||p.group===g).map(p=>p.family)).filter(v=>!v.includes(":")).sort(); const parent=state.plan.family&&state.plan.families?.length>1&&(!g||state.plan.groups.includes(g))?`<option value="${esc(state.plan.family)}">${esc(familyLabelValue(state.plan.family))}</option>`:""; family.innerHTML='<option value="">All specific types</option>'+parent+vals.map(v=>`<option value="${esc(v)}">${esc(familyLabelValue(v))}</option>`).join(""); family.value=current||state.plan.family||"";}
