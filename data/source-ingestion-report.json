@@ -1,10 +1,10 @@
 {
   "version": "0.6.0",
-  "generatedAt": "2026-08-10T04:18:55+00:00",
+  "generatedAt": "2026-08-12T04:29:03+00:00",
   "cache": {
     "path": "automation/cache/offers.jsonl",
     "committed": false,
-    "offerCount": 173673
+    "offerCount": 173774
   },
   "sources": [
     {
@@ -43,8 +43,8 @@
       "adapter": "csv",
       "network": "Admitad",
       "advertiser": "AliExpress",
-      "offersAccepted": 24705,
-      "complianceBlocked": 295,
+      "offersAccepted": 24726,
+      "complianceBlocked": 274,
       "invalidRows": 0
     },
     {
@@ -63,7 +63,7 @@
       "adapter": "csv",
       "network": "Admitad",
       "advertiser": "Geekbuying",
-      "offersAccepted": 1372,
+      "offersAccepted": 1371,
       "complianceBlocked": 3,
       "invalidRows": 0
     },
@@ -83,8 +83,8 @@
       "adapter": "xml",
       "network": "Admitad",
       "advertiser": "Joom",
-      "offersAccepted": 98438,
-      "complianceBlocked": 1562,
+      "offersAccepted": 98474,
+      "complianceBlocked": 1526,
       "invalidRows": 0
     },
     {
@@ -113,8 +113,8 @@
       "adapter": "json",
       "network": "CJ",
       "advertiser": "CJ joined advertisers",
-      "offersAccepted": 19243,
-      "complianceBlocked": 708,
+      "offersAccepted": 19288,
+      "complianceBlocked": 661,
       "invalidRows": 0
     },
     {
@@ -129,8 +129,8 @@
     }
   ],
   "counters": {
-    "offersAccepted": 173673,
-    "complianceBlocked": 2936,
+    "offersAccepted": 173774,
+    "complianceBlocked": 2832,
     "duplicatesWithinSources": 39
   },
   "note": "Private feed URLs are read from GitHub Actions secrets and are never written to reports or the repository."

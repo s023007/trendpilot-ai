@@ -1,6 +1,6 @@
 {
   "version": "0.8.0",
-  "generatedAt": "2026-08-10T04:37:54+00:00",
+  "generatedAt": "2026-08-12T04:48:03+00:00",
   "publicationMode": "manual-review",
   "sources": [
     {
@@ -33,7 +33,7 @@
       "type": "rss",
       "label": "Google Trends — Oman",
       "status": "processed",
-      "signals": 10
+      "signals": 8
     },
     {
       "id": "google-sa",
@@ -89,7 +89,7 @@
       "type": "stackexchange",
       "label": "Stack Overflow — hot questions",
       "status": "processed",
-      "signals": 5
+      "signals": 3
     },
     {
       "id": "youtube-tech-us",
@@ -109,18 +109,18 @@
     }
   ],
   "counters": {
-    "rawSignals": 195,
-    "blockedSignals": 11,
-    "nonCommercialSignals": 173,
-    "softwareCommercialSignals": 11,
+    "rawSignals": 191,
+    "blockedSignals": 4,
+    "nonCommercialSignals": 171,
+    "softwareCommercialSignals": 16,
     "ambiguousSignals": 0,
     "lowScoreSignals": 0,
     "insufficientEvidence": 0,
-    "unmonetisableSignals": 11,
-    "noConfirmedAffiliateRoute": 11,
-    "projectOnlyWithoutAffiliateRoute": 0,
+    "unmonetisableSignals": 16,
+    "noConfirmedAffiliateRoute": 16,
+    "projectOnlyWithoutAffiliateRoute": 1,
     "purgedStaleCandidates": 0,
-    "reviewCandidates": 4,
+    "reviewCandidates": 3,
     "readyForApproval": 2,
     "publishedApprovedTrends": 4,
     "approvalHeldForEvidence": 0

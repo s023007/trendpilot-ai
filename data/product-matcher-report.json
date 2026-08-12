@@ -1,52 +1,53 @@
 {
   "version": "0.7.2",
   "buildId": "2026-07-31-product-first-published-split",
-  "generatedAt": "2026-08-10T04:58:08+00:00",
+  "generatedAt": "2026-08-12T05:07:29+00:00",
   "rankingMode": "product-first-network-neutral",
-  "catalogueOffersRead": 173673,
+  "catalogueOffersRead": 173774,
   "counters": {
-    "offersRead": 173673,
-    "candidateMatches": 4750,
-    "complianceBlocked": 62
+    "offersRead": 173774,
+    "candidateMatches": 4734,
+    "complianceBlocked": 61
   },
   "matchesPerTrend": {
-    "compact-thermal-printers": 8,
-    "high-capacity-power-banks": 8,
-    "portable-projectors": 8,
     "smart-pet-feeding": 8,
-    "wireless-earbuds": 8,
+    "high-capacity-power-banks": 8,
+    "compact-thermal-printers": 8,
     "wireless-carplay-retrofit": 8,
+    "seasonal-kids-costumes": 8,
     "seasonal-party-decor": 8,
-    "car-multimedia-head-units": 8,
-    "seasonal-kids-costumes": 8
+    "portable-projectors": 8,
+    "wireless-earbuds": 8,
+    "car-multimedia-head-units": 8
   },
   "candidateMatchesByNetwork": {
-    "Admitad": 4749,
-    "CJ": 1
+    "Admitad": 4731,
+    "CJ": 3
   },
   "candidateMatchesByAdvertiser": {
-    "AliExpress": 758,
+    "AliExpress": 754,
     "Geekbuying": 32,
-    "Joom": 883,
+    "Joom": 869,
     "Alibaba": 3076,
-    "Wayfair North America": 1
+    "Costumes.com": 1,
+    "Michaels Stores": 2
   },
   "matchesByNetwork": {
     "Admitad": 72
   },
   "matchesByAdvertiser": {
+    "AliExpress": 34,
+    "Joom": 5,
     "Alibaba": 30,
-    "Joom": 6,
-    "AliExpress": 33,
     "Geekbuying": 3
   },
   "publishedMatchesByNetwork": {
-    "Admitad": 42
+    "Admitad": 43
   },
   "publishedMatchesByAdvertiser": {
+    "AliExpress": 34,
     "Joom": 5,
     "Alibaba": 1,
-    "AliExpress": 33,
     "Geekbuying": 3
   },
   "reviewMatchesByNetwork": {
@@ -61,9 +62,9 @@
     "Admitad": 88
   },
   "allFinalMatchesByAdvertiser": {
-    "AliExpress": 34,
+    "AliExpress": 35,
     "Geekbuying": 8,
-    "Joom": 16,
+    "Joom": 15,
     "Alibaba": 30
   },
   "reviewEvidence": {
@@ -76,9 +77,9 @@
   },
   "note": "Products are ranked without network preference. Product relevance comes first, followed by quality/customer signals, commercial value, price fit and audience breadth. Equivalent listings are compared and the strongest compliant affiliate route is kept. Published and review-only matches are reported separately.",
   "publishedMatchesByAdvertiserBeforeLinkGuard": {
+    "AliExpress": 34,
+    "Joom": 5,
     "Alibaba": 30,
-    "Joom": 6,
-    "AliExpress": 33,
     "Geekbuying": 3
   },
   "publicTrendSlugs": [
@@ -92,20 +93,20 @@
   ],
   "linkGuard": {
     "version": "1.3.0",
-    "generatedAt": "2026-08-10T04:58:22+00:00",
+    "generatedAt": "2026-08-12T05:07:46+00:00",
     "offersReviewed": 72,
-    "offersKept": 42,
-    "offersRemoved": 30,
+    "offersKept": 43,
+    "offersRemoved": 29,
     "keptByReason": {
+      "verified-aliexpress-item": 34,
       "verified-generic-product-path": 8,
-      "verified-alibaba-product-detail": 1,
-      "verified-aliexpress-item": 33
+      "verified-alibaba-product-detail": 1
     },
     "removedByReason": {
-      "missing-product-identity": 3,
-      "not-an-alibaba-product-detail-page;resolved": 25,
       "excluded-niche-variant:solar,solar charger": 1,
-      "excluded-niche-variant:solar": 1
+      "excluded-niche-variant:solar": 1,
+      "not-an-alibaba-product-detail-page;resolved": 25,
+      "missing-product-identity": 2
     }
   }
 }
