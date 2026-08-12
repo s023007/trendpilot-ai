@@ -1,0 +1,1373 @@
+name: TrendPilot V20.5.5 — Query Intent + Canonical Product Truth Lab
+
+on:
+  workflow_dispatch:
+    inputs:
+      queries:
+        description: "Comma-separated identity/search probes"
+        required: false
+        default: "H,F,iph,iphone,iPhone 16,iPhone 16 128GB,phone,Galaxy S25,Redmi,ThinkPad,ThinkPad X1 Carbon,laptop,headphones,power bank,perfume"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v20-5-5-query-intent-canonical-product-truth-lab
+  cancel-in-progress: false
+
+jobs:
+  identity-registry-lab:
+    name: Build read-only TPID / TPVID / TPOID registry
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+          clean: true
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Verify V19 canonical + V20 projection foundation
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s data/product-seller-registry-v17.json
+          test -s data/catalog-v19/catalog-set-v1.json
+          test -s data/catalog-v19/global-resolver-v1.json
+          test -d data/catalog-v19/sellers
+          test -s data/search-v20/manifest.json
+          test -d data/search-v20/types
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+
+          blocked={"Temu","Joom","FilamentPRO EU CPS"}
+
+          reg=json.loads(Path("data/product-seller-registry-v17.json").read_text())
+          public=[x["name"] for x in reg.get("sellers",[]) if x.get("public") is True]
+          assert len(public)==13, public
+          assert not (set(public)&blocked), set(public)&blocked
+
+          cat=json.loads(Path("data/catalog-v19/catalog-set-v1.json").read_text())
+          names=[x["name"] for x in cat.get("sellers",[])]
+          assert len(names)==13, names
+          assert set(names)==set(public), (names,public)
+
+          files=list(Path("data/catalog-v19/sellers").glob("*/products.ndjson"))
+          assert len(files)>=13, len(files)
+
+          m=json.loads(Path("data/search-v20/manifest.json").read_text())
+          assert str(m.get("version","")).startswith("20.2."), m.get("version")
+          assert m.get("catalogFilesLoaded")==13
+          assert int(m.get("canonicalRecords",0))>50000
+          assert m.get("duplicateProductKeys")==0
+          assert m.get("blockedSellerLeaks")==0
+          assert len(m.get("publicSellers",[]))==13
+
+          print("Foundation PASS")
+          print("Public sellers:",len(public))
+          print("Canonical seller files:",len(files))
+          print("Canonical records:",m.get("canonicalRecords"))
+          print("Persisted search projection:",m.get("version"))
+          PY
+
+      - name: Build V20.5 master identity registry
+        shell: bash
+        env:
+          TP_QUERIES: ${{ inputs.queries }}
+        run: |
+          set -euo pipefail
+
+          cat > "$RUNNER_TEMP/v20-5-master-identity.mjs" <<'JS'
+          import fs from "node:fs";
+          import path from "node:path";
+          import crypto from "node:crypto";
+
+          const ROOT=process.cwd();
+          const OUT=path.join(process.env.RUNNER_TEMP||"/tmp","trendpilot-v20-5-identity-lab");
+          fs.mkdirSync(OUT,{recursive:true});
+
+          const norm=v=>String(v??"").normalize("NFKD").replace(/\p{M}+/gu,"").toLowerCase()
+            .replace(/[’‘`´]/g,"'").replace(/[_/\\|]+/g," ")
+            .replace(/[^\p{L}\p{N}.+\-'" ]+/gu," ").replace(/\s+/g," ").trim();
+          const compact=v=>norm(v).replace(/[^\p{L}\p{N}]+/gu,"");
+          const clean=v=>String(v??"").replace(/\s+/g," ").trim();
+          const uniq=a=>[...new Set((a||[]).filter(Boolean))];
+          const sha=v=>crypto.createHash("sha256").update(String(v)).digest("hex");
+          const code=(prefix,key,n=14)=>`${prefix}-${sha(key).slice(0,n).toUpperCase()}`;
+          const validUrl=v=>/^https?:\/\//i.test(clean(v));
+          const arr=v=>Array.isArray(v)?v:[];
+          const get=(o,p,d="")=>{
+            try{
+              let x=o;
+              for(const k of p.split(".")){ if(x==null)return d; x=x[k]; }
+              return x==null?d:x;
+            }catch{return d;}
+          };
+          const first=(...xs)=>xs.find(x=>clean(x))??"";
+          const number=v=>{
+            if(v&&typeof v==="object")v=v.amount??v.value??v.price??v.current??0;
+            const n=Number(String(v??"").replace(/[^0-9.+-]/g,""));
+            return Number.isFinite(n)&&n>0?n:null;
+          };
+
+          const BLOCKED=new Set(["temu","joom","filamentpro","filamentpro eu cps"]);
+
+          const registry=JSON.parse(fs.readFileSync(path.join(ROOT,"data/product-seller-registry-v17.json"),"utf8"));
+          const publicSellers=registry.sellers.filter(x=>x.public===true).map(x=>clean(x.name));
+          const publicSet=new Set(publicSellers);
+          if(publicSellers.length!==13)throw new Error(`Expected 13 public sellers, got ${publicSellers.length}`);
+          for(const s of publicSellers)if(BLOCKED.has(norm(s)))throw new Error(`Blocked public seller: ${s}`);
+
+          const catalogSet=JSON.parse(fs.readFileSync(path.join(ROOT,"data/catalog-v19/catalog-set-v1.json"),"utf8"));
+          const catalogSellerNames=(catalogSet.sellers||[]).map(x=>clean(x.name));
+          if(catalogSellerNames.length!==13)throw new Error("V19 catalog set is not 13 sellers.");
+
+          const v19Resolver=JSON.parse(fs.readFileSync(path.join(ROOT,"data/catalog-v19/global-resolver-v1.json"),"utf8"));
+          const searchRoot=path.join(ROOT,"data/search-v20");
+          const searchManifest=JSON.parse(fs.readFileSync(path.join(searchRoot,"manifest.json"),"utf8"));
+
+          // V20 persisted type/role projection: only a classification input.
+          const supportedTypes=Object.keys(searchManifest.typeCounts||{});
+          const typeMeta=new Map();
+          for(const type of supportedTypes){
+            const p=path.join(searchRoot,"types",`${type}.json`);
+            if(!fs.existsSync(p))continue;
+            const payload=JSON.parse(fs.readFileSync(p,"utf8"));
+            for(const r of arr(payload.main)){
+              if(!r?.key)continue;
+              typeMeta.set(r.key,{type,role:"main",shadow:r});
+            }
+            for(const r of arr(payload.related)){
+              if(!r?.key)continue;
+              const prev=typeMeta.get(r.key)||{};
+              if(!prev.role)typeMeta.set(r.key,{...prev,type,role:"related",shadow:r});
+            }
+          }
+
+          function canonicalRow(raw){
+            const seller=clean(first(get(raw,"seller.name"),raw.seller,get(raw,"merchant.name"),raw.merchant));
+            if(!seller||!publicSet.has(seller)||BLOCKED.has(norm(seller)))return null;
+            const productKey=clean(raw.productKey);
+            const name=clean(first(get(raw,"name.display"),raw.name,raw.title));
+            if(!productKey||!name)return null;
+
+            const ids0=raw.identifiers||{};
+            const identity=raw.identity||{};
+            const tm=typeMeta.get(productKey)||{};
+            const shadow=tm.shadow||{};
+            const brand=clean(first(raw.brand,get(raw,"manufacturer.name")));
+            const model=clean(first(ids0.model,ids0.explicitModel,get(raw,"model.name"),shadow.identifiers?.model));
+            const modelConfidence=clean(identity.modelConfidence||"none");
+
+            const image=clean(first(
+              get(raw,"media.primaryImage"),get(raw,"media.image"),get(raw,"image.url"),
+              raw.imageUrl,arr(get(raw,"media.images"))[0],arr(raw.images)[0]
+            ));
+            const url=clean(first(
+              get(raw,"links.affiliate"),get(raw,"links.affiliateUrl"),
+              get(raw,"links.destination"),get(raw,"links.destinationUrl"),
+              raw.affiliateUrl,raw.destinationUrl,raw.url
+            ));
+
+            const ids={
+              sellerProductId:clean(first(ids0.sellerProductId,shadow.identifiers?.sellerProductId)),
+              sku:clean(first(ids0.sku,shadow.identifiers?.sku)),
+              mpn:clean(first(ids0.mpn,shadow.identifiers?.mpn)),
+              model,
+              explicitModel:clean(first(modelConfidence==="explicit"?model:"",shadow.identifiers?.model)),
+              gtin:clean(first(ids0.gtin,shadow.identifiers?.gtin)),
+              ean:clean(first(ids0.ean,shadow.identifiers?.ean)),
+              upc:clean(first(ids0.upc,shadow.identifiers?.upc)),
+              isbn:clean(first(ids0.isbn,shadow.identifiers?.isbn))
+            };
+
+            return {
+              productKey,seller,name,brand,modelConfidence,ids,
+              type:clean(tm.type),role:clean(tm.role),
+              price:number(first(get(raw,"offer.price"),get(raw,"offer.currentPrice"),raw.price)),
+              currency:clean(first(get(raw,"offer.currency"),raw.currency,"USD"))||"USD",
+              image:validUrl(image)?image:"",
+              url:validUrl(url)?url:"",
+              quality:Number(get(raw,"quality.score",raw.quality)||shadow.quality||0)||0
+            };
+          }
+
+          const catalogFiles=[];
+          const catalogRoot=path.join(ROOT,"data/catalog-v19/sellers");
+          for(const ent of fs.readdirSync(catalogRoot,{withFileTypes:true})){
+            if(!ent.isDirectory())continue;
+            const p=path.join(catalogRoot,ent.name,"products.ndjson");
+            if(fs.existsSync(p))catalogFiles.push(p);
+          }
+
+          const rows=[];
+          const productKeys=new Set();
+          const duplicateProductKeys=[];
+          for(const p of catalogFiles){
+            for(const line of fs.readFileSync(p,"utf8").split(/\r?\n/)){
+              if(!line.trim())continue;
+              let raw; try{raw=JSON.parse(line)}catch{continue;}
+              const r=canonicalRow(raw); if(!r)continue;
+              if(productKeys.has(r.productKey)){duplicateProductKeys.push(r.productKey);continue;}
+              productKeys.add(r.productKey); rows.push(r);
+            }
+          }
+          if(rows.length<50000)throw new Error(`Canonical foundation unexpectedly small: ${rows.length}`);
+          if(duplicateProductKeys.length)throw new Error(`Duplicate product keys: ${duplicateProductKeys.length}`);
+
+          // ------------------------------------------------------------
+          // Product essence: classify the thing being sold, not a compatible target.
+          // ------------------------------------------------------------
+          // ------------------------------------------------------------
+          // V20.5.4 Product Truth Gate
+          // Determine WHAT is actually being sold before identity/model extraction.
+          // A compatibility target ("for iPhone 15") must never redefine the object.
+          // ------------------------------------------------------------
+          const relatedIntent=/\b(case|cases|cover|covers|protector|screen protector|charger|charging cable|cable|adapter|holder|stand|mount|tripod|selfie stick|charm|decoration|strap|band|replacement|repair|digitizer|lcd|keyboard cover|sleeve|dock|remote|connector|socket|battery replacement|housing|sticker|skin|armband|organizer|empty bottle|atomizer|sprayer|cooling pad|cooler|converter|webcam|tray|desk|table)\b/i;
+
+          const truthTypeRules=[
+            ["power_bank", /\b(power bank|powerbank|portable charger|portable battery pack)\b/i],
+            ["headphones", /\b(headphones?|headsets?|earbuds?|earphones?|tws)\b/i],
+            ["smartwatch", /\b(smartwatch|smart watch|apple watch|galaxy watch|fitness watch)\b/i],
+            ["perfume", /\b(perfume|parfum|fragrance|eau de parfum|eau de toilette|edt\b|edp\b)\b/i],
+            ["dog_food", /\b(dog food|puppy food|canine food|dog kibble|puppy kibble|dog treats|puppy treats)\b/i],
+            ["air_conditioner", /\b(air conditioner|air conditioning|split ac|portable ac|window ac|ac unit)\b/i],
+            ["3d_filament", /\b(3d filament|printer filament|pla filament|petg filament|abs filament|tpu filament|filament 1\.75)\b/i],
+            ["cookware", /\b(cookware|frying pan|saucepan|stockpot|casserole|skillet|wok|cooking pot)\b/i],
+            ["lighting", /\b(ceiling light|wall light|led strip|light bulb|lamp|lighting)\b/i],
+            ["tools", /\b(power tool|hand tool|drill|screwdriver|wrench|pliers|hammer|saw|cutter|multimeter|socket set|angle grinder)\b/i]
+          ];
+
+          function rawPhoneModelFromTitle(t){
+            let m;
+            m=t.match(/\b(iPhone\s*(?:5|6|7|8|X|XS|XR|11|12|13|14|15|16|17)(?:\s*(?:Pro Max|Pro|Plus|Mini|Max))?)\b/i);
+            if(m)return clean(m[1]);
+            m=t.match(/\b((?:Xiaomi\s+)?Redmi(?:\s+Note)?\s*[A-Z0-9]+(?:\s*(?:Pro\+?|Pro|Plus|Ultra|5G))?)\b/i);
+            if(m)return clean(m[1]);
+            m=t.match(/\b((?:Samsung\s+)?Galaxy\s*(?:S|A|M|Z|Note)\s*\d+(?:\s*(?:Ultra|Plus|\+|FE|5G))?)\b/i);
+            if(m)return clean(m[1]);
+            m=t.match(/\b((?:Google\s+)?Pixel\s*\d+(?:\s*(?:Pro|XL|a))?)\b/i);
+            if(m)return clean(m[1]);
+            m=t.match(/\b(OnePlus\s*\d+(?:\s*(?:Pro|R|T))?)\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b(POCO\s+[A-Z]\d+(?:\s*(?:Pro|GT))?)\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b(realme\s+[A-Z0-9]+\s*(?:Pro\+?|Pro|5G)?)\b/i); if(m)return clean(m[1]);
+            return "";
+          }
+
+          function rawLaptopModelFromTitle(t){
+            let m;
+            m=t.match(/\b(ThinkPad\s+(?:X1\s+(?:Carbon|Yoga)|T\d{2,3}[A-Z]?|X\d{2,3}[A-Z]?|L\d{2,3}[A-Z]?|E\d{2,3}[A-Z]?|P\d{2,3}[A-Z]?|Z\d{2,3}[A-Z]?))\b/i);
+            if(m)return clean(m[1]);
+            m=t.match(/\b(IdeaPad\s+[A-Z0-9][A-Z0-9\- ]{0,18})\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b(MacBook\s+(?:Air|Pro)(?:\s+\d{2})?)\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b(VivoBook\s+[A-Z0-9\-]+)\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b(ZenBook\s+[A-Z0-9\-]+)\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b(Latitude\s+\d{4})\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b(EliteBook\s+[A-Z0-9\- ]{2,16})\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b(ProBook\s+[A-Z0-9\- ]{2,16})\b/i); if(m)return clean(m[1]);
+            m=t.match(/\b([A-Z0-9\-]*Chromebook[A-Z0-9\- ]*)\b/i); if(m)return clean(m[1]).slice(0,48);
+            return "";
+          }
+
+          function productTruth(r){
+            const t=clean(r.name);
+
+            for(const [type,rx] of truthTypeRules){
+              if(rx.test(t)){
+                if(type==="perfume" && /\b(empty|atomizer|spray bottle|organizer|holder|clip|car air vent|refillable bottle)\b/i.test(t)){
+                  return {core:false,type:"related",reason:"perfume-container-or-accessory"};
+                }
+                return {core:true,type,reason:`explicit-${type}`};
+              }
+            }
+
+            if(/\b(cooling pad|laptop cooler|converter|webcam|sleeve|backpack|messenger|topload|dock|adapter|charger|stand|desk|table|tray)\b/i.test(t)){
+              if(/\b(laptop|notebook|chromebook|thinkpad|ideapad|macbook)\b/i.test(t)){
+                return {core:false,type:"related",reason:"laptop-accessory"};
+              }
+            }
+
+            if(/\b(case|cover|protector|charger|cable|adapter|holder|stand|mount|charm|strap|band|replacement|repair|battery|housing|screen|digitizer|gimbal|microphone|ssd|enclosure|dongle|armband|speaker|sticker|skin)\b/i.test(t)){
+              if(/\biphone|galaxy|redmi|pixel|smartphone|mobile phone|cell phone\b/i.test(t)){
+                return {core:false,type:"related",reason:"phone-accessory"};
+              }
+            }
+
+            const pm=rawPhoneModelFromTitle(t);
+            if(pm||/\b(smartphone|smart phone|mobile phone|cell phone|feature phone|android phone)\b/i.test(t)){
+              return {core:true,type:"phone",reason:pm?"phone-model":"phone-object"};
+            }
+
+            const lm=rawLaptopModelFromTitle(t);
+            if(lm||/\b(laptop|notebook|chromebook|ultrabook|2[- ]in[- ]1 laptop)\b/i.test(t)){
+              return {core:true,type:"laptop",reason:lm?"laptop-model":"laptop-object"};
+            }
+
+            const current=clean(r.type);
+            if(r.role==="main" && current && !["phone","laptop","perfume","power_bank","smartwatch","headphones"].includes(current)){
+              return {core:true,type:current,reason:"v20-main-fallback"};
+            }
+
+            return {core:false,type:current||"related",reason:"no-core-object-proof"};
+          }
+
+          function essenceMain(r){
+            return productTruth(r).core===true;
+          }
+
+          function deriveBrand(r,truthType=""){
+            const t=r.name;
+            const type=truthType||productTruth(r).type;
+            if(type==="phone"){
+              if(/\biphone\b/i.test(t))return "Apple";
+              if(/\bredmi\b|\bxiaomi\b|\bmi \d/i.test(t))return "Xiaomi";
+              if(/\bgalaxy\b/i.test(t))return "Samsung";
+              if(/\bpixel\s*\d/i.test(t))return "Google";
+              if(/\boneplus\b/i.test(t))return "OnePlus";
+              if(/\bpoco\b/i.test(t))return "POCO";
+              if(/\brealme\b/i.test(t))return "realme";
+            }
+            if(type==="laptop"){
+              if(/\bthinkpad\b|\bideapad\b|\blegion\b/i.test(t))return "Lenovo";
+              if(/\bmacbook\b/i.test(t))return "Apple";
+              if(/\bvivobook\b|\bzenbook\b/i.test(t))return "ASUS";
+              if(/\blatitude\b/i.test(t))return "Dell";
+              if(/\belitebook\b|\bprobook\b/i.test(t))return "HP";
+            }
+            return clean(r.brand);
+          }
+
+          function titleModel(r,truthType=""){
+            const type=truthType||productTruth(r).type;
+            if(type==="phone")return rawPhoneModelFromTitle(clean(r.name));
+            if(type==="laptop")return rawLaptopModelFromTitle(clean(r.name));
+            if(type==="smartwatch"){
+              let m;
+              m=r.name.match(/\b(Apple Watch\s+(?:Series\s*)?\d+(?:\s*Ultra\s*\d*)?)\b/i); if(m)return clean(m[1]);
+              m=r.name.match(/\b(Galaxy Watch\s*\d+(?:\s*(?:Pro|Classic|Ultra))?)\b/i); if(m)return clean(m[1]);
+            }
+            return "";
+          }
+
+          function canonicalModel(r,truthType=""){
+            const type=truthType||productTruth(r).type;
+            const raw=clean(titleModel(r,type));
+            if(!raw)return "";
+            let s=raw;
+
+            if(type==="phone"){
+              s=s.replace(/^iphone\s*/i,"iPhone ");
+              s=s.replace(/^iPhone\s+(X|XS|XR)\b/i,(_,x)=>`iPhone ${x.toUpperCase()}`);
+              s=s.replace(/^iPhone\s+(\d+)\s*(Pro Max|Pro|Plus|Mini|Max)?$/i,
+                (_,n,v)=>`iPhone ${n}${v?` ${clean(v)}`:""}`);
+              s=s.replace(/^xiaomi\s+/i,"Xiaomi ");
+              s=s.replace(/\bredmi\s+note\s*/i,"Redmi Note ");
+              s=s.replace(/\bredmi\s*/i,"Redmi ");
+              s=s.replace(/\bgalaxy\s+([samz])\s*(\d+)/i,(_,p,n)=>`Galaxy ${p.toUpperCase()}${n}`);
+              s=s.replace(/\bpixel\s*(\d+)/i,(_,n)=>`Pixel ${n}`);
+            }
+
+            if(type==="laptop"){
+              s=s.replace(/^thinkpad\s+/i,"ThinkPad ");
+              s=s.replace(/^ideapad\s+/i,"IdeaPad ");
+            }
+
+            return clean(s);
+          }
+
+          function usableExplicitModel(r,truthType=""){
+            const m=clean(r.ids.explicitModel);
+            if(!m||m.length<2||m.length>70)return "";
+            const type=truthType||productTruth(r).type;
+            if(type!=="phone" && rawPhoneModelFromTitle(m))return "";
+            if(type!=="laptop" && rawLaptopModelFromTitle(m))return "";
+            if(/\b(case|cover|charger|cable|adapter|battery|pen|cooler|organizer|atomizer|bottle)\b/i.test(m))return "";
+            return m;
+          }
+
+          function globalId(r){
+            for(const f of ["gtin","ean","upc","isbn"]){
+              const v=compact(r.ids[f]);
+              if(v.length>=6)return `${f}:${v}`;
+            }
+            return "";
+          }
+
+          function storageOf(t){
+            const hits=[...String(t).matchAll(/\b(32|64|128|256|512|1024|2048)\s*(GB|TB)\b/ig)];
+            if(!hits.length)return "";
+            const vals=hits.map(x=>{
+              let n=Number(x[1]),u=x[2].toUpperCase();
+              if(u==="TB")n*=1024;
+              return n;
+            });
+            return `${Math.max(...vals)}GB`;
+          }
+
+          function ramOf(t){
+            const m=String(t).match(/\b(2|3|4|6|8|12|16|18|24|32|64)\s*GB\s*(?:RAM|Memory)\b/i);
+            return m?`${m[1]}GB`:"";
+          }
+
+          // ------------------------------------------------------------
+          // Safe reuse of V19 identity hints.
+          // A historical V19 group is allowed to define a TPID only when ALL
+          // available members are clean MAIN products and all share one type.
+          // This prevents "case for iPhone 11" from inheriting the phone TPID.
+          // ------------------------------------------------------------
+          const rowByKey=new Map(rows.map(r=>[r.productKey,r]));
+          const rejectedV19StrongGroups=[];
+          const rejectedV19ModelGroups=[];
+
+          function pureIdentityMembers(productKeys){
+            const keys=uniq(productKeys||[]);
+            const members=keys.map(k=>rowByKey.get(k)).filter(Boolean);
+            if(members.length<1)return {ok:false,members,reason:"no-members"};
+            if(members.length!==keys.length)return {ok:false,members,reason:"missing-members"};
+            const truths=members.map(productTruth);
+            if(truths.some(x=>!x.core))return {ok:false,members,reason:"non-core-member"};
+            const types=uniq(truths.map(x=>x.type).filter(Boolean));
+            if(types.length!==1)return {ok:false,members,reason:"mixed-truth-types"};
+            return {ok:true,members,type:types[0],reason:"pure"};
+          }
+
+          const v19StrongByProduct=new Map();
+          for(const g of arr(v19Resolver.autoGroups)){
+            const p=pureIdentityMembers(g.productKeys);
+            if(!p.ok){
+              rejectedV19StrongGroups.push({
+                groupId:clean(g.groupId||""),
+                reason:clean(g.reason||""),
+                rejection:p.reason,
+                productKeys:arr(g.productKeys)
+              });
+              continue;
+            }
+            for(const r of p.members){
+              if(!v19StrongByProduct.has(r.productKey)){
+                v19StrongByProduct.set(r.productKey,{
+                  groupId:clean(g.groupId||""),
+                  reason:clean(g.reason||""),
+                  type:p.type
+                });
+              }
+            }
+          }
+
+          const v19ModelKeyByProduct=new Map();
+          for(const [k,keys] of Object.entries(v19Resolver.byBrandExplicitModel||{})){
+            const p=pureIdentityMembers(keys);
+            if(!p.ok){
+              rejectedV19ModelGroups.push({
+                key:k,rejection:p.reason,productKeys:arr(keys)
+              });
+              continue;
+            }
+            for(const r of p.members){
+              if(!v19ModelKeyByProduct.has(r.productKey))v19ModelKeyByProduct.set(r.productKey,k);
+            }
+          }
+
+          const typeCode={
+            phone:"PH",laptop:"LP",smartwatch:"SW",headphones:"HP",perfume:"PF",
+            dog_food:"DF",power_bank:"PB",air_conditioner:"AC","3d_filament":"3D",
+            cookware:"CW",lighting:"LG",tools:"TL"
+          };
+
+          function conditionOf(t){
+            const s=norm(t);
+            if(/\b(refurbished|renewed|reconditioned)\b/i.test(s))return "refurbished";
+            if(/\b(used|pre owned|pre-owned|second hand)\b/i.test(s))return "used";
+            if(/\b(open box|open-box)\b/i.test(s))return "open-box";
+            if(/\b(new|brand new|sealed)\b/i.test(s))return "new";
+            return "";
+          }
+
+          function identityFor(r){
+            const truth=productTruth(r);
+            const t=truth.type||r.type||"other";
+            const tc=typeCode[t]||"OT";
+            const tpoid=code("TPO",r.productKey,14);
+            const sellerId=compact(r.ids.sellerProductId||r.ids.sku||r.productKey);
+
+            if(!truth.core){
+              const familyKey=`related:${t}:${norm(r.seller)}:${sellerId}`;
+              const tpid=code("TPR",familyKey,14);
+              const tpvid=code("TPV",`${familyKey}|base`,14);
+              return {
+                tpoid,tpid,tpvid,familyKey,variantKey:`${familyKey}|base`,
+                confidence:"related",source:`truth:${truth.reason}`,
+                brand:clean(r.brand),model:"",storage:"",ram:"",
+                condition:conditionOf(r.name),type:t,role:r.role,
+                truthReason:truth.reason,core:false,comparable:false
+              };
+            }
+
+            const brand=deriveBrand(r,t);
+            const explicit=usableExplicitModel(r,t);
+            const derived=canonicalModel(r,t);
+            const strong=v19StrongByProduct.get(r.productKey);
+            const v19ModelKey=v19ModelKeyByProduct.get(r.productKey);
+            const gid=globalId(r);
+            const mpn=compact(r.ids.mpn);
+            const b=compact(brand);
+
+            let familyKey="",confidence="",source="",model="";
+
+            if(b&&derived){
+              familyKey=`canonical-model:${t}:${b}:${compact(derived)}`;
+              confidence="candidate";
+              source="truth-brand-canonical-model";
+              model=derived;
+            }else if(gid){
+              familyKey=`global:${t}:${gid}`;
+              confidence="verified";
+              source="global-id";
+              model=explicit||clean(r.ids.model);
+            }else if(b&&mpn){
+              familyKey=`brand-mpn:${t}:${b}:${mpn}`;
+              confidence="verified";
+              source="brand-mpn";
+              model=explicit||clean(r.ids.model);
+            }else if(strong?.groupId){
+              familyKey=`v19-strong:${strong.groupId}`;
+              confidence="verified";
+              source=`v19-pure:${strong.reason||"strong"}`;
+              model=explicit||clean(r.ids.model);
+            }else if(v19ModelKey){
+              familyKey=`v19-model:${t}:${v19ModelKey}`;
+              confidence="high";
+              source="v19-pure-brand-explicit-model";
+              model=explicit||clean(r.ids.model);
+            }else if(b&&explicit){
+              familyKey=`canonical-explicit:${t}:${b}:${compact(explicit)}`;
+              confidence="high";
+              source="canonical-explicit-model";
+              model=explicit;
+            }else{
+              familyKey=`seller-only:${t}:${norm(r.seller)}:${sellerId}`;
+              confidence="seller-only";
+              source="seller-listing-only";
+              model="";
+            }
+
+            const tpid=code(`TP${tc}`,familyKey,14);
+            const storage=storageOf(r.name);
+            const ram=ramOf(r.name);
+            const condition=conditionOf(r.name);
+            const variantBits=[
+              storage?`storage:${storage}`:"",
+              ram?`ram:${ram}`:"",
+              condition?`condition:${condition}`:""
+            ].filter(Boolean);
+            const variantKey=variantBits.length?`${familyKey}|${variantBits.join("|")}`:`${familyKey}|base`;
+            const tpvid=code("TPV",variantKey,14);
+
+            return {
+              tpoid,tpid,tpvid,familyKey,variantKey,confidence,source,
+              brand,model,storage,ram,condition,type:t,role:r.role,
+              truthReason:truth.reason,core:true,comparable:confidence!=="seller-only"
+            };
+          }
+
+          const offers=[];
+          for(const r of rows){
+            const id=identityFor(r);
+            offers.push({
+              ...id,
+              productKey:r.productKey,seller:r.seller,sellerProductId:r.ids.sellerProductId,
+              sku:r.ids.sku,mpn:r.ids.mpn,gtin:r.ids.gtin,ean:r.ids.ean,upc:r.ids.upc,
+              name:r.name,price:r.price,currency:r.currency,image:r.image,url:r.url,
+              quality:r.quality
+            });
+          }
+
+          // ------------------------------------------------------------
+          // Build master product families and variants.
+          // ------------------------------------------------------------
+          const familyMap=new Map();
+          const variantMap=new Map();
+
+          function addOfferToFamily(o){
+            if(!familyMap.has(o.tpid)){
+              familyMap.set(o.tpid,{
+                tpid:o.tpid,type:o.type,brand:o.brand,model:o.model,
+                confidence:o.confidence,identitySource:o.source,
+                offerIds:[],variantIds:new Set(),sellers:new Set(),
+                labels:new Map(),images:[],priceByCurrency:new Map(),
+                coreOffers:0,comparableOffers:0
+              });
+            }
+            const f=familyMap.get(o.tpid);
+            f.offerIds.push(o.tpoid);
+            f.variantIds.add(o.tpvid);
+            f.sellers.add(o.seller);
+            if(o.core)f.coreOffers++;
+            if(o.comparable)f.comparableOffers++;
+            const label=clean(o.model)||clean(o.name);
+            if(label)f.labels.set(label,(f.labels.get(label)||0)+1);
+            if(o.image)f.images.push(o.image);
+            if(o.price&&o.currency){
+              const prev=f.priceByCurrency.get(o.currency);
+              if(prev==null||o.price<prev)f.priceByCurrency.set(o.currency,o.price);
+            }
+          }
+
+          function addOfferToVariant(o){
+            if(!variantMap.has(o.tpvid)){
+              variantMap.set(o.tpvid,{
+                tpvid:o.tpvid,tpid:o.tpid,type:o.type,brand:o.brand,model:o.model,
+                storage:o.storage,ram:o.ram,condition:o.condition,confidence:o.confidence,
+                offerIds:[],sellers:new Set(),prices:new Map()
+              });
+            }
+            const v=variantMap.get(o.tpvid);
+            v.offerIds.push(o.tpoid);
+            v.sellers.add(o.seller);
+            if(o.price&&o.currency){
+              const prev=v.prices.get(o.currency);
+              if(prev==null||o.price<prev)v.prices.set(o.currency,o.price);
+            }
+          }
+
+          for(const o of offers){
+            addOfferToFamily(o);
+            addOfferToVariant(o);
+          }
+
+          const confidenceRank={verified:5,high:4,candidate:3,"seller-only":2,related:1};
+
+          const families=[...familyMap.values()].map(f=>{
+            const label=[...f.labels.entries()].sort((a,b)=>b[1]-a[1]||a[0].length-b[0].length)[0]?.[0]||f.tpid;
+            return {
+              tpid:f.tpid,type:f.type,brand:f.brand,model:f.model,label,
+              confidence:f.confidence,identitySource:f.identitySource,
+              sellerCount:f.sellers.size,sellers:[...f.sellers].sort(),
+              offerCount:f.offerIds.length,coreOffers:f.coreOffers,comparableOffers:f.comparableOffers,
+              variantCount:f.variantIds.size,variantIds:[...f.variantIds].sort(),
+              offerIds:f.offerIds,
+              image:f.images[0]||"",
+              minPriceByCurrency:Object.fromEntries([...f.priceByCurrency.entries()].sort())
+            };
+          });
+
+          const variants=[...variantMap.values()].map(v=>({
+            tpvid:v.tpvid,tpid:v.tpid,type:v.type,brand:v.brand,model:v.model,
+            storage:v.storage,ram:v.ram,condition:v.condition,confidence:v.confidence,
+            sellerCount:v.sellers.size,sellers:[...v.sellers].sort(),
+            offerCount:v.offerIds.length,offerIds:v.offerIds,
+            minPriceByCurrency:Object.fromEntries([...v.prices.entries()].sort())
+          }));
+
+          // A family with seller-only identity must never become a cross-seller comparison.
+          const comparableFamilies=families.filter(f=>f.sellerCount>=2&&!["seller-only","related"].includes(f.confidence)&&f.comparableOffers>=2&&f.comparableOffers===f.offerCount);
+          const comparableVariants=variants.filter(v=>v.sellerCount>=2&&!["seller-only","related"].includes(v.confidence));
+
+          comparableFamilies.sort((a,b)=>b.sellerCount-a.sellerCount||b.offerCount-a.offerCount||a.label.localeCompare(b.label));
+          comparableVariants.sort((a,b)=>b.sellerCount-a.sellerCount||b.offerCount-a.offerCount||a.model.localeCompare(b.model));
+
+          // ------------------------------------------------------------
+          // Search / autocomplete operates ONLY on the master product registry.
+          // It never searches raw offer titles to determine product identity.
+          // ------------------------------------------------------------
+          const typeAliases=new Map([
+            ["phone","phone"],["phones","phone"],["smartphone","phone"],["smartphones","phone"],
+            ["laptop","laptop"],["laptops","laptop"],["notebook","laptop"],
+            ["smartwatch","smartwatch"],["smart watch","smartwatch"],
+            ["headphones","headphones"],["headphone","headphones"],["earbuds","headphones"],
+            ["perfume","perfume"],["fragrance","perfume"],
+            ["dog food","dog_food"],["power bank","power_bank"],["air conditioner","air_conditioner"],
+            ["3d filament","3d_filament"],["cookware","cookware"],["lighting","lighting"],["tools","tools"]
+          ]);
+
+          const masterIndex=families
+            .filter(f=>f.confidence!=="related"&&f.coreOffers>0)
+            .map(f=>({
+              tpid:f.tpid,type:f.type,brand:f.brand,model:f.model,label:f.label,
+              confidence:f.confidence,sellerCount:f.sellerCount,sellers:f.sellers,
+              offerCount:f.offerCount,coreOffers:f.coreOffers,comparableOffers:f.comparableOffers,
+              variantCount:f.variantCount,image:f.image,
+              minPriceByCurrency:f.minPriceByCurrency
+            }));
+
+          function stripVariantQuery(q){
+            return clean(String(q)
+              .replace(/\b(?:32|64|128|256|512|1024|2048)\s*(?:GB|TB)\b/ig," ")
+              .replace(/\b(?:2|3|4|6|8|12|16|18|24|32|64)\s*GB\s*(?:RAM|Memory)\b/ig," ")
+              .replace(/\b(?:refurbished|renewed|reconditioned|used|pre[- ]?owned|second hand|open[- ]?box)\b/ig," "));
+          }
+
+          // ------------------------------------------------------------
+          // TPCID = TrendPilot Comparison Set ID.
+          // TPID answers "is it the same product?"
+          // TPCID answers "what useful alternatives can be compared across sellers?"
+          // Sets use the same product type + same currency + nearby price band.
+          // They never rewrite TPID or pretend alternatives are identical.
+          // ------------------------------------------------------------
+          const minimumCorePriceByType={
+            phone:20,
+            laptop:75,
+            smartwatch:10,
+            headphones:2,
+            perfume:2,
+            power_bank:3,
+            air_conditioner:50
+          };
+
+          function priceBand(price){
+            const p=Number(price);
+            if(!Number.isFinite(p)||p<=0)return "";
+            const bands=[
+              [0,25],[25,50],[50,100],[100,200],[200,400],
+              [400,800],[800,1600],[1600,3200],[3200,999999999]
+            ];
+            for(const [lo,hi] of bands)if(p>=lo&&p<hi)return `${lo}-${hi}`;
+            return "";
+          }
+
+          const comparisonBuckets=new Map();
+          for(const f of masterIndex){
+            if(!f.type||!f.coreOffers)continue;
+            for(const [currency,price] of Object.entries(f.minPriceByCurrency||{})){
+              const floor=minimumCorePriceByType[f.type]||0;
+              if(Number(price)<floor)continue;
+              const band=priceBand(price);
+              if(!band)continue;
+              const key=`${f.type}|${currency}|${band}`;
+              if(!comparisonBuckets.has(key))comparisonBuckets.set(key,[]);
+              comparisonBuckets.get(key).push({...f,currency,referencePrice:price,priceBand:band});
+            }
+          }
+
+          const comparisonSets=[];
+          for(const [key,items0] of comparisonBuckets){
+            const items=[...items0].sort((a,b)=>
+              b.sellerCount-a.sellerCount||
+              b.offerCount-a.offerCount||
+              a.referencePrice-b.referencePrice||
+              a.label.localeCompare(b.label)
+            );
+
+            const chosen=[];
+            const sellerCoverage=new Set();
+
+            // First pass: maximize seller diversity.
+            for(const item of items){
+              const adds=item.sellers.some(s=>!sellerCoverage.has(s));
+              if(!adds)continue;
+              chosen.push(item);
+              for(const s of item.sellers)sellerCoverage.add(s);
+              if(chosen.length>=8)break;
+            }
+
+            // Second pass: fill useful alternatives.
+            if(chosen.length<8){
+              for(const item of items){
+                if(chosen.some(x=>x.tpid===item.tpid))continue;
+                chosen.push(item);
+                for(const s of item.sellers)sellerCoverage.add(s);
+                if(chosen.length>=8)break;
+              }
+            }
+
+            if(chosen.length<2||sellerCoverage.size<2)continue;
+
+            const [type,currency,band]=key.split("|");
+            comparisonSets.push({
+              tpcid:code("TPC",key,14),
+              type,currency,priceBand:band,
+              sellerCount:sellerCoverage.size,
+              sellers:[...sellerCoverage].sort(),
+              productCount:chosen.length,
+              products:chosen.map(x=>({
+                tpid:x.tpid,label:x.label,brand:x.brand,model:x.model,
+                sellerCount:x.sellerCount,sellers:x.sellers,
+                offerCount:x.offerCount,referencePrice:x.referencePrice,
+                confidence:x.confidence
+              }))
+            });
+          }
+
+          comparisonSets.sort((a,b)=>
+            b.sellerCount-a.sellerCount||
+            b.productCount-a.productCount||
+            a.type.localeCompare(b.type)||
+            a.priceBand.localeCompare(b.priceBand)
+          );
+
+          const comparisonSetsByType=new Map();
+          for(const set of comparisonSets){
+            if(!comparisonSetsByType.has(set.type))comparisonSetsByType.set(set.type,[]);
+            comparisonSetsByType.get(set.type).push(set);
+          }
+
+          function familyScore(f,q){
+            const nq=norm(stripVariantQuery(q)||q);
+            const label=norm(f.label),brand=norm(f.brand),model=norm(f.model);
+            if(!nq)return -1;
+            let s=0;
+            if(label===nq||model===nq)s+=5000;
+            if(model.startsWith(nq))s+=3000;
+            else if(label.startsWith(nq))s+=2500;
+            else if(brand.startsWith(nq))s+=1200;
+            else if(nq.length>=2&&(model.includes(nq)||label.includes(nq)))s+=700;
+            else return -1;
+            s+=f.sellerCount*500;
+            s+=(confidenceRank[f.confidence]||0)*200;
+            return s;
+          }
+
+          function inferQueryType(q){
+            const s=norm(q);
+            const alias=typeAliases.get(s);
+            if(alias)return alias;
+
+            if(/\biphone\b/i.test(q))return "phone";
+            if(/\b(redmi|galaxy\s*(?:s|a|m|z|note)\s*\d+|pixel\s*\d+|oneplus\s*\d+|poco\s+[a-z]\d+|realme\s+[a-z0-9]+)\b/i.test(q))return "phone";
+            if(/\b(thinkpad|ideapad|macbook|vivobook|zenbook|latitude\s+\d+|elitebook|probook|chromebook|legion)\b/i.test(q))return "laptop";
+            if(/\b(apple watch|galaxy watch|smartwatch|smart watch)\b/i.test(q))return "smartwatch";
+            if(/\b(headphones?|headsets?|earbuds?|earphones?|tws)\b/i.test(q))return "headphones";
+            if(/\b(power bank|powerbank|portable charger)\b/i.test(q))return "power_bank";
+            if(/\b(perfume|parfum|fragrance|eau de parfum|eau de toilette)\b/i.test(q))return "perfume";
+            if(/\b(dog food|puppy food|kibble)\b/i.test(q))return "dog_food";
+            if(/\b(air conditioner|split ac|portable ac|window ac)\b/i.test(q))return "air_conditioner";
+            if(/\b(3d filament|pla filament|petg filament|abs filament|tpu filament)\b/i.test(q))return "3d_filament";
+            return "";
+          }
+
+          function searchMaster(q,limit=20,seller=""){
+            const nq=norm(q);
+            const exactBroadType=typeAliases.get(nq)||"";
+            const intentType=inferQueryType(q);
+            let pool=masterIndex;
+            if(intentType)pool=pool.filter(f=>f.type===intentType);
+            if(seller)pool=pool.filter(f=>f.sellers.includes(seller));
+
+            if(exactBroadType){
+              return [...pool]
+                .sort((a,b)=>b.sellerCount-a.sellerCount||b.offerCount-a.offerCount||a.label.localeCompare(b.label))
+                .slice(0,limit);
+            }
+
+            return pool.map(f=>({...f,_score:familyScore(f,q)}))
+              .filter(f=>f._score>=0)
+              .sort((a,b)=>b._score-a._score||b.sellerCount-a.sellerCount||a.label.localeCompare(b.label))
+              .slice(0,limit)
+              .map(({_score,...f})=>f);
+          }
+
+          const brandCoverage=new Map();
+          for(const f of masterIndex){
+            const b=clean(f.brand); if(!b)continue;
+            if(!brandCoverage.has(b))brandCoverage.set(b,new Set());
+            for(const s of f.sellers)brandCoverage.get(b).add(s);
+          }
+
+          function autocomplete(q,limit=12){
+            const nq=norm(q);
+            if(!nq)return [];
+            const rows=[];
+            const broadType=typeAliases.get(nq);
+            const intentType=inferQueryType(q);
+
+            if(broadType)rows.push({kind:"category",value:q,type:broadType,sellerCount:13});
+
+            for(const [brand,sellers] of brandCoverage){
+              const nb=norm(brand);
+              if(nb.startsWith(nq)||(nq.length>=2&&nb.includes(nq))){
+                rows.push({kind:"brand",value:brand,sellerCount:sellers.size});
+              }
+            }
+
+            for(const f of masterIndex){
+              if(intentType && f.type!==intentType)continue;
+              const model=clean(f.model);
+              const label=clean(f.label);
+              const source=model||label;
+              const n=norm(source);
+              if(!n)continue;
+              if(nq.length===1&&!model)continue;
+              const ok=n.startsWith(nq)||(nq.length>=2&&n.includes(nq));
+              if(!ok)continue;
+              rows.push({
+                kind:model?"product-model":"product-name",
+                value:source,tpid:f.tpid,type:f.type,brand:f.brand,
+                sellerCount:f.sellerCount,offerCount:f.offerCount,
+                confidence:f.confidence
+              });
+            }
+
+            const seen=new Set();
+            return rows
+              .sort((a,b)=>(b.sellerCount||0)-(a.sellerCount||0)||
+                (a.kind==="product-model"?-1:0)-(b.kind==="product-model"?-1:0)||
+                (a.value||"").length-(b.value||"").length)
+              .filter(x=>{
+                const k=`${x.kind}:${norm(x.value)}:${x.type||""}`;
+                if(seen.has(k))return false;
+                seen.add(k); return true;
+              })
+              .slice(0,limit);
+          }
+
+          const queries=(process.env.TP_QUERIES||"H,F,iph,iphone,iPhone 16,iPhone 16 128GB,phone,Galaxy S25,Redmi,ThinkPad,ThinkPad X1 Carbon,laptop,headphones,power bank,perfume")
+            .split(",").map(clean).filter(Boolean);
+
+          const queryProbes=queries.map(q=>{
+            const products=searchMaster(q,20);
+            const inferredType=inferQueryType(q)||products[0]?.type||"";
+            return {
+              query:q,
+              autocomplete:autocomplete(q,12),
+              products:products.map(f=>({
+                tpid:f.tpid,label:f.label,type:f.type,brand:f.brand,model:f.model,
+                confidence:f.confidence,sellerCount:f.sellerCount,sellers:f.sellers,
+                offerCount:f.offerCount,variantCount:f.variantCount
+              })),
+              comparisonSets:(comparisonSetsByType.get(inferredType)||[]).slice(0,3)
+                .map(s=>({tpcid:s.tpcid,type:s.type,currency:s.currency,priceBand:s.priceBand,
+                  sellerCount:s.sellerCount,sellers:s.sellers,productCount:s.productCount}))
+            };
+          });
+
+          // Seller-specific truth based on master identities, not raw keyword hits.
+          const sellerProbes=[
+            ["phone","TikTok Shop US"],["phone","Alibaba"],["phone","AliExpress"],["phone","Geekbuying"],
+            ["laptop","Lenovo"]
+          ].map(([q,seller])=>({
+            query:q,seller,
+            masterProducts:searchMaster(q,200,seller).length,
+            sample:searchMaster(q,8,seller).map(x=>({tpid:x.tpid,label:x.label,sellerCount:x.sellerCount}))
+          }));
+
+          // ------------------------------------------------------------
+          // Integrity gates.
+          // ------------------------------------------------------------
+          const failures=[];
+          const warnings=[];
+
+          const tpoids=new Set(),tpvids=new Set(),tpids=new Set();
+          for(const o of offers){
+            if(tpoids.has(o.tpoid))failures.push(`Duplicate TPOID ${o.tpoid}`);
+            tpoids.add(o.tpoid); tpvids.add(o.tpvid); tpids.add(o.tpid);
+            if(BLOCKED.has(norm(o.seller)))failures.push(`Blocked seller leaked: ${o.seller}`);
+            if(!o.tpid||!o.tpvid||!o.tpoid)failures.push(`Missing identity code for ${o.productKey}`);
+          }
+
+          const cleanCoreOfferCount=offers.filter(o=>o.core===true).length;
+          if(cleanCoreOfferCount===0)failures.push("Identity builder produced zero clean core offers.");
+          if(masterIndex.length===0)failures.push("Master search index is empty.");
+
+          // No TPID may merge conflicting known product types.
+          const typeByTpid=new Map();
+          for(const o of offers){
+            if(!o.type)continue;
+            if(!typeByTpid.has(o.tpid))typeByTpid.set(o.tpid,new Set());
+            typeByTpid.get(o.tpid).add(o.type);
+          }
+          for(const [tpid,types] of typeByTpid){
+            if(types.size>1)failures.push(`TPID type conflict ${tpid}: ${[...types].join(",")}`);
+          }
+
+          const crossTypeModelConflicts=offers.filter(o=>{
+            if(!o.core)return false;
+            const m=clean(o.model);
+            if(!m)return false;
+            if(rawPhoneModelFromTitle(m) && o.type!=="phone")return true;
+            if(rawLaptopModelFromTitle(m) && o.type!=="laptop")return true;
+            return false;
+          });
+          if(crossTypeModelConflicts.length){
+            failures.push(`Cross-type model conflicts: ${crossTypeModelConflicts.slice(0,12).map(o=>`${o.type}:${o.model}:${o.name}`).join(" | ")}`);
+          }
+
+          const contaminatedMasterFamilies=families.filter(f=>
+            !["seller-only","related"].includes(f.confidence) &&
+            f.comparableOffers>0 &&
+            f.comparableOffers!==f.offerCount
+          );
+          if(contaminatedMasterFamilies.length){
+            failures.push(`Master TPID contamination: ${contaminatedMasterFamilies.slice(0,12).map(f=>f.tpid).join(", ")}`);
+          }
+
+          const canonicalKeyToTpids=new Map();
+          for(const o of offers){
+            if(!o.core||!o.brand||!o.model)continue;
+            const key=`${o.type}|${compact(o.brand)}|${compact(o.model)}`;
+            if(!canonicalKeyToTpids.has(key))canonicalKeyToTpids.set(key,new Set());
+            canonicalKeyToTpids.get(key).add(o.tpid);
+          }
+          const canonicalModelDuplicates=[...canonicalKeyToTpids.entries()]
+            .filter(([,ids])=>ids.size>1)
+            .map(([key,ids])=>({key,tpids:[...ids]}));
+          if(canonicalModelDuplicates.length){
+            failures.push(`Canonical model maps to multiple TPIDs: ${canonicalModelDuplicates.slice(0,10).map(x=>x.key).join(" | ")}`);
+          }
+
+          // User-requested purity checks.
+          const iphone16=searchMaster("iPhone 16",50);
+          const thinkpad=searchMaster("ThinkPad",50);
+          const phone=searchMaster("phone",100);
+          const iphone16WrongType=iphone16.filter(f=>f.type!=="phone");
+          const thinkpadWrongType=thinkpad.filter(f=>f.type!=="laptop");
+          if(iphone16WrongType.length)failures.push(`iPhone 16 query returned non-phone TPIDs: ${iphone16WrongType.map(x=>`${x.type}:${x.label}`).join(" | ")}`);
+          if(thinkpadWrongType.length)failures.push(`ThinkPad query returned non-laptop TPIDs: ${thinkpadWrongType.map(x=>`${x.type}:${x.label}`).join(" | ")}`);
+
+          const offerById=new Map(offers.map(o=>[o.tpoid,o]));
+          function familyOffers(f){
+            const full=familyMap.get(f.tpid);
+            return (full?.offerIds||[]).map(id=>offerById.get(id)).filter(Boolean);
+          }
+
+          const iphoneBad=iphone16.flatMap(f=>familyOffers(f))
+            .filter(o=>!o.core||o.type!=="phone").slice(0,20);
+          const thinkpadBad=thinkpad.flatMap(f=>familyOffers(f))
+            .filter(o=>!o.core||o.type!=="laptop").slice(0,20);
+          const phoneBad=phone.flatMap(f=>familyOffers(f))
+            .filter(o=>!o.core||o.type!=="phone").slice(0,20);
+
+          if(iphoneBad.length)failures.push(`iPhone family accessory leak: ${iphoneBad.map(x=>x.name).join(" | ")}`);
+          if(thinkpadBad.length)failures.push(`ThinkPad family accessory leak: ${thinkpadBad.map(x=>x.name).join(" | ")}`);
+          if(phoneBad.length)failures.push(`Phone family accessory leak: ${phoneBad.map(x=>x.name).join(" | ")}`);
+
+          const iphAuto=autocomplete("iph",12);
+          const iphWrongType=iphAuto.filter(x=>x.kind==="product-model" && x.type!=="phone");
+          if(!iphAuto.some(x=>/iphone/i.test(x.value)))warnings.push("No iPhone model surfaced for iph in the current catalog.");
+          if(iphWrongType.length)failures.push(`iph autocomplete returned non-phone models: ${iphWrongType.map(x=>`${x.type}:${x.value}`).join(" | ")}`);
+          if(iphAuto.some(x=>/\b(case|cover|charger|battery|speaker|earphone|headphone|microphone|ssd|watch|armband)\b/i.test(x.value))){
+            failures.push("Accessory/non-product leaked into master autocomplete for iph.");
+          }
+
+          // Multi-seller counts are diagnostic, not a hard failure.
+          if(!comparableFamilies.length)warnings.push("No exact/same-product multi-seller TPID family found yet; do not force one.");
+          if(!comparableVariants.length)warnings.push("No exact same-variant multi-seller TPVID found yet; do not force one.");
+          if(!comparisonSets.length)warnings.push("No alternative multi-seller TPCID comparison set found yet.");
+
+          const confidenceCounts={verified:0,high:0,candidate:0,"seller-only":0,related:0};
+          for(const f of families)confidenceCounts[f.confidence]=(confidenceCounts[f.confidence]||0)+1;
+
+          const sellerCountDistribution={};
+          for(const f of families){
+            const k=String(f.sellerCount);
+            sellerCountDistribution[k]=(sellerCountDistribution[k]||0)+1;
+          }
+
+          const summary={
+            version:"20.5.5",readOnly:true,
+            foundation:{
+              publicSellers:publicSellers.length,
+              canonicalSellerFiles:catalogFiles.length,
+              canonicalOffers:rows.length,
+              v20ProjectionVersion:searchManifest.version,
+              blockedSellerLeaks:offers.filter(o=>BLOCKED.has(norm(o.seller))).length,
+              duplicateCanonicalProductKeys:duplicateProductKeys.length
+            },
+            identity:{
+              offerIds:tpoids.size,
+              masterProductIds:tpids.size,
+              masterVariantIds:tpvids.size,
+              cleanCoreOffers:cleanCoreOfferCount,
+              searchableMasterProducts:masterIndex.length,
+              comparableMainOffers:offers.filter(o=>o.comparable).length,
+              isolatedRelatedOffers:offers.filter(o=>o.confidence==="related").length,
+              rejectedUnsafeV19StrongGroups:rejectedV19StrongGroups.length,
+              rejectedUnsafeV19ModelGroups:rejectedV19ModelGroups.length,
+              contaminatedMasterFamilies:contaminatedMasterFamilies.length,
+              crossTypeModelConflicts:crossTypeModelConflicts.length,
+              canonicalModelDuplicateKeys:canonicalModelDuplicates.length,
+              truthCoreOffers:offers.filter(o=>o.core).length,
+              truthRelatedOffers:offers.filter(o=>!o.core).length,
+              confidenceCounts,
+              sellerCountDistribution
+            },
+            comparison:{
+              multiSellerProducts2Plus:comparableFamilies.length,
+              multiSellerVariants2Plus:comparableVariants.length,
+              products3PlusSellers:comparableFamilies.filter(f=>f.sellerCount>=3).length,
+              products4PlusSellers:comparableFamilies.filter(f=>f.sellerCount>=4).length,
+              alternativeComparisonSets:comparisonSets.length,
+              phoneComparisonSets:(comparisonSetsByType.get("phone")||[]).length,
+              laptopComparisonSets:(comparisonSetsByType.get("laptop")||[]).length,
+              headphonesComparisonSets:(comparisonSetsByType.get("headphones")||[]).length,
+              perfumeComparisonSets:(comparisonSetsByType.get("perfume")||[]).length
+            },
+            targetedPurity:{
+              iphone16MasterProducts:iphone16.length,
+              iphone16WrongTypeResults:iphone16WrongType.length,
+              iphone16AccessoryLeaks:iphoneBad.length,
+              thinkpadMasterProducts:thinkpad.length,
+              thinkpadWrongTypeResults:thinkpadWrongType.length,
+              thinkpadAccessoryLeaks:thinkpadBad.length,
+              broadPhoneMasterProducts:phone.length,
+              broadPhoneAccessoryLeaks:phoneBad.length,
+              iphAutocomplete:iphAuto,
+              iphWrongTypeSuggestions:iphWrongType.length
+            },
+            sellerProbes,
+            failures,warnings,
+            pass:failures.length===0
+          };
+
+          // ------------------------------------------------------------
+          // Write artifacts.
+          // ------------------------------------------------------------
+          const offerStream=fs.createWriteStream(path.join(OUT,"offer-identity-map.ndjson"));
+          for(const o of offers)offerStream.write(JSON.stringify(o)+"\n");
+          offerStream.end();
+
+          const productStream=fs.createWriteStream(path.join(OUT,"master-products.ndjson"));
+          for(const f of families.sort((a,b)=>a.tpid.localeCompare(b.tpid)))productStream.write(JSON.stringify(f)+"\n");
+          productStream.end();
+
+          const variantStream=fs.createWriteStream(path.join(OUT,"master-variants.ndjson"));
+          for(const v of variants.sort((a,b)=>a.tpvid.localeCompare(b.tpvid)))variantStream.write(JSON.stringify(v)+"\n");
+          variantStream.end();
+
+          fs.writeFileSync(path.join(OUT,"master-product-index.json"),JSON.stringify(masterIndex,null,2));
+          fs.writeFileSync(path.join(OUT,"multi-seller-products.json"),JSON.stringify(comparableFamilies.slice(0,1000),null,2));
+          fs.writeFileSync(path.join(OUT,"multi-seller-variants.json"),JSON.stringify(comparableVariants.slice(0,1000),null,2));
+          fs.writeFileSync(path.join(OUT,"comparison-sets.json"),JSON.stringify(comparisonSets,null,2));
+          fs.writeFileSync(path.join(OUT,"query-probes.json"),JSON.stringify(queryProbes,null,2));
+          fs.writeFileSync(path.join(OUT,"seller-probes.json"),JSON.stringify(sellerProbes,null,2));
+          fs.writeFileSync(path.join(OUT,"rejected-v19-identity-groups.json"),JSON.stringify({
+            strong:rejectedV19StrongGroups,
+            brandExplicitModel:rejectedV19ModelGroups
+          },null,2));
+          fs.writeFileSync(path.join(OUT,"product-truth-diagnostics.json"),JSON.stringify({
+            crossTypeModelConflicts,
+            canonicalModelDuplicates
+          },null,2));
+          fs.writeFileSync(path.join(OUT,"summary.json"),JSON.stringify(summary,null,2));
+
+          const groupLine=f=>`- **${f.label}** — \`${f.tpid}\` — ${f.sellerCount} sellers: ${f.sellers.join(", ")} — ${f.offerCount} offers`;
+
+          let report=`# TrendPilot V20.5.5 — Query Intent + Canonical Product Truth Lab
+
+          > **READ-ONLY LAB.** No V19 catalog, visitor UI, Netlify function, or production search file is modified.
+
+          ## Identity architecture
+          - **TPOID** = one seller listing / offer.
+          - **TPID** = TrendPilot master product/model identity.
+          - **TPVID** = a product variant identity such as storage/RAM when detected.
+          - Search/autocomplete reads the **TPID registry**, not raw product titles.
+
+          ## Foundation
+          - Public sellers: **${publicSellers.length}**
+          - Canonical seller files: **${catalogFiles.length}**
+          - Canonical offers scanned: **${rows.length.toLocaleString()}**
+          - V20 persisted projection: **${searchManifest.version}**
+
+          ## Registry size
+          - TPOIDs: **${tpoids.size.toLocaleString()}**
+          - TPIDs: **${tpids.size.toLocaleString()}**
+          - TPVIDs: **${tpvids.size.toLocaleString()}**
+          - Clean core offers: **${cleanCoreOfferCount.toLocaleString()}**
+          - Searchable master products: **${masterIndex.length.toLocaleString()}**
+          - Exact/same-model comparable offers: **${offers.filter(o=>o.comparable).length.toLocaleString()}**
+
+          ## Identity confidence
+          - Verified: **${confidenceCounts.verified||0}**
+          - High: **${confidenceCounts.high||0}**
+          - Candidate: **${confidenceCounts.candidate||0}**
+          - Seller-only: **${confidenceCounts["seller-only"]||0}**
+          - Related/non-core isolated: **${confidenceCounts.related||0}**
+
+          ## Product Truth + identity safety
+          - Truth-core offers: **${offers.filter(o=>o.core).length.toLocaleString()}**
+          - Truth-related/non-core offers: **${offers.filter(o=>!o.core).length.toLocaleString()}**
+          - Unsafe V19 strong groups rejected: **${rejectedV19StrongGroups.length}**
+          - Unsafe V19 explicit-model groups rejected: **${rejectedV19ModelGroups.length}**
+          - Master TPID contaminated families: **${contaminatedMasterFamilies.length}**
+          - Cross-type model conflicts: **${crossTypeModelConflicts.length}**
+          - Canonical model duplicate keys: **${canonicalModelDuplicates.length}**
+          - Related/accessory offers isolated before TPID grouping: **${offers.filter(o=>o.confidence==="related").length}**
+
+          ## Cross-seller comparison potential
+          - Multi-seller TPIDs (same product, 2+): **${comparableFamilies.length}**
+          - Multi-seller TPVIDs (same variant, 2+): **${comparableVariants.length}**
+          - TPIDs at 3+ sellers: **${comparableFamilies.filter(f=>f.sellerCount>=3).length}**
+          - TPIDs at 4+ sellers: **${comparableFamilies.filter(f=>f.sellerCount>=4).length}**
+          - TPCIDs — alternative comparison sets: **${comparisonSets.length}**
+          - Phone TPCIDs: **${(comparisonSetsByType.get("phone")||[]).length}**
+          - Laptop TPCIDs: **${(comparisonSetsByType.get("laptop")||[]).length}**
+          - Headphones TPCIDs: **${(comparisonSetsByType.get("headphones")||[]).length}**
+          - Perfume TPCIDs: **${(comparisonSetsByType.get("perfume")||[]).length}**
+
+          ### Top multi-seller master products
+          ${comparableFamilies.slice(0,20).map(groupLine).join("\n")||"- None yet"}
+
+          ### Top alternative comparison sets
+          ${comparisonSets.slice(0,12).map(s=>`- **${s.type} / ${s.currency} ${s.priceBand}** — \`${s.tpcid}\` — ${s.sellerCount} sellers — ${s.productCount} products`).join("\n")||"- None yet"}
+
+          ## Query intent + targeted purity
+          - iPhone 16 master products: **${iphone16.length}**
+          - iPhone 16 wrong-type results: **${iphone16WrongType.length}**
+          - iPhone 16 accessory leaks: **${iphoneBad.length}**
+          - ThinkPad master products: **${thinkpad.length}**
+          - ThinkPad wrong-type results: **${thinkpadWrongType.length}**
+          - ThinkPad accessory leaks: **${thinkpadBad.length}**
+          - Broad phone master products checked: **${phone.length}**
+          - Broad phone accessory leaks: **${phoneBad.length}**
+
+          ## Autocomplete probe: iph
+          ${iphAuto.map(x=>`- **${x.value}** — ${x.kind}${x.tpid?` — \`${x.tpid}\``:""} — ${x.sellerCount||0} sellers`).join("\n")||"- None"}
+
+          ## Seller truth probes
+          | Query | Seller | Master products |
+          |---|---|---:|
+          ${sellerProbes.map(x=>`| ${x.query} | ${x.seller} | ${x.masterProducts} |`).join("\n")}
+
+          ## Query → TPID probes
+          `;
+
+          for(const q of queryProbes){
+            report+=`\n### ${q.query}\n`;
+            if(!q.products.length){report+="- No master product found.\n";continue;}
+            for(const f of q.products.slice(0,8)){
+              report+=`- **${f.label}** — \`${f.tpid}\` — ${f.sellerCount} sellers — ${f.confidence}\n`;
+            }
+            if(q.comparisonSets?.length){
+              report+=`\nComparison sets:\n`;
+              for(const s of q.comparisonSets){
+                report+=`- \`${s.tpcid}\` — ${s.currency} ${s.priceBand} — ${s.sellerCount} sellers — ${s.productCount} products\n`;
+              }
+            }
+          }
+
+          report+=`\n## Gate
+          - Failures: **${failures.length}**
+          - Warnings: **${warnings.length}**
+          - Result: **${summary.pass?"PASS":"FAIL"}**
+          `;
+          for(const x of failures)report+=`- FAILURE: ${x}\n`;
+          for(const x of warnings)report+=`- WARNING: ${x}\n`;
+
+          if(summary.pass){
+            report+=`\n**V20.5.5 LAB PASS.** Review TPID grouping quality and multi-seller examples before any production integration.\n`;
+          }else{
+            report+=`\n**V20.5.5 LAB FAIL.** The site remains unchanged. Fix identity purity/integrity before integration.\n`;
+          }
+
+          fs.writeFileSync(path.join(OUT,"report.md"),report);
+
+          console.log(JSON.stringify(summary,null,2));
+          if(!summary.pass)process.exit(2);
+          JS
+
+          node --check "$RUNNER_TEMP/v20-5-master-identity.mjs"
+          node "$RUNNER_TEMP/v20-5-master-identity.mjs"
+
+      - name: Validate registry artifact contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP/trendpilot-v20-5-identity-lab"
+
+          for f in \
+            summary.json \
+            report.md \
+            offer-identity-map.ndjson \
+            master-products.ndjson \
+            master-variants.ndjson \
+            master-product-index.json \
+            multi-seller-products.json \
+            multi-seller-variants.json \
+            comparison-sets.json \
+            query-probes.json \
+            seller-probes.json \
+            rejected-v19-identity-groups.json \
+            product-truth-diagnostics.json
+          do
+            test -s "$OUT/$f"
+          done
+
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+
+          out=Path(os.environ["RUNNER_TEMP"])/"trendpilot-v20-5-identity-lab"
+          s=json.loads((out/"summary.json").read_text())
+
+          checks=[
+              ("version", s["version"]=="20.5.3"),
+              ("readOnly", s["readOnly"] is True),
+              ("publicSellers=13", s["foundation"]["publicSellers"]==13),
+              ("canonicalOffers>50000", s["foundation"]["canonicalOffers"]>50000),
+              ("blockedSellerLeaks=0", s["foundation"]["blockedSellerLeaks"]==0),
+              ("duplicateCanonicalProductKeys=0", s["foundation"]["duplicateCanonicalProductKeys"]==0),
+              ("TPOID count matches canonical offers", s["identity"]["offerIds"]==s["foundation"]["canonicalOffers"]),
+              ("masterProductIds>0", s["identity"]["masterProductIds"]>0),
+              ("masterVariantIds>0", s["identity"]["masterVariantIds"]>0),
+              ("cleanCoreOffers>0", s["identity"]["cleanCoreOffers"]>0),
+              ("searchableMasterProducts>0", s["identity"]["searchableMasterProducts"]>0),
+              ("contaminatedMasterFamilies=0", s["identity"]["contaminatedMasterFamilies"]==0),
+              ("crossTypeModelConflicts=0", s["identity"]["crossTypeModelConflicts"]==0),
+              ("canonicalModelDuplicateKeys=0", s["identity"]["canonicalModelDuplicateKeys"]==0),
+              ("iPhone16 wrong-type results=0", s["targetedPurity"]["iphone16WrongTypeResults"]==0),
+              ("iPhone16 accessory leaks=0", s["targetedPurity"]["iphone16AccessoryLeaks"]==0),
+              ("ThinkPad wrong-type results=0", s["targetedPurity"]["thinkpadWrongTypeResults"]==0),
+              ("ThinkPad accessory leaks=0", s["targetedPurity"]["thinkpadAccessoryLeaks"]==0),
+              ("broad phone accessory leaks=0", s["targetedPurity"]["broadPhoneAccessoryLeaks"]==0),
+              ("iph wrong-type suggestions=0", s["targetedPurity"]["iphWrongTypeSuggestions"]==0),
+              ("summary pass", s["pass"] is True),
+          ]
+          failed=[name for name,ok in checks if not ok]
+          if failed:
+              raise AssertionError("Contract check failed: " + " | ".join(failed))
+
+          print("V20.5.5 registry contract PASS")
+          print("TPIDs:",s["identity"]["masterProductIds"])
+          print("TPVIDs:",s["identity"]["masterVariantIds"])
+          print("Clean core offers:",s["identity"]["cleanCoreOffers"])
+          print("Searchable master products:",s["identity"]["searchableMasterProducts"])
+          print("Multi-seller TPIDs:",s["comparison"]["multiSellerProducts2Plus"])
+          print("TPCID sets:",s["comparison"]["alternativeComparisonSets"])
+          PY
+
+      - name: Publish V20.5 summary
+        if: always()
+        shell: bash
+        run: |
+          OUT="$RUNNER_TEMP/trendpilot-v20-5-identity-lab"
+          if [ -s "$OUT/report.md" ]; then
+            cat "$OUT/report.md" >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "# TrendPilot V20.5.5 — Query Intent + Canonical Product Truth Lab"
+              echo
+              echo "The registry builder stopped before producing a complete report."
+              echo
+              echo "**Safety:** production and V19 catalogs were not modified."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload V20.5 identity artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v20-5-5-query-intent-canonical-product-truth-lab
+          retention-days: 14
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/summary.json
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/report.md
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/offer-identity-map.ndjson
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/master-products.ndjson
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/master-variants.ndjson
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/master-product-index.json
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/multi-seller-products.json
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/multi-seller-variants.json
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/comparison-sets.json
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/query-probes.json
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/seller-probes.json
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/rejected-v19-identity-groups.json
+            ${{ runner.temp }}/trendpilot-v20-5-identity-lab/product-truth-diagnostics.json
