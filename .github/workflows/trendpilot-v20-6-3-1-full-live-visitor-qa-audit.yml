@@ -1,0 +1,530 @@
+name: TrendPilot V20.6.3.1 — Full Live Visitor QA Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-live-audit:
+    name: Audit repo + deployed V20.6.3 visitor engine
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Audit committed visitor package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          from collections import Counter, defaultdict
+
+          ROOT=Path("data/search-v20-6/visitor")
+          TYPES=ROOT/"types"
+          manifest=json.loads((ROOT/"manifest.json").read_text(encoding="utf-8"))
+          qa_path=ROOT/"qa-v20-6-3.json"
+          qa=json.loads(qa_path.read_text(encoding="utf-8")) if qa_path.exists() else {}
+
+          BLOCKED={"temu","joom","filamentpro eu cps"}
+
+          def norm(v):
+              return re.sub(r"\s+"," ",str(v or "").strip()).lower()
+
+          def load_type(t):
+              p=TYPES/f"{t}.json"
+              if not p.exists(): return []
+              return json.loads(p.read_text(encoding="utf-8")).get("products") or []
+
+          def all_offers(t, seller=""):
+              out=[]
+              for p in load_type(t):
+                  for o in p.get("offers") or []:
+                      if seller and norm(o.get("seller"))!=norm(seller):
+                          continue
+                      out.append((p,o))
+              return out
+
+          def identity(p):
+              return norm(p.get("identityText") or " ".join([
+                  str(p.get("label") or ""),
+                  str(p.get("model") or ""),
+                  str(p.get("brand") or ""),
+                  *map(str,p.get("aliases") or [])
+              ]))
+
+          def specific(t,q,seller=""):
+              qn=norm(q)
+              toks=[x for x in re.findall(r"[a-z0-9]+",qn) if len(x)>1]
+              out=[]
+              for p in load_type(t):
+                  txt=identity(p)
+                  label=norm(p.get("label"))
+                  model=norm(p.get("model"))
+                  hit=(qn==label or qn==model or qn in label or qn in model or (toks and all(x in txt for x in toks)))
+                  if not hit: continue
+                  for o in p.get("offers") or []:
+                      if seller and norm(o.get("seller"))!=norm(seller):
+                          continue
+                      out.append((p,o))
+              return out
+
+          # Global integrity
+          duplicate_tpids=[]
+          seen=set()
+          blocked=[]
+          lenovo_bad_prices=[]
+          zero_prices=Counter()
+          seller_counts=Counter()
+          type_counts={}
+          offer_counts={}
+
+          for file in sorted(TYPES.glob("*.json")):
+              payload=json.loads(file.read_text(encoding="utf-8"))
+              t=payload.get("type") or file.stem
+              rows=payload.get("products") or []
+              type_counts[t]=len(rows)
+              offer_counts[t]=sum(len(p.get("offers") or []) for p in rows)
+
+              for p in rows:
+                  tpid=p.get("tpid")
+                  if tpid:
+                      if tpid in seen: duplicate_tpids.append(tpid)
+                      seen.add(tpid)
+                  for o in p.get("offers") or []:
+                      s=norm(o.get("seller"))
+                      seller_counts[o.get("seller") or "(unknown)"]+=1
+                      if s in BLOCKED:
+                          blocked.append({"type":t,"seller":o.get("seller"),"name":o.get("name")})
+                      try:
+                          price=float(o.get("price") or 0)
+                      except Exception:
+                          price=0
+                      if price<=0:
+                          zero_prices[o.get("seller") or "(unknown)"]+=1
+                      if s=="lenovo" and t=="laptop" and 0 < price < 50:
+                          lenovo_bad_prices.append({"name":o.get("name"),"price":price})
+
+          # Regression phrases from the user's screenshots.
+          forbidden={
+            "phone":[
+              r"\bdata cable\b",r"\bretractable.*cable\b",r"\bammeter\b",
+              r"\bheating unit\b",r"\bwireless charging.*(?:holder|pad|stand)\b"
+            ],
+            "laptop":[
+              r"\bhumidifier\b",r"\bcriss cross.*chair\b",r"\bportable loudspeaker\b",
+              r"\bram memory\b",r"\bssd\b.*\bfor laptop\b"
+            ],
+            "perfume":[
+              r"\bperfume tray\b",r"\bvending machine\b",r"\bempty refillable perfume\b",
+              r"\bperfume organizer\b"
+            ],
+            "headphones":[
+              r"\baudio splitter\b",r"\bheadphone amplifier\b",r"\bheadphone stand\b"
+            ],
+            "air_conditioner":[
+              r"\bfluoride tube\b",r"\brefrigerant liquid tube\b",
+              r"\bair conditioning compressor\b",r"\brefrigerant leak detector\b",
+              r"\bfreon.*tester\b"
+            ]
+          }
+          phrase_leaks=[]
+          for t,patterns in forbidden.items():
+              for p,o in all_offers(t):
+                  tx=norm(o.get("name"))
+                  for pat in patterns:
+                      if re.search(pat,tx,re.I):
+                          phrase_leaks.append({"type":t,"seller":o.get("seller"),"name":o.get("name"),"pattern":pat})
+
+          # Query/seller coverage that mirrors the actual visitor use-cases.
+          tests = {
+              "phone_all_offers": len(all_offers("phone")),
+              "phone_tiktok_offers": len(all_offers("phone","TikTok Shop US")),
+              "phone_alibaba_offers": len(all_offers("phone","Alibaba")),
+              "phone_aliexpress_offers": len(all_offers("phone","AliExpress")),
+              "phone_geekbuying_offers": len(all_offers("phone","Geekbuying")),
+              "laptop_all_offers": len(all_offers("laptop")),
+              "laptop_lenovo_offers": len(all_offers("laptop","Lenovo")),
+              "thinkpad_all_offers": len(specific("laptop","ThinkPad")),
+              "thinkpad_lenovo_offers": len(specific("laptop","ThinkPad","Lenovo")),
+              "perfume_all_offers": len(all_offers("perfume")),
+              "perfume_fragranceshop_offers": len(all_offers("perfume","FragranceShop.com")),
+              "headphones_all_offers": len(all_offers("headphones")),
+              "headphones_tiktok_offers": len(all_offers("headphones","TikTok Shop US")),
+              "power_bank_all_offers": len(all_offers("power_bank")),
+              "smartwatch_all_offers": len(all_offers("smartwatch")),
+              "dog_food_all_offers": len(all_offers("dog_food")),
+              "air_conditioner_all_offers": len(all_offers("air_conditioner")),
+              "cookware_all_offers": len(all_offers("cookware")),
+              "lighting_all_offers": len(all_offers("lighting")),
+              "tools_all_offers": len(all_offers("tools")),
+              "3d_filament_all_offers": len(all_offers("3d_filament")),
+          }
+
+          failures=[]
+          if manifest.get("version")!="20.6.3":
+              failures.append(f"manifest version={manifest.get('version')}")
+          if manifest.get("fullVisitorTruthGate")!="PASS":
+              failures.append(f"fullVisitorTruthGate={manifest.get('fullVisitorTruthGate')}")
+          if manifest.get("globalVisitorTruthLeaks")!=0:
+              failures.append(f"globalVisitorTruthLeaks={manifest.get('globalVisitorTruthLeaks')}")
+          if manifest.get("blockedSellerLeaks")!=0:
+              failures.append(f"blockedSellerLeaks={manifest.get('blockedSellerLeaks')}")
+          if manifest.get("lenovoPlaceholderPrices")!=0:
+              failures.append(f"lenovoPlaceholderPrices={manifest.get('lenovoPlaceholderPrices')}")
+          if blocked: failures.append(f"blocked offers={len(blocked)}")
+          if duplicate_tpids: failures.append(f"duplicate TPIDs={len(duplicate_tpids)}")
+          if lenovo_bad_prices: failures.append(f"Lenovo placeholder prices={len(lenovo_bad_prices)}")
+          if phrase_leaks: failures.append(f"known screenshot semantic leaks={len(phrase_leaks)}")
+          if tests["phone_tiktok_offers"]<1: failures.append("TikTok phone coverage=0")
+          if tests["laptop_lenovo_offers"]<1: failures.append("Lenovo laptop coverage=0")
+          if tests["thinkpad_lenovo_offers"]<1: failures.append("Lenovo ThinkPad coverage=0")
+          if tests["perfume_fragranceshop_offers"]<1: failures.append("FragranceShop perfume coverage=0")
+
+          def sample(rows,n=8):
+              out=[]
+              for p,o in rows[:n]:
+                  out.append({
+                      "product":p.get("label") or p.get("model"),
+                      "seller":o.get("seller"),
+                      "offer":o.get("name"),
+                      "price":o.get("price"),
+                      "currency":o.get("currency")
+                  })
+              return out
+
+          report={
+              "scope":"repository-main",
+              "manifest":{
+                  "version":manifest.get("version"),
+                  "products":manifest.get("products"),
+                  "offers":manifest.get("offers"),
+                  "fullVisitorTruthGate":manifest.get("fullVisitorTruthGate"),
+                  "globalVisitorTruthLeaks":manifest.get("globalVisitorTruthLeaks"),
+                  "blockedSellerLeaks":manifest.get("blockedSellerLeaks"),
+                  "lenovoPlaceholderPrices":manifest.get("lenovoPlaceholderPrices"),
+                  "pricesSuppressed":manifest.get("pricesSuppressed"),
+              },
+              "typeCounts":type_counts,
+              "offerCounts":offer_counts,
+              "sellerCounts":dict(seller_counts),
+              "zeroPriceCounts":dict(zero_prices),
+              "tests":tests,
+              "samples":{
+                  "phone_tiktok":sample(all_offers("phone","TikTok Shop US")),
+                  "phone_alibaba":sample(all_offers("phone","Alibaba")),
+                  "phone_aliexpress":sample(all_offers("phone","AliExpress")),
+                  "phone_geekbuying":sample(all_offers("phone","Geekbuying")),
+                  "thinkpad_lenovo":sample(specific("laptop","ThinkPad","Lenovo")),
+                  "lenovo_laptop":sample(all_offers("laptop","Lenovo")),
+                  "perfume":sample(all_offers("perfume")),
+                  "headphones":sample(all_offers("headphones")),
+                  "air_conditioner":sample(all_offers("air_conditioner")),
+              },
+              "knownPhraseLeaks":phrase_leaks[:20],
+              "lenovoBadPrices":lenovo_bad_prices[:20],
+              "failures":failures,
+              "result":"PASS" if not failures else "FAIL"
+          }
+          Path("/tmp/repo-audit.json").write_text(json.dumps(report,ensure_ascii=False,indent=2),encoding="utf-8")
+          print(json.dumps(report,ensure_ascii=False,indent=2))
+          if failures:
+              raise SystemExit("Repository visitor QA failed: "+" | ".join(failures))
+          PY
+
+      - name: Wait for and fetch deployed V20.6.3 static package
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://trendpilotchoice.com"
+          mkdir -p /tmp/live/types
+
+          fetch() {
+            local url="$1"
+            local out="$2"
+            for i in 1 2 3 4 5 6; do
+              code="$(curl -L --connect-timeout 10 --max-time 30 -sS \
+                -H 'Cache-Control: no-cache' \
+                -o "$out" -w '%{http_code}' "${url}${url#*\?}" 2>/dev/null || true)"
+              # Above cache-buster fallback is intentionally replaced below.
+              if [ "$code" = "200" ] && [ -s "$out" ]; then
+                return 0
+              fi
+              sleep 10
+            done
+            return 1
+          }
+
+          # Explicit cache-busted URLs.
+          for i in 1 2 3 4 5 6; do
+            stamp="$(date +%s)-$i"
+            code="$(curl -L --connect-timeout 10 --max-time 30 -sS \
+              -H 'Cache-Control: no-cache' \
+              -o /tmp/live/manifest.json \
+              -w '%{http_code}' \
+              "$BASE/data/search-v20-6/visitor/manifest.json?qa=$stamp" || true)"
+            if [ "$code" = "200" ] && python3 - <<'PY'
+          import json
+          try:
+              m=json.load(open("/tmp/live/manifest.json"))
+              assert m.get("version")=="20.6.3"
+              assert m.get("fullVisitorTruthGate")=="PASS"
+          except Exception:
+              raise SystemExit(1)
+          PY
+            then
+              break
+            fi
+            if [ "$i" = "6" ]; then
+              echo "Live V20.6.3 manifest did not become available after retries."
+              exit 1
+            fi
+            sleep 10
+          done
+
+          curl -L --fail --retry 3 --retry-delay 5 -sS \
+            "$BASE/find/?engine=v206&q=phone&qa=$(date +%s)" \
+            -o /tmp/live/find.html
+
+          curl -L --fail --retry 3 --retry-delay 5 -sS \
+            "$BASE/js/site-v13-5.js?v=20.6.3&qa=$(date +%s)" \
+            -o /tmp/live/site.js
+
+          for t in phone laptop headphones smartwatch power_bank perfume tools lighting cookware dog_food air_conditioner 3d_filament; do
+            curl -L --fail --retry 3 --retry-delay 5 -sS \
+              "$BASE/data/search-v20-6/visitor/types/$t.json?qa=$(date +%s)" \
+              -o "/tmp/live/types/$t.json"
+          done
+
+      - name: Audit live deployed package and browser bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          from collections import Counter
+
+          ROOT=Path("/tmp/live")
+          TYPES=ROOT/"types"
+          manifest=json.loads((ROOT/"manifest.json").read_text(encoding="utf-8"))
+          html=(ROOT/"find.html").read_text(encoding="utf-8",errors="ignore")
+          js=(ROOT/"site.js").read_text(encoding="utf-8",errors="ignore")
+
+          BLOCKED={"temu","joom","filamentpro eu cps"}
+
+          def norm(v):
+              return re.sub(r"\s+"," ",str(v or "").strip()).lower()
+
+          def load_type(t):
+              return json.loads((TYPES/f"{t}.json").read_text(encoding="utf-8")).get("products") or []
+
+          def offers(t,seller=""):
+              out=[]
+              for p in load_type(t):
+                  for o in p.get("offers") or []:
+                      if seller and norm(o.get("seller"))!=norm(seller):
+                          continue
+                      out.append((p,o))
+              return out
+
+          def ident(p):
+              return norm(p.get("identityText") or " ".join([
+                  str(p.get("label") or ""),str(p.get("model") or ""),
+                  str(p.get("brand") or ""),*map(str,p.get("aliases") or [])
+              ]))
+
+          def specific(t,q,seller=""):
+              qn=norm(q)
+              toks=[x for x in re.findall(r"[a-z0-9]+",qn) if len(x)>1]
+              out=[]
+              for p in load_type(t):
+                  tx=ident(p)
+                  la=norm(p.get("label")); mo=norm(p.get("model"))
+                  if not (qn==la or qn==mo or qn in la or qn in mo or (toks and all(x in tx for x in toks))):
+                      continue
+                  for o in p.get("offers") or []:
+                      if seller and norm(o.get("seller"))!=norm(seller): continue
+                      out.append((p,o))
+              return out
+
+          failures=[]
+          if manifest.get("version")!="20.6.3": failures.append("live manifest version")
+          if manifest.get("fullVisitorTruthGate")!="PASS": failures.append("live full truth gate")
+          if manifest.get("globalVisitorTruthLeaks")!=0: failures.append("live global truth leaks")
+          if manifest.get("blockedSellerLeaks")!=0: failures.append("live blocked seller leaks")
+          if manifest.get("lenovoPlaceholderPrices")!=0: failures.append("live lenovo placeholder prices")
+
+          # Verify deployed browser code is the V20.6.3 bridge.
+          for token in [
+              "TP_V20_6_2_CONTROLLED_MASTER_START",
+              "tpMasterIsCategoryQueryV20_6_3",
+              "identityText",
+              "slice(0,100)"
+          ]:
+              if token not in js:
+                  failures.append("browser JS missing "+token)
+
+          # Finder must reference the controlled JS cache version.
+          if "/js/site-v13-5.js?v=20.6.3" not in html:
+              failures.append("Finder HTML is not on JS cache version 20.6.3")
+
+          blocked=[]
+          bad_lenovo=[]
+          for tfile in TYPES.glob("*.json"):
+              t=tfile.stem
+              for p in load_type(t):
+                  for o in p.get("offers") or []:
+                      if norm(o.get("seller")) in BLOCKED:
+                          blocked.append((t,o))
+                      try: price=float(o.get("price") or 0)
+                      except: price=0
+                      if t=="laptop" and norm(o.get("seller"))=="lenovo" and 0<price<50:
+                          bad_lenovo.append(o)
+          if blocked: failures.append(f"live blocked offers={len(blocked)}")
+          if bad_lenovo: failures.append(f"live Lenovo placeholder prices={len(bad_lenovo)}")
+
+          # Exact user regressions.
+          bad_patterns={
+              "phone":[r"\bdata cable\b",r"\bammeter\b",r"\bheating unit\b"],
+              "laptop":[r"\bhumidifier\b",r"\bcriss cross.*chair\b",r"\bportable loudspeaker\b"],
+              "perfume":[r"\bperfume tray\b",r"\bvending machine\b"],
+              "headphones":[r"\baudio splitter\b",r"\bheadphone amplifier\b"],
+              "air_conditioner":[r"\bfluoride tube\b",r"\bair conditioning compressor\b",r"\brefrigerant leak detector\b"],
+          }
+          semantic=[]
+          for t,pats in bad_patterns.items():
+              for p,o in offers(t):
+                  tx=norm(o.get("name"))
+                  for pat in pats:
+                      if re.search(pat,tx,re.I):
+                          semantic.append({"type":t,"seller":o.get("seller"),"name":o.get("name")})
+          if semantic:
+              failures.append(f"live screenshot semantic leaks={len(semantic)}")
+
+          tests={
+              "phone_tiktok_products":len({p.get("tpid") for p,o in offers("phone","TikTok Shop US")}),
+              "phone_tiktok_offers":len(offers("phone","TikTok Shop US")),
+              "phone_alibaba_products":len({p.get("tpid") for p,o in offers("phone","Alibaba")}),
+              "phone_aliexpress_products":len({p.get("tpid") for p,o in offers("phone","AliExpress")}),
+              "phone_geekbuying_products":len({p.get("tpid") for p,o in offers("phone","Geekbuying")}),
+              "lenovo_laptop_products":len({p.get("tpid") for p,o in offers("laptop","Lenovo")}),
+              "lenovo_thinkpad_products":len({p.get("tpid") for p,o in specific("laptop","ThinkPad","Lenovo")}),
+              "fragranceshop_perfume_products":len({p.get("tpid") for p,o in offers("perfume","FragranceShop.com")}),
+              "tiktok_headphones_products":len({p.get("tpid") for p,o in offers("headphones","TikTok Shop US")}),
+              "air_conditioner_products":len({p.get("tpid") for p,o in offers("air_conditioner")}),
+          }
+
+          if tests["phone_tiktok_products"]<1: failures.append("LIVE TikTok phone products=0")
+          if tests["lenovo_laptop_products"]<1: failures.append("LIVE Lenovo laptop products=0")
+          if tests["lenovo_thinkpad_products"]<1: failures.append("LIVE Lenovo ThinkPad products=0")
+
+          def sample(rows,n=6):
+              return [{
+                  "product":p.get("label") or p.get("model"),
+                  "seller":o.get("seller"),
+                  "offer":o.get("name"),
+                  "price":o.get("price"),
+                  "currency":o.get("currency")
+              } for p,o in rows[:n]]
+
+          result={
+              "scope":"live-deployment",
+              "manifest":{
+                  "version":manifest.get("version"),
+                  "products":manifest.get("products"),
+                  "offers":manifest.get("offers"),
+                  "pricesSuppressed":manifest.get("pricesSuppressed"),
+                  "blockedSellerLeaks":manifest.get("blockedSellerLeaks"),
+                  "lenovoPlaceholderPrices":manifest.get("lenovoPlaceholderPrices"),
+              },
+              "tests":tests,
+              "samples":{
+                  "TikTok phone":sample(offers("phone","TikTok Shop US")),
+                  "Lenovo laptop":sample(offers("laptop","Lenovo")),
+                  "Lenovo ThinkPad":sample(specific("laptop","ThinkPad","Lenovo")),
+                  "Perfume":sample(offers("perfume")),
+                  "Headphones":sample(offers("headphones")),
+                  "Air conditioner":sample(offers("air_conditioner")),
+              },
+              "semanticLeaks":semantic[:20],
+              "failures":failures,
+              "result":"PASS" if not failures else "FAIL"
+          }
+          Path("/tmp/live-audit.json").write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8")
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          if failures:
+              raise SystemExit("Live visitor QA failed: "+" | ".join(failures))
+          PY
+
+      - name: Publish full QA summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# TrendPilot V20.6.3.1 — Full Live Visitor QA Audit"
+            echo
+            echo "**READ-ONLY. No files, catalogs, UI, or production settings are changed.**"
+            echo
+            if [ -s /tmp/repo-audit.json ]; then
+              echo "## Repository package"
+              echo "- Result: **$(jq -r '.result' /tmp/repo-audit.json)**"
+              echo "- Version: **$(jq -r '.manifest.version' /tmp/repo-audit.json)**"
+              echo "- Products: **$(jq -r '.manifest.products' /tmp/repo-audit.json)**"
+              echo "- Offers: **$(jq -r '.manifest.offers' /tmp/repo-audit.json)**"
+              echo "- Full visitor truth gate: **$(jq -r '.manifest.fullVisitorTruthGate' /tmp/repo-audit.json)**"
+              echo "- Global visitor truth leaks: **$(jq -r '.manifest.globalVisitorTruthLeaks' /tmp/repo-audit.json)**"
+              echo "- Blocked seller leaks: **$(jq -r '.manifest.blockedSellerLeaks' /tmp/repo-audit.json)**"
+              echo "- Lenovo placeholder prices remaining: **$(jq -r '.manifest.lenovoPlaceholderPrices' /tmp/repo-audit.json)**"
+              echo "- Suppressed unreliable prices: **$(jq -r '.manifest.pricesSuppressed' /tmp/repo-audit.json)**"
+              echo
+              echo "### Repository query/seller coverage"
+              jq -r '.tests | to_entries[] | "- **\(.key)**: \(.value)"' /tmp/repo-audit.json
+              echo
+            fi
+
+            if [ -s /tmp/live-audit.json ]; then
+              echo "## Live deployed site"
+              echo "- Result: **$(jq -r '.result' /tmp/live-audit.json)**"
+              echo "- Version: **$(jq -r '.manifest.version' /tmp/live-audit.json)**"
+              echo "- Products: **$(jq -r '.manifest.products' /tmp/live-audit.json)**"
+              echo "- Offers: **$(jq -r '.manifest.offers' /tmp/live-audit.json)**"
+              echo "- Blocked seller leaks: **$(jq -r '.manifest.blockedSellerLeaks' /tmp/live-audit.json)**"
+              echo "- Lenovo placeholder prices remaining: **$(jq -r '.manifest.lenovoPlaceholderPrices' /tmp/live-audit.json)**"
+              echo
+              echo "### Live critical coverage"
+              jq -r '.tests | to_entries[] | "- **\(.key)**: \(.value)"' /tmp/live-audit.json
+              echo
+              echo "### TikTok phone samples"
+              jq -r '.samples["TikTok phone"][]? | "- **\(.seller)** — \(.product) — price=\(.price) \(.currency) — \(.offer)"' /tmp/live-audit.json
+              echo
+              echo "### Lenovo laptop samples"
+              jq -r '.samples["Lenovo laptop"][]? | "- **\(.seller)** — \(.product) — price=\(.price) \(.currency) — \(.offer)"' /tmp/live-audit.json
+              echo
+              echo "### Lenovo ThinkPad samples"
+              jq -r '.samples["Lenovo ThinkPad"][]? | "- **\(.seller)** — \(.product) — price=\(.price) \(.currency) — \(.offer)"' /tmp/live-audit.json
+              echo
+              echo "### Semantic regression samples"
+              echo "- Remaining known screenshot leaks: **$(jq '.semanticLeaks | length' /tmp/live-audit.json)**"
+              jq -r '.semanticLeaks[]? | "- \(.type) — \(.seller) — \(.name)"' /tmp/live-audit.json
+              echo
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v20-6-3-1-full-live-qa
+          path: |
+            /tmp/repo-audit.json
+            /tmp/live-audit.json
+          if-no-files-found: warn
