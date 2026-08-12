@@ -768,8 +768,8 @@ function tpComparisonScoreV20_6_4(product,query){
 }
 
 async function tpLoadComparisonTypeV20_6_4(type){
-  const r=await fetch(`/data/search-v20-6/comparison-v20-6-4/types/${encodeURIComponent(type)}.json?v=20.6.5`,{cache:'force-cache',headers:{accept:'application/json'}});
-  if(!r.ok)throw new Error(`V20.6.5 comparison type ${type}: ${r.status}`);
+  const r=await fetch(`/data/search-v20-6/comparison-v20-6-4/types/${encodeURIComponent(type)}.json?v=20.6.6`,{cache:'force-cache',headers:{accept:'application/json'}});
+  if(!r.ok)throw new Error(`V20.6.6 comparison type ${type}: ${r.status}`);
   return r.json();
 }
 
@@ -803,26 +803,32 @@ function tpComparisonMasterProductV20_6_4(product,intent,seller=''){
     price:Number(best.price||0),currency:best.currency||'USD',quality:95,
     storeCount:new Set(offers.map(o=>o.seller)).size,offerCount:offers.length,variantCount:product.variantCount||1,
     description:`TrendPilot TPID ${product.tpid}. Exact seller comparison uses TPVID ${variant?.tpvid||'base'}.`,
-    offers:offers.map(o=>({advertiser:o.seller,url:o.url,price:Number(o.price||0),currency:o.currency||'USD',condition:o.condition||'',tpoid:o.tpoid,tpvid:o.tpvid})),
+    offers:offers.filter(o=>validUrl(o.url)).map(o=>({advertiser:o.seller,url:o.url,image:o.image||'',price:Number(o.price||0),currency:o.currency||'USD',condition:o.condition||'',tpoid:o.tpoid,tpvid:o.tpvid})),
     _tpComparisonV20_6_4:true
   });
 }
 
 function tpComparisonChoiceCardV20_6_4(product){
   const variant=tpComparisonVariantV20_6_4(product,{storage:'',ram:''});
-  const offers=variant?.offers||[];
+  const offers=(variant?.offers||[]).filter(o=>validUrl(o.url));
   const priced=offers.filter(o=>Number(o.price)>0).sort((a,b)=>Number(a.price)-Number(b.price));
   const min=priced[0];
   const image=product.image||offers.find(o=>o.image)?.image||'';
-  const [group,family]=tpComparisonTaxonomyV20_6_4(product.type);
+  const sellerCount=new Set(offers.map(o=>o.seller).filter(Boolean)).size;
+  const direct=offers[0]||null;
+  const action=sellerCount>=2
+    ? `<button class="tp-btn tp-btn-primary" type="button" data-tp-compare-master-v2064="${esc(product.tpid)}" data-tp-compare-label-v2064="${esc(product.label||product.model)}">Compare sellers</button>`
+    : (direct&&validUrl(direct.url)
+        ? `<a class="tp-btn tp-btn-primary" href="${esc(direct.url)}" target="_blank" rel="nofollow sponsored noopener" data-tp-outbound data-product-id="${esc(product.tpid)}" data-merchant="${esc(direct.seller)}">View offer ↗</a>`
+        : '');
   return `<article class="tp-product-card" data-product-id="${esc(product.tpid)}">
     <div class="tp-product-media">${validUrl(image)?`<img src="${esc(image)}" alt="${esc(product.label||product.model)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-tp-image>`:'<span class="tp-product-fallback"><b>TP</b><span>Image unavailable</span></span>'}</div>
     <div class="tp-product-content">
       <div class="tp-card-top"><span>${esc(product.brand||'TrendPilot')}</span><b>${esc(familyLabelValue(family)||GROUP_LABELS[group]||product.type)}</b></div>
       <h3>${esc(product.label||product.model)}</h3>
       <div class="tp-price-row"><strong>${min?`From ${money(min.price,min.currency||'USD')}`:'Price not supplied'}</strong></div>
-      <div class="tp-card-evidence"><span>${variant?.sellerCount||product.sellerCount||0} seller${Number(variant?.sellerCount||product.sellerCount||0)===1?'':'s'}</span><span>${product.variantCount||0} variant${Number(product.variantCount||0)===1?'':'s'}</span></div>
-      <div class="tp-card-actions"><button class="tp-btn tp-btn-primary" type="button" data-tp-compare-master-v2064="${esc(product.tpid)}" data-tp-compare-label-v2064="${esc(product.label||product.model)}">Compare sellers</button></div>
+      <div class="tp-card-evidence"><span>${sellerCount} seller${sellerCount===1?'':'s'}</span><span>${product.variantCount||0} variant${Number(product.variantCount||0)===1?'':'s'}</span></div>
+      <div class="tp-card-actions">${action}</div>
     </div></article>`;
 }
 
@@ -866,7 +872,7 @@ const tpLegacySellerSpecificV20_6_4=tpLoadSellerSpecificV15_1;
 const tpLegacyEnsureV20_6_4=ensureMinimumExact;
 
 tpLoadHybridProductsV16_2_1=async function(query,seller=''){
-  if(tpUseComparisonEngineV20_6_4())return {rows:[],meta:{engine:'v20.6.5-comparison',mode:tpComparisonStateV20_6_4.mode}};
+  if(tpUseComparisonEngineV20_6_4())return {rows:[],meta:{engine:'v20.6.6-comparison',mode:tpComparisonStateV20_6_4.mode}};
   return tpLegacyHybridV20_6_4(query,seller);
 };
 loadInitialSegments=async function(){return tpUseComparisonEngineV20_6_4()?[]:tpLegacyInitialV20_6_4();};
@@ -903,7 +909,7 @@ performSearch=async function(query,push=true,scope=''){
       ? [tpComparisonMasterProductV20_6_4(resolved.exact,resolved.variantIntent,state.selectedSeller)].filter(Boolean)
       : resolved.products.slice(0,100).map(p=>tpComparisonMasterProductV20_6_4(p,{storage:'',ram:''},state.selectedSeller)).filter(Boolean);
     state.products=normalizedRows;state.exact=normalizedRows;state.alternatives=resolved.alternatives.map(p=>tpComparisonMasterProductV20_6_4(p,{storage:'',ram:''},state.selectedSeller)).filter(Boolean);
-    state.hybridMeta={engine:'v20.6.5-comparison',mode:resolved.mode,type};
+    state.hybridMeta={engine:'v20.6.6-comparison',mode:resolved.mode,type};
     try{const m=await loadManifest();state.plan=makePlan(state.query,m,state.scope);}catch{state.plan={q:state.query,groups:[],family:'',families:[],audience:'',segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};}
     populateFilters();renderFinder();
     if(push){
@@ -913,7 +919,7 @@ performSearch=async function(query,push=true,scope=''){
       history.replaceState(null,'',`/find/?${params.toString()}`);
     }
   }catch(error){
-    console.error('TrendPilot V20.6.5 comparison failed safely',error);
+    console.error('TrendPilot V20.6.6 comparison failed safely',error);
     tpComparisonStateV20_6_4={mode:'error',query:state.query,type:'',products:[],exact:null,alternatives:[],variantIntent:{storage:'',ram:''},forcedTpid:''};
     renderFinder();
   }finally{state.loading=false;}
@@ -938,7 +944,10 @@ renderTabs=function(){
   const host=$('[data-tp-result-tabs]');if(!host)return;
   if(tpComparisonStateV20_6_4.mode!=='exact'){host.innerHTML='';return;}
   const alt=tpComparisonStateV20_6_4.alternatives.length;
-  host.innerHTML=`<button class="${state.activeTab==='exact'?'is-active':''}" data-result-tab="exact" type="button">Seller comparison <span>${tpComparisonStateV20_6_4.exact?.sellerCount||0}</span></button>`+
+  const currentOffers=tpComparisonOffersV20_6_4(tpComparisonStateV20_6_4.exact,tpComparisonStateV20_6_4.variantIntent,state.selectedSeller).offers.filter(o=>validUrl(o.url));
+  const sellerCount=new Set(currentOffers.map(o=>o.seller).filter(Boolean)).size;
+  const exactLabel=sellerCount>=2?'Seller comparison':'Seller offer';
+  host.innerHTML=`<button class="${state.activeTab==='exact'?'is-active':''}" data-result-tab="exact" type="button">${exactLabel} <span>${sellerCount}</span></button>`+
     (alt?`<button class="${state.activeTab==='related'?'is-active':''}" data-result-tab="related" type="button">Related alternatives <span>${alt}</span></button>`:'');
 };
 
@@ -977,9 +986,11 @@ renderFinder=function(){
     }else{
       const master=tpComparisonMasterProductV20_6_4(cs.exact,cs.variantIntent,selected);
       const variantText=[variant?.storage,variant?.ram,variant?.generation].filter(Boolean).join(' · ');
-      grid.innerHTML=`<section class="tp-detail-section"><div class="tp-detail-section-head"><span>TPID ${esc(cs.exact.tpid)}${variant?.tpvid?` · TPVID ${esc(variant.tpvid)}`:''}</span><h2>Compare seller offers for ${esc(cs.exact.label||cs.exact.model)}</h2><p>${variantText?`Exact variant: ${esc(variantText)}. `:''}Seller listings remain separate TPOIDs; TrendPilot does not merge different products.</p></div>${offersTable(master)}</section>`;
+      const sellerCount=new Set(offers.filter(o=>validUrl(o.url)).map(o=>o.seller).filter(Boolean)).size;
+      const heading=sellerCount>=2?'Compare seller offers for':'Available seller offer for';
+      grid.innerHTML=`<section class="tp-detail-section"><div class="tp-detail-section-head"><span>TPID ${esc(cs.exact.tpid)}${variant?.tpvid?` · TPVID ${esc(variant.tpvid)}`:''}</span><h2>${heading} ${esc(cs.exact.label||cs.exact.model)}</h2><p>${variantText?`Exact variant: ${esc(variantText)}. `:''}${sellerCount>=2?'Seller listings remain separate TPOIDs; TrendPilot does not merge different products.':'Only one actionable seller currently supplies this exact TPID/TPVID.'}</p></div>${offersTable(master)}</section>`;
     }
-    if(title)title.textContent=`Seller comparison for “${cs.exact.label||cs.exact.model}”`;
+    if(title)title.textContent=`${new Set(offers.filter(o=>validUrl(o.url)).map(o=>o.seller).filter(Boolean)).size>=2?'Seller comparison':'Seller offer'} for “${cs.exact.label||cs.exact.model}”`;
     if(count)count.textContent=`${offers.length} seller offer${offers.length===1?'':'s'}`;
     if(status)status.textContent=`Search resolved to TPID ${cs.exact.tpid}. ${variant?.tpvid?`Comparison uses TPVID ${variant.tpvid}.`:'No exact variant was requested.'}`;
     if(more)more.hidden=true;bindImages(grid);renderTabs();return;
@@ -1009,6 +1020,9 @@ d.addEventListener('click',e=>{
   performSearch(b.dataset.tpCompareLabelV2064||state.query,true,state.scope);
 });
 // TP_V20_6_4_COMPARISON_END
+
+
+
 
 
 

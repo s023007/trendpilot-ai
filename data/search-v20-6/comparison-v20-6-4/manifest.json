@@ -1,5 +1,5 @@
 {
-  "version": "20.6.5",
+  "version": "20.6.6",
   "mode": "identity-first-comparison",
   "defaultEnabled": false,
   "activation": "?engine=v2064",
@@ -47,5 +47,12 @@
     "Sunsky-online WW": 4
   },
   "flattenedSellerSearchRows": 0,
-  "comparisonContract": "Search -> TPID -> TPVID -> seller offers; TPCID only for alternatives"
+  "suppressedNoActiveLinkOffers": 0,
+  "suppressedNoActionableProducts": 0,
+  "productsWithImage": 0,
+  "productsWithoutImage": 12824,
+  "nonActionableOfferLeaks": 0,
+  "singleSellerProducts": 12823,
+  "multiSellerProducts": 1,
+  "comparisonContract": "Search -> TPID -> TPVID -> actionable seller offers; TPCID only for alternatives"
 }
