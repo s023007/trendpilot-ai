@@ -671,293 +671,347 @@ async function tpLoadHybridProductsV16_2_1(query, requestedSeller="") {
 }
 // TP_V16_2_1_HYBRID_FINDER_END
 
-// TP_V20_6_2_CONTROLLED_MASTER_START
-const TP_MASTER_ENGINE_SESSION_V20_6_2="trendpilot-engine-v206";
+// TP_V20_6_4_COMPARISON_START
+const TP_COMPARISON_SESSION_V20_6_4='trendpilot-engine-v2064';
+let tpComparisonStateV20_6_4={mode:'idle',query:'',type:'',products:[],exact:null,alternatives:[],variantIntent:{storage:'',ram:''},forcedTpid:''};
 
-function tpUseMasterEngineV20_6_2(){
+function tpUseComparisonEngineV20_6_4(){
   try{
-    const requested=new URLSearchParams(location.search).get("engine");
-    if(requested==="v206"){
-      sessionStorage.setItem(TP_MASTER_ENGINE_SESSION_V20_6_2,"1");
+    const requested=new URLSearchParams(location.search).get('engine');
+    if(requested==='v2064'){
+      sessionStorage.setItem(TP_COMPARISON_SESSION_V20_6_4,'1');
       return true;
     }
-    if(requested==="legacy"){
-      sessionStorage.removeItem(TP_MASTER_ENGINE_SESSION_V20_6_2);
+    if(requested==='legacy'){
+      sessionStorage.removeItem(TP_COMPARISON_SESSION_V20_6_4);
       return false;
     }
-    return sessionStorage.getItem(TP_MASTER_ENGINE_SESSION_V20_6_2)==="1";
-  }catch{
-    return false;
-  }
+    return sessionStorage.getItem(TP_COMPARISON_SESSION_V20_6_4)==='1';
+  }catch{return false;}
 }
 
-function tpMasterTypeV20_6_2(query){
+function tpComparisonTypeV20_6_4(query){
   const q=lower(query);
   const routes=[
-    ["phone",/\b(?:phones?|smartphones?|mobile phones?|cell phones?|iphone|iph|galaxy|redmi|pixel|oneplus|poco|realme|xiaomi|oppo|vivo)\b/i],
-    ["laptop",/\b(?:laptops?|notebooks?|macbook|thinkpad|ideapad|chromebook|legion|thinkbook|yoga)\b/i],
-    ["headphones",/\b(?:headphones?|headsets?|earbuds?|earphones?|airpods?|tws)\b/i],
-    ["smartwatch",/\b(?:smart ?watch|apple watch|galaxy watch|fitness watch)\b/i],
-    ["power_bank",/\b(?:power ?banks?|portable battery pack|external battery pack)\b/i],
-    ["perfume",/\b(?:perfumes?|parfum|eau de parfum|eau de toilette|cologne|attar|body mist)\b/i],
-    ["3d_filament",/\b(?:3d filament|filament|pla filament|petg filament|abs filament)\b/i],
-    ["dog_food",/\b(?:dog food|dog treats?|dog topper|puppy food)\b/i],
-    ["air_conditioner",/\b(?:air conditioners?|portable ac|mini split|ductless ac)\b/i],
-    ["cookware",/\b(?:cookware|frying pans?|pots? and pans?|casserole)\b/i],
-    ["lighting",/\b(?:lighting|smart lights?|led strips?|light strips?|smart bulbs?)\b/i],
-    ["tools",/\b(?:tools?|drills?|angle grinder|screwdrivers?|multimeters?|saws?)\b/i]
+    ['phone',/\\b(?:phones?|smartphones?|mobile phones?|cell phones?|iphone|iph|galaxy|redmi|pixel|oneplus|poco|realme|xiaomi|oppo|vivo)\\b/i],
+    ['laptop',/\\b(?:laptops?|notebooks?|macbook|thinkpad|ideapad|chromebook|legion|thinkbook|yoga)\\b/i],
+    ['headphones',/\\b(?:headphones?|headsets?|earbuds?|earphones?|airpods?|tws)\\b/i],
+    ['smartwatch',/\\b(?:smart ?watch|apple watch|galaxy watch|fitness watch)\\b/i],
+    ['power_bank',/\\b(?:power ?banks?|portable battery pack|external battery pack)\\b/i],
+    ['perfume',/\\b(?:perfumes?|parfum|eau de parfum|eau de toilette|cologne|attar|body mist)\\b/i],
+    ['3d_filament',/\\b(?:3d filament|filament|pla filament|petg filament|abs filament)\\b/i],
+    ['dog_food',/\\b(?:dog food|dog treats?|dog topper|puppy food)\\b/i],
+    ['air_conditioner',/\\b(?:air conditioners?|portable ac|mini split|ductless ac)\\b/i],
+    ['cookware',/\\b(?:cookware|frying pans?|pots? and pans?|casserole)\\b/i],
+    ['lighting',/\\b(?:lighting|smart lights?|led strips?|light strips?|smart bulbs?)\\b/i],
+    ['tools',/\\b(?:tools?|drills?|angle grinder|screwdrivers?|multimeters?|saws?)\\b/i]
   ];
-  return (routes.find(([,re])=>re.test(q))||[""])[0];
+  return (routes.find(([,re])=>re.test(q))||[''])[0];
 }
 
-function tpMasterStorageIntentV20_6_2(query){
-  const q=clean(query);
-  let m=q.match(/\b(?:2|3|4|6|8|12|16|18|24|32)\s*(?:GB|G)?\s*[+\/]\s*(32|64|128|256|512|1024|2048)\s*(?:GB|G)\b/i);
-  if(m)return `${m[1]}GB`;
-  m=q.match(/\b(32|64|128|256|512|1024|2048)\s*(?:GB|G)\s*(?:ROM|Storage|SSD|UFS)?\b/i);
-  if(m)return `${m[1]}GB`;
-  m=q.match(/\b(1|2|4)\s*TB\b/i);
-  return m?`${Number(m[1])*1024}GB`:"";
-}
-
-function tpMasterQueryBaseV20_6_2(query){
-  return clean(String(query||"")
-    .replace(/\b(?:2|3|4|6|8|12|16|18|24|32)\s*(?:GB|G)?\s*[+\/]\s*(?:32|64|128|256|512|1024|2048)\s*(?:GB|G)\b/ig," ")
-    .replace(/\b(?:32|64|128|256|512|1024|2048)\s*(?:GB|G)\s*(?:ROM|Storage|SSD|UFS)?\b/ig," ")
-    .replace(/\b(?:1|2|4)\s*TB\b/ig," "));
-}
-
-function tpMasterUiTaxonomyV20_6_2(type){
+function tpComparisonTaxonomyV20_6_4(type){
   const map={
-    phone:["phones-tablets","smartphones"],
-    laptop:["computers","laptops"],
-    headphones:["audio","headphones"],
-    smartwatch:["jewelry-watches","watches"],
-    power_bank:["phones-tablets","power-banks"],
-    perfume:["beauty-care","fragrance"],
-    "3d_filament":["printing-3d","3d-filament"],
-    dog_food:["pet-supplies","dog-food"],
-    air_conditioner:["home-kitchen","air-conditioner"],
-    cookware:["home-kitchen","cookware"],
-    lighting:["smart-home","smart-lighting"],
-    tools:["tools","tools"]
+    phone:['phones-tablets','smartphones'], laptop:['computers','laptops'],
+    headphones:['audio','headphones'], smartwatch:['jewelry-watches','watches'],
+    power_bank:['phones-tablets','power-banks'], perfume:['beauty-care','fragrance'],
+    '3d_filament':['printing-3d','3d-filament'], dog_food:['pet-supplies','dog-food'],
+    air_conditioner:['home-kitchen','air-conditioner'], cookware:['home-kitchen','cookware'],
+    lighting:['smart-home','smart-lighting'], tools:['tools','tools']
   };
-  return map[type]||["other",type||"other"];
+  return map[type]||['other',type||'other'];
 }
 
-function tpMasterIsCategoryQueryV20_6_3(query,type){
-  const q=lower(query).replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
+function tpComparisonCategoryQueryV20_6_4(query,type){
+  const q=lower(query).replace(/[_-]+/g,' ').replace(/\\s+/g,' ').trim();
   const map={
-    phone:new Set(["phone","phones","smartphone","smartphones","mobile phone","mobile phones"]),
-    laptop:new Set(["laptop","laptops","notebook","notebooks","computer laptop","computers laptop"]),
-    headphones:new Set(["headphone","headphones","earbuds","earphones","headset","headsets"]),
-    smartwatch:new Set(["smartwatch","smartwatches","smart watch","smart watches"]),
-    power_bank:new Set(["power bank","power banks","powerbank","powerbanks"]),
-    perfume:new Set(["perfume","perfumes","fragrance","fragrances"]),
-    "3d_filament":new Set(["3d filament","filament","filaments"]),
-    dog_food:new Set(["dog food","dog foods","dog treats","dog treat"]),
-    air_conditioner:new Set(["air conditioner","air conditioners","ac unit","ac units"]),
-    cookware:new Set(["cookware"]),
-    lighting:new Set(["lighting","smart lighting"]),
-    tools:new Set(["tool","tools"])
+    phone:new Set(['phone','phones','smartphone','smartphones','mobile phone','mobile phones']),
+    laptop:new Set(['laptop','laptops','notebook','notebooks']),
+    headphones:new Set(['headphone','headphones','earbuds','earphones','headset','headsets']),
+    smartwatch:new Set(['smartwatch','smartwatches','smart watch','smart watches']),
+    power_bank:new Set(['power bank','power banks','powerbank','powerbanks']),
+    perfume:new Set(['perfume','perfumes','fragrance','fragrances']),
+    '3d_filament':new Set(['3d filament','filament','filaments']),
+    dog_food:new Set(['dog food','dog foods','dog treats','dog treat']),
+    air_conditioner:new Set(['air conditioner','air conditioners','ac unit','ac units']),
+    cookware:new Set(['cookware']),lighting:new Set(['lighting','smart lighting']),tools:new Set(['tool','tools'])
   };
   return Boolean(map[type]?.has(q));
 }
 
-function tpMasterProductScoreV20_6_2(product,query,type){
-  const q=lower(query);
-  const model=lower(product.model);
-  const label=lower(product.label);
-  const brand=lower(product.brand);
-  const text=lower(product.identityText||`${product.label||""} ${product.model||""} ${product.brand||""} ${(product.aliases||[]).join(" ")}`);
+function tpComparisonVariantIntentV20_6_4(query){
+  const q=clean(query);
+  let storage='',ram='';
+  let m=q.match(/\\b(32|64|128|256|512|1024|2048)\\s*(?:GB|G)\\s*(?:ROM|Storage|SSD|UFS)?\\b/i);
+  if(m)storage=`${m[1]}GB`;
+  m=q.match(/\\b(2|3|4|6|8|12|16|18|24|32|64)\\s*(?:GB|G)\\s*(?:RAM|Memory)\\b/i);
+  if(m)ram=`${m[1]}GB`;
+  return {storage,ram};
+}
+
+function tpComparisonBaseQueryV20_6_4(query){
+  return clean(String(query||'')
+    .replace(/\\b(?:32|64|128|256|512|1024|2048)\\s*(?:GB|G)\\s*(?:ROM|Storage|SSD|UFS)?\\b/ig,' ')
+    .replace(/\\b(?:2|3|4|6|8|12|16|18|24|32|64)\\s*(?:GB|G)\\s*(?:RAM|Memory)\\b/ig,' '));
+}
+
+function tpComparisonScoreV20_6_4(product,query){
+  const q=lower(query),model=lower(product.model),label=lower(product.label),brand=lower(product.brand);
+  const text=lower(product.identityText||`${product.label||''} ${product.model||''} ${product.brand||''} ${(product.aliases||[]).join(' ')}`);
   if(!q)return 0;
-
-  if(tpMasterIsCategoryQueryV20_6_3(q,type)){
-    return 500 + Math.min(80,Number(product.sellerCount||0)*10);
-  }
-
-  if(model===q||label===q)return 1200;
-  if(model.startsWith(q)||label.startsWith(q))return 1000;
-  if(model.includes(q)||label.includes(q))return 900;
-
+  if(model===q||label===q)return 2000;
+  if(model.startsWith(q)||label.startsWith(q))return 1500;
+  if(model.includes(q)||label.includes(q))return 1200;
   const tokens=words(q);
-  if(tokens.length && tokens.every(t=>text.includes(t))){
-    return 720+Math.min(tokens.length,6)*25;
-  }
-
-  if(brand===q)return 600;
+  if(tokens.length&&tokens.every(t=>text.includes(t)))return 900+tokens.length*20;
+  if(brand===q)return 700;
   return 0;
 }
 
-async function tpLoadMasterProductsV20_6_2(query,requestedSeller=""){
-  const q=clean(query);
-  const seller=tpCanonicalSellerV15_1(requestedSeller)||clean(requestedSeller);
-
-  if(q.length<2||lower(q)==="popular products"){
-    return {rows:[],meta:{engine:"v20.6.3",mode:"suggestions-only"}};
-  }
-
-  const type=tpMasterTypeV20_6_2(q);
-  if(!type){
-    return {rows:[],meta:{engine:"v20.6.3",mode:"unsupported-query",fallbackAllowed:true}};
-  }
-
-  try{
-    const response=await fetch(`/data/search-v20-6/visitor/types/${encodeURIComponent(type)}.json?v=20.6.3`,{
-      cache:"force-cache",
-      headers:{"accept":"application/json"}
-    });
-    if(!response.ok){
-      return {rows:[],meta:{engine:"v20.6.3",mode:"missing-type",type,fallbackAllowed:true}};
-    }
-
-    const payload=await response.json();
-    const baseQuery=tpMasterQueryBaseV20_6_2(q);
-    const storageIntent=tpMasterStorageIntentV20_6_2(q);
-    const [group,family]=tpMasterUiTaxonomyV20_6_2(type);
-
-    const matched=(Array.isArray(payload.products)?payload.products:[])
-      .filter(product=>{
-        if(!seller)return true;
-        return (Array.isArray(product.offers)?product.offers:[]).some(
-          o=>(tpCanonicalSellerV15_1(o.seller)||clean(o.seller))===seller
-        );
-      })
-      .map(product=>({product,score:tpMasterProductScoreV20_6_2(product,baseQuery,type)}))
-      .filter(x=>x.score>0)
-      .sort((a,b)=>b.score-a.score||Number(b.product.sellerCount||0)-Number(a.product.sellerCount||0))
-      .slice(0,100);
-
-    const rows=[];
-    for(const {product,score} of matched){
-      let offers=Array.isArray(product.offers)?product.offers.slice():[];
-      if(seller)offers=offers.filter(o=>(tpCanonicalSellerV15_1(o.seller)||clean(o.seller))===seller);
-      if(storageIntent)offers=offers.filter(o=>clean(o.storage)===storageIntent);
-      if(!offers.length)continue;
-
-      for(const offer of offers){
-        const canonicalSeller=tpCanonicalSellerV15_1(offer.seller)||clean(offer.seller);
-        const id=clean(offer.tpoid||`${product.tpid}-${canonicalSeller}`);
-        rows.push(normalizeProduct({
-          id,
-          clusterKey:id,
-          masterTpid:product.tpid,
-          masterMemberTpids:product.memberTpids,
-          tpvid:offer.tpvid,
-          name:product.label||product.model||offer.name,
-          description:`TrendPilot master product identity ${product.tpid}. Seller offer from ${canonicalSeller}.`,
-          brand:product.brand,
-          category:type,
-          url:offer.url,
-          image:offer.image,
-          advertiser:canonicalSeller,
-          network:"TrendPilot Master V20.6",
-          group,
-          family,
-          audience:"all",
-          price:offer.price,
-          currency:offer.currency||"USD",
-          condition:offer.condition||"",
-          quality:90,
-          offerCount:product.offerCount||1,
-          storeCount:product.sellerCount||1,
-          variantCount:1,
-          _tpMasterV20_6_2:true,
-          _tpHybridV16_2_1:true,
-          intentTier:5,
-          hybridMatchScore:score,
-          hybridFallbackSource:"v20.6.3-master-registry"
-        }));
-        if(rows.length>=100)break;
-      }
-      if(rows.length>=100)break;
-    }
-
-    return {
-      rows:rows.filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed),
-      meta:{
-        engine:"v20.6.3",
-        type,
-        storageIntent,
-        productMatches:matched.length,
-        returnedRows:rows.length,
-        fallbackUsed:false
-      }
-    };
-  }catch(error){
-    console.warn("TrendPilot V20.6.3 controlled master search unavailable",error);
-    return {rows:[],meta:{engine:"v20.6.3",mode:"error",fallbackAllowed:true}};
-  }
+async function tpLoadComparisonTypeV20_6_4(type){
+  const r=await fetch(`/data/search-v20-6/comparison-v20-6-4/types/${encodeURIComponent(type)}.json?v=20.6.4.1`,{cache:'force-cache',headers:{accept:'application/json'}});
+  if(!r.ok)throw new Error(`V20.6.4.1 comparison type ${type}: ${r.status}`);
+  return r.json();
 }
 
-// ----------------------------------------------------------
-// Wrapper layer: no performSearch call-site patching.
-// ----------------------------------------------------------
-const tpLegacyHybridProductsV20_6_2=tpLoadHybridProductsV16_2_1;
-tpLoadHybridProductsV16_2_1=async function(query,requestedSeller=""){
-  if(!tpUseMasterEngineV20_6_2()){
-    return tpLegacyHybridProductsV20_6_2(query,requestedSeller);
+function tpComparisonVariantV20_6_4(product,intent){
+  const variants=Array.isArray(product.variants)?product.variants:[];
+  if(!variants.length)return null;
+  if(intent.storage||intent.ram){
+    const exact=variants.filter(v=>(!intent.storage||clean(v.storage)===intent.storage)&&(!intent.ram||clean(v.ram)===intent.ram));
+    return exact.sort((a,b)=>Number(b.sellerCount||0)-Number(a.sellerCount||0)||Number(b.offerCount||0)-Number(a.offerCount||0))[0]||null;
+  }
+  return variants.find(v=>v.tpvid===product.defaultTpvid)||variants[0];
+}
+
+function tpComparisonOffersV20_6_4(product,intent,seller=''){
+  const variant=tpComparisonVariantV20_6_4(product,intent);
+  let offers=variant?.offers||[];
+  if(seller)offers=offers.filter(o=>(tpCanonicalSellerV15_1(o.seller)||clean(o.seller))===seller);
+  return {variant,offers};
+}
+
+function tpComparisonMasterProductV20_6_4(product,intent,seller=''){
+  const {variant,offers}=tpComparisonOffersV20_6_4(product,intent,seller);
+  if(!offers.length)return null;
+  const priced=offers.filter(o=>Number(o.price)>0).sort((a,b)=>Number(a.price)-Number(b.price));
+  const best=priced[0]||offers[0];
+  const [group,family]=tpComparisonTaxonomyV20_6_4(product.type);
+  return normalizeProduct({
+    id:product.tpid,clusterKey:product.tpid,masterTpid:product.tpid,tpvid:variant?.tpvid||'',
+    name:product.label||product.model,brand:product.brand,category:product.type,group,family,audience:'all',
+    advertiser:offers.length>1?`${offers.length} sellers`:best.seller,url:best.url,image:product.image||best.image,
+    price:Number(best.price||0),currency:best.currency||'USD',quality:95,
+    storeCount:new Set(offers.map(o=>o.seller)).size,offerCount:offers.length,variantCount:product.variantCount||1,
+    description:`TrendPilot TPID ${product.tpid}. Exact seller comparison uses TPVID ${variant?.tpvid||'base'}.`,
+    offers:offers.map(o=>({advertiser:o.seller,url:o.url,price:Number(o.price||0),currency:o.currency||'USD',condition:o.condition||'',tpoid:o.tpoid,tpvid:o.tpvid})),
+    _tpComparisonV20_6_4:true
+  });
+}
+
+function tpComparisonChoiceCardV20_6_4(product){
+  const variant=tpComparisonVariantV20_6_4(product,{storage:'',ram:''});
+  const offers=variant?.offers||[];
+  const priced=offers.filter(o=>Number(o.price)>0).sort((a,b)=>Number(a.price)-Number(b.price));
+  const min=priced[0];
+  const image=product.image||offers.find(o=>o.image)?.image||'';
+  const [group,family]=tpComparisonTaxonomyV20_6_4(product.type);
+  return `<article class="tp-product-card" data-product-id="${esc(product.tpid)}">
+    <div class="tp-product-media">${validUrl(image)?`<img src="${esc(image)}" alt="${esc(product.label||product.model)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-tp-image>`:'<span class="tp-product-fallback"><b>TP</b><span>Image unavailable</span></span>'}</div>
+    <div class="tp-product-content">
+      <div class="tp-card-top"><span>${esc(product.brand||'TrendPilot')}</span><b>${esc(familyLabelValue(family)||GROUP_LABELS[group]||product.type)}</b></div>
+      <h3>${esc(product.label||product.model)}</h3>
+      <div class="tp-price-row"><strong>${min?`From ${money(min.price,min.currency||'USD')}`:'Price not supplied'}</strong></div>
+      <div class="tp-card-evidence"><span>${variant?.sellerCount||product.sellerCount||0} seller${Number(variant?.sellerCount||product.sellerCount||0)===1?'':'s'}</span><span>${product.variantCount||0} variant${Number(product.variantCount||0)===1?'':'s'}</span></div>
+      <div class="tp-card-actions"><button class="tp-btn tp-btn-primary" type="button" data-tp-compare-master-v2064="${esc(product.tpid)}" data-tp-compare-label-v2064="${esc(product.label||product.model)}">Compare sellers</button></div>
+    </div></article>`;
+}
+
+function tpResolveComparisonV20_6_4(payload,query,forcedTpid=''){
+  const products=Array.isArray(payload.products)?payload.products:[];
+  const base=tpComparisonBaseQueryV20_6_4(query);
+  const variantIntent=tpComparisonVariantIntentV20_6_4(query);
+  if(forcedTpid){
+    const p=products.find(x=>x.tpid===forcedTpid);
+    if(p)return {mode:'exact',exact:p,products:[p],variantIntent,alternatives:[]};
+  }
+  if(tpComparisonCategoryQueryV20_6_4(base,payload.type)){
+    return {mode:'choose-product',exact:null,products:[...products].sort((a,b)=>Number(b.sellerCount||0)-Number(a.sellerCount||0)||Number(b.offerCount||0)-Number(a.offerCount||0)),variantIntent,alternatives:[]};
+  }
+  const scored=products.map(p=>({p,score:tpComparisonScoreV20_6_4(p,base)})).filter(x=>x.score>0)
+    .sort((a,b)=>b.score-a.score||Number(b.p.sellerCount||0)-Number(a.p.sellerCount||0));
+  const exact=scored.filter(x=>x.score>=2000);
+  if(exact.length===1){
+    const p=exact[0].p;
+    const sets=Array.isArray(payload.comparisonSets)?payload.comparisonSets:[];
+    const set=sets.find(s=>(s.products||[]).some(m=>m.tpid===p.tpid))||sets[0];
+    const altIds=new Set((set?.products||[]).map(m=>m.tpid).filter(id=>id!==p.tpid));
+    const alternatives=products.filter(x=>altIds.has(x.tpid)).slice(0,8);
+    return {mode:'exact',exact:p,products:[p],variantIntent,alternatives};
+  }
+  return {mode:'choose-product',exact:null,products:scored.map(x=>x.p),variantIntent,alternatives:[]};
+}
+
+const tpLegacyPerformSearchV20_6_4=performSearch;
+const tpLegacyRenderFinderV20_6_4=renderFinder;
+const tpLegacyPopulateFiltersV20_6_4=populateFilters;
+const tpLegacyRenderTabsV20_6_4=renderTabs;
+const tpLegacyShowMoreV20_6_4=showMore;
+const tpLegacyHybridV20_6_4=tpLoadHybridProductsV16_2_1;
+const tpLegacyInitialV20_6_4=loadInitialSegments;
+const tpLegacyCjV20_6_4=loadCjProducts;
+const tpLegacyBalancedV20_6_4=tpLoadBalancedSellerRowsV15_1;
+const tpLegacyAdmitadV20_6_4=loadAdmitadProductsV15_4;
+const tpLegacyLiveSellerV20_6_4=tpLoadSelectedLiveSellerV15_8_9;
+const tpLegacySellerSpecificV20_6_4=tpLoadSellerSpecificV15_1;
+const tpLegacyEnsureV20_6_4=ensureMinimumExact;
+
+tpLoadHybridProductsV16_2_1=async function(query,seller=''){
+  if(tpUseComparisonEngineV20_6_4())return {rows:[],meta:{engine:'v20.6.4.1-comparison',mode:tpComparisonStateV20_6_4.mode}};
+  return tpLegacyHybridV20_6_4(query,seller);
+};
+loadInitialSegments=async function(){return tpUseComparisonEngineV20_6_4()?[]:tpLegacyInitialV20_6_4();};
+loadCjProducts=async function(){return tpUseComparisonEngineV20_6_4()?[]:tpLegacyCjV20_6_4();};
+tpLoadBalancedSellerRowsV15_1=async function(){return tpUseComparisonEngineV20_6_4()?[]:tpLegacyBalancedV20_6_4();};
+loadAdmitadProductsV15_4=async function(){return tpUseComparisonEngineV20_6_4()?[]:tpLegacyAdmitadV20_6_4();};
+tpLoadSelectedLiveSellerV15_8_9=async function(seller,query=state.query){return tpUseComparisonEngineV20_6_4()?[]:tpLegacyLiveSellerV20_6_4(seller,query);};
+tpLoadSellerSpecificV15_1=async function(seller){if(tpUseComparisonEngineV20_6_4())return;return tpLegacySellerSpecificV20_6_4(seller);};
+ensureMinimumExact=async function(minimum=24){if(tpUseComparisonEngineV20_6_4())return;return tpLegacyEnsureV20_6_4(minimum);};
+
+performSearch=async function(query,push=true,scope=''){
+  if(!tpUseComparisonEngineV20_6_4())return tpLegacyPerformSearchV20_6_4(query,push,scope);
+  const normalized=normalizeQuery(query);
+  state.originalQuery=normalized.original;state.query=normalized.query;state.queryCorrected=normalized.corrected;
+  state.scope=scope||'';state.shown=24;state.activeTab='exact';state.products=[];state.exact=[];state.alternatives=[];state.loading=true;
+  const grid=$('[data-tp-product-grid]');
+  if(grid)grid.innerHTML='<div class="tp-empty"><h3>Resolving product identity…</h3><p>TrendPilot is finding the TPID first, then comparing seller offers.</p></div>';
+  try{
+    const type=tpComparisonTypeV20_6_4(state.query);
+    const input=$('[data-tp-finder-input]');if(input)input.value=state.query;
+    if(!type){
+      tpComparisonStateV20_6_4={mode:'unsupported',query:state.query,type:'',products:[],exact:null,alternatives:[],variantIntent:{storage:'',ram:''},forcedTpid:''};
+      renderFinder();return;
+    }
+    const payload=await tpLoadComparisonTypeV20_6_4(type);
+    const paramsNow=new URLSearchParams(location.search);
+    const urlQ=clean(paramsNow.get('q')||'');
+    const forcedFromUrl=lower(urlQ)===lower(state.query)?clean(paramsNow.get('tpid')||''):'';
+    const forced=clean(tpComparisonStateV20_6_4.forcedTpid||forcedFromUrl);
+    const resolved=tpResolveComparisonV20_6_4(payload,state.query,forced);
+    const selectedTpid=resolved.exact?.tpid||forced||'';
+    tpComparisonStateV20_6_4={...resolved,query:state.query,type,forcedTpid:'',selectedTpid};
+    const normalizedRows=(resolved.mode==='exact'&&resolved.exact)
+      ? [tpComparisonMasterProductV20_6_4(resolved.exact,resolved.variantIntent,state.selectedSeller)].filter(Boolean)
+      : resolved.products.slice(0,100).map(p=>tpComparisonMasterProductV20_6_4(p,{storage:'',ram:''},state.selectedSeller)).filter(Boolean);
+    state.products=normalizedRows;state.exact=normalizedRows;state.alternatives=resolved.alternatives.map(p=>tpComparisonMasterProductV20_6_4(p,{storage:'',ram:''},state.selectedSeller)).filter(Boolean);
+    state.hybridMeta={engine:'v20.6.4.1-comparison',mode:resolved.mode,type};
+    try{const m=await loadManifest();state.plan=makePlan(state.query,m,state.scope);}catch{state.plan={q:state.query,groups:[],family:'',families:[],audience:'',segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};}
+    populateFilters();renderFinder();
+    if(push){
+      const params=new URLSearchParams({engine:'v2064',q:state.query});
+      if(state.scope)params.set('scope',state.scope);
+      if(tpComparisonStateV20_6_4.selectedTpid)params.set('tpid',tpComparisonStateV20_6_4.selectedTpid);
+      history.replaceState(null,'',`/find/?${params.toString()}`);
+    }
+  }catch(error){
+    console.error('TrendPilot V20.6.4.1 comparison failed safely',error);
+    tpComparisonStateV20_6_4={mode:'error',query:state.query,type:'',products:[],exact:null,alternatives:[],variantIntent:{storage:'',ram:''},forcedTpid:''};
+    renderFinder();
+  }finally{state.loading=false;}
+};
+
+populateFilters=function(){
+  if(!tpUseComparisonEngineV20_6_4())return tpLegacyPopulateFiltersV20_6_4();
+  try{tpLegacyPopulateFiltersV20_6_4();}catch{}
+  const merchant=$('[data-filter-merchant]');
+  if(!merchant)return;
+  const current=state.selectedSeller||tpCanonicalSellerV15_1(merchant.value)||merchant.value||'';
+  const pool=tpComparisonStateV20_6_4.exact?[tpComparisonStateV20_6_4.exact]:tpComparisonStateV20_6_4.products;
+  const counts=new Map();
+  pool.forEach(p=>(p.variants||[]).forEach(v=>(v.offers||[]).forEach(o=>counts.set(o.seller,(counts.get(o.seller)||0)+1))));
+  const names=[...counts.keys()].filter(Boolean).sort();
+  merchant.innerHTML='<option value="">All sellers</option>'+names.map(s=>`<option value="${esc(s)}">${esc(s)} (${counts.get(s)})</option>`).join('');
+  merchant.value=names.includes(current)?current:'';
+};
+
+renderTabs=function(){
+  if(!tpUseComparisonEngineV20_6_4())return tpLegacyRenderTabsV20_6_4();
+  const host=$('[data-tp-result-tabs]');if(!host)return;
+  if(tpComparisonStateV20_6_4.mode!=='exact'){host.innerHTML='';return;}
+  const alt=tpComparisonStateV20_6_4.alternatives.length;
+  host.innerHTML=`<button class="${state.activeTab==='exact'?'is-active':''}" data-result-tab="exact" type="button">Seller comparison <span>${tpComparisonStateV20_6_4.exact?.sellerCount||0}</span></button>`+
+    (alt?`<button class="${state.activeTab==='related'?'is-active':''}" data-result-tab="related" type="button">Related alternatives <span>${alt}</span></button>`:'');
+};
+
+renderFinder=function(){
+  if(!tpUseComparisonEngineV20_6_4())return tpLegacyRenderFinderV20_6_4();
+  const grid=$('[data-tp-product-grid]');if(!grid)return;
+  const title=$('[data-tp-results-title]'),count=$('[data-tp-results-count]'),status=$('[data-tp-finder-status]'),more=$('[data-tp-load-more]');
+  const selected=state.selectedSeller||'';
+  const cs=tpComparisonStateV20_6_4;
+
+  if(cs.mode==='unsupported'){
+    grid.innerHTML='<div class="tp-empty"><h3>This product type is not in the comparison registry yet.</h3><p>TrendPilot will not replace it with unrelated seller listings.</p></div>';
+    if(title)title.textContent=`Comparison for “${state.query}”`;if(count)count.textContent='0 comparisons';if(status)status.textContent='No TPID comparison route is available for this query.';if(more)more.hidden=true;renderTabs();return;
+  }
+  if(cs.mode==='error'){
+    grid.innerHTML='<div class="tp-empty"><h3>The comparison package could not be loaded.</h3><p>The legacy engine is still available with ?engine=legacy.</p></div>';
+    if(more)more.hidden=true;renderTabs();return;
   }
 
-  const master=await tpLoadMasterProductsV20_6_2(query,requestedSeller);
-  if(master?.meta?.fallbackAllowed){
-    const legacy=await tpLegacyHybridProductsV20_6_2(query,requestedSeller);
-    return {
-      rows:legacy?.rows||[],
-      meta:Object.assign({},legacy?.meta||{},{
-        engine:"legacy-fallback-from-v20.6.3",
-        masterFallback:true
-      })
-    };
+  if(cs.mode==='exact'&&cs.exact){
+    if(state.activeTab==='related'&&cs.alternatives.length){
+      let alts=cs.alternatives.filter(p=>!selected||(p.sellers||[]).includes(selected));
+      const visible=alts.slice(0,state.shown);
+      grid.innerHTML=visible.length?visible.map(tpComparisonChoiceCardV20_6_4).join(''):'<div class="tp-empty"><h3>No related alternatives for this seller.</h3></div>';
+      if(title)title.textContent=`Related alternatives to ${cs.exact.label||cs.exact.model}`;
+      if(count)count.textContent=`${visible.length} alternatives`;
+      if(status)status.textContent='TPCID alternatives are separate from exact TPID identity.';
+      if(more)more.hidden=alts.length<=state.shown;bindImages(grid);renderTabs();return;
+    }
+
+    const {variant,offers}=tpComparisonOffersV20_6_4(cs.exact,cs.variantIntent,selected);
+    if((cs.variantIntent.storage||cs.variantIntent.ram)&&!variant){
+      grid.innerHTML=`<div class="tp-empty"><h3>Exact variant not found.</h3><p>${esc(cs.exact.label||cs.exact.model)} exists, but TrendPilot has no seller offer proving ${esc(cs.variantIntent.storage||'')} ${esc(cs.variantIntent.ram||'')} for the same TPVID.</p></div>`;
+    }else if(!offers.length){
+      grid.innerHTML=`<div class="tp-empty"><h3>No offer from ${esc(selected||'the selected seller')}.</h3><p>The TPID remains valid; choose All sellers to compare available offers.</p></div>`;
+    }else{
+      const master=tpComparisonMasterProductV20_6_4(cs.exact,cs.variantIntent,selected);
+      const variantText=[variant?.storage,variant?.ram,variant?.generation].filter(Boolean).join(' · ');
+      grid.innerHTML=`<section class="tp-detail-section"><div class="tp-detail-section-head"><span>TPID ${esc(cs.exact.tpid)}${variant?.tpvid?` · TPVID ${esc(variant.tpvid)}`:''}</span><h2>Compare seller offers for ${esc(cs.exact.label||cs.exact.model)}</h2><p>${variantText?`Exact variant: ${esc(variantText)}. `:''}Seller listings remain separate TPOIDs; TrendPilot does not merge different products.</p></div>${offersTable(master)}</section>`;
+    }
+    if(title)title.textContent=`Seller comparison for “${cs.exact.label||cs.exact.model}”`;
+    if(count)count.textContent=`${offers.length} seller offer${offers.length===1?'':'s'}`;
+    if(status)status.textContent=`Search resolved to TPID ${cs.exact.tpid}. ${variant?.tpvid?`Comparison uses TPVID ${variant.tpvid}.`:'No exact variant was requested.'}`;
+    if(more)more.hidden=true;bindImages(grid);renderTabs();return;
   }
-  return master;
+
+  let choices=cs.products||[];
+  if(selected)choices=choices.filter(p=>(p.sellers||[]).includes(selected));
+  const visible=choices.slice(0,state.shown);
+  grid.innerHTML=visible.length?visible.map(tpComparisonChoiceCardV20_6_4).join(''):'<div class="tp-empty"><h3>No master product identity found.</h3><p>Try a model name or choose another seller. Unrelated seller titles are not substituted.</p></div>';
+  if(title)title.textContent=`Choose a product to compare for “${state.query}”`;
+  if(count)count.textContent=`${choices.length} master product${choices.length===1?'':'s'}`;
+  if(status)status.textContent='These are TPID master products. Select one to compare its seller offers; raw seller listings are not shown as search results.';
+  if(more)more.hidden=choices.length<=state.shown;bindImages(grid);renderTabs();
 };
 
-const tpLegacyLoadInitialSegmentsV20_6_2=loadInitialSegments;
-loadInitialSegments=async function(){
-  return tpUseMasterEngineV20_6_2()?[]:tpLegacyLoadInitialSegmentsV20_6_2();
+showMore=function(){
+  if(!tpUseComparisonEngineV20_6_4())return tpLegacyShowMoreV20_6_4();
+  state.shown+=24;renderFinder();
 };
 
-const tpLegacyLoadCjProductsV20_6_2=loadCjProducts;
-loadCjProducts=async function(){
-  return tpUseMasterEngineV20_6_2()?[]:tpLegacyLoadCjProductsV20_6_2();
-};
+d.addEventListener('click',e=>{
+  if(!tpUseComparisonEngineV20_6_4())return;
+  const b=e.target.closest('[data-tp-compare-master-v2064]');
+  if(!b)return;
+  e.preventDefault();
+  tpComparisonStateV20_6_4.forcedTpid=clean(b.dataset.tpCompareMasterV2064);
+  performSearch(b.dataset.tpCompareLabelV2064||state.query,true,state.scope);
+});
+// TP_V20_6_4_COMPARISON_END
 
-const tpLegacyBalancedRowsV20_6_2=tpLoadBalancedSellerRowsV15_1;
-tpLoadBalancedSellerRowsV15_1=async function(){
-  return tpUseMasterEngineV20_6_2()?[]:tpLegacyBalancedRowsV20_6_2();
-};
 
-const tpLegacyAdmitadProductsV20_6_2=loadAdmitadProductsV15_4;
-loadAdmitadProductsV15_4=async function(){
-  return tpUseMasterEngineV20_6_2()?[]:tpLegacyAdmitadProductsV20_6_2();
-};
 
-const tpLegacySelectedLiveSellerV20_6_2=tpLoadSelectedLiveSellerV15_8_9;
-tpLoadSelectedLiveSellerV15_8_9=async function(seller,query=state.query){
-  return tpUseMasterEngineV20_6_2()?[]:tpLegacySelectedLiveSellerV20_6_2(seller,query);
-};
-
-const tpLegacySellerSpecificV20_6_2=tpLoadSellerSpecificV15_1;
-tpLoadSellerSpecificV15_1=async function(seller){
-  if(tpUseMasterEngineV20_6_2())return;
-  return tpLegacySellerSpecificV20_6_2(seller);
-};
-
-const tpLegacyEnsureMinimumExactV20_6_2=ensureMinimumExact;
-ensureMinimumExact=async function(minimum=24){
-  if(tpUseMasterEngineV20_6_2())return;
-  return tpLegacyEnsureMinimumExactV20_6_2(minimum);
-};
-
-const tpLegacyMergeProductsV20_6_2=mergeProducts;
-mergeProducts=function(rows){
-  if(tpUseMasterEngineV20_6_2()){
-    rows=(rows||[]).filter(p=>p&&p._tpMasterV20_6_2);
-  }
-  return tpLegacyMergeProductsV20_6_2(rows);
-};
-// TP_V20_6_2_CONTROLLED_MASTER_END
 
 
 
