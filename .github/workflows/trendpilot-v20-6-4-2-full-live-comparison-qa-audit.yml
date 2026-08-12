@@ -1,0 +1,561 @@
+name: TrendPilot V20.6.4.2 — Full Live Comparison QA Audit
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Audit deployed identity-first comparison engine
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Audit committed comparison package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+          from collections import Counter
+
+          ROOT=Path("data/search-v20-6/comparison-v20-6-4")
+          TYPES=ROOT/"types"
+          m=json.loads((ROOT/"manifest.json").read_text(encoding="utf-8"))
+
+          def norm(v):
+              return re.sub(r"\s+"," ",str(v or "").strip()).lower()
+
+          files=sorted(TYPES.glob("*.json"))
+          products=[]
+          for f in files:
+              d=json.loads(f.read_text(encoding="utf-8"))
+              assert d.get("mode")=="identity-first-comparison",f
+              products.extend(d.get("products") or [])
+
+          failures=[]
+          if m.get("version")!="20.6.4.1": failures.append(f"version={m.get('version')}")
+          if m.get("mode")!="identity-first-comparison": failures.append("wrong mode")
+          if m.get("canonicalSellerFiles")!=13: failures.append("canonicalSellerFiles")
+          if m.get("canonicalOffersScanned",0)<50000: failures.append("canonicalOffersScanned")
+          if m.get("sourceProofMissing")!=0: failures.append("sourceProofMissing")
+          if m.get("sourceSellerMismatches")!=0: failures.append("sourceSellerMismatches")
+          if m.get("blockedSellerLeaks")!=0: failures.append("blockedSellerLeaks")
+          if m.get("phoneSoldObjectLeaks")!=0: failures.append("phoneSoldObjectLeaks")
+          if m.get("knownSemanticLeaks")!=0: failures.append("knownSemanticLeaks")
+          if m.get("flattenedSellerSearchRows")!=0: failures.append("flattenedSellerSearchRows")
+          if len(files)<10: failures.append("type files too few")
+
+          seen_tpid=set()
+          seen_tpoid=set()
+          seen_tpvid=set()
+          seller_counts=Counter()
+          duplicate_tpids=[]
+          duplicate_tpoids=[]
+          bad_code_rows=[]
+          blocked=[]
+          lenovo_bad_price=[]
+          lenovo_zero_price=[]
+          phone_bad=[]
+
+          phone_forbidden=re.compile(
+              r"\b(?:microphones?|flash\s+drives?|memory\s+cards?|micro\s*sd|sd\s+cards?|"
+              r"tablet|ipad|data\s+cable|charging\s+cable|charger|case|cover|"
+              r"screen\s+protector|power\s*bank|speaker|headphones?|earbuds?|"
+              r"ammeter|tester|heating\s+unit)\b",re.I
+          )
+          blocked_names={"temu","joom","filamentpro eu cps","filamentpro"}
+
+          for p in products:
+              tpid=p.get("tpid","")
+              if not tpid.startswith("TP"):
+                  bad_code_rows.append(("TPID",tpid))
+              if tpid in seen_tpid:
+                  duplicate_tpids.append(tpid)
+              seen_tpid.add(tpid)
+
+              for v in p.get("variants") or []:
+                  tpvid=v.get("tpvid","")
+                  if not tpvid.startswith("TPV-"):
+                      bad_code_rows.append(("TPVID",tpvid))
+                  seen_tpvid.add(tpvid)
+
+                  for o in v.get("offers") or []:
+                      tpoid=o.get("tpoid","")
+                      if not tpoid.startswith("TPO-"):
+                          bad_code_rows.append(("TPOID",tpoid))
+                      if tpoid in seen_tpoid:
+                          duplicate_tpoids.append(tpoid)
+                      seen_tpoid.add(tpoid)
+
+                      seller=o.get("seller","")
+                      seller_counts[seller]+=1
+                      if norm(seller) in blocked_names:
+                          blocked.append(o)
+
+                      try: price=float(o.get("price") or 0)
+                      except: price=0
+                      if norm(seller)=="lenovo" and p.get("type")=="laptop":
+                          if 0 < price < 50:
+                              lenovo_bad_price.append(o)
+                          if price<=0:
+                              lenovo_zero_price.append(o)
+
+                      if p.get("type")=="phone" and phone_forbidden.search(str(o.get("name") or "")):
+                          phone_bad.append({
+                              "tpid":tpid,"seller":seller,"name":o.get("name")
+                          })
+
+          if duplicate_tpids: failures.append(f"duplicate TPIDs={len(duplicate_tpids)}")
+          if duplicate_tpoids: failures.append(f"duplicate TPOIDs={len(duplicate_tpoids)}")
+          if bad_code_rows: failures.append(f"bad identity codes={len(bad_code_rows)}")
+          if blocked: failures.append(f"blocked offers={len(blocked)}")
+          if lenovo_bad_price: failures.append(f"Lenovo placeholder prices={len(lenovo_bad_price)}")
+          if phone_bad: failures.append(f"phone dominant-object leaks={len(phone_bad)}")
+
+          def products_of_type(t):
+              return [p for p in products if p.get("type")==t]
+
+          phones=products_of_type("phone")
+          laptops=products_of_type("laptop")
+
+          # Generic 'phone' must be a master-product choice list, not seller rows.
+          phone_choice_count=len(phones)
+          phone_tiktok=[
+              p for p in phones if "TikTok Shop US" in (p.get("sellers") or [])
+          ]
+          phone_alibaba=[
+              p for p in phones if "Alibaba" in (p.get("sellers") or [])
+          ]
+
+          # Exact multi-seller comparison proof.
+          oneplus=[
+              p for p in phones
+              if norm(p.get("label"))=="oneplus 7t" or norm(p.get("model"))=="oneplus 7t"
+          ]
+          oneplus_info={}
+          if not oneplus:
+              failures.append("OnePlus 7T TPID missing")
+          else:
+              p=oneplus[0]
+              exact_variants=[
+                  v for v in p.get("variants") or []
+                  if int(v.get("sellerCount") or 0)>=2
+              ]
+              seller_union=sorted({
+                  o.get("seller")
+                  for v in p.get("variants") or []
+                  for o in v.get("offers") or []
+              })
+              oneplus_info={
+                  "tpid":p.get("tpid"),
+                  "sellerCount":p.get("sellerCount"),
+                  "sellers":seller_union,
+                  "exactMultiSellerVariants":len(exact_variants),
+                  "variants":[
+                      {
+                          "tpvid":v.get("tpvid"),
+                          "storage":v.get("storage"),
+                          "ram":v.get("ram"),
+                          "sellerCount":v.get("sellerCount"),
+                          "offers":[
+                              {
+                                  "tpoid":o.get("tpoid"),
+                                  "seller":o.get("seller"),
+                                  "price":o.get("price"),
+                                  "currency":o.get("currency")
+                              } for o in v.get("offers") or []
+                          ]
+                      } for v in exact_variants[:3]
+                  ]
+              }
+              if "Alibaba" not in seller_union or "TikTok Shop US" not in seller_union:
+                  failures.append(f"OnePlus seller union={seller_union}")
+              if not exact_variants:
+                  failures.append("OnePlus has no multi-seller TPVID")
+
+          # ThinkPad/Lenovo availability.
+          thinkpads=[
+              p for p in laptops
+              if "thinkpad" in norm(p.get("label")) or "thinkpad" in norm(p.get("model"))
+          ]
+          thinkpad_lenovo=[
+              p for p in thinkpads if "Lenovo" in (p.get("sellers") or [])
+          ]
+          if not thinkpad_lenovo:
+              failures.append("Lenovo ThinkPad TPID choices=0")
+
+          # TPCID alternatives are separate package objects, not exact seller offers.
+          sets=json.loads((ROOT/"comparison-sets.json").read_text(encoding="utf-8"))
+          bad_sets=[]
+          for s in sets:
+              if not str(s.get("tpcid") or "").startswith("TPC-"):
+                  bad_sets.append(s.get("tpcid"))
+              for member in s.get("products") or []:
+                  if not member.get("tpid"):
+                      bad_sets.append(s.get("tpcid"))
+          if bad_sets: failures.append(f"bad TPCID sets={len(bad_sets)}")
+          if len(sets)<1: failures.append("TPCID sets=0")
+
+          result={
+              "scope":"repository-main",
+              "manifest":m,
+              "identity":{
+                  "tpids":len(seen_tpid),
+                  "tpvids":len(seen_tpvid),
+                  "tpoids":len(seen_tpoid),
+                  "sellerCounts":dict(seller_counts),
+              },
+              "genericPhone":{
+                  "masterProductChoices":phone_choice_count,
+                  "TikTokMasterChoices":len(phone_tiktok),
+                  "AlibabaMasterChoices":len(phone_alibaba),
+                  "rawSellerSearchRows":m.get("flattenedSellerSearchRows"),
+              },
+              "exactOnePlus7T":oneplus_info,
+              "lenovo":{
+                  "laptopMasterProducts":len(laptops),
+                  "thinkPadMasterProducts":len(thinkpads),
+                  "thinkPadLenovoProducts":len(thinkpad_lenovo),
+                  "suppressedOrMissingPriceOffers":len(lenovo_zero_price),
+                  "placeholderPricesRemaining":len(lenovo_bad_price),
+              },
+              "tpcidSets":len(sets),
+              "phoneDominantObjectLeaks":phone_bad[:20],
+              "failures":failures,
+              "result":"PASS" if not failures else "FAIL",
+          }
+          Path("/tmp/repo-comparison-audit.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8"
+          )
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          if failures:
+              raise SystemExit("Repository comparison audit failed: "+" | ".join(failures))
+          PY
+
+      - name: Fetch deployed comparison package
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE="https://trendpilotchoice.com"
+          mkdir -p /tmp/live/types
+
+          # Wait for V20.6.4.1 deployment if the hosting layer is still propagating.
+          for i in 1 2 3 4 5 6; do
+            stamp="$(date +%s)-$i"
+            code="$(curl -L --connect-timeout 10 --max-time 30 -sS \
+              -H 'Cache-Control: no-cache' \
+              -o /tmp/live/manifest.json -w '%{http_code}' \
+              "$BASE/data/search-v20-6/comparison-v20-6-4/manifest.json?qa=$stamp" || true)"
+            if [ "$code" = "200" ] && python3 - <<'PY'
+          import json
+          try:
+              m=json.load(open("/tmp/live/manifest.json"))
+              assert m.get("version")=="20.6.4.1"
+              assert m.get("mode")=="identity-first-comparison"
+          except Exception:
+              raise SystemExit(1)
+          PY
+            then
+              break
+            fi
+            if [ "$i" = "6" ]; then
+              echo "Live comparison manifest did not become available."
+              exit 1
+            fi
+            sleep 10
+          done
+
+          curl -L --fail --retry 3 --retry-delay 3 -sS \
+            "$BASE/find/?engine=v2064&q=phone&qa=$(date +%s)" \
+            -o /tmp/live/find.html
+
+          curl -L --fail --retry 3 --retry-delay 3 -sS \
+            "$BASE/js/site-v13-5.js?v=20.6.4.1&qa=$(date +%s)" \
+            -o /tmp/live/site.js
+
+          for t in phone laptop headphones smartwatch power_bank perfume tools lighting cookware dog_food air_conditioner 3d_filament; do
+            curl -L --fail --retry 3 --retry-delay 3 -sS \
+              "$BASE/data/search-v20-6/comparison-v20-6-4/types/$t.json?qa=$(date +%s)" \
+              -o "/tmp/live/types/$t.json"
+          done
+
+      - name: Audit live comparison behavior contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check /tmp/live/site.js
+
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+
+          ROOT=Path("/tmp/live")
+          TYPES=ROOT/"types"
+          m=json.loads((ROOT/"manifest.json").read_text(encoding="utf-8"))
+          html=(ROOT/"find.html").read_text(encoding="utf-8",errors="ignore")
+          js=(ROOT/"site.js").read_text(encoding="utf-8",errors="ignore")
+
+          def norm(v):
+              return re.sub(r"\s+"," ",str(v or "").strip()).lower()
+
+          def load(t):
+              return json.loads((TYPES/f"{t}.json").read_text(encoding="utf-8"))
+
+          failures=[]
+
+          if m.get("version")!="20.6.4.1": failures.append("live version")
+          if m.get("mode")!="identity-first-comparison": failures.append("live mode")
+          if m.get("flattenedSellerSearchRows")!=0: failures.append("live raw search rows")
+          if m.get("blockedSellerLeaks")!=0: failures.append("live blocked seller leaks")
+          if m.get("phoneSoldObjectLeaks")!=0: failures.append("live phone leaks")
+          if m.get("knownSemanticLeaks")!=0: failures.append("live semantic leaks")
+
+          # Browser must be comparison UI, not ordinary result cards.
+          required_js=[
+              "TP_V20_6_4_COMPARISON_START",
+              "tpResolveComparisonV20_6_4",
+              "tpComparisonVariantV20_6_4",
+              "tpComparisonOffersV20_6_4",
+              "Compare seller offers",
+              "Compare sellers",
+              "raw seller listings are not shown as search results",
+              "data-tp-compare-master-v2064",
+              "offersTable(master)",
+          ]
+          for token in required_js:
+              if token not in js:
+                  failures.append("JS missing: "+token)
+
+          # Category query route -> choose TPID, exact query -> compare TPID.
+          if "return {mode:'choose-product'" not in js:
+              failures.append("choose-product route missing")
+          if "return {mode:'exact'" not in js:
+              failures.append("exact comparison route missing")
+          if "tpComparisonCategoryQueryV20_6_4(base,payload.type)" not in js:
+              failures.append("category TPID resolver missing")
+
+          # Seller filter stays at TPID/offer level.
+          if "choices=choices.filter(p=>(p.sellers||[]).includes(selected))" not in js:
+              failures.append("TPID seller filter missing")
+
+          expected="/js/site-v13-5.js?v=20.6.4.1"
+          if expected not in html:
+              failures.append("Finder JS cache version mismatch")
+
+          phone=load("phone")
+          laptop=load("laptop")
+          phones=phone.get("products") or []
+          laptops=laptop.get("products") or []
+
+          # Generic phone: TPID master choices only.
+          if not phones:
+              failures.append("live phone master choices=0")
+          if any(not p.get("tpid") for p in phones):
+              failures.append("phone choice without TPID")
+
+          tiktok_phone=[p for p in phones if "TikTok Shop US" in (p.get("sellers") or [])]
+          if not tiktok_phone:
+              failures.append("live TikTok phone TPID choices=0")
+
+          # Dominant-object purity across all deployed phone offers.
+          bad_pat=re.compile(
+              r"\b(?:microphones?|flash\s+drives?|memory\s+cards?|micro\s*sd|sd\s+cards?|"
+              r"tablet|ipad|data\s+cable|charging\s+cable|charger|case|cover|"
+              r"screen\s+protector|power\s*bank|speaker|headphones?|earbuds?|"
+              r"ammeter|tester|heating\s+unit)\b",re.I
+          )
+          phone_bad=[]
+          for p in phones:
+              for v in p.get("variants") or []:
+                  for o in v.get("offers") or []:
+                      if bad_pat.search(str(o.get("name") or "")):
+                          phone_bad.append({
+                              "product":p.get("label"),"seller":o.get("seller"),"name":o.get("name")
+                          })
+          if phone_bad:
+              failures.append(f"live phone dominant-object leaks={len(phone_bad)}")
+
+          # Exact OnePlus 7T should be the real multi-seller TPID/TPVID proof.
+          oneplus=[
+              p for p in phones
+              if norm(p.get("label"))=="oneplus 7t" or norm(p.get("model"))=="oneplus 7t"
+          ]
+          oneplus_report={}
+          if not oneplus:
+              failures.append("live OnePlus 7T missing")
+          else:
+              p=oneplus[0]
+              variants=[
+                  v for v in p.get("variants") or []
+                  if int(v.get("sellerCount") or 0)>=2
+              ]
+              all_sellers=sorted({
+                  o.get("seller")
+                  for v in p.get("variants") or []
+                  for o in v.get("offers") or []
+              })
+              if "Alibaba" not in all_sellers or "TikTok Shop US" not in all_sellers:
+                  failures.append("live OnePlus does not contain Alibaba+TikTok")
+              if not variants:
+                  failures.append("live OnePlus exact TPVID not multi-seller")
+              oneplus_report={
+                  "tpid":p.get("tpid"),
+                  "sellers":all_sellers,
+                  "exactMultiSellerVariants":[
+                      {
+                          "tpvid":v.get("tpvid"),
+                          "storage":v.get("storage"),
+                          "ram":v.get("ram"),
+                          "offers":[
+                              {
+                                  "tpoid":o.get("tpoid"),
+                                  "seller":o.get("seller"),
+                                  "price":o.get("price"),
+                                  "currency":o.get("currency")
+                              } for o in v.get("offers") or []
+                          ]
+                      } for v in variants
+                  ]
+              }
+
+          # Lenovo: no fake $1; missing source price is allowed as 0.
+          lenovo=[]
+          lenovo_bad=[]
+          lenovo_missing=[]
+          thinkpad=[]
+          for p in laptops:
+              for v in p.get("variants") or []:
+                  for o in v.get("offers") or []:
+                      if o.get("seller")=="Lenovo":
+                          lenovo.append((p,o))
+                          try: price=float(o.get("price") or 0)
+                          except: price=0
+                          if 0<price<50: lenovo_bad.append((p,o))
+                          if price<=0: lenovo_missing.append((p,o))
+                          if "thinkpad" in norm(p.get("label")) or "thinkpad" in norm(p.get("model")):
+                              thinkpad.append((p,o))
+          if lenovo_bad: failures.append(f"live Lenovo fake-low prices={len(lenovo_bad)}")
+          if not thinkpad: failures.append("live Lenovo ThinkPad=0")
+
+          # Ensure choice UI explicitly displays unavailable prices properly.
+          if "Price not supplied" not in js:
+              failures.append("Price not supplied UI missing")
+
+          # Alternatives stay TPCID, separate from exact.
+          sets=phone.get("comparisonSets") or []
+          if not sets: failures.append("live phone TPCID alternatives=0")
+          if any(not str(s.get("tpcid") or "").startswith("TPC-") for s in sets):
+              failures.append("invalid live TPCID")
+
+          result={
+              "scope":"live-deployment",
+              "manifest":{
+                  "version":m.get("version"),
+                  "products":m.get("products"),
+                  "offers":m.get("offers"),
+                  "variants":m.get("variants"),
+                  "exactMultiSellerProducts":m.get("exactMultiSellerProducts"),
+                  "exactMultiSellerVariants":m.get("exactMultiSellerVariants"),
+                  "tpcids":m.get("tpcids"),
+                  "flattenedSellerSearchRows":m.get("flattenedSellerSearchRows"),
+              },
+              "genericPhone":{
+                  "masterChoices":len(phones),
+                  "TikTokMasterChoices":len(tiktok_phone),
+                  "comparisonSets":len(sets),
+              },
+              "onePlus7T":oneplus_report,
+              "lenovo":{
+                  "offers":len(lenovo),
+                  "thinkPadOffers":len(thinkpad),
+                  "missingOrSuppressedPrices":len(lenovo_missing),
+                  "fakeLowPricesRemaining":len(lenovo_bad),
+              },
+              "phoneDominantObjectLeaks":phone_bad[:20],
+              "failures":failures,
+              "result":"PASS" if not failures else "FAIL",
+          }
+          Path("/tmp/live-comparison-audit.json").write_text(
+              json.dumps(result,ensure_ascii=False,indent=2),encoding="utf-8"
+          )
+          print(json.dumps(result,ensure_ascii=False,indent=2))
+          if failures:
+              raise SystemExit("Live comparison audit failed: "+" | ".join(failures))
+          PY
+
+      - name: Publish comparison QA summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "# TrendPilot V20.6.4.2 — Full Live Comparison QA"
+            echo
+            echo "**READ-ONLY — no repository or production changes.**"
+            echo
+
+            if [ -s /tmp/repo-comparison-audit.json ]; then
+              echo "## Repository comparison package"
+              echo "- Result: **$(jq -r '.result' /tmp/repo-comparison-audit.json)**"
+              echo "- TPIDs: **$(jq '.identity.tpids' /tmp/repo-comparison-audit.json)**"
+              echo "- TPVIDs: **$(jq '.identity.tpvids' /tmp/repo-comparison-audit.json)**"
+              echo "- TPOIDs used by comparison: **$(jq '.identity.tpoids' /tmp/repo-comparison-audit.json)**"
+              echo "- General phone TPID choices: **$(jq '.genericPhone.masterProductChoices' /tmp/repo-comparison-audit.json)**"
+              echo "- TikTok phone TPID choices: **$(jq '.genericPhone.TikTokMasterChoices' /tmp/repo-comparison-audit.json)**"
+              echo "- Raw seller search rows: **$(jq '.genericPhone.rawSellerSearchRows' /tmp/repo-comparison-audit.json)**"
+              echo "- TPCID alternative sets: **$(jq '.tpcidSets' /tmp/repo-comparison-audit.json)**"
+              echo "- Lenovo fake-low prices remaining: **$(jq '.lenovo.placeholderPricesRemaining' /tmp/repo-comparison-audit.json)**"
+              echo
+            fi
+
+            if [ -s /tmp/live-comparison-audit.json ]; then
+              echo "## Live deployed comparison engine"
+              echo "- Result: **$(jq -r '.result' /tmp/live-comparison-audit.json)**"
+              echo "- Version: **$(jq -r '.manifest.version' /tmp/live-comparison-audit.json)**"
+              echo "- Master products: **$(jq '.manifest.products' /tmp/live-comparison-audit.json)**"
+              echo "- Seller offers: **$(jq '.manifest.offers' /tmp/live-comparison-audit.json)**"
+              echo "- Variants: **$(jq '.manifest.variants' /tmp/live-comparison-audit.json)**"
+              echo "- Exact multi-seller TPIDs: **$(jq '.manifest.exactMultiSellerProducts' /tmp/live-comparison-audit.json)**"
+              echo "- Exact multi-seller TPVIDs: **$(jq '.manifest.exactMultiSellerVariants' /tmp/live-comparison-audit.json)**"
+              echo "- TPCID alternatives: **$(jq '.manifest.tpcids' /tmp/live-comparison-audit.json)**"
+              echo "- Raw seller search rows: **$(jq '.manifest.flattenedSellerSearchRows' /tmp/live-comparison-audit.json)**"
+              echo
+              echo "### General phone behavior"
+              echo "- TPID master choices: **$(jq '.genericPhone.masterChoices' /tmp/live-comparison-audit.json)**"
+              echo "- TikTok TPID choices: **$(jq '.genericPhone.TikTokMasterChoices' /tmp/live-comparison-audit.json)**"
+              echo "- Phone TPCID sets: **$(jq '.genericPhone.comparisonSets' /tmp/live-comparison-audit.json)**"
+              echo "- Dominant-object leaks: **$(jq '.phoneDominantObjectLeaks | length' /tmp/live-comparison-audit.json)**"
+              echo
+              echo "### Exact OnePlus 7T comparison proof"
+              echo "- TPID: **$(jq -r '.onePlus7T.tpid // "missing"' /tmp/live-comparison-audit.json)**"
+              echo "- Sellers: **$(jq -r '.onePlus7T.sellers // [] | join(", ")' /tmp/live-comparison-audit.json)**"
+              jq -r '.onePlus7T.exactMultiSellerVariants[]? |
+                "- TPVID **\(.tpvid)** \(.storage // "") \(.ram // "") — " +
+                ([.offers[] | "\(.seller): \(.price) \(.currency) [\(.tpoid)]"] | join(" | "))' \
+                /tmp/live-comparison-audit.json
+              echo
+              echo "### Lenovo"
+              echo "- Laptop offers: **$(jq '.lenovo.offers' /tmp/live-comparison-audit.json)**"
+              echo "- ThinkPad offers: **$(jq '.lenovo.thinkPadOffers' /tmp/live-comparison-audit.json)**"
+              echo "- Missing/suppressed source prices: **$(jq '.lenovo.missingOrSuppressedPrices' /tmp/live-comparison-audit.json)**"
+              echo "- Fake-low prices remaining: **$(jq '.lenovo.fakeLowPricesRemaining' /tmp/live-comparison-audit.json)**"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v20-6-4-2-full-live-comparison-qa
+          path: |
+            /tmp/repo-comparison-audit.json
+            /tmp/live-comparison-audit.json
+          if-no-files-found: warn
