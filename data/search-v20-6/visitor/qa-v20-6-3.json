@@ -1,0 +1,640 @@
+{
+  "version": "20.6.3",
+  "before": {
+    "products": 13115,
+    "offers": 13116
+  },
+  "after": {
+    "products": 11860,
+    "offers": 11861
+  },
+  "rejectedProducts": {
+    "3d_filament": 17,
+    "cookware": 25,
+    "headphones": 664,
+    "laptop": 166,
+    "lighting": 1,
+    "perfume": 4,
+    "phone": 93,
+    "power_bank": 16,
+    "smartwatch": 33,
+    "tools": 236
+  },
+  "rejectedOffers": {
+    "laptop": 4,
+    "phone": 9,
+    "smartwatch": 9
+  },
+  "pricesSuppressed": 164,
+  "queries": {
+    "phone_all": 1211,
+    "phone_tiktok": 59,
+    "phone_alibaba": 1132,
+    "phone_aliexpress": 6,
+    "phone_geekbuying": 13,
+    "laptop_lenovo": 170,
+    "thinkpad": 5,
+    "perfume": 203,
+    "headphones": 3858,
+    "air_conditioner": 9
+  },
+  "sellerTypeCounts": {
+    "3d_filament": {
+      "AliExpress": 2,
+      "Geekbuying": 56
+    },
+    "air_conditioner": {
+      "AliExpress": 1,
+      "TikTok Shop US": 8
+    },
+    "cookware": {
+      "AliExpress": 211,
+      "TikTok Shop US": 98,
+      "Karaca EU": 100
+    },
+    "dog_food": {
+      "TikTok Shop US": 68
+    },
+    "headphones": {
+      "Alibaba": 3633,
+      "TikTok Shop US": 206,
+      "Geekbuying": 10,
+      "Sunsky-online WW": 1,
+      "Lenovo": 6,
+      "AliExpress": 2
+    },
+    "laptop": {
+      "AliExpress": 6,
+      "Alibaba": 212,
+      "Lenovo": 170,
+      "TikTok Shop US": 44
+    },
+    "lighting": {
+      "AliExpress": 95,
+      "Alibaba": 132,
+      "TikTok Shop US": 324,
+      "Harfington Many GEOs": 1,
+      "Geekbuying": 4,
+      "Govee Many GEOs": 31,
+      "Sunsky-online WW": 1,
+      "MFI Medical": 1
+    },
+    "perfume": {
+      "TikTok Shop US": 93,
+      "FragranceShop.com": 100,
+      "Alibaba": 9,
+      "AliExpress": 1
+    },
+    "phone": {
+      "Alibaba": 1132,
+      "TikTok Shop US": 59,
+      "AliExpress": 6,
+      "Geekbuying": 13,
+      "Sunsky-online WW": 1
+    },
+    "power_bank": {
+      "Alibaba": 790,
+      "TikTok Shop US": 109,
+      "AliExpress": 17
+    },
+    "smartwatch": {
+      "Alibaba": 1622,
+      "TikTok Shop US": 110
+    },
+    "tools": {
+      "AliExpress": 2002,
+      "TikTok Shop US": 352,
+      "Harfington Many GEOs": 5,
+      "Alibaba": 6,
+      "Geekbuying": 11
+    }
+  },
+  "badSamples": {
+    "3d_filament": [
+      {
+        "kind": "product",
+        "label": "4kg Mecpow High Speed PLA+ Filament - White/Lilac/Gray/Black",
+        "model": "4kg Mecpow High Speed PLA+ Filament - White/Lilac/Gray/Black"
+      },
+      {
+        "kind": "product",
+        "label": "4kg Mecpow High-Speed PETG Transparent Filament - Transparent Rainbow",
+        "model": "4kg Mecpow High-Speed PETG Transparent Filament - Transparent Rainbow"
+      },
+      {
+        "kind": "product",
+        "label": "5kg Creality Hyper PLA-CF Filament Black",
+        "model": "5kg Creality Hyper PLA-CF Filament Black"
+      },
+      {
+        "kind": "product",
+        "label": "7kg Mecpow High Speed PLA+ Filament - Red/ Blue/ Skin Color/ Green/ Yellow/ Orange/ Pink",
+        "model": "7kg Mecpow High Speed PLA+ Filament - Red/ Blue/ Skin Color/ Green/ Yellow/ Orange/ Pink"
+      },
+      {
+        "kind": "product",
+        "label": "7kg Mecpow High-Speed PETG Transparent Filament - Smoke Gray/ Blue/ Light Blue/ Cyan/ Transparent/ Light Purple/ Pink",
+        "model": "7kg Mecpow High-Speed PETG Transparent Filament - Smoke Gray/ Blue/ Light Blue/ Cyan/ Transparent/ Light Purple/ Pink"
+      },
+      {
+        "kind": "product",
+        "label": "Creality Ender-PLA Pro (PLA+) Filament - Orange",
+        "model": "Creality Ender-PLA Pro (PLA+) Filament - Orange"
+      },
+      {
+        "kind": "product",
+        "label": "Creality Ender-PLA Pro (PLA+) Filament - Rainbow",
+        "model": "Creality Ender-PLA Pro (PLA+) Filament - Rainbow"
+      },
+      {
+        "kind": "product",
+        "label": "Creality Hyper Series PLA 3D Printing Filament 1.75mm 1kg Blue",
+        "model": "Creality Hyper Series PLA 3D Printing Filament 1.75mm 1kg Blue"
+      },
+      {
+        "kind": "product",
+        "label": "Creality Hyper Series PLA 3D Printing Filament 1.75mm 1kg Golden",
+        "model": "Creality Hyper Series PLA 3D Printing Filament 1.75mm 1kg Golden"
+      },
+      {
+        "kind": "product",
+        "label": "ERYONE 1.75mm Luminous PLA 3D Printing Filament 1kg Green",
+        "model": "ERYONE 1.75mm Luminous PLA 3D Printing Filament 1kg Green"
+      },
+      {
+        "kind": "product",
+        "label": "Flashforge Flexible Filament 1kg Yellow",
+        "model": "Flashforge Flexible Filament 1kg Yellow"
+      },
+      {
+        "kind": "product",
+        "label": "Mecpow High Speed PLA Matte Rainbow Filament, 1kg - Frosting Cake",
+        "model": "Mecpow High Speed PLA Matte Rainbow Filament, 1kg - Frosting Cake"
+      }
+    ],
+    "cookware": [
+      {
+        "kind": "product",
+        "label": "1Pcs Stainless Steel Dual Hot Pot Grid Design Anti-Scalding Handle Fast Heat Conduction Household Cooking Pot for Induction Gas",
+        "model": "1Pcs Stainless Steel Dual Hot Pot Grid Design Anti-Scalding Handle Fast Heat Conduction Household Cooking Pot for Induction Gas"
+      },
+      {
+        "kind": "product",
+        "label": "316 Stainless Steel Twin Divided Hot Pot Chinese Thicken Soup Hotpots 32/34cm Double-flavor Cooking Pot Induction Cooker",
+        "model": "316 Stainless Steel Twin Divided Hot Pot Chinese Thicken Soup Hotpots 32/34cm Double-flavor Cooking Pot Induction Cooker"
+      },
+      {
+        "kind": "product",
+        "label": "600Ml White Ceramic Stew Pot Dual Handles Lid for Steaming Slow Cooking Soup Custard French Onion Porcelain Cooking Pot",
+        "model": "600Ml White Ceramic Stew Pot Dual Handles Lid for Steaming Slow Cooking Soup Custard French Onion Porcelain Cooking Pot"
+      },
+      {
+        "kind": "product",
+        "label": "Beijing Lamb Hotpot Cooking Pot Gas Elegant Ramen Pot China Chafing Dish for",
+        "model": "Beijing Lamb Hotpot Cooking Pot Gas Elegant Ramen Pot China Chafing Dish for"
+      },
+      {
+        "kind": "product",
+        "label": "Chinese Style High-capacity Handmade Purple Copper Tea Maker Pot Househld Milk Pot Wooden Handle Noodle Soup Cooking Pot ZF657",
+        "model": "Chinese Style High-capacity Handmade Purple Copper Tea Maker Pot Househld Milk Pot Wooden Handle Noodle Soup Cooking Pot ZF657"
+      },
+      {
+        "kind": "product",
+        "label": "Clay Pot with Lid Clay Cooking Pot Porridge, Soup Clay Pot Rice Cooking Chinese Style Terracotta Pan Earthen Cooking Pot",
+        "model": "Clay Pot with Lid Clay Cooking Pot Porridge, Soup Clay Pot Rice Cooking Chinese Style Terracotta Pan Earthen Cooking Pot"
+      },
+      {
+        "kind": "product",
+        "label": "Double Lid Ceramic Bowl,Bird's Nest Steamed Egg Bowl Dessert Cup Stockpot for Boiling, Simmer Cooking Pot Kitchen Cooking Tools",
+        "model": "Double Lid Ceramic Bowl,Bird's Nest Steamed Egg Bowl Dessert Cup Stockpot for Boiling, Simmer Cooking Pot Kitchen Cooking Tools"
+      },
+      {
+        "kind": "product",
+        "label": "Glass Stew Pot Dual Handles Lid Heat Resistant Borosilicate Clear Cooking Pot for Soup Noodles Milk Pasta Stovetop Microwave Use",
+        "model": "Glass Stew Pot Dual Handles Lid Heat Resistant Borosilicate Clear Cooking Pot for Soup Noodles Milk Pasta Stovetop Microwave Use"
+      },
+      {
+        "kind": "product",
+        "label": "Gold Stainless Steel Hotpot Multi-Function Cooking Pot Soup Shabu Ramen Cooker Hotpot Cooking Pot Ramen Cooker",
+        "model": "Gold Stainless Steel Hotpot Multi-Function Cooking Pot Soup Shabu Ramen Cooker Hotpot Cooking Pot Ramen Cooker"
+      },
+      {
+        "kind": "product",
+        "label": "Korean Ramen Cooking Pot Home Instant Noodles Pot for Hiking Picnic Noodle",
+        "model": "Korean Ramen Cooking Pot Home Instant Noodles Pot for Hiking Picnic Noodle"
+      },
+      {
+        "kind": "product",
+        "label": "Microwave Pressure Cooker Multi-Function Pressure Cooking Pot Multifunctional 2.3L Quick Cooking Tool Cooker For Dorm Workplace",
+        "model": "Microwave Pressure Cooker Multi-Function Pressure Cooking Pot Multifunctional 2.3L Quick Cooking Tool Cooker For Dorm Workplace"
+      },
+      {
+        "kind": "product",
+        "label": "Mini Deep Fryer Pot for Camping And Home Use - Square Cooking Pot with Frying Basket for Vegetables French Fries Dumplings Stews",
+        "model": "Mini Deep Fryer Pot for Camping And Home Use - Square Cooking Pot with Frying Basket for Vegetables French Fries Dumplings Stews"
+      }
+    ],
+    "headphones": [
+      {
+        "kind": "product",
+        "label": "*N21R AUX Audio Splitter Multi Headphone Audio Splitter Amplifier Stereo Audio Amp Adapter Headphone Splitter 1X8 EU Plug",
+        "model": "*N21R AUX Audio Splitter Multi Headphone Audio Splitter Amplifier Stereo Audio Amp Adapter Headphone Splitter 1X8 EU Plug"
+      },
+      {
+        "kind": "product",
+        "label": "1.rename and GPS 1:1 TWS wireless bluetooth headphones for Airpoding pro with wireless charging case",
+        "model": "1.rename and GPS 1:1 TWS wireless bluetooth headphones for Airpoding pro with wireless charging case"
+      },
+      {
+        "kind": "product",
+        "label": "100 PCS/BAG best 9d nls body health machine Headphone Cover",
+        "model": "100 PCS/BAG best 9d nls body health machine Headphone Cover"
+      },
+      {
+        "kind": "product",
+        "label": "100% fully biodegradable bio degradable eco friendly eco-friendly recycled silicone cover case for airpod for airpods 1 2 3 pro",
+        "model": "100% fully biodegradable bio degradable eco friendly eco-friendly recycled silicone cover case for airpod for airpods 1 2 3 pro"
+      },
+      {
+        "kind": "product",
+        "label": "100% fully compostable environmental wheat straw pla pbat eco- biodegradable sleeve cover case for airpods for airpod 1 2 3 pro",
+        "model": "100% fully compostable environmental wheat straw pla pbat eco- biodegradable sleeve cover case for airpods for airpod 1 2 3 pro"
+      },
+      {
+        "kind": "product",
+        "label": "10000mAh Portable Charger Power Banks for AirPods Charging Case 2 in 1 (Not Included TWS Earbuds) Compatible with Phones Tablets",
+        "model": "10000mAh Portable Charger Power Banks for AirPods Charging Case 2 in 1 (Not Included TWS Earbuds) Compatible with Phones Tablets"
+      },
+      {
+        "kind": "product",
+        "label": "10W 7.5W Fast Wireless Charging Dock, 3 in 1 Wireless Charger Stand Station for iPhone apple watch Airpod",
+        "model": "10W 7.5W Fast Wireless Charging Dock, 3 in 1 Wireless Charger Stand Station for iPhone apple watch Airpod"
+      },
+      {
+        "kind": "product",
+        "label": "10W Fast Charge For Iphone Pro Charger Dock For Apple Watch 5 4 Airpods Pro Wireless Charge Stand 3 In 1 Wireless Phone Charger",
+        "model": "10W Fast Charge For Iphone Pro Charger Dock For Apple Watch 5 4 Airpods Pro Wireless Charge Stand 3 In 1 Wireless Phone Charger"
+      },
+      {
+        "kind": "product",
+        "label": "1:1 Apods 2 Wireless Bluetooth Earphone 2nd Generation Voice Control Headphone Smart Sensor Headset With Charging Case",
+        "model": "1:1 Apods 2 Wireless Bluetooth Earphone 2nd Generation Voice Control Headphone Smart Sensor Headset With Charging Case"
+      },
+      {
+        "kind": "product",
+        "label": "1:1 Apods 2 Wireless Bluetooth Earphone TWS Air 2 Name Change Headphone In Ear Detection GPS Headset With Charging Case i90000",
+        "model": "1:1 Apods 2 Wireless Bluetooth Earphone TWS Air 2 Name Change Headphone In Ear Detection GPS Headset With Charging Case i90000"
+      },
+      {
+        "kind": "product",
+        "label": "1:1 appled airpoding pro wireless bluetooth earphone airpoding 3 with ear detection rename gps wireless charging case",
+        "model": "1:1 appled airpoding pro wireless bluetooth earphone airpoding 3 with ear detection rename gps wireless charging case"
+      },
+      {
+        "kind": "product",
+        "label": "1:1 Original Air pods pro 3 bluetooth tws 5.0 noise cancelling earbuds in-ear wireless charger case earphones for apple iphone",
+        "model": "1:1 Original Air pods pro 3 bluetooth tws 5.0 noise cancelling earbuds in-ear wireless charger case earphones for apple iphone"
+      }
+    ],
+    "laptop": [
+      {
+        "kind": "product",
+        "label": "1080P USB Powered Webcam, HD 1080P Computer Extension Webcam with Auto Focus, Suitable for Online Meeting Games, Video Chat, Laptop, Mini Camera for P",
+        "model": "1080P USB Powered Webcam, HD 1080P Computer Extension Webcam with Auto Focus, Suitable for Online Meeting Games, Video Chat, Laptop, Mini Camera for P"
+      },
+      {
+        "kind": "product",
+        "label": "11.6 inch 2 in 1 laptop with touch screen",
+        "model": "11.6 inch 2 in 1 laptop with touch screen"
+      },
+      {
+        "kind": "product",
+        "label": "11.6 inch intel Apollo J3355 convertible 2 in 1 laptop with touch screen rotating 360 degree 4GB RAM",
+        "model": "11.6 inch intel Apollo J3355 convertible 2 in 1 laptop with touch screen rotating 360 degree 4GB RAM"
+      },
+      {
+        "kind": "product",
+        "label": "11.6 inch laptop touch screen rotating Notebook 360 degree Intel laptop computer",
+        "model": "11.6 inch laptop touch screen rotating Notebook 360 degree Intel laptop computer"
+      },
+      {
+        "kind": "product",
+        "label": "11.6 inch mini netbook ultra thin slim design 4g ram 128g ssd netbook laptop",
+        "model": "11.6 inch mini netbook ultra thin slim design 4g ram 128g ssd netbook laptop"
+      },
+      {
+        "kind": "product",
+        "label": "14 inch ultrabook with 2G RAM 32GEMMC In-tel Atom X5-Z8300 Windows10 System Laptop WIFI Bluetooth notebook computer",
+        "model": "14 inch ultrabook with 2G RAM 32GEMMC In-tel Atom X5-Z8300 Windows10 System Laptop WIFI Bluetooth notebook computer"
+      },
+      {
+        "kind": "product",
+        "label": "14\" Full Plastic Z3735F Laptop with RAM 2GB + 32GB EMMC",
+        "model": "14\" Full Plastic Z3735F Laptop with RAM 2GB + 32GB EMMC"
+      },
+      {
+        "kind": "product",
+        "label": "14inch laptop new 14 inch laptop computer with 4GB RAM 64GB SSD",
+        "model": "14inch laptop new 14 inch laptop computer with 4GB RAM 64GB SSD"
+      },
+      {
+        "kind": "product",
+        "label": "14inch Original Lenovo YOGA 530 I5-8250U 8G 256GB SSD MX130 Lenovo laptop",
+        "model": "14inch Original Lenovo YOGA 530 I5-8250U 8G 256GB SSD MX130 Lenovo laptop"
+      },
+      {
+        "kind": "product",
+        "label": "15.6 inch cheap rugged win10 intel laptop Celeron processor N3350 6GB RAM 64GB eMMC ROM",
+        "model": "15.6 inch cheap rugged win10 intel laptop Celeron processor N3350 6GB RAM 64GB eMMC ROM"
+      },
+      {
+        "kind": "product",
+        "label": "15.6 inch Gaming laptop Notebook Intel J3455 8GB RAM 512GB SSD laptop computer with Win 10 OS free shipping",
+        "model": "15.6 inch Gaming laptop Notebook Intel J3455 8GB RAM 512GB SSD laptop computer with Win 10 OS free shipping"
+      },
+      {
+        "kind": "product",
+        "label": "15.6 inch i3 CPU 8GB RAM Laptop Mac Book Air type laptop",
+        "model": "15.6 inch i3 CPU 8GB RAM Laptop Mac Book Air type laptop"
+      }
+    ],
+    "lighting": [
+      {
+        "kind": "product",
+        "label": "Bestselling MFi Certified Lighting Cable Fast Mobile Charger Led Charging Cables Usb Extension Cable for iPhone",
+        "model": "Bestselling MFi Certified Lighting Cable Fast Mobile Charger Led Charging Cables Usb Extension Cable for iPhone"
+      }
+    ],
+    "perfume": [
+      {
+        "kind": "product",
+        "label": "Find Comfort Body & Hair Fragrance Mist",
+        "model": "Find Comfort Body & Hair Fragrance Mist"
+      },
+      {
+        "kind": "product",
+        "label": "For Cologne KLB-80 Chuck Engraving Machine Electric Spindle 6mm DGZ-40A Collet Engraving Machine Diameter 80 Gong Machine",
+        "model": "For Cologne KLB-80 Chuck Engraving Machine Electric Spindle 6mm DGZ-40A Collet Engraving Machine Diameter 80 Gong Machine"
+      },
+      {
+        "kind": "product",
+        "label": "Hair & Body Fragrance Mist",
+        "model": "Hair & Body Fragrance Mist"
+      },
+      {
+        "kind": "product",
+        "label": "The Mini Wall-mounted Perfume Vending Machine Features a 10.1-inch Touchscreen and Can Sell Perfume Samples.",
+        "model": "The Mini Wall-mounted Perfume Vending Machine Features a 10.1-inch Touchscreen and Can Sell Perfume Samples."
+      }
+    ],
+    "phone": [
+      {
+        "kind": "product",
+        "label": "10pcs Mini Mobile Phone Cleaning Brush, Mobile Phone Charging Port Dust Plug For iPhone Port Cleaner Kit, Computer Keyboard Cleaner Tool Cleaner Brush",
+        "model": "10pcs Mini Mobile Phone Cleaning Brush, Mobile Phone Charging Port Dust Plug For iPhone Port Cleaner Kit, Computer Keyboard Cleaner Tool Cleaner Brush"
+      },
+      {
+        "kind": "product",
+        "label": "12 Inch Wood Mobile Phone Video TV Folding Amplifying Glass HD Bracket Amplifier 3D phone wood grain screen magnifier",
+        "model": "12 Inch Wood Mobile Phone Video TV Folding Amplifying Glass HD Bracket Amplifier 3D phone wood grain screen magnifier"
+      },
+      {
+        "kind": "product",
+        "label": "180 Degree Fisheye Wide Angle Macro Camera Magnifying Glass (1 Set), Universal Mobile Phone Lens Clip, Mobile Phone Accessories",
+        "model": "180 Degree Fisheye Wide Angle Macro Camera Magnifying Glass (1 Set), Universal Mobile Phone Lens Clip, Mobile Phone Accessories"
+      },
+      {
+        "kind": "product",
+        "label": "2019 Hot selling 12.0 inch Universal Foldable Portable Wood + Organic Glass Eyeshield 3D Video Mobile Phone Screen Magnifier",
+        "model": "2019 Hot selling 12.0 inch Universal Foldable Portable Wood + Organic Glass Eyeshield 3D Video Mobile Phone Screen Magnifier"
+      },
+      {
+        "kind": "product",
+        "label": "2019 New Arrivals Outdoor Travel Professional Video Cameras Portable Tripod for Smartphone",
+        "model": "2019 New Arrivals Outdoor Travel Professional Video Cameras Portable Tripod for Smartphone"
+      },
+      {
+        "kind": "product",
+        "label": "2019 other camera mobile phone accessories, camera tripod manufacturers Tripod & mobile phone tripod",
+        "model": "2019 other camera mobile phone accessories, camera tripod manufacturers Tripod & mobile phone tripod"
+      },
+      {
+        "kind": "product",
+        "label": "2020 NEW Hot Optical 36X Telephoto Mobile Camera Zoom Lens for Smartphone with Tripod",
+        "model": "2020 NEW Hot Optical 36X Telephoto Mobile Camera Zoom Lens for Smartphone with Tripod"
+      },
+      {
+        "kind": "product",
+        "label": "24 Ultra Smartphone With 6.8 Inch HD Screen, 4GB RAM, 64GB ROM, 4G Network Unlocked Phone with Stylus, Android System Dual Card Phone",
+        "model": "24 Ultra Smartphone With 6.8 Inch HD Screen, 4GB RAM, 64GB ROM, 4G Network Unlocked Phone with Stylus, Android System Dual Card Phone"
+      },
+      {
+        "kind": "product",
+        "label": "3.5inch SOYES XS-L Mini Smartphone 3GB+32GB Dual Sim Cards Android 7.0 4G Mobile Wifi Glass Body Backup Cel",
+        "model": "3.5inch SOYES XS-L Mini Smartphone 3GB+32GB Dual Sim Cards Android 7.0 4G Mobile Wifi Glass Body Backup Cel"
+      },
+      {
+        "kind": "product",
+        "label": "3000mAh Replacement Original BL-30QX BL 30QX High Capacity Mobile Phone Battery For Infinix Hot S X521 X 521",
+        "model": "3000mAh Replacement Original BL-30QX BL 30QX High Capacity Mobile Phone Battery For Infinix Hot S X521 X 521"
+      },
+      {
+        "kind": "product",
+        "label": "3400mah Mobile Phone Internal Lithium Battery For iphone 6s Plus Replacement Batteries",
+        "model": "3400mah Mobile Phone Internal Lithium Battery For iphone 6s Plus Replacement Batteries"
+      },
+      {
+        "kind": "product",
+        "label": "360 Degree Rotatable LED Light USB Magnetic Charging Cord For Android Phone",
+        "model": "360 Degree Rotatable LED Light USB Magnetic Charging Cord For Android Phone"
+      }
+    ],
+    "power_bank": [
+      {
+        "kind": "product",
+        "label": "150wh 250wh 100w 200w AC output 15v 4A charger ciga lighter adapter camping emergency home use 220 volt portable power bank",
+        "model": "150wh 250wh 100w 200w AC output 15v 4A charger ciga lighter adapter camping emergency home use 220 volt portable power bank"
+      },
+      {
+        "kind": "product",
+        "label": "2-Port USB Charger Converter Battery to Power Bank Adapter for DJI Mavic Pro Platinum Drone Intelligent Flight Battery",
+        "model": "2-Port USB Charger Converter Battery to Power Bank Adapter for DJI Mavic Pro Platinum Drone Intelligent Flight Battery"
+      },
+      {
+        "kind": "product",
+        "label": "200W Battery Inverter Adapter For Makita/Bosch/Dewalt/Milwaukee 18V Li-ion Batteries Outdoor Power Bank AC 120-220V",
+        "model": "200W Battery Inverter Adapter For Makita/Bosch/Dewalt/Milwaukee 18V Li-ion Batteries Outdoor Power Bank AC 120-220V"
+      },
+      {
+        "kind": "product",
+        "label": "Best selling latest electronic products on market travel adapter power bank charger",
+        "model": "Best selling latest electronic products on market travel adapter power bank charger"
+      },
+      {
+        "kind": "product",
+        "label": "Car Jump Starter Power Bank Adapter for Makita 18V Li-ion Battery 11AWG BL1830 BL1840 (Battery Not Included)",
+        "model": "Car Jump Starter Power Bank Adapter for Makita 18V Li-ion Battery 11AWG BL1830 BL1840 (Battery Not Included)"
+      },
+      {
+        "kind": "product",
+        "label": "Digital Display Lithium Battery Adapter Converter For Makita For Dewalt For Milwaukee For Bosch Charger USB C Power Bank",
+        "model": "Digital Display Lithium Battery Adapter Converter For Makita For Dewalt For Milwaukee For Bosch Charger USB C Power Bank"
+      },
+      {
+        "kind": "product",
+        "label": "Digital Display Lithium Battery Adapter Converter For Makita For DeWalt For Milwaukee For M18 Charger USB Type-C Power Bank 138W",
+        "model": "Digital Display Lithium Battery Adapter Converter For Makita For DeWalt For Milwaukee For M18 Charger USB Type-C Power Bank 138W"
+      },
+      {
+        "kind": "product",
+        "label": "DJI Mavic 2 Fly More Kit include Car Charger Charging Hub Battery to Power Bank Adapter Low-Noise Propellers Shoulder Bag",
+        "model": "DJI Mavic 2 Fly More Kit include Car Charger Charging Hub Battery to Power Bank Adapter Low-Noise Propellers Shoulder Bag"
+      },
+      {
+        "kind": "product",
+        "label": "For Makita Lithium Battery For DeWalt For Milwaukee For M18 For Bosch Digital Display Adapter Converter Charger USB C Power Bank",
+        "model": "For Makita Lithium Battery For DeWalt For Milwaukee For M18 For Bosch Digital Display Adapter Converter Charger USB C Power Bank"
+      },
+      {
+        "kind": "product",
+        "label": "new 2020 trending product portable power station solar power bank with wireless charger adapter PSE",
+        "model": "new 2020 trending product portable power station solar power bank with wireless charger adapter PSE"
+      },
+      {
+        "kind": "product",
+        "label": "New products 2019 universal wireless power bank with travel adapter",
+        "model": "New products 2019 universal wireless power bank with travel adapter"
+      },
+      {
+        "kind": "product",
+        "label": "Portable Auto Car Jump Starter with Cable For Makita For Einhell 18V-20V Lithium-Ion Battery Charger Power Bank Starting Adapter",
+        "model": "Portable Auto Car Jump Starter with Cable For Makita For Einhell 18V-20V Lithium-Ion Battery Charger Power Bank Starting Adapter"
+      }
+    ],
+    "smartwatch": [
+      {
+        "kind": "product",
+        "label": "10W 3in1 all in one qi 3 coil wireless phone charger 3 in 1 magnetic charging station stand fit for apple watch",
+        "model": "10W 3in1 all in one qi 3 coil wireless phone charger 3 in 1 magnetic charging station stand fit for apple watch"
+      },
+      {
+        "kind": "product",
+        "label": "1800mAh Wireless Smartwatch Charger, USB Rechargeable Smartwatches Protable Charger for Outdoor Travel, Portable Charger for Smart Watch, Compact Powe",
+        "model": "1800mAh Wireless Smartwatch Charger, USB Rechargeable Smartwatches Protable Charger for Outdoor Travel, Portable Charger for Smart Watch, Compact Powe"
+      },
+      {
+        "kind": "product",
+        "label": "2019 best seller fast wireless charger 3in1 phone charger for android for type c for iPhone charger stand for apple watch",
+        "model": "2019 best seller fast wireless charger 3in1 phone charger for android for type c for iPhone charger stand for apple watch"
+      },
+      {
+        "kind": "product",
+        "label": "2019 hot selling 4in1 fast wireless charging stand for mobile phones charge and charger stand for apple watch charge",
+        "model": "2019 hot selling 4in1 fast wireless charging stand for mobile phones charge and charger stand for apple watch charge"
+      },
+      {
+        "kind": "product",
+        "label": "3 In 1 Fast Charging Qi Wireless Charger for Apple watch For iPhone Samsung",
+        "model": "3 In 1 Fast Charging Qi Wireless Charger for Apple watch For iPhone Samsung"
+      },
+      {
+        "kind": "product",
+        "label": "3 in 1 Wireless Charging Stand for Apple Watch Charging Station for Air/pods,Qi Fast Wireless Charger Dock",
+        "model": "3 in 1 Wireless Charging Stand for Apple Watch Charging Station for Air/pods,Qi Fast Wireless Charger Dock"
+      },
+      {
+        "kind": "product",
+        "label": "3 in 1 Wireless Charging Stand for Apple Watch, Charging Station for Air/pods, Fast Wireless Charger Dock",
+        "model": "3 in 1 Wireless Charging Stand for Apple Watch, Charging Station for Air/pods, Fast Wireless Charger Dock"
+      },
+      {
+        "kind": "product",
+        "label": "3d 5d 9h privacy lcd anti shock tpu tempered glass screen protector film roll for smart watch wrist band iwatch apple iphone",
+        "model": "3d 5d 9h privacy lcd anti shock tpu tempered glass screen protector film roll for smart watch wrist band iwatch apple iphone"
+      },
+      {
+        "kind": "product",
+        "label": "4 in 1 Fast Wireless Charger Pad Dock Station For iPhone XS Max XR X.For Apple Watch Induction Charging Stand",
+        "model": "4 in 1 Fast Wireless Charger Pad Dock Station For iPhone XS Max XR X.For Apple Watch Induction Charging Stand"
+      },
+      {
+        "kind": "product",
+        "label": "4 in 1 Multifunctional Wireless Charger Station for Mobile Phone Charging Station for Smart Watch USB Fast Charger",
+        "model": "4 in 1 Multifunctional Wireless Charger Station for Mobile Phone Charging Station for Smart Watch USB Fast Charger"
+      },
+      {
+        "kind": "offer",
+        "seller": "Alibaba",
+        "name": "Full Cover Screen Protector For Apple Watch 1 2 3 42mm Protective Film For iwatch 44mm Tempered Glass proof Glass"
+      },
+      {
+        "kind": "offer",
+        "seller": "Alibaba",
+        "name": "UV nano full glue glass screen protector for Apple watch 4"
+      }
+    ],
+    "tools": [
+      {
+        "kind": "product",
+        "label": "1 Piece Switch Handle Red Black For BC2430H RST Grass Trimmer Brush Cutter Garden Lawn Mower Parts Replacement Accessory",
+        "model": "1 Piece Switch Handle Red Black For BC2430H RST Grass Trimmer Brush Cutter Garden Lawn Mower Parts Replacement Accessory"
+      },
+      {
+        "kind": "product",
+        "label": "1 SET 543 Brush Cutter Con Rod assy Crankshaft For Husqvarna Husswarner 543R 543RS 543RBS 40CC Strimmer Trimmer Spare Parts",
+        "model": "1 SET 543 Brush Cutter Con Rod assy Crankshaft For Husqvarna Husswarner 543R 543RS 543RBS 40CC Strimmer Trimmer Spare Parts"
+      },
+      {
+        "kind": "product",
+        "label": "10Sets Photovoltaic Connectors + 4 Tools Crimping Pliers for Solar Connectors for 2.5/4/6mm² Solar Panel Cables +Wire Strippers",
+        "model": "10Sets Photovoltaic Connectors + 4 Tools Crimping Pliers for Solar Connectors for 2.5/4/6mm² Solar Panel Cables +Wire Strippers"
+      },
+      {
+        "kind": "product",
+        "label": "12 Piece 1 2 Inch Drive 12 Point Long Socket Set 8-22mm Chrome Vanadium Steel Extended Deep Grey Sleeve For Automotive Repair To",
+        "model": "12 Piece 1 2 Inch Drive 12 Point Long Socket Set 8-22mm Chrome Vanadium Steel Extended Deep Grey Sleeve For Automotive Repair To"
+      },
+      {
+        "kind": "product",
+        "label": "125 long flat-mouth pliers, high-quality steel, not easy to deform, special for adjusting shock-absorbing pliers",
+        "model": "125 long flat-mouth pliers, high-quality steel, not easy to deform, special for adjusting shock-absorbing pliers"
+      },
+      {
+        "kind": "product",
+        "label": "15Pcs 1/4 Shank Wood Router Bit Set 6 Shank Trimming Cutter 12Pcs Tungsten Steel Slotting Milling Bit Wood Machine Accessories",
+        "model": "15Pcs 1/4 Shank Wood Router Bit Set 6 Shank Trimming Cutter 12Pcs Tungsten Steel Slotting Milling Bit Wood Machine Accessories"
+      },
+      {
+        "kind": "product",
+        "label": "16 Hydraulic Cutter Blade Hydraulic Cutter Steel Bar Cutter CNC Machined Blades Quick Installation Steel Material Cutter",
+        "model": "16 Hydraulic Cutter Blade Hydraulic Cutter Steel Bar Cutter CNC Machined Blades Quick Installation Steel Material Cutter"
+      },
+      {
+        "kind": "product",
+        "label": "16/22PCS Multifunctional Vegetable Chopper, Onion Dicer Slicer Grater, Potato Shredder Kitchen Cutter with Handle",
+        "model": "16/22PCS Multifunctional Vegetable Chopper, Onion Dicer Slicer Grater, Potato Shredder Kitchen Cutter with Handle"
+      },
+      {
+        "kind": "product",
+        "label": "1640/1800PCS Insulated Crimp Tip Cord Pin End Terminal Pliers with Pearl Cotton Wire End Ferrules Wire Terminals Crimp Connector",
+        "model": "1640/1800PCS Insulated Crimp Tip Cord Pin End Terminal Pliers with Pearl Cotton Wire End Ferrules Wire Terminals Crimp Connector"
+      },
+      {
+        "kind": "product",
+        "label": "1pc Reference Circle 50mm 75mm HSS Bowl Type Shaper Cutter M1-M6 , PA20°, A Grade Gear Shaper Cutter Head",
+        "model": "1pc Reference Circle 50mm 75mm HSS Bowl Type Shaper Cutter M1-M6 , PA20°, A Grade Gear Shaper Cutter Head"
+      },
+      {
+        "kind": "product",
+        "label": "1pc ZCUT-9GR Belt Cutter Accessories New 500# Paper Roller Accessories",
+        "model": "1pc ZCUT-9GR Belt Cutter Accessories New 500# Paper Roller Accessories"
+      },
+      {
+        "kind": "product",
+        "label": "1Set Stainless Steel Garlic Crusher Kitchen Manual Garlic Press Cutter Ergonomic Pestle Design Home Use Portable Safe",
+        "model": "1Set Stainless Steel Garlic Crusher Kitchen Manual Garlic Press Cutter Ergonomic Pestle Design Home Use Portable Safe"
+      }
+    ]
+  },
+  "result": "PASS"
+}

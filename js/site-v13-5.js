@@ -745,19 +745,47 @@ function tpMasterUiTaxonomyV20_6_2(type){
   return map[type]||["other",type||"other"];
 }
 
-function tpMasterProductScoreV20_6_2(product,query){
+function tpMasterIsCategoryQueryV20_6_3(query,type){
+  const q=lower(query).replace(/[_-]+/g," ").replace(/\s+/g," ").trim();
+  const map={
+    phone:new Set(["phone","phones","smartphone","smartphones","mobile phone","mobile phones"]),
+    laptop:new Set(["laptop","laptops","notebook","notebooks","computer laptop","computers laptop"]),
+    headphones:new Set(["headphone","headphones","earbuds","earphones","headset","headsets"]),
+    smartwatch:new Set(["smartwatch","smartwatches","smart watch","smart watches"]),
+    power_bank:new Set(["power bank","power banks","powerbank","powerbanks"]),
+    perfume:new Set(["perfume","perfumes","fragrance","fragrances"]),
+    "3d_filament":new Set(["3d filament","filament","filaments"]),
+    dog_food:new Set(["dog food","dog foods","dog treats","dog treat"]),
+    air_conditioner:new Set(["air conditioner","air conditioners","ac unit","ac units"]),
+    cookware:new Set(["cookware"]),
+    lighting:new Set(["lighting","smart lighting"]),
+    tools:new Set(["tool","tools"])
+  };
+  return Boolean(map[type]?.has(q));
+}
+
+function tpMasterProductScoreV20_6_2(product,query,type){
   const q=lower(query);
   const model=lower(product.model);
   const label=lower(product.label);
   const brand=lower(product.brand);
-  const text=lower(product.searchText);
+  const text=lower(product.identityText||`${product.label||""} ${product.model||""} ${product.brand||""} ${(product.aliases||[]).join(" ")}`);
   if(!q)return 0;
-  if(model===q||label===q)return 1000;
-  if(model.startsWith(q)||label.startsWith(q))return 850;
-  if(model.includes(q)||label.includes(q))return 760;
+
+  if(tpMasterIsCategoryQueryV20_6_3(q,type)){
+    return 500 + Math.min(80,Number(product.sellerCount||0)*10);
+  }
+
+  if(model===q||label===q)return 1200;
+  if(model.startsWith(q)||label.startsWith(q))return 1000;
+  if(model.includes(q)||label.includes(q))return 900;
+
   const tokens=words(q);
-  if(tokens.length && tokens.every(t=>text.includes(t)))return 620+Math.min(tokens.length,6)*15;
-  if(brand===q)return 500;
+  if(tokens.length && tokens.every(t=>text.includes(t))){
+    return 720+Math.min(tokens.length,6)*25;
+  }
+
+  if(brand===q)return 600;
   return 0;
 }
 
@@ -766,21 +794,21 @@ async function tpLoadMasterProductsV20_6_2(query,requestedSeller=""){
   const seller=tpCanonicalSellerV15_1(requestedSeller)||clean(requestedSeller);
 
   if(q.length<2||lower(q)==="popular products"){
-    return {rows:[],meta:{engine:"v20.6.2.5",mode:"suggestions-only"}};
+    return {rows:[],meta:{engine:"v20.6.3",mode:"suggestions-only"}};
   }
 
   const type=tpMasterTypeV20_6_2(q);
   if(!type){
-    return {rows:[],meta:{engine:"v20.6.2.5",mode:"unsupported-query",fallbackAllowed:true}};
+    return {rows:[],meta:{engine:"v20.6.3",mode:"unsupported-query",fallbackAllowed:true}};
   }
 
   try{
-    const response=await fetch(`/data/search-v20-6/visitor/types/${encodeURIComponent(type)}.json?v=20.6.2.5`,{
+    const response=await fetch(`/data/search-v20-6/visitor/types/${encodeURIComponent(type)}.json?v=20.6.3`,{
       cache:"force-cache",
       headers:{"accept":"application/json"}
     });
     if(!response.ok){
-      return {rows:[],meta:{engine:"v20.6.2.5",mode:"missing-type",type,fallbackAllowed:true}};
+      return {rows:[],meta:{engine:"v20.6.3",mode:"missing-type",type,fallbackAllowed:true}};
     }
 
     const payload=await response.json();
@@ -789,10 +817,16 @@ async function tpLoadMasterProductsV20_6_2(query,requestedSeller=""){
     const [group,family]=tpMasterUiTaxonomyV20_6_2(type);
 
     const matched=(Array.isArray(payload.products)?payload.products:[])
-      .map(product=>({product,score:tpMasterProductScoreV20_6_2(product,baseQuery)}))
+      .filter(product=>{
+        if(!seller)return true;
+        return (Array.isArray(product.offers)?product.offers:[]).some(
+          o=>(tpCanonicalSellerV15_1(o.seller)||clean(o.seller))===seller
+        );
+      })
+      .map(product=>({product,score:tpMasterProductScoreV20_6_2(product,baseQuery,type)}))
       .filter(x=>x.score>0)
       .sort((a,b)=>b.score-a.score||Number(b.product.sellerCount||0)-Number(a.product.sellerCount||0))
-      .slice(0,40);
+      .slice(0,100);
 
     const rows=[];
     for(const {product,score} of matched){
@@ -832,7 +866,7 @@ async function tpLoadMasterProductsV20_6_2(query,requestedSeller=""){
           _tpHybridV16_2_1:true,
           intentTier:5,
           hybridMatchScore:score,
-          hybridFallbackSource:"v20.6.2.5-master-registry"
+          hybridFallbackSource:"v20.6.3-master-registry"
         }));
         if(rows.length>=100)break;
       }
@@ -842,7 +876,7 @@ async function tpLoadMasterProductsV20_6_2(query,requestedSeller=""){
     return {
       rows:rows.filter(tpCjPublicAllowed).filter(tpPublicSellerAllowed),
       meta:{
-        engine:"v20.6.2.5",
+        engine:"v20.6.3",
         type,
         storageIntent,
         productMatches:matched.length,
@@ -851,8 +885,8 @@ async function tpLoadMasterProductsV20_6_2(query,requestedSeller=""){
       }
     };
   }catch(error){
-    console.warn("TrendPilot V20.6.2.5 controlled master search unavailable",error);
-    return {rows:[],meta:{engine:"v20.6.2.5",mode:"error",fallbackAllowed:true}};
+    console.warn("TrendPilot V20.6.3 controlled master search unavailable",error);
+    return {rows:[],meta:{engine:"v20.6.3",mode:"error",fallbackAllowed:true}};
   }
 }
 
@@ -871,7 +905,7 @@ tpLoadHybridProductsV16_2_1=async function(query,requestedSeller=""){
     return {
       rows:legacy?.rows||[],
       meta:Object.assign({},legacy?.meta||{},{
-        engine:"legacy-fallback-from-v20.6.2.5",
+        engine:"legacy-fallback-from-v20.6.3",
         masterFallback:true
       })
     };
@@ -924,6 +958,9 @@ mergeProducts=function(rows){
   return tpLegacyMergeProductsV20_6_2(rows);
 };
 // TP_V20_6_2_CONTROLLED_MASTER_END
+
+
+
 
 
 // TP_V20_3_CONTROLLED_START
