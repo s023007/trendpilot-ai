@@ -693,18 +693,18 @@ function tpUseComparisonEngineV20_6_4(){
 function tpComparisonTypeV20_6_4(query){
   const q=lower(query);
   const routes=[
-    ['phone',/\\b(?:phones?|smartphones?|mobile phones?|cell phones?|iphone|iph|galaxy|redmi|pixel|oneplus|poco|realme|xiaomi|oppo|vivo)\\b/i],
-    ['laptop',/\\b(?:laptops?|notebooks?|macbook|thinkpad|ideapad|chromebook|legion|thinkbook|yoga)\\b/i],
-    ['headphones',/\\b(?:headphones?|headsets?|earbuds?|earphones?|airpods?|tws)\\b/i],
-    ['smartwatch',/\\b(?:smart ?watch|apple watch|galaxy watch|fitness watch)\\b/i],
-    ['power_bank',/\\b(?:power ?banks?|portable battery pack|external battery pack)\\b/i],
-    ['perfume',/\\b(?:perfumes?|parfum|eau de parfum|eau de toilette|cologne|attar|body mist)\\b/i],
-    ['3d_filament',/\\b(?:3d filament|filament|pla filament|petg filament|abs filament)\\b/i],
-    ['dog_food',/\\b(?:dog food|dog treats?|dog topper|puppy food)\\b/i],
-    ['air_conditioner',/\\b(?:air conditioners?|portable ac|mini split|ductless ac)\\b/i],
-    ['cookware',/\\b(?:cookware|frying pans?|pots? and pans?|casserole)\\b/i],
-    ['lighting',/\\b(?:lighting|smart lights?|led strips?|light strips?|smart bulbs?)\\b/i],
-    ['tools',/\\b(?:tools?|drills?|angle grinder|screwdrivers?|multimeters?|saws?)\\b/i]
+    ['phone',/\b(?:phones?|smartphones?|mobile phones?|cell phones?|iphone|iph|galaxy|redmi|pixel|oneplus|poco|realme|xiaomi|oppo|vivo)\b/i],
+    ['laptop',/\b(?:laptops?|notebooks?|macbook|thinkpad|ideapad|chromebook|legion|thinkbook|yoga)\b/i],
+    ['headphones',/\b(?:headphones?|headsets?|earbuds?|earphones?|airpods?|tws)\b/i],
+    ['smartwatch',/\b(?:smart ?watch|apple watch|galaxy watch|fitness watch)\b/i],
+    ['power_bank',/\b(?:power ?banks?|portable battery pack|external battery pack)\b/i],
+    ['perfume',/\b(?:perfumes?|parfum|eau de parfum|eau de toilette|cologne|attar|body mist)\b/i],
+    ['3d_filament',/\b(?:3d filament|filament|pla filament|petg filament|abs filament)\b/i],
+    ['dog_food',/\b(?:dog food|dog treats?|dog topper|puppy food)\b/i],
+    ['air_conditioner',/\b(?:air conditioners?|portable ac|mini split|ductless ac)\b/i],
+    ['cookware',/\b(?:cookware|frying pans?|pots? and pans?|casserole)\b/i],
+    ['lighting',/\b(?:lighting|smart lights?|led strips?|light strips?|smart bulbs?)\b/i],
+    ['tools',/\b(?:tools?|drills?|angle grinder|screwdrivers?|multimeters?|saws?)\b/i]
   ];
   return (routes.find(([,re])=>re.test(q))||[''])[0];
 }
@@ -722,7 +722,7 @@ function tpComparisonTaxonomyV20_6_4(type){
 }
 
 function tpComparisonCategoryQueryV20_6_4(query,type){
-  const q=lower(query).replace(/[_-]+/g,' ').replace(/\\s+/g,' ').trim();
+  const q=lower(query).replace(/[_-]+/g,' ').replace(/\s+/g,' ').trim();
   const map={
     phone:new Set(['phone','phones','smartphone','smartphones','mobile phone','mobile phones']),
     laptop:new Set(['laptop','laptops','notebook','notebooks']),
@@ -741,17 +741,17 @@ function tpComparisonCategoryQueryV20_6_4(query,type){
 function tpComparisonVariantIntentV20_6_4(query){
   const q=clean(query);
   let storage='',ram='';
-  let m=q.match(/\\b(32|64|128|256|512|1024|2048)\\s*(?:GB|G)\\s*(?:ROM|Storage|SSD|UFS)?\\b/i);
+  let m=q.match(/\b(32|64|128|256|512|1024|2048)\s*(?:GB|G)\s*(?:ROM|Storage|SSD|UFS)?\b/i);
   if(m)storage=`${m[1]}GB`;
-  m=q.match(/\\b(2|3|4|6|8|12|16|18|24|32|64)\\s*(?:GB|G)\\s*(?:RAM|Memory)\\b/i);
+  m=q.match(/\b(2|3|4|6|8|12|16|18|24|32|64)\s*(?:GB|G)\s*(?:RAM|Memory)\b/i);
   if(m)ram=`${m[1]}GB`;
   return {storage,ram};
 }
 
 function tpComparisonBaseQueryV20_6_4(query){
   return clean(String(query||'')
-    .replace(/\\b(?:32|64|128|256|512|1024|2048)\\s*(?:GB|G)\\s*(?:ROM|Storage|SSD|UFS)?\\b/ig,' ')
-    .replace(/\\b(?:2|3|4|6|8|12|16|18|24|32|64)\\s*(?:GB|G)\\s*(?:RAM|Memory)\\b/ig,' '));
+    .replace(/\b(?:32|64|128|256|512|1024|2048)\s*(?:GB|G)\s*(?:ROM|Storage|SSD|UFS)?\b/ig,' ')
+    .replace(/\b(?:2|3|4|6|8|12|16|18|24|32|64)\s*(?:GB|G)\s*(?:RAM|Memory)\b/ig,' '));
 }
 
 function tpComparisonScoreV20_6_4(product,query){
@@ -768,8 +768,8 @@ function tpComparisonScoreV20_6_4(product,query){
 }
 
 async function tpLoadComparisonTypeV20_6_4(type){
-  const r=await fetch(`/data/search-v20-6/comparison-v20-6-4/types/${encodeURIComponent(type)}.json?v=20.6.4.9`,{cache:'force-cache',headers:{accept:'application/json'}});
-  if(!r.ok)throw new Error(`V20.6.4.9 comparison type ${type}: ${r.status}`);
+  const r=await fetch(`/data/search-v20-6/comparison-v20-6-4/types/${encodeURIComponent(type)}.json?v=20.6.5`,{cache:'force-cache',headers:{accept:'application/json'}});
+  if(!r.ok)throw new Error(`V20.6.5 comparison type ${type}: ${r.status}`);
   return r.json();
 }
 
@@ -866,7 +866,7 @@ const tpLegacySellerSpecificV20_6_4=tpLoadSellerSpecificV15_1;
 const tpLegacyEnsureV20_6_4=ensureMinimumExact;
 
 tpLoadHybridProductsV16_2_1=async function(query,seller=''){
-  if(tpUseComparisonEngineV20_6_4())return {rows:[],meta:{engine:'v20.6.4.9-comparison',mode:tpComparisonStateV20_6_4.mode}};
+  if(tpUseComparisonEngineV20_6_4())return {rows:[],meta:{engine:'v20.6.5-comparison',mode:tpComparisonStateV20_6_4.mode}};
   return tpLegacyHybridV20_6_4(query,seller);
 };
 loadInitialSegments=async function(){return tpUseComparisonEngineV20_6_4()?[]:tpLegacyInitialV20_6_4();};
@@ -903,7 +903,7 @@ performSearch=async function(query,push=true,scope=''){
       ? [tpComparisonMasterProductV20_6_4(resolved.exact,resolved.variantIntent,state.selectedSeller)].filter(Boolean)
       : resolved.products.slice(0,100).map(p=>tpComparisonMasterProductV20_6_4(p,{storage:'',ram:''},state.selectedSeller)).filter(Boolean);
     state.products=normalizedRows;state.exact=normalizedRows;state.alternatives=resolved.alternatives.map(p=>tpComparisonMasterProductV20_6_4(p,{storage:'',ram:''},state.selectedSeller)).filter(Boolean);
-    state.hybridMeta={engine:'v20.6.4.9-comparison',mode:resolved.mode,type};
+    state.hybridMeta={engine:'v20.6.5-comparison',mode:resolved.mode,type};
     try{const m=await loadManifest();state.plan=makePlan(state.query,m,state.scope);}catch{state.plan={q:state.query,groups:[],family:'',families:[],audience:'',segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};}
     populateFilters();renderFinder();
     if(push){
@@ -913,7 +913,7 @@ performSearch=async function(query,push=true,scope=''){
       history.replaceState(null,'',`/find/?${params.toString()}`);
     }
   }catch(error){
-    console.error('TrendPilot V20.6.4.9 comparison failed safely',error);
+    console.error('TrendPilot V20.6.5 comparison failed safely',error);
     tpComparisonStateV20_6_4={mode:'error',query:state.query,type:'',products:[],exact:null,alternatives:[],variantIntent:{storage:'',ram:''},forcedTpid:''};
     renderFinder();
   }finally{state.loading=false;}
@@ -1009,6 +1009,9 @@ d.addEventListener('click',e=>{
   performSearch(b.dataset.tpCompareLabelV2064||state.query,true,state.scope);
 });
 // TP_V20_6_4_COMPARISON_END
+
+
+
 
 
 
