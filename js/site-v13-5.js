@@ -768,8 +768,8 @@ function tpComparisonScoreV20_6_4(product,query){
 }
 
 async function tpLoadComparisonTypeV20_6_4(type){
-  const r=await fetch(`/data/search-v20-6/comparison-v20-6-4/types/${encodeURIComponent(type)}.json?v=20.6.6`,{cache:'force-cache',headers:{accept:'application/json'}});
-  if(!r.ok)throw new Error(`V20.6.6 comparison type ${type}: ${r.status}`);
+  const r=await fetch(`/data/search-v20-6/comparison-v20-6-4/types/${encodeURIComponent(type)}.json?v=20.6.6.1`,{cache:'force-cache',headers:{accept:'application/json'}});
+  if(!r.ok)throw new Error(`V20.6.6.1 comparison type ${type}: ${r.status}`);
   return r.json();
 }
 
@@ -872,7 +872,7 @@ const tpLegacySellerSpecificV20_6_4=tpLoadSellerSpecificV15_1;
 const tpLegacyEnsureV20_6_4=ensureMinimumExact;
 
 tpLoadHybridProductsV16_2_1=async function(query,seller=''){
-  if(tpUseComparisonEngineV20_6_4())return {rows:[],meta:{engine:'v20.6.6-comparison',mode:tpComparisonStateV20_6_4.mode}};
+  if(tpUseComparisonEngineV20_6_4())return {rows:[],meta:{engine:'v20.6.6.1-comparison',mode:tpComparisonStateV20_6_4.mode}};
   return tpLegacyHybridV20_6_4(query,seller);
 };
 loadInitialSegments=async function(){return tpUseComparisonEngineV20_6_4()?[]:tpLegacyInitialV20_6_4();};
@@ -909,7 +909,7 @@ performSearch=async function(query,push=true,scope=''){
       ? [tpComparisonMasterProductV20_6_4(resolved.exact,resolved.variantIntent,state.selectedSeller)].filter(Boolean)
       : resolved.products.slice(0,100).map(p=>tpComparisonMasterProductV20_6_4(p,{storage:'',ram:''},state.selectedSeller)).filter(Boolean);
     state.products=normalizedRows;state.exact=normalizedRows;state.alternatives=resolved.alternatives.map(p=>tpComparisonMasterProductV20_6_4(p,{storage:'',ram:''},state.selectedSeller)).filter(Boolean);
-    state.hybridMeta={engine:'v20.6.6-comparison',mode:resolved.mode,type};
+    state.hybridMeta={engine:'v20.6.6.1-comparison',mode:resolved.mode,type};
     try{const m=await loadManifest();state.plan=makePlan(state.query,m,state.scope);}catch{state.plan={q:state.query,groups:[],family:'',families:[],audience:'',segmentKeys:[],alternativeKeys:[],intentTokens:[],exactIntent:false};}
     populateFilters();renderFinder();
     if(push){
@@ -919,7 +919,7 @@ performSearch=async function(query,push=true,scope=''){
       history.replaceState(null,'',`/find/?${params.toString()}`);
     }
   }catch(error){
-    console.error('TrendPilot V20.6.6 comparison failed safely',error);
+    console.error('TrendPilot V20.6.6.1 comparison failed safely',error);
     tpComparisonStateV20_6_4={mode:'error',query:state.query,type:'',products:[],exact:null,alternatives:[],variantIntent:{storage:'',ram:''},forcedTpid:''};
     renderFinder();
   }finally{state.loading=false;}
@@ -1020,6 +1020,9 @@ d.addEventListener('click',e=>{
   performSearch(b.dataset.tpCompareLabelV2064||state.query,true,state.scope);
 });
 // TP_V20_6_4_COMPARISON_END
+
+
+
 
 
 
