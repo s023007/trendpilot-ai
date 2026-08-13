@@ -105,7 +105,11 @@
       "advertiser": "Alibaba",
       "offersAccepted": 24673,
       "complianceBlocked": 327,
-      "invalidRows": 0
+      "invalidRows": 0,
+      "destination_exact": false,
+      "destination_quality": "seller_search_or_category",
+      "destination_label": "Search on Alibaba",
+      "destination_warning": "Exact Alibaba product destination is not proven for this offer."
     },
     {
       "sourceId": "cj-api-products",

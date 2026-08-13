@@ -82,5 +82,9 @@
       "countInSample": 1
     }
   ],
-  "instruction": "Use the candidateRecordTags entry that represents one product as itemTags in the Alibaba source configuration."
+  "instruction": "Use the candidateRecordTags entry that represents one product as itemTags in the Alibaba source configuration.",
+  "destination_exact": false,
+  "destination_quality": "seller_search_or_category",
+  "destination_label": "Search on Alibaba",
+  "destination_warning": "Exact Alibaba product destination is not proven for this offer."
 }

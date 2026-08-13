@@ -8,10 +8,58 @@
     "pendingProgrammesPublic": false
   },
   "programmes": [
-    {"programme":"AliExpress WW","status":"active","modelsAvailable":["CPC","CPA"],"currentRouteSource":"matched product feeds","linkModeVerified":false},
-    {"programme":"Joom Many GEOs","status":"active","modelsAvailable":["CPC","CPA"],"currentRouteSource":"matched product feeds","linkModeVerified":false},
-    {"programme":"Geekbuying WW","status":"active","modelsAvailable":["CPC","CPA"],"currentRouteSource":"matched product feeds","linkModeVerified":false},
-    {"programme":"Alibaba WW","status":"active","modelsAvailable":["CPC","CPA"],"currentRouteSource":"matched exact product feeds","linkModeVerified":false},
-    {"programme":"Wondershare WW","status":"active","modelsAvailable":["CPA"],"currentRouteSource":"official fallback until deeplink insertion","linkModeVerified":false}
+    {
+      "programme": "AliExpress WW",
+      "status": "active",
+      "modelsAvailable": [
+        "CPC",
+        "CPA"
+      ],
+      "currentRouteSource": "matched product feeds",
+      "linkModeVerified": false
+    },
+    {
+      "programme": "Joom Many GEOs",
+      "status": "active",
+      "modelsAvailable": [
+        "CPC",
+        "CPA"
+      ],
+      "currentRouteSource": "matched product feeds",
+      "linkModeVerified": false
+    },
+    {
+      "programme": "Geekbuying WW",
+      "status": "active",
+      "modelsAvailable": [
+        "CPC",
+        "CPA"
+      ],
+      "currentRouteSource": "matched product feeds",
+      "linkModeVerified": false
+    },
+    {
+      "programme": "Alibaba WW",
+      "status": "active",
+      "modelsAvailable": [
+        "CPC",
+        "CPA"
+      ],
+      "currentRouteSource": "matched exact product feeds",
+      "linkModeVerified": false,
+      "destination_exact": false,
+      "destination_quality": "seller_search_or_category",
+      "destination_label": "Search on Alibaba",
+      "destination_warning": "Exact Alibaba product destination is not proven for this offer."
+    },
+    {
+      "programme": "Wondershare WW",
+      "status": "active",
+      "modelsAvailable": [
+        "CPA"
+      ],
+      "currentRouteSource": "official fallback until deeplink insertion",
+      "linkModeVerified": false
+    }
   ]
 }

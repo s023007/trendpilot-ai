@@ -45,7 +45,11 @@
             "tpoid": "TPO-99F0B13C1FC005"
           },
           "partnerSecondary": null,
-          "availability": "unknown"
+          "availability": "unknown",
+          "destination_exact": false,
+          "destination_quality": "seller_search_or_category",
+          "destination_label": "Search on Alibaba",
+          "destination_warning": "Exact Alibaba product destination is not proven for this offer."
         },
         {
           "seller": "TikTok Shop US",
@@ -60,7 +64,9 @@
             "tpoid": "TPO-84DCFBA690B1BC"
           },
           "partnerSecondary": null,
-          "availability": "check-live"
+          "availability": "check-live",
+          "availability_dynamic": true,
+          "availability_label": "Check availability on TikTok"
         }
       ]
     },

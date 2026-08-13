@@ -1,0 +1,30 @@
+{
+  "version": "V20.6.9",
+  "rules": {
+    "alibaba": {
+      "direct_product_claim_requires": "alibaba.com/product-detail/*.html exact destination evidence",
+      "generic_route_label": "Search on Alibaba",
+      "tracked_exact_route_preferred": true,
+      "do_not_claim_direct_when_unproven": true
+    },
+    "tiktok": {
+      "availability_is_dynamic": true,
+      "button_label": "Check availability",
+      "recover_media_from_existing_catalog_fields": true
+    },
+    "ui": {
+      "product_title_max_lines": 3,
+      "compact_mobile_title": true,
+      "buyer_explanation_preserved": true
+    },
+    "catalog": {
+      "do_not_rebuild_v19_v20_identity": true,
+      "do_not_apply_geo_import_filter": true,
+      "blocked_public_sellers_unchanged": [
+        "Temu",
+        "Joom",
+        "FilamentPRO EU CPS"
+      ]
+    }
+  }
+}
