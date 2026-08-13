@@ -1,6 +1,15 @@
 (()=>{
   'use strict';
   const VERSION='20.7.5';
+
+  if(!document.querySelector('script[data-tp-v2076-global]')){
+    const s=document.createElement('script');
+    s.src='/js/v20-7-6-global-truth.js?v=20.7.6';
+    s.async=false;
+    s.dataset.tpV2076Global='1';
+    document.head.appendChild(s);
+  }
+
   const META_URL='/data/shopper-v20-6-8-4/meta.json?v=20.7.5';
   const PHONE_URL='/data/shopper-v20-6-8-4/phone-suffixes.json?v=20.7.5';
   const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
