@@ -1,14 +1,45 @@
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-const DIR=path.dirname(fileURLToPath(import.meta.url));
-const offers=JSON.parse(fs.readFileSync(path.join(DIR,'_product-data','offers.json'),'utf8'));
-const byId=new Map(offers.map(o=>[o.tpoid,o]));
-const safeSource=(v)=>String(v??'').replace(/[^a-z0-9_-]/gi,'').slice(0,40)||'unknown';
-export const handler=async(event)=>{
-  const id=String(event?.queryStringParameters?.offer||'').trim(); const o=byId.get(id);
-  if(!o || !/^https?:\/\//i.test(o.url)) return {statusCode:404,headers:{'content-type':'text/plain; charset=utf-8','cache-control':'no-store'},body:'Offer not found'};
-  const src=safeSource(event?.queryStringParameters?.src);
-  console.log(JSON.stringify({event:'outbound_click',source:src,tpoid:o.tpoid,tpid:o.tpid,tpvid:o.tpvid||null,seller:o.seller,cpcCapable:Boolean(o.cpcCapable),cpcConfirmed:Boolean(o.cpcConfirmed),at:new Date().toISOString()}));
-  return {statusCode:302,headers:{location:o.url,'cache-control':'no-store','referrer-policy':'strict-origin-when-cross-origin'},body:''};
+import { loadProductData } from './trendpilot-product-data.mjs';
+
+const BLOCKED = /^(?:Temu|Joom|FilamentPRO(?: EU CPS)?)$/i;
+const clean = v => String(v ?? '').trim();
+const validHttp = v => { try { const u = new URL(clean(v)); return /^https?:$/.test(u.protocol); } catch { return false; } };
+
+export const handler = async event => {
+  try {
+    const q = event?.queryStringParameters || {};
+    const id = clean(q.offer);
+    if (!id) return {statusCode:400,headers:{'cache-control':'no-store'},body:'Missing offer'};
+    const {offers} = loadProductData();
+    const offer = offers.find(o => clean(o.tpoid) === id);
+    if (!offer || BLOCKED.test(clean(offer.seller)) || !validHttp(offer.url)) {
+      return {statusCode:404,headers:{'cache-control':'no-store'},body:'Offer unavailable'};
+    }
+
+    const src = clean(q.src).slice(0,60).replace(/[^a-z0-9_.-]/gi,'_') || 'unknown';
+    console.log(JSON.stringify({
+      event:'seller_outbound',
+      tpid:offer.tpid,
+      tpvid:offer.tpvid || '',
+      tpoid:offer.tpoid,
+      seller:offer.seller,
+      src,
+      cpcCapable:Boolean(offer.cpcCapable),
+      cpcConfirmed:Boolean(offer.cpcConfirmed)
+    }));
+
+    // Critical monetization rule: redirect to the exact committed affiliate/tracking URL.
+    // Do not append, strip, rebuild or normalize the seller destination query string.
+    return {
+      statusCode:302,
+      headers:{
+        location:offer.url,
+        'cache-control':'no-store, max-age=0',
+        'x-robots-tag':'noindex, nofollow'
+      },
+      body:''
+    };
+  } catch (err) {
+    console.error('trendpilot-outbound',err);
+    return {statusCode:503,headers:{'cache-control':'no-store'},body:'Seller link is temporarily unavailable.'};
+  }
 };
