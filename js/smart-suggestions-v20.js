@@ -1,5 +1,14 @@
 (() => {
   'use strict';
+
+  if(!document.querySelector('script[data-tp-v2076-global]')){
+    const s=document.createElement('script');
+    s.src='/js/v20-7-6-global-truth.js?v=20.7.6';
+    s.async=false;
+    s.dataset.tpV2076Global='1';
+    document.head.appendChild(s);
+  }
+
   const d=document;
   const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
   const esc=v=>clean(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
@@ -91,7 +100,6 @@
     if(!value)return;
     input.value=value;
     close();
-    // Do not depend on legacy form-submit listeners. A suggestion click owns a fresh V20 search.
     location.assign(searchUrl(value));
   }
 
@@ -118,7 +126,6 @@
     choose((panel._rows||[])[Number(row.dataset.i)]);
   });
 
-  // Android/WebView fallback: some devices suppress pointerup after the keyboard changes focus.
   d.addEventListener('click',e=>{
     const row=e.target.closest('.tp-amazon-row');
     if(!row||!panel||!input)return;
