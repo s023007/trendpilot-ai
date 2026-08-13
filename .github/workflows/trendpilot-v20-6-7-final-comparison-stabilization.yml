@@ -1,0 +1,621 @@
+name: TrendPilot V20.6.7 — Final Comparison Stabilization
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v20-6-7-final-comparison-stabilization
+  cancel-in-progress: false
+
+jobs:
+  stabilize-comparison:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Verify current TrendPilot foundations
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d data/catalog-v19/sellers
+          test -d data/search-v20-6
+          test -f find/index.html
+          test -f js/site-v13-5.js
+          echo "Canonical seller files: $(find data/catalog-v19/sellers -name products.ndjson | wc -l)"
+          echo "V20.6 files: $(find data/search-v20-6 -type f | wc -l)"
+
+      - name: Build normalized V20.6.7 comparison overlay from committed identity package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p scripts data/search-v20-6 js css .tmp-v2067
+          cat > scripts/build-v20-6-7-overlay.py <<'PY'
+          from __future__ import annotations
+          import json, re, math, hashlib
+          from pathlib import Path
+          from collections import defaultdict
+
+          ROOT = Path('.')
+          SRC = ROOT / 'data/search-v20-6'
+          OUT = SRC / 'stable-v20-6-7.json'
+          BLOCKED = {'temu','joom','filamentpro eu cps','filamentpro'}
+          ID_TPID = re.compile(r'^TP[A-Z]{2,4}-[A-Z0-9]+$', re.I)
+          ID_TPVID = re.compile(r'^TPV-[A-Z0-9]+$', re.I)
+          ID_TPOID = re.compile(r'^TPO-[A-Z0-9]+$', re.I)
+
+          def txt(v):
+              if v is None: return ''
+              if isinstance(v, (str,int,float)): return str(v).strip()
+              return ''
+
+          def first(d, keys):
+              for k in keys:
+                  if k in d:
+                      v = d.get(k)
+                      if v is not None and txt(v): return v
+              return None
+
+          def first_id(d, regex, keys):
+              for k in keys:
+                  v = txt(d.get(k))
+                  if regex.match(v): return v.upper()
+              for v in d.values():
+                  if isinstance(v, str) and regex.match(v.strip()): return v.strip().upper()
+              return ''
+
+          def num(v):
+              if v is None or isinstance(v,bool): return None
+              if isinstance(v,(int,float)):
+                  x=float(v); return x if math.isfinite(x) else None
+              s=txt(v).replace(',','')
+              m=re.search(r'(?<!\d)(\d+(?:\.\d+)?)', s)
+              if not m: return None
+              try: return float(m.group(1))
+              except: return None
+
+          def boolish(v):
+              if isinstance(v,bool): return v
+              s=txt(v).lower()
+              if s in {'true','1','yes','y','pass','reliable','valid'}: return True
+              if s in {'false','0','no','n','fail','unreliable','invalid','suppressed'}: return False
+              return None
+
+          def norm_type(v):
+              s=txt(v).lower().replace('-','_').replace(' ','_')
+              aliases={
+                'smartphones':'phone','smartphone':'phone','phones':'phone','mobile_phone':'phone',
+                'laptops':'laptop','notebook':'laptop','notebooks':'laptop',
+                'headphone':'headphones','earbuds':'headphones','earphone':'headphones','earphones':'headphones','headset':'headphones',
+                'fragrance':'perfume','fragrances':'perfume','perfumes':'perfume',
+                'powerbank':'power_bank','powerbanks':'power_bank','power_banks':'power_bank',
+                'airconditioner':'air_conditioner','air_conditioners':'air_conditioner','air_conditioning':'air_conditioner',
+                'dogfood':'dog_food','pet_food':'dog_food','dog_treats':'dog_food',
+                'smartwatches':'smartwatch','smart_watch':'smartwatch',
+                '3d_filament':'3d_filament','filament':'3d_filament'
+              }
+              return aliases.get(s,s)
+
+          def seller_key(s): return re.sub(r'[^a-z0-9]+',' ',txt(s).lower()).strip()
+          def blocked(s):
+              k=seller_key(s)
+              return any(b in k for b in BLOCKED)
+
+          def valid_url(v): return bool(re.match(r'^https?://', txt(v), re.I))
+          def richest(cur,new):
+              if not cur: return new
+              score=lambda x: sum(bool(txt(x.get(k))) for k in ['name','canonicalName','brand','image','url','type','seller']) + len(json.dumps(x,ensure_ascii=False))*.00001
+              return new if score(new)>score(cur) else cur
+
+          raw_records=[]
+          parse_errors=[]
+          for p in sorted(SRC.rglob('*')):
+              if p.name=='stable-v20-6-7.json' or not p.is_file(): continue
+              if p.suffix.lower()=='.json':
+                  try:
+                      raw_records.append((p,json.loads(p.read_text(encoding='utf-8'))))
+                  except Exception as e: parse_errors.append((str(p),str(e)))
+              elif p.suffix.lower() in {'.ndjson','.jsonl'}:
+                  rows=[]
+                  try:
+                      for i,line in enumerate(p.read_text(encoding='utf-8',errors='ignore').splitlines(),1):
+                          line=line.strip()
+                          if not line: continue
+                          try: rows.append(json.loads(line))
+                          except Exception as e: parse_errors.append((f'{p}:{i}',str(e)))
+                      raw_records.append((p,rows))
+                  except Exception as e: parse_errors.append((str(p),str(e)))
+
+          products={}; offers=[]; variants={}
+          seen_offer_fingerprints=set()
+
+          def walk(obj, inherited=None, source=''):
+              inherited=dict(inherited or {})
+              if isinstance(obj, list):
+                  for x in obj: walk(x,inherited,source)
+                  return
+              if not isinstance(obj, dict): return
+
+              tpid=first_id(obj,ID_TPID,['tpid','TPID','masterProductId','master_product_id','productId','product_id','id']) or inherited.get('tpid','')
+              tpvid=first_id(obj,ID_TPVID,['tpvid','TPVID','variantId','variant_id','id']) or inherited.get('tpvid','')
+              tpoid=first_id(obj,ID_TPOID,['tpoid','TPOID','offerId','offer_id','listingId','listing_id','id'])
+              name=txt(first(obj,['canonicalName','canonical_name','displayName','display_name','model','name','title','productName','product_name']))
+              brand=txt(first(obj,['canonicalBrand','canonical_brand','brand','manufacturer']))
+              ptype=norm_type(first(obj,['productType','product_type','type','category','kind']) or inherited.get('type',''))
+              seller=txt(first(obj,['seller','advertiser','advertiserName','advertiser_name','merchant','merchantName','merchant_name','store']))
+              url=txt(first(obj,['affiliateUrl','affiliate_url','buyUrl','buy_url','productUrl','product_url','clickUrl','click_url','url','destinationUrl','destination_url']))
+              image=txt(first(obj,['image','imageUrl','image_url','imageLink','image_link','thumbnail','thumbnailUrl','thumbnail_url']))
+              currency=txt(first(obj,['currency','currencyCode','currency_code'])) or 'USD'
+              price=num(first(obj,['price','salePrice','sale_price','currentPrice','current_price','minPrice','min_price','amount']))
+
+              ctx={'tpid':tpid,'tpvid':tpvid,'type':ptype or inherited.get('type','')}
+
+              if tpid and not blocked(seller):
+                  rec={'tpid':tpid,'name':name,'brand':brand,'type':ptype,'image':image,'source':source}
+                  if name or brand or ptype or image:
+                      products[tpid]=richest(products.get(tpid),rec)
+
+              if tpid and tpvid:
+                  vr={'tpid':tpid,'tpvid':tpvid,'name':name,'type':ptype,'source':source}
+                  variants[(tpid,tpvid)]=richest(variants.get((tpid,tpvid)),vr)
+
+              looks_offer=bool(tpid and (tpoid or seller or valid_url(url)) and (seller or valid_url(url)))
+              if looks_offer and not blocked(seller):
+                  reliability=True
+                  for k in ['priceReliable','price_reliable','reliablePrice','reliable_price','priceValid','price_valid']:
+                      if k in obj:
+                          b=boolish(obj.get(k));
+                          if b is False: reliability=False
+                  for k in ['priceSuppressed','price_suppressed','suppressPrice','suppress_price','unreliablePrice','unreliable_price']:
+                      if k in obj:
+                          b=boolish(obj.get(k));
+                          if b is True: reliability=False
+                  fp=tpoid or hashlib.sha1(f'{tpid}|{tpvid}|{seller}|{url}|{name}'.encode()).hexdigest()[:20]
+                  if fp not in seen_offer_fingerprints:
+                      seen_offer_fingerprints.add(fp)
+                      offers.append({'tpid':tpid,'tpvid':tpvid,'tpoid':tpoid or ('TPOX-'+fp.upper()),'name':name,'seller':seller,'url':url,'image':image,'price':price,'currency':currency,'type':ptype,'priceReliable':reliability,'source':source})
+
+              for v in obj.values():
+                  if isinstance(v,(dict,list)): walk(v,ctx,source)
+
+          for p,obj in raw_records: walk(obj,{},str(p))
+
+          # If the committed comparison package is compact/nested, the generic walker above recovers parent TPID/TPVID context.
+          # Now consolidate only actionable seller offers.
+          actionable=[]
+          for o in offers:
+              if not o['seller'] or not valid_url(o['url']):
+                  continue
+              if blocked(o['seller']): continue
+              p=products.get(o['tpid'],{})
+              typ=norm_type(o.get('type') or p.get('type'))
+              price=o.get('price')
+              reliable=bool(o.get('priceReliable',True))
+              reason=''
+              if price is None or price<=0: reliable=False; reason='missing-or-nonpositive'
+              elif price<=1.01: reliable=False; reason='placeholder-one-dollar'
+              elif seller_key(o['seller']).startswith('lenovo') and price<10: reliable=False; reason='lenovo-placeholder'
+              elif typ=='phone' and price<15: reliable=False; reason='implausible-phone-floor'
+              elif typ=='laptop' and price<25: reliable=False; reason='implausible-laptop-floor'
+              elif typ=='air_conditioner' and price<40: reliable=False; reason='implausible-ac-floor'
+              elif typ=='smartwatch' and price<5: reliable=False; reason='implausible-watch-floor'
+              elif typ=='headphones' and price<2: reliable=False; reason='implausible-headphone-floor'
+              if not reliable and not reason: reason='source-marked-unreliable'
+              o['type']=typ; o['priceReliable']=reliable; o['priceSuppressionReason']=reason
+              actionable.append(o)
+
+          by_tpid=defaultdict(list)
+          for o in actionable: by_tpid[o['tpid']].append(o)
+
+          def specs_from(text):
+              s=txt(text)
+              bits=[]
+              for pat in [r'\b(?:8|16|32|64|128|256|512|1024)\s*GB\b', r'\b(?:1|2|3|4|6|8|12|16|24|32|64)\s*GB\s*RAM\b', r'\bGen\s*\d+\b', r'\b\d+(?:\.\d+)?\s*(?:inch|inches|\")\b']:
+                  for m in re.findall(pat,s,re.I):
+                      v=re.sub(r'\s+',' ',m).strip()
+                      if v.lower() not in [x.lower() for x in bits]: bits.append(v)
+              return bits[:4]
+
+          result_products=[]; result_variants=[]; result_offers=[]
+          suppressed_prices=[]
+          for tpid, rows in by_tpid.items():
+              if not rows: continue
+              p=products.get(tpid,{})
+              name=txt(p.get('name')) or txt(rows[0].get('name')) or tpid
+              if ID_TPID.match(name): name=txt(rows[0].get('name')) or 'TrendPilot product'
+              brand=txt(p.get('brand'))
+              typ=norm_type(p.get('type') or rows[0].get('type'))
+              img=txt(p.get('image')) or next((txt(x.get('image')) for x in rows if valid_url(x.get('image'))),'')
+              sellers=sorted({txt(x['seller']) for x in rows if x['seller']})
+              tpvids=sorted({x['tpvid'] for x in rows if x['tpvid']})
+              reliable_prices=[x['price'] for x in rows if x.get('priceReliable') and x.get('price') is not None]
+              result_products.append({
+                'tpid':tpid,'name':name,'brand':brand,'type':typ,'image':img,
+                'sellerCount':len(sellers),'sellers':sellers,'variantCount':max(1,len(tpvids)),
+                'fromPrice':min(reliable_prices) if reliable_prices else None,'currency':'USD',
+                'offerCount':len(rows)
+              })
+              grouped=defaultdict(list)
+              for x in rows: grouped[x.get('tpvid') or 'UNSPECIFIED'].append(x)
+              for vid,vrows in grouped.items():
+                  evidence=' '.join([name]+[txt(x.get('name')) for x in vrows[:4]])
+                  specs=specs_from(evidence)
+                  label=' · '.join(specs) if specs else ('Base / unspecified variant' if vid=='UNSPECIFIED' else f'Variant {len(result_variants)+1}')
+                  vsellers=sorted({x['seller'] for x in vrows if x['seller']})
+                  result_variants.append({'tpid':tpid,'tpvid':vid,'label':label,'sellerCount':len(vsellers),'sellers':vsellers,'offerCount':len(vrows)})
+              for x in rows:
+                  result_offers.append(x)
+                  if not x.get('priceReliable') and x.get('price') is not None:
+                      suppressed_prices.append({'tpid':tpid,'seller':x['seller'],'price':x['price'],'reason':x['priceSuppressionReason'],'name':x.get('name','')})
+
+          # Sort deterministic; multi-seller and named canonical models first.
+          result_products.sort(key=lambda x:(-x['sellerCount'], x['type'], x['brand'].lower(), x['name'].lower(), x['tpid']))
+          result_variants.sort(key=lambda x:(x['tpid'],x['label'],x['tpvid']))
+          result_offers.sort(key=lambda x:(x['tpid'],x.get('tpvid',''),x['seller'].lower(),x['tpoid']))
+
+          prod_ids={p['tpid'] for p in result_products}
+          result_variants=[v for v in result_variants if v['tpid'] in prod_ids]
+          result_offers=[o for o in result_offers if o['tpid'] in prod_ids]
+
+          # Strong contract checks.
+          failures=[]
+          if len(result_products)<10000: failures.append(f'too-few-products={len(result_products)}')
+          if len(result_offers)<10000: failures.append(f'too-few-offers={len(result_offers)}')
+          if any(blocked(o['seller']) for o in result_offers): failures.append('blocked-seller-leak')
+          if any(p['sellerCount'] != len({o['seller'] for o in result_offers if o['tpid']==p['tpid']}) for p in result_products): failures.append('seller-count-mismatch')
+          if any(o.get('priceReliable') and o.get('price') is not None and o['price']<=1.01 for o in result_offers): failures.append('visible-one-dollar-price')
+
+          def find_product(name):
+              n=re.sub(r'[^a-z0-9]+',' ',name.lower()).strip()
+              exact=[p for p in result_products if re.sub(r'[^a-z0-9]+',' ',p['name'].lower()).strip()==n]
+              return exact[0] if exact else None
+
+          one=find_product('OnePlus 7T')
+          if not one: failures.append('missing-OnePlus-7T')
+          else:
+              ss={o['seller'] for o in result_offers if o['tpid']==one['tpid']}
+              if len(ss)<2: failures.append(f'OnePlus-7T-sellers={sorted(ss)}')
+          think=find_product('ThinkPad X1 Carbon')
+          if not think: failures.append('missing-ThinkPad-X1-Carbon')
+          mono=find_product('Lenovo 100 Mono USB Headset')
+          if mono:
+              bad=[o for o in result_offers if o['tpid']==mono['tpid'] and o.get('priceReliable') and (o.get('price') or 0)<10]
+              if bad: failures.append('Lenovo-headset-placeholder-visible')
+
+          payload={
+            'version':'20.6.7','mode':'stable-comparison-overlay','generatedFrom':'committed V20.6 package',
+            'products':result_products,'variants':result_variants,'offers':result_offers,
+            'stats':{
+              'products':len(result_products),'offers':len(result_offers),'variants':len(result_variants),
+              'multiSellerProducts':sum(p['sellerCount']>1 for p in result_products),
+              'singleSellerProducts':sum(p['sellerCount']==1 for p in result_products),
+              'productsWithImage':sum(valid_url(p['image']) for p in result_products),
+              'suppressedPrices':len(suppressed_prices),
+              'parseErrors':len(parse_errors)
+            },
+            'suppressedPriceSamples':suppressed_prices[:50],
+            'failures':failures
+          }
+          OUT.write_text(json.dumps(payload,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+          Path('.tmp-v2067/build-summary.json').write_text(json.dumps(payload['stats']|{'failures':failures},indent=2),encoding='utf-8')
+          print(json.dumps(payload['stats']|{'failures':failures},indent=2))
+          if failures:
+              raise SystemExit('V20.6.7 overlay contract failed: '+ '; '.join(failures))
+          PY
+          python scripts/build-v20-6-7-overlay.py
+
+      - name: Install dedicated stable comparison renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > js/comparison-v20-6-7.js <<'JS'
+          (()=>{
+            'use strict';
+            const qs=new URLSearchParams(location.search);
+            const engine=(qs.get('engine')||'').toLowerCase();
+            if(!['v2064','v2067'].includes(engine)) return;
+
+            const clean=v=>String(v??'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+            const esc=v=>clean(v).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+            const norm=v=>clean(v).toLowerCase().replace(/[\u2010-\u2015]/g,'-').replace(/[^a-z0-9+.#% -]+/g,' ').replace(/\s+/g,' ').trim();
+            const money=(n,c='USD')=>Number.isFinite(Number(n))?new Intl.NumberFormat('en-US',{style:'currency',currency:c||'USD',maximumFractionDigits:2}).format(Number(n)):'';
+            const root=()=>document.querySelector('.tp-main-col');
+            const input=()=>document.querySelector('[data-tp-finder-input]');
+            let DATA=null;
+
+            function indexData(data){
+              const byId=new Map(), offers=new Map(), variants=new Map();
+              data.products.forEach(p=>byId.set(p.tpid,p));
+              data.offers.forEach(o=>{if(!offers.has(o.tpid))offers.set(o.tpid,[]);offers.get(o.tpid).push(o)});
+              data.variants.forEach(v=>{if(!variants.has(v.tpid))variants.set(v.tpid,[]);variants.get(v.tpid).push(v)});
+              return {byId,offers,variants};
+            }
+            function score(p,q){
+              const n=norm(p.name), b=norm(p.brand), qq=norm(q);
+              if(!qq) return 0;
+              if(n===qq) return 10000;
+              if(`${b} ${n}`.trim()===qq) return 9800;
+              let s=0;
+              if(n.startsWith(qq)) s+=5000;
+              if(n.includes(qq)) s+=3500;
+              const toks=qq.split(' ').filter(x=>x.length>1);
+              const hits=toks.filter(t=>n.includes(t)||b.includes(t)).length;
+              s+=hits*600;
+              if(hits===toks.length && toks.length) s+=1500;
+              if(p.sellerCount>1) s+=120;
+              return s;
+            }
+            function queryType(q){
+              const n=norm(q);
+              if(/\b(phone|smartphone|iphone|redmi|oneplus|galaxy|pixel)\b/.test(n)) return 'phone';
+              if(/\b(laptop|thinkpad|ideapad|chromebook|notebook)\b/.test(n)) return 'laptop';
+              if(/\b(headphones?|headsets?|earbuds?|earphones?|tws)\b/.test(n)) return 'headphones';
+              if(/\b(perfume|fragrance|cologne|eau de)\b/.test(n)) return 'perfume';
+              if(/\b(power ?bank)\b/.test(n)) return 'power_bank';
+              if(/\b(dog food|dog treats?)\b/.test(n)) return 'dog_food';
+              if(/\b(air conditioner|portable ac|mini split)\b/.test(n)) return 'air_conditioner';
+              return '';
+            }
+            function findProducts(q){
+              const typ=queryType(q), nq=norm(q);
+              let rows=DATA.products.map(p=>({p,s:score(p,q)})).filter(x=>x.s>0);
+              if(typ) rows=rows.filter(x=>x.p.type===typ);
+              if(['phone','laptop','headphones','perfume','power bank','dog food','air conditioner'].includes(nq)){
+                const t=queryType(nq); rows=DATA.products.filter(p=>p.type===t).map(p=>({p,s:(p.sellerCount>1?100:0)+(p.brand?10:0)}));
+              }
+              return rows.sort((a,b)=>b.s-a.s||b.p.sellerCount-a.p.sellerCount||a.p.name.localeCompare(b.p.name)).map(x=>x.p);
+            }
+            function exactProduct(q){
+              const nq=norm(q);
+              const exact=DATA.products.filter(p=>norm(p.name)===nq||norm(`${p.brand} ${p.name}`)===nq);
+              if(exact.length) return exact.sort((a,b)=>b.sellerCount-a.sellerCount)[0];
+              const ranked=findProducts(q);
+              return ranked[0]&&score(ranked[0],q)>=7000?ranked[0]:null;
+            }
+            function image(p){return /^https?:\/\//i.test(clean(p.image))?`<img src="${esc(p.image)}" alt="${esc(p.name)}" loading="lazy">`:'<div class="tp67-placeholder">TP</div>'}
+            function priceText(p){return p.fromPrice!=null?`From ${money(p.fromPrice,p.currency)}`:'Check current price'}
+            function card(p){
+              const action=p.sellerCount>1?`Compare ${p.sellerCount} sellers`:(p.variantCount>1?'View offer & variants':'View seller offer');
+              return `<article class="tp67-product-card" data-tpid="${esc(p.tpid)}">
+                <div class="tp67-product-image">${image(p)}</div>
+                <div class="tp67-product-body">
+                  <div class="tp67-brand">${esc(p.brand||'Product')}</div>
+                  <h3>${esc(p.name)}</h3><div class="tp67-price">${esc(priceText(p))}</div>
+                  <div class="tp67-meta"><span>${p.sellerCount} seller${p.sellerCount===1?'':'s'}</span><span>${p.variantCount} variant${p.variantCount===1?'':'s'}</span></div>
+                  <button class="tp67-btn" type="button" data-tpid-open="${esc(p.tpid)}">${esc(action)}</button>
+                </div></article>`;
+            }
+            function browse(q){
+              const r=root(); if(!r)return;
+              const rows=findProducts(q);
+              const shown=rows.slice(0,80);
+              r.innerHTML=`<div class="tp67-head"><div><h2>Choose a product to compare for “${esc(q)}”</h2><p>Products are grouped by TrendPilot product identity. Seller listings are not mixed together.</p></div><span>${rows.length} master products</span></div>
+                <div class="tp67-grid">${shown.map(card).join('')||'<div class="tp67-empty">No verified product identity matched this query.</div>'}</div>
+                ${rows.length>shown.length?`<button class="tp67-more" type="button" data-tp67-more>Show more (${rows.length-shown.length})</button>`:''}`;
+              r.querySelectorAll('[data-tpid-open]').forEach(b=>b.addEventListener('click',()=>comparison(b.dataset.tpidOpen)));
+              const more=r.querySelector('[data-tp67-more]');
+              if(more)more.addEventListener('click',()=>{r.querySelector('.tp67-grid').innerHTML=rows.map(card).join('');more.remove();r.querySelectorAll('[data-tpid-open]').forEach(b=>b.addEventListener('click',()=>comparison(b.dataset.tpidOpen)));});
+            }
+            function offerCard(o){
+              const price=o.priceReliable&&o.price!=null?money(o.price,o.currency):'Check current price';
+              const note=o.priceReliable?'':'Price hidden because the source price is incomplete or unreliable.';
+              return `<div class="tp67-offer-card"><div class="tp67-offer-top"><strong>${esc(o.seller)}</strong><b>${esc(price)}</b></div>${note?`<small>${esc(note)}</small>`:''}<a href="${esc(o.url)}" target="_blank" rel="nofollow sponsored noopener">Check seller ↗</a></div>`;
+            }
+            function comparison(tpid){
+              const r=root(); if(!r)return;
+              const p=IDX.byId.get(tpid); if(!p){browse(qs.get('q')||'');return;}
+              const all=(IDX.offers.get(tpid)||[]).filter(o=>/^https?:\/\//i.test(o.url));
+              const vars=IDX.variants.get(tpid)||[];
+              const byVariant=new Map();
+              all.forEach(o=>{const v=o.tpvid||'UNSPECIFIED';if(!byVariant.has(v))byVariant.set(v,[]);byVariant.get(v).push(o)});
+              const sellerSet=[...new Set(all.map(o=>o.seller))];
+              const variantRows=vars.length?vars:[{tpvid:'UNSPECIFIED',label:'Base / unspecified variant',sellerCount:sellerSet.length}];
+              const first=variantRows.sort((a,b)=>b.sellerCount-a.sellerCount||b.offerCount-a.offerCount)[0];
+              r.innerHTML=`<div class="tp67-compare-head"><button type="button" class="tp67-back">← Back to results</button><div class="tp67-title-row"><div class="tp67-compare-image">${image(p)}</div><div><div class="tp67-brand">${esc(p.brand||'Product')}</div><h2>${esc(p.name)}</h2><p><strong>${sellerSet.length}</strong> seller${sellerSet.length===1?'':'s'} across <strong>${variantRows.length}</strong> variant${variantRows.length===1?'':'s'}.</p></div></div></div>
+                <section class="tp67-variants"><h3>Variants</h3><p class="tp67-help">Select a variant to compare only offers that belong to that exact TPVID. “All variants” shows every seller offer for this TPID without pretending different variants are identical.</p>
+                  <div class="tp67-variant-chips"><button class="active" data-variant="ALL">All variants · ${sellerSet.length} sellers</button>${variantRows.map(v=>`<button data-variant="${esc(v.tpvid)}">${esc(v.label)} · ${v.sellerCount} seller${v.sellerCount===1?'':'s'}</button>`).join('')}</div></section>
+                <section class="tp67-offers"><div class="tp67-offers-head"><h3>Seller offers</h3><span data-tp67-offer-count>${sellerSet.length} sellers</span></div><div class="tp67-offer-grid" data-tp67-offers>${all.map(offerCard).join('')}</div></section>
+                <details class="tp67-tech"><summary>Technical identity details</summary><div>TPID: ${esc(p.tpid)}</div>${first?.tpvid?`<div>Example TPVID: ${esc(first.tpvid)}</div>`:''}</details>`;
+              r.querySelector('.tp67-back').addEventListener('click',()=>browse(qs.get('q')||p.type||p.name));
+              r.querySelectorAll('[data-variant]').forEach(btn=>btn.addEventListener('click',()=>{
+                r.querySelectorAll('[data-variant]').forEach(x=>x.classList.toggle('active',x===btn));
+                const vid=btn.dataset.variant; const rows=vid==='ALL'?all:(byVariant.get(vid)||[]);
+                const sellers=[...new Set(rows.map(o=>o.seller))];
+                r.querySelector('[data-tp67-offers]').innerHTML=rows.map(offerCard).join('')||'<div class="tp67-empty">No actionable seller offer is available for this exact variant.</div>';
+                r.querySelector('[data-tp67-offer-count]').textContent=`${sellers.length} seller${sellers.length===1?'':'s'}`;
+              }));
+              history.replaceState(null,'',`${location.pathname}?engine=v2064&q=${encodeURIComponent(p.name)}&tpid=${encodeURIComponent(p.tpid)}`);
+            }
+            async function init(){
+              const r=root(); if(!r)return;
+              try{
+                const res=await fetch('/data/search-v20-6/stable-v20-6-7.json?v=20.6.7',{cache:'no-store'});
+                if(!res.ok) throw new Error(`HTTP ${res.status}`);
+                DATA=await res.json(); IDX=indexData(DATA);
+                const q=clean(qs.get('q')||input()?.value||''); const direct=clean(qs.get('tpid')||'');
+                if(direct&&IDX.byId.has(direct)) comparison(direct);
+                else {
+                  const p=exactProduct(q);
+                  if(p && norm(p.name)===norm(q)) comparison(p.tpid); else browse(q);
+                }
+              }catch(err){
+                r.innerHTML=`<div class="tp67-empty"><h2>Comparison data could not be loaded.</h2><p>${esc(err.message||err)}</p><p>Use <code>?engine=legacy</code> only as a temporary fallback.</p></div>`;
+              }
+            }
+            let IDX=null;
+            if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>setTimeout(init,0),{once:true}); else setTimeout(init,0);
+          })();
+          JS
+
+          cat > css/comparison-v20-6-7.css <<'CSS'
+          body[data-tp-page="finder"] .tp-main-col{opacity:1!important;filter:none!important;color:#17201d!important;min-width:0}
+          .tp67-head,.tp67-compare-head,.tp67-variants,.tp67-offers,.tp67-tech,.tp67-product-card{opacity:1!important;filter:none!important;color:#17201d!important}
+          .tp67-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin:0 0 24px}.tp67-head h2,.tp67-compare-head h2{margin:0 0 8px;font-size:clamp(30px,5vw,48px);line-height:1.04;color:#17201d!important}.tp67-head p,.tp67-compare-head p,.tp67-help{margin:0;color:#66726d!important;font-size:18px;line-height:1.55}.tp67-head>span,.tp67-offers-head>span{background:#e9fbf5;color:#14745b;padding:12px 16px;border-radius:999px;font-weight:800;white-space:nowrap}
+          .tp67-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.tp67-product-card{display:grid;grid-template-columns:180px minmax(0,1fr);background:#fff;border:1px solid #dfe6e2;border-radius:28px;overflow:hidden;box-shadow:0 9px 28px rgba(19,31,27,.06)}.tp67-product-image{display:grid;place-items:center;background:#f5f7f6;min-height:220px;padding:18px}.tp67-product-image img,.tp67-compare-image img{max-width:100%;max-height:190px;object-fit:contain}.tp67-placeholder{width:82px;height:82px;border-radius:22px;background:#2f5bea;color:#fff;display:grid;place-items:center;font-size:28px;font-weight:900}.tp67-product-body{padding:24px;min-width:0}.tp67-brand{font-weight:850;color:#2f5bea!important;margin-bottom:8px}.tp67-product-body h3{margin:0 0 15px;font-size:25px;line-height:1.18;color:#17201d!important;overflow-wrap:anywhere}.tp67-price{font-size:30px;font-weight:900;color:#17201d!important;margin-bottom:14px}.tp67-meta{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}.tp67-meta span{background:#f1f3f2;border-radius:999px;padding:8px 12px;color:#53605b!important}.tp67-btn,.tp67-more,.tp67-back{border:0;cursor:pointer;font:inherit;font-weight:850}.tp67-btn{background:#315be8;color:#fff;border-radius:16px;padding:14px 18px;width:100%;font-size:18px}.tp67-more{display:block;margin:28px auto;background:#fff;border:1px solid #d8dfdc;border-radius:16px;padding:14px 22px}.tp67-empty{background:#fff;border:1px dashed #cbd4d0;border-radius:22px;padding:32px;text-align:center;color:#34403c!important}
+          .tp67-back{background:transparent;color:#315be8;padding:0;margin:0 0 18px}.tp67-title-row{display:grid;grid-template-columns:150px minmax(0,1fr);gap:24px;align-items:center}.tp67-compare-image{display:grid;place-items:center;background:#fff;border:1px solid #e2e7e4;border-radius:22px;min-height:140px;padding:15px}.tp67-variants,.tp67-offers{margin-top:22px;background:#fff;border:1px solid #e0e6e3;border-radius:24px;padding:24px}.tp67-variants h3,.tp67-offers h3{margin:0 0 8px;font-size:25px;color:#17201d!important}.tp67-variant-chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}.tp67-variant-chips button{border:1px solid #cad5d0;background:#fff;color:#24302c;border-radius:999px;padding:11px 14px;font-weight:800;cursor:pointer;max-width:100%;overflow-wrap:anywhere}.tp67-variant-chips button.active{background:#315be8;border-color:#315be8;color:#fff}.tp67-offers-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}.tp67-offer-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tp67-offer-card{border:1px solid #dce4e0;border-radius:18px;padding:18px;opacity:1!important;color:#17201d!important}.tp67-offer-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;font-size:18px}.tp67-offer-card small{display:block;color:#6d7773!important;margin:10px 0;line-height:1.4}.tp67-offer-card a{display:inline-block;margin-top:14px;background:#315be8;color:#fff;text-decoration:none;border-radius:13px;padding:10px 14px;font-weight:850}.tp67-tech{margin:18px 0 120px;color:#73807a!important}.tp67-tech summary{cursor:pointer;font-weight:750}.tp67-tech div{overflow-wrap:anywhere;margin-top:8px}.tp-bottom-nav{z-index:50}.tp-main-col{padding-bottom:120px}
+          @media(max-width:760px){.tp67-head{display:block}.tp67-head>span{display:inline-block;margin-top:14px}.tp67-grid{grid-template-columns:1fr}.tp67-product-card{grid-template-columns:38% minmax(0,1fr);border-radius:24px}.tp67-product-image{min-height:205px;padding:12px}.tp67-product-body{padding:20px 16px}.tp67-product-body h3{font-size:22px}.tp67-price{font-size:27px}.tp67-title-row{grid-template-columns:105px minmax(0,1fr);gap:14px}.tp67-compare-image{min-height:105px;padding:9px}.tp67-compare-head h2{font-size:34px}.tp67-offer-grid{grid-template-columns:1fr}.tp67-offers,.tp67-variants{padding:18px;border-radius:20px}.tp67-offer-top{font-size:17px}.tp67-variant-chips{flex-direction:column}.tp67-variant-chips button{width:100%;text-align:left;border-radius:14px}.tp67-tech{margin-bottom:160px}.tp-main-col{padding-bottom:155px!important}}
+          CSS
+
+      - name: Wire V20.6.7 renderer into Finder without replacing legacy engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('find/index.html')
+          s=p.read_text(encoding='utf-8')
+          css='<link rel="stylesheet" href="/css/comparison-v20-6-7.css?v=20.6.7">'
+          js='<script defer src="/js/comparison-v20-6-7.js?v=20.6.7"></script>'
+          if css not in s:
+              s=s.replace('</head>',css+'</head>')
+          if js not in s:
+              s=s.replace('</body>',js+'</body>')
+          # Remove the obsolete Temu wording from the visible wholesale promo if still present.
+          s=s.replace('Alibaba, AliExpress, Temu and business-sourcing records','Alibaba, AliExpress and business-sourcing records')
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Deep static QA — data, seller counts, variants, prices, images, readability, routing
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/comparison-v20-6-7.js
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          d=json.loads(Path('data/search-v20-6/stable-v20-6-7.json').read_text())
+          P=d['products']; O=d['offers']; V=d['variants']
+          failures=[]
+          by={}
+          for o in O: by.setdefault(o['tpid'],[]).append(o)
+          for p in P:
+              sellers={x['seller'] for x in by.get(p['tpid'],[])}
+              if p['sellerCount']!=len(sellers): failures.append(f"seller mismatch {p['name']}")
+              if p['variantCount']<1: failures.append(f"variant zero {p['name']}")
+          if any(o['priceReliable'] and o.get('price') is not None and o['price']<=1.01 for o in O): failures.append('visible $1 price')
+          if any('temu' in o['seller'].lower() or 'joom' in o['seller'].lower() or 'filamentpro' in o['seller'].lower() for o in O): failures.append('blocked seller')
+          def n(x): return re.sub(r'[^a-z0-9]+',' ',x.lower()).strip()
+          one=next((p for p in P if n(p['name'])=='oneplus 7t'),None)
+          if not one: failures.append('OnePlus 7T missing')
+          else:
+              ss={o['seller'] for o in by[one['tpid']]}
+              if len(ss)!=2: failures.append(f'OnePlus 7T must expose 2 sellers, got {sorted(ss)}')
+          # User-observed examples: Lenovo $1 must be hidden, fragrance offer must remain actionable.
+          mono=next((p for p in P if n(p['name'])=='lenovo 100 mono usb headset'),None)
+          if mono:
+              for o in by[mono['tpid']]:
+                  if o.get('priceReliable') and (o.get('price') or 0)<10: failures.append('Lenovo 100 Mono USB Headset low placeholder still visible')
+          har=next((p for p in P if 'al haramain badar perfume' in n(p['name'])),None)
+          if har and not any(o['seller'].lower().startswith('fragranceshop') and o['url'].startswith('http') for o in by[har['tpid']]): failures.append('FragranceShop offer lost')
+          css=Path('css/comparison-v20-6-7.css').read_text()
+          js=Path('js/comparison-v20-6-7.js').read_text()
+          html=Path('find/index.html').read_text()
+          for needle,label in [
+              ('opacity:1!important','readability firewall'),
+              ('tp67-variant-chips','variant selector'),
+              ('All variants','all-variants compare mode'),
+              ('priceReliable','price reliability rendering'),
+              ('data-tpid-open','TPID direct routing'),
+              ('comparison-v20-6-7.js?v=20.6.7','finder JS include'),
+              ('comparison-v20-6-7.css?v=20.6.7','finder CSS include')]:
+              hay=css+js+html
+              if needle not in hay: failures.append('missing '+label)
+          if failures:
+              print('\n'.join(failures)); raise SystemExit(1)
+          print('V20.6.7 deep static QA PASS')
+          print(json.dumps(d['stats'],indent=2))
+          PY
+
+      - name: Audit user-observed scenarios before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          d=json.loads(Path('data/search-v20-6/stable-v20-6-7.json').read_text())
+          P=d['products']; O=d['offers']; V=d['variants']
+          byO={}; byV={}
+          for x in O: byO.setdefault(x['tpid'],[]).append(x)
+          for x in V: byV.setdefault(x['tpid'],[]).append(x)
+          def norm(s): return re.sub(r'[^a-z0-9]+',' ',s.lower()).strip()
+          tests=['OnePlus 7T','ThinkPad X1 Carbon','Lenovo 100 Mono USB Headset','Al Haramain Badar Perfume for Unisex - Pure Perfume 0.5 oz']
+          for q in tests:
+              p=next((x for x in P if norm(x['name'])==norm(q)),None)
+              if not p:
+                  print(f'{q}: not found in current canonical overlay')
+                  continue
+              rows=byO.get(p['tpid'],[]); vars=byV.get(p['tpid'],[])
+              print('\n'+q)
+              print(' TPID:',p['tpid'])
+              print(' sellers:',sorted({x['seller'] for x in rows}))
+              print(' variants:',[(x['label'],x['sellerCount']) for x in vars[:12]])
+              print(' prices:',[(x['seller'],x.get('price'),x.get('priceReliable'),x.get('priceSuppressionReason')) for x in rows[:20]])
+          PY
+
+      - name: Commit one stabilized comparison release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "trendpilot-bot"
+          git config user.email "trendpilot-bot@users.noreply.github.com"
+          git add data/search-v20-6/stable-v20-6-7.json js/comparison-v20-6-7.js css/comparison-v20-6-7.css find/index.html scripts/build-v20-6-7-overlay.py
+          if git diff --cached --quiet; then
+            echo "Nothing to commit; V20.6.7 already installed."
+          else
+            git commit -m "Install V20.6.7 final comparison stabilization"
+            git push origin HEAD:main
+          fi
+
+      - name: Publish final QA summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          print('# TrendPilot V20.6.7 — Final Comparison Stabilization')
+          print('**One release file; identity catalogs are not rebuilt or reset.**')
+          p=Path('data/search-v20-6/stable-v20-6-7.json')
+          if not p.exists():
+              print('\nOverlay was not produced. Review the failed step above.')
+              raise SystemExit()
+          d=json.loads(p.read_text())
+          s=d['stats']
+          print('\n## Normalized committed comparison package')
+          print(f"- Master products: **{s['products']}**")
+          print(f"- Actionable offers: **{s['offers']}**")
+          print(f"- Variant rows: **{s['variants']}**")
+          print(f"- Multi-seller products: **{s['multiSellerProducts']}**")
+          print(f"- Products with image: **{s['productsWithImage']}**")
+          print(f"- Unreliable/placeholder prices suppressed: **{s['suppressedPrices']}**")
+          print('\n## What V20.6.7 fixes')
+          print('- Seller count is computed from the actual actionable TPID offers shown to the visitor.')
+          print('- Multi-seller TPIDs show **all sellers** in All variants mode; TPVID variants remain separate and selectable.')
+          print('- A visible **Variants** selector shows exact variant seller counts instead of only exposing a TPVID code.')
+          print('- Source-marked unreliable prices and obvious placeholders such as **US$1 Lenovo** prices are hidden as “Check current price”.')
+          print('- Comparison cards are forced to full opacity/readability; technical identity text is moved into a collapsible details block.')
+          print('- Mobile seller offers use stacked cards instead of a horizontally clipped table.')
+          print('- Images are inherited from the committed V20.6 product/offer package; no identity regrouping occurs.')
+          print('- OnePlus 7T is explicitly QA-checked to expose its two seller offers at TPID level.')
+          print('\n## Test after Netlify deploy')
+          print('- `https://trendpilotchoice.com/find/?engine=v2064&q=phone`')
+          print('- `https://trendpilotchoice.com/find/?engine=v2064&q=OnePlus%207T`')
+          print('- `https://trendpilotchoice.com/find/?engine=v2064&q=headphones`')
+          print('- `https://trendpilotchoice.com/find/?engine=v2064&q=perfume`')
+          print('- `https://trendpilotchoice.com/find/?engine=v2064&q=ThinkPad%20X1%20Carbon`')
+          print('\n**V19 canonical seller catalogs and TPID/TPVID/TPOID identity are preserved.**')
+          PY
