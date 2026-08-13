@@ -16,29 +16,28 @@
   <link rel="icon" href="/images/favicon-v4.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
 
-  <!-- Compatibility base retained while V20.7 owns the public visual layer. -->
   <link rel="stylesheet" href="/css/style-v13-2.css?v=13.2.0">
   <link rel="stylesheet" href="/css/style-v13-5.css?v=13.5.0">
   <link rel="stylesheet" href="/css/cj-category-distribution.css?v=13.8.30">
   <link rel="stylesheet" href="/css/decision-v14.css?v=14.1.2">
   <link rel="stylesheet" href="/css/v14-1-4-mobile-fixes.css?v=14.1.4">
   <link rel="stylesheet" href="/css/product-discovery-v15.css?v=15.0.0">
-  <link rel="stylesheet" href="/css/v20-7-shopper-experience.css?v=20.7.5">
-<script id="tp-v20-7-2-engine-bootstrap">
-(() => {
-  const p = new URLSearchParams(location.search);
-  const engine = (p.get("engine") || "").toLowerCase();
-  if (engine === "legacy") {
-    const target = "/find/legacy.html" + (location.search || "?engine=legacy");
-    location.replace(target);
-    return;
-  }
-  if (!p.has("engine")) {
-    p.set("engine", "v2064");
-    location.replace(location.pathname + "?" + p.toString() + location.hash);
-  }
-})();
-</script>
+  <link rel="stylesheet" href="/css/v20-7-shopper-experience.css?v=20.7.6">
+  <script id="tp-v20-7-2-engine-bootstrap">
+  (() => {
+    const p = new URLSearchParams(location.search);
+    const engine = (p.get("engine") || "").toLowerCase();
+    if (engine === "legacy") {
+      const target = "/find/legacy.html" + (location.search || "?engine=legacy");
+      location.replace(target);
+      return;
+    }
+    if (!p.has("engine")) {
+      p.set("engine", "v2064");
+      location.replace(location.pathname + "?" + p.toString() + location.hash);
+    }
+  })();
+  </script>
 </head>
 <body data-tp-page="finder" data-v20-public="true">
 <a class="tp-skip" href="#main">Skip to content</a>
@@ -111,9 +110,7 @@
                 <span class="tp-sr-only">Search products</span>
                 <input data-tp-finder-input name="q" type="search" autocomplete="off" placeholder="Try iPhone 16, phone, ThinkPad, perfume...">
               </label>
-              <button class="tp-btn tp-btn-primary tp-search-submit" type="submit" aria-label="Search">
-                <span>Search</span>
-              </button>
+              <button class="tp-btn tp-btn-primary tp-search-submit" type="submit" aria-label="Search"><span>Search</span></button>
             </div>
             <div class="tp-search-suggestions" data-tp-search-suggestions hidden>
               <h3>Popular searches</h3>
@@ -152,49 +149,19 @@
     <div class="tp-shell v207-layout">
       <aside class="tp-filter-panel" data-tp-filter-panel>
         <div class="tp-filter-head">
-          <div class="tp-filter-title-row">
-            <h2>Refine</h2>
-            <span class="tp-active-filter-count" data-tp-active-filter-count hidden>0</span>
-          </div>
+          <div class="tp-filter-title-row"><h2>Refine</h2><span class="tp-active-filter-count" data-tp-active-filter-count hidden>0</span></div>
           <button class="tp-btn tp-btn-light tp-btn-small tp-filter-toggle" data-tp-filter-toggle type="button" aria-expanded="false">Filters</button>
         </div>
-
         <div class="tp-filter-primary">
-          <div class="tp-filter-group">
-            <label for="tp-group">Category</label>
-            <select id="tp-group" data-filter-group><option value="">All categories</option></select>
-          </div>
-          <div class="tp-filter-group">
-            <label for="tp-family">Product type</label>
-            <select id="tp-family" data-filter-family><option value="">All specific types</option></select>
-          </div>
-          <div class="tp-filter-group">
-            <label for="tp-merchant">Seller</label>
-            <select id="tp-merchant" data-filter-merchant><option value="">All sellers</option></select>
-          </div>
+          <div class="tp-filter-group"><label for="tp-group">Category</label><select id="tp-group" data-filter-group><option value="">All categories</option></select></div>
+          <div class="tp-filter-group"><label for="tp-family">Product type</label><select id="tp-family" data-filter-family><option value="">All specific types</option></select></div>
+          <div class="tp-filter-group"><label for="tp-merchant">Seller</label><select id="tp-merchant" data-filter-merchant><option value="">All sellers</option></select></div>
         </div>
-
         <div class="tp-filter-more">
-          <div class="tp-filter-group">
-            <label for="tp-audience">For whom</label>
-            <select id="tp-audience" data-filter-audience>
-              <option value="">Any audience</option><option value="men">Men</option><option value="women">Women</option><option value="kids">Kids</option><option value="unisex">Unisex</option>
-            </select>
-          </div>
-          <div class="tp-filter-group">
-            <label for="tp-price">Price</label>
-            <select id="tp-price" data-filter-price>
-              <option value="">Any price</option><option value="0-10">Under $10</option><option value="10-25">$10–25</option><option value="25-50">$25–50</option><option value="50-100">$50–100</option><option value="100+">Over $100</option>
-            </select>
-          </div>
-          <div class="tp-filter-group">
-            <label for="tp-sort">Sort</label>
-            <select id="tp-sort" data-filter-sort>
-              <option value="smart">Best match</option><option value="quality">Data completeness</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option>
-            </select>
-          </div>
+          <div class="tp-filter-group"><label for="tp-audience">For whom</label><select id="tp-audience" data-filter-audience><option value="">Any audience</option><option value="men">Men</option><option value="women">Women</option><option value="kids">Kids</option><option value="unisex">Unisex</option></select></div>
+          <div class="tp-filter-group"><label for="tp-price">Price</label><select id="tp-price" data-filter-price><option value="">Any price</option><option value="0-10">Under $10</option><option value="10-25">$10–25</option><option value="25-50">$25–50</option><option value="50-100">$50–100</option><option value="100+">Over $100</option></select></div>
+          <div class="tp-filter-group"><label for="tp-sort">Sort</label><select id="tp-sort" data-filter-sort><option value="smart">Best match</option><option value="quality">Data completeness</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></div>
         </div>
-
         <div class="tp-filter-checks">
           <label class="tp-check"><input data-filter-coupon type="checkbox">Matched coupon</label>
           <label class="tp-check"><input data-filter-rare type="checkbox">Rare used only</label>
@@ -207,17 +174,11 @@
 
       <section class="tp-main-col">
         <div class="tp-results-head">
-          <div>
-            <h2 data-tp-results-title>Finding the best matches…</h2>
-            <p data-tp-finder-status>Loading the verified catalogue projection.</p>
-          </div>
+          <div><h2 data-tp-results-title>Finding the best matches…</h2><p data-tp-finder-status>Loading the verified catalogue projection.</p></div>
           <span class="tp-results-count" data-tp-results-count>Checking</span>
         </div>
-
         <div class="tp-result-tabs" data-tp-result-tabs></div>
-        <div class="tp-product-grid" data-tp-product-grid>
-          <div class="tp-empty">Loading products…</div>
-        </div>
+        <div class="tp-product-grid" data-tp-product-grid><div class="tp-empty">Loading products…</div></div>
         <button class="tp-btn tp-btn-light tp-load-more" data-tp-load-more type="button" hidden>Show more</button>
       </section>
     </div>
@@ -226,10 +187,7 @@
 
 <footer class="tp-footer" data-v13-footer>
   <div class="tp-shell tp-footer-grid">
-    <div>
-      <a class="tp-brand" href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><span>TrendPilot <em>AI</em></span></a>
-      <p>Product discovery and comparison with seller evidence kept visible.</p>
-    </div>
+    <div><a class="tp-brand" href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><span>TrendPilot <em>AI</em></span></a><p>Product discovery and comparison with seller evidence kept visible.</p></div>
     <div><h2>Shop</h2><a href="/find/">Find products</a><a href="/compare/">Compare</a><a href="/deals/">Deals</a><a href="/price-watch/">Saved products</a></div>
     <div><h2>Explore</h2><a href="/products/">Electronics</a><a href="/rare-used/">Rare Finds</a><a href="/tickets/">Tickets</a><a href="/sourcing/">Business sourcing</a></div>
     <div><h2>Trust</h2><a href="/editorial-methodology.html">How we rank</a><a href="/affiliate-disclosure.html">Affiliate disclosure</a><a href="/privacy.html">Privacy</a><a href="/contact.html">Contact</a></div>
@@ -254,7 +212,7 @@
 <script defer src="/js/cj-category-distribution.js?v=13.8.30"></script>
 <script defer src="/js/monetization-v14-1.js?v=14.1.2"></script>
 <script defer src="/js/product-cpc-v15.js?v=15.0.0"></script>
-<script defer src="/js/smart-suggestions-v20.js?v=20.3.4.1"></script>
+<script defer src="/js/smart-suggestions-v20.js?v=20.7.6"></script>
 <script defer src="/js/seller-whitelist-v20.js?v=20.3.3"></script>
 <script defer src="/js/tp-v20-6-6-2-1-browse-rescue.js?v=20.7.5"></script>
 <script defer src="/js/v20-6-6-3-comparison-presentation.js?v=20.6.6.3"></script>
@@ -264,5 +222,6 @@
 <script defer src="/js/shopper-v20-6-8-4.js?v=20.7.5"></script>
 <script defer src="/js/v20-6-9-1-safe-buyer-ui.js?v=20.7.5"></script>
 <script defer src="/js/v20-7-public-shopper.js?v=20.7.5"></script>
+<script defer src="/js/v20-7-6-global-truth.js?v=20.7.6"></script>
 </body>
 </html>
