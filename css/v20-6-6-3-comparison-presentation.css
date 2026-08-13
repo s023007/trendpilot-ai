@@ -1,0 +1,77 @@
+/* TrendPilot V20.6.6.3 — presentation-only repair. No redesign. */
+
+body[data-tp-page="finder"] .tp-main-col,
+body[data-tp-page="finder"] [data-tp-product-grid],
+body[data-tp-page="finder"] [data-tp-product-grid] > *,
+body[data-tp-page="finder"] .tp-results-head {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body[data-tp-page="finder"] [data-tp-product-grid] h1,
+body[data-tp-page="finder"] [data-tp-product-grid] h2,
+body[data-tp-page="finder"] [data-tp-product-grid] h3,
+body[data-tp-page="finder"] [data-tp-product-grid] strong,
+body[data-tp-page="finder"] .tp-results-head h2 {
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+body[data-tp-page="finder"] .tp-v20663-technical-id {
+  font-size: 0.72rem !important;
+  line-height: 1.35 !important;
+  letter-spacing: 0.04em !important;
+  opacity: 0.68;
+  overflow-wrap: anywhere;
+}
+
+body[data-tp-page="finder"] .tp-result-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+
+body[data-tp-page="finder"] [data-tp-product-grid] img {
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+
+@media (max-width: 760px) {
+  body[data-tp-page="finder"] .tp-shell {
+    min-width: 0;
+  }
+
+  body[data-tp-page="finder"] .tp-results-head,
+  body[data-tp-page="finder"] [data-tp-product-grid] {
+    scroll-margin-top: 120px;
+  }
+
+  body[data-tp-page="finder"] [data-tp-product-grid] > * {
+    overflow: hidden;
+  }
+
+  body[data-tp-page="finder"] [data-tp-product-grid] a,
+  body[data-tp-page="finder"] [data-tp-product-grid] button {
+    max-width: 100%;
+    white-space: normal;
+  }
+
+  body[data-tp-page="finder"] .tp-result-tabs > * {
+    flex: 0 0 auto;
+    max-width: calc(100vw - 56px);
+    white-space: nowrap;
+  }
+
+  body[data-tp-page="finder"] table {
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+  }
+
+  body[data-tp-page="finder"] th,
+  body[data-tp-page="finder"] td {
+    overflow-wrap: anywhere;
+  }
+}
