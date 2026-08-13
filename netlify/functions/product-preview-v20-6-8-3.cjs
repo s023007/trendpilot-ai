@@ -133,7 +133,7 @@ main{max-width:900px;margin:auto;padding:28px 22px}.back{display:inline-block;co
 details{margin-top:14px}summary{cursor:pointer;color:var(--blue);font-weight:800}.suboffers{display:grid;gap:8px;margin-top:10px}.suboffer{display:flex;justify-content:space-between;gap:12px;text-decoration:none;color:var(--ink);background:#f7f9f8;border:1px solid #e8edeb;border-radius:14px;padding:12px 14px}
 .tech{color:var(--muted);font-size:13px;margin:26px 0}.bottom{position:fixed;left:18px;right:18px;bottom:14px;z-index:20;max-width:850px;margin:auto;background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:26px;padding:14px 18px;display:flex;justify-content:space-around;box-shadow:0 8px 30px rgba(0,0,0,.07)}.bottom a{text-decoration:none;color:#46534f;font-weight:800}.bottom a.active{color:var(--blue)}
 @media(max-width:650px){main{padding:20px 16px}.hero{grid-template-columns:112px 1fr;gap:16px}.hero-media{min-height:150px;padding:10px;border-radius:22px}.hero-media img{height:140px}.hero h1{font-size:38px}.hero p{font-size:17px}.panel{padding:20px;border-radius:24px}.panel h2{font-size:29px}.specgrid{grid-template-columns:1fr 1fr}.variant{align-items:flex-start;flex-direction:column;gap:4px}.variant span{white-space:normal}.seller-top{flex-direction:column}.seller-price{text-align:left}.cta{width:100%;text-align:center}.logo{font-size:24px}}
-</style></head>
+</style><link rel="stylesheet" href="/css/shopper-v20-6-8-4.css?v=20.6.8.4"></head>
 <body><header><a class="logo" href="/">TrendPilot <b>AI</b></a><a class="search" href="/find/?engine=v2064">Search</a></header>
 <main><a class="back" href="/find/?engine=v2064">← Back to results</a>
 <section class="hero"><div class="hero-media">${heroImage}</div><div><div class="brand">${esc(p.brand||"TrendPilot")}</div><h1>${esc(p.title)}</h1><p>${offers} offer${offers===1?"":"s"} from ${sellers} seller${sellers===1?"":"s"} · ${p.variantCount||0} configuration${p.variantCount===1?"":"s"}</p></div></section>
@@ -142,6 +142,6 @@ ${variantsHtml(p)}
 <section class="panel"><div class="seller-head"><div><div class="eyebrow">SELLER OFFERS</div><h2>${sellerHeading}</h2></div><span class="pill">${sellers} seller${sellers===1?"":"s"}</span></div><div class="sellers">${groups.map(sellerHtml).join("")}</div></section>
 <details class="tech"><summary>Technical identity details</summary><p>TPID ${esc(p.tpid)}. Exact seller listings remain separate TrendPilot offer identities.</p></details></main>
 <nav class="bottom"><a href="/">Home</a><a class="active" href="/find/?engine=v2064">Search</a><a href="/deals/">Deals</a><a href="/compare/">Compare</a></nav>
-</body></html>`;
+<script defer src="/js/shopper-v20-6-8-4.js?v=20.6.8.4"></script></body></html>`;
   return {statusCode:200,headers:{"content-type":"text/html; charset=utf-8","cache-control":"public, max-age=300, s-maxage=900","x-trendpilot-preview":"20.6.8.3"},body};
 };
