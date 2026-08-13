@@ -1,0 +1,134 @@
+name: TrendPilot V20.6.8.1 — Summary Closure + Package Verification
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v20-6-8-1-summary-closure
+  cancel-in-progress: false
+
+jobs:
+  verify-v2068:
+    name: Verify committed V20.6.8 package and publish safe summary
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Verify committed Product Preview package
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST="data/product-preview-v20-6/manifest.json"
+          test -f "$MANIFEST"
+          test -f netlify/functions/trendpilot-product.mjs
+          test -f netlify/functions/trendpilot-outbound.mjs
+          test -f netlify/functions/trendpilot-event.mjs
+          test -f js/product-preview-bridge-v20-6-8.js
+          test -f js/product-preview-events-v20-6-8.js
+          test -f css/product-preview-v20-6-8.css
+
+          version="$(jq -r '.version // empty' "$MANIFEST")"
+          products="$(jq -r '.products // 0' "$MANIFEST")"
+          offers="$(jq -r '.offers // 0' "$MANIFEST")"
+          variants="$(jq -r '.variants // 0' "$MANIFEST")"
+          images="$(jq -r '.productsWithImage // 0' "$MANIFEST")"
+          blocked="$(jq -r '.blockedSellerLeaks // 999' "$MANIFEST")"
+          identity_rebuilt="$(jq -r '.identityRebuilt' "$MANIFEST")"
+          canonical_modified="$(jq -r '.canonicalCatalogModified' "$MANIFEST")"
+          oneplus_count="$(jq -r '.onePlus7T.sellerCount // 0' "$MANIFEST")"
+
+          test "$version" = "20.6.8"
+          test "$products" -gt 1000
+          test "$offers" -gt 1000
+          test "$variants" -gt 1000
+          test "$images" -gt 1000
+          test "$blocked" -eq 0
+          test "$identity_rebuilt" = "false"
+          test "$canonical_modified" = "false"
+          test "$oneplus_count" -eq 2
+
+          node --check netlify/functions/trendpilot-product.mjs
+          node --check netlify/functions/trendpilot-outbound.mjs
+          node --check netlify/functions/trendpilot-event.mjs
+          node --check js/product-preview-bridge-v20-6-8.js
+          node --check js/product-preview-events-v20-6-8.js
+
+          grep -q 'product-preview-bridge-v20-6-8.js' find/index.html
+          grep -q 'trendpilotchoice.com/product/' sitemap.xml
+          ! grep -q 'trendpilot-ai.netlify.app' sitemap.xml
+          grep -q 'https://trendpilotchoice.com/sitemap.xml' robots.txt
+
+          echo "V20.6.8 committed package verification PASS"
+
+      - name: Publish safe V20.6.8.1 summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          MANIFEST="data/product-preview-v20-6/manifest.json"
+          {
+            echo "# TrendPilot V20.6.8.1 — Summary Closure + Package Verification"
+            echo
+            if [ -f "$MANIFEST" ]; then
+              products="$(jq -r '.products // 0' "$MANIFEST")"
+              offers="$(jq -r '.offers // 0' "$MANIFEST")"
+              variants="$(jq -r '.variants // 0' "$MANIFEST")"
+              images="$(jq -r '.productsWithImage // 0' "$MANIFEST")"
+              multi="$(jq -r '.multiSellerProducts // 0' "$MANIFEST")"
+              seo="$(jq -r '.seoIndexableProducts // 0' "$MANIFEST")"
+              cpc_capable="$(jq -r '.cpcCapableOffers // 0' "$MANIFEST")"
+              cpc_confirmed="$(jq -r '.cpcConfirmedOffers // 0' "$MANIFEST")"
+              blocked="$(jq -r '.blockedSellerLeaks // 0' "$MANIFEST")"
+              site="$(jq -r '.site // "https://trendpilotchoice.com"' "$MANIFEST")"
+              engine="$(jq -r '.engine // "v2064"' "$MANIFEST")"
+              oneplus_route="$(jq -r '.onePlus7T.route // empty' "$MANIFEST")"
+              oneplus_sellers="$(jq -r '.onePlus7T.sellerCount // 0' "$MANIFEST")"
+
+              echo "**The V20.6.8 package was already committed before the previous summary-step error. This workflow only verifies the committed package and closes the run cleanly.**"
+              echo
+              echo "## Package"
+              echo "- Master product previews: **${products}**"
+              echo "- Actionable offers: **${offers}**"
+              echo "- TPVID rows: **${variants}**"
+              echo "- Products with images: **${images}**"
+              echo "- Multi-seller products: **${multi}**"
+              echo "- OnePlus 7T seller count: **${oneplus_sellers}**"
+              echo
+              echo "## SEO + CPC"
+              echo "- SEO-indexable product pages: **${seo}**"
+              echo "- CPC-capable offers preserved: **${cpc_capable}**"
+              echo "- Explicit CPC-evidence offers: **${cpc_confirmed}**"
+              echo "- Blocked seller leaks: **${blocked}**"
+              echo
+              echo "## Safety"
+              echo '- TPID / TPVID / TPOID identity rebuilt: **NO**'
+              echo '- V19 canonical seller catalogs modified: **NO**'
+              echo '- This hotfix performs **no production-data write**.'
+              echo '- The broken shell heredoc from the old summary step is not used.'
+              echo
+              echo "## Next live checks"
+              if [ -n "$oneplus_route" ]; then
+                echo "- Product Preview: \`${site}/product/${oneplus_route}/\`"
+              fi
+              echo "- Finder: \`${site}/find/?engine=${engine}&q=phone\`"
+              echo "- Headphones: \`${site}/find/?engine=${engine}&q=headphones\`"
+              echo "- Perfume: \`${site}/find/?engine=${engine}&q=perfume\`"
+            else
+              echo "Committed V20.6.8 manifest is missing. Review the verification step above."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
