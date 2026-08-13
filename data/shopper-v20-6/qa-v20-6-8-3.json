@@ -1,0 +1,39 @@
+{
+  "version": "20.6.8.3",
+  "sourceCandidates": {
+    "products": {
+      "score": 100.0,
+      "file": "data/search-v20-6/stable-v20-6-7.json",
+      "path": "$.products",
+      "count": 12749
+    },
+    "offers": {
+      "score": 132.0,
+      "file": "data/search-v20-6/stable-v20-6-7.json",
+      "path": "$.offers",
+      "count": 13006
+    },
+    "variants": {
+      "score": 115.0,
+      "file": "data/search-v20-6/stable-v20-6-7.json",
+      "path": "$.variants",
+      "count": 12824
+    }
+  },
+  "products": 12749,
+  "actionableOffers": 13006,
+  "variantRows": 12824,
+  "sellerGroups": 12750,
+  "phoneSuppressed": 4518,
+  "productsWithImage": 12748,
+  "outboundUrlsVerified": 13006,
+  "cpcDestinationMutationFailures": 0,
+  "blockedSellerLeaks": 0,
+  "onePlus7T": {
+    "sellerCount": 2,
+    "offerCount": 8,
+    "variantCount": 4
+  },
+  "failures": [],
+  "warnings": []
+}

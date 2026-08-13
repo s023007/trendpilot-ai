@@ -58,7 +58,7 @@
 
 [[redirects]]
   from = "/product/*"
-  to = "/.netlify/functions/trendpilot-product?slug=:splat"
+  to = "/.netlify/functions/product-preview-v20-6-8-3?slug=:splat"
   status = 200
   force = true
 
@@ -69,3 +69,6 @@
   status = 404
   force = true
 # TP_PRODUCT_PREVIEW_RUNTIME_V20_6_8_2_END
+
+[functions."product-preview-v20-6-8-3"]
+  included_files = ["data/shopper-v20-6/runtime-v20-6-8-3.json"]
