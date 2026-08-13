@@ -12,10 +12,7 @@
       location.replace(target);
       return;
     }
-    if (!params.has("engine")) {
-      params.set("engine", "v2064");
-      history.replaceState(null, "", location.pathname + "?" + params.toString() + location.hash);
-    }
+    // V20.7.2: early <head> bootstrap owns default engine selection.
   }
 
   document.body.classList.add("v207-public");
