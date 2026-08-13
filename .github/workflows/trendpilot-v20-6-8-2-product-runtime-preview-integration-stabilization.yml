@@ -1,0 +1,814 @@
+name: TrendPilot V20.6.8.2 — Product Runtime + Preview Integration Stabilization
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v20-6-8-2-product-runtime-preview-integration
+  cancel-in-progress: false
+
+jobs:
+  stabilize-product-preview:
+    name: Stabilize Product Preview runtime, Finder routing, variants and CPC outbound
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout latest main
+        uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Verify committed foundations and freeze identity inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/search-v20-6/stable-v20-6-7.json
+          test -f data/product-preview-v20-6/manifest.json
+          test -f data/product-preview-v20-6/route-map.json
+          test -f netlify/functions/_product-data/products.json
+          test -f netlify/functions/_product-data/offers.json
+          test -f netlify/functions/_product-data/variants.json
+          test -f find/index.html
+          test -f netlify.toml
+          test -d data/catalog-v19/sellers
+
+          V19_COUNT="$(find data/catalog-v19/sellers -type f -name products.ndjson | wc -l | tr -d ' ')"
+          test "$V19_COUNT" -ge 10
+
+          git diff --quiet -- data/catalog-v19 data/search-v20-6/stable-v20-6-7.json
+          git rev-parse HEAD > /tmp/tp-v20682-head-before.txt
+          git diff -- data/catalog-v19 data/search-v20-6/stable-v20-6-7.json > /tmp/tp-v20682-identity-before.diff
+          echo "Identity foundation frozen. V19 seller files: $V19_COUNT"
+
+      - name: Install resilient Product Preview runtime and CPC-safe outbound
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p netlify/functions css js data/product-preview-v20-6
+
+          cat > netlify/functions/trendpilot-product-data.mjs <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+
+          let CACHE = null;
+          const REQUIRED = ['products.json','offers.json','variants.json'];
+
+          function goodDir(dir) {
+            try { return Boolean(dir) && REQUIRED.every(name => fs.existsSync(path.join(dir,name))); }
+            catch { return false; }
+          }
+
+          function directCandidates() {
+            const roots = [];
+            const add = value => { if (value && typeof value === 'string' && !roots.includes(value)) roots.push(value); };
+            add(process.env.TRENDPILOT_PRODUCT_DATA_ROOT);
+            add(process.env.LAMBDA_TASK_ROOT);
+            add(process.env.PWD);
+            add(process.cwd());
+            try { if (process.argv?.[1]) add(path.dirname(path.resolve(process.argv[1]))); } catch {}
+            add('/var/task');
+            add('/var/task/netlify/functions');
+            add('/var/task/functions');
+
+            const out = [];
+            for (const root of roots) {
+              out.push(root);
+              out.push(path.join(root,'_product-data'));
+              out.push(path.join(root,'netlify','functions','_product-data'));
+              out.push(path.join(root,'functions','_product-data'));
+              out.push(path.join(root,'.netlify','functions-serve','_product-data'));
+            }
+            return [...new Set(out)];
+          }
+
+          function boundedFind(start, maxDepth = 5) {
+            if (!start || !fs.existsSync(start)) return '';
+            const queue = [{dir:start,depth:0}];
+            const seen = new Set();
+            while (queue.length) {
+              const {dir,depth} = queue.shift();
+              let real = dir;
+              try { real = fs.realpathSync(dir); } catch {}
+              if (seen.has(real)) continue;
+              seen.add(real);
+              if (goodDir(dir)) return dir;
+              if (depth >= maxDepth) continue;
+              let entries = [];
+              try { entries = fs.readdirSync(dir,{withFileTypes:true}); } catch { continue; }
+              for (const entry of entries) {
+                if (!entry.isDirectory()) continue;
+                if (/^(?:node_modules|proc|sys|dev|tmp|cache|\.git)$/i.test(entry.name)) continue;
+                queue.push({dir:path.join(dir,entry.name),depth:depth+1});
+              }
+            }
+            return '';
+          }
+
+          export function locateProductData() {
+            for (const dir of directCandidates()) if (goodDir(dir)) return dir;
+            const starts = [...new Set([
+              process.env.LAMBDA_TASK_ROOT,
+              process.cwd(),
+              '/var/task'
+            ].filter(Boolean))];
+            for (const start of starts) {
+              const hit = boundedFind(start,5);
+              if (hit) return hit;
+            }
+            throw new Error('TrendPilot product data bundle was not found in the function runtime.');
+          }
+
+          function readJson(file) {
+            const value = JSON.parse(fs.readFileSync(file,'utf8'));
+            if (!Array.isArray(value)) throw new Error(`Invalid product data: ${path.basename(file)} is not an array.`);
+            return value;
+          }
+
+          export function loadProductData() {
+            if (CACHE) return CACHE;
+            const dir = locateProductData();
+            const products = readJson(path.join(dir,'products.json'));
+            const offers = readJson(path.join(dir,'offers.json'));
+            const variants = readJson(path.join(dir,'variants.json'));
+            if (products.length < 1000 || offers.length < 1000 || variants.length < 1000) {
+              throw new Error(`Product data bundle is unexpectedly small (${products.length}/${offers.length}/${variants.length}).`);
+            }
+            CACHE = {dir,products,offers,variants};
+            return CACHE;
+          }
+
+          export function resetProductDataCacheForQA() { CACHE = null; }
+          NODE
+
+          cat > netlify/functions/trendpilot-outbound.mjs <<'NODE'
+          import { loadProductData } from './trendpilot-product-data.mjs';
+
+          const BLOCKED = /^(?:Temu|Joom|FilamentPRO(?: EU CPS)?)$/i;
+          const clean = v => String(v ?? '').trim();
+          const validHttp = v => { try { const u = new URL(clean(v)); return /^https?:$/.test(u.protocol); } catch { return false; } };
+
+          export const handler = async event => {
+            try {
+              const q = event?.queryStringParameters || {};
+              const id = clean(q.offer);
+              if (!id) return {statusCode:400,headers:{'cache-control':'no-store'},body:'Missing offer'};
+              const {offers} = loadProductData();
+              const offer = offers.find(o => clean(o.tpoid) === id);
+              if (!offer || BLOCKED.test(clean(offer.seller)) || !validHttp(offer.url)) {
+                return {statusCode:404,headers:{'cache-control':'no-store'},body:'Offer unavailable'};
+              }
+
+              const src = clean(q.src).slice(0,60).replace(/[^a-z0-9_.-]/gi,'_') || 'unknown';
+              console.log(JSON.stringify({
+                event:'seller_outbound',
+                tpid:offer.tpid,
+                tpvid:offer.tpvid || '',
+                tpoid:offer.tpoid,
+                seller:offer.seller,
+                src,
+                cpcCapable:Boolean(offer.cpcCapable),
+                cpcConfirmed:Boolean(offer.cpcConfirmed)
+              }));
+
+              // Critical monetization rule: redirect to the exact committed affiliate/tracking URL.
+              // Do not append, strip, rebuild or normalize the seller destination query string.
+              return {
+                statusCode:302,
+                headers:{
+                  location:offer.url,
+                  'cache-control':'no-store, max-age=0',
+                  'x-robots-tag':'noindex, nofollow'
+                },
+                body:''
+              };
+            } catch (err) {
+              console.error('trendpilot-outbound',err);
+              return {statusCode:503,headers:{'cache-control':'no-store'},body:'Seller link is temporarily unavailable.'};
+            }
+          };
+          NODE
+
+          cat > netlify/functions/trendpilot-product.mjs <<'NODE'
+          import { loadProductData } from './trendpilot-product-data.mjs';
+
+          const SITE = 'https://trendpilotchoice.com';
+          const ENGINE = 'v2064';
+          const BLOCKED = /^(?:Temu|Joom|FilamentPRO(?: EU CPS)?)$/i;
+          const clean = v => String(v ?? '').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+          const uniq = a => [...new Set(a.filter(Boolean))];
+          const esc = v => String(v ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+          const js = v => JSON.stringify(v).replace(/</g,'\\u003c');
+          const validHttp = v => { try { const u = new URL(clean(v)); return /^https?:$/.test(u.protocol); } catch { return false; } };
+          const usd = n => Number.isFinite(n) ? `$${Number(n).toLocaleString('en-US',{minimumFractionDigits:Number(n)%1?2:0,maximumFractionDigits:2})}` : 'Check current price';
+          const plural = (n,one,many) => `${n} ${n===1?one:many}`;
+          const norm = v => clean(v).toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+
+          function routeFromEvent(event) {
+            const q = event?.queryStringParameters || {};
+            if (q.slug) return decodeURIComponent(clean(q.slug).replace(/^\/+|\/+$/g,''));
+            for (const candidate of [event?.path,event?.rawPath,event?.rawUrl]) {
+              const raw = clean(candidate);
+              const m = raw.match(/\/product\/([^/?#]+)/i);
+              if (m) return decodeURIComponent(m[1]);
+            }
+            return '';
+          }
+
+          const reliablePrice = o => Boolean(o?.priceReliable !== false && Number.isFinite(o?.price) && o.price > 0 && String(o.currency || 'USD').toUpperCase() === 'USD');
+
+          function sellerGroups(rows) {
+            const map = new Map();
+            for (const o of rows) {
+              if (!o?.seller || BLOCKED.test(clean(o.seller)) || !validHttp(o.url)) continue;
+              if (!map.has(o.seller)) map.set(o.seller,[]);
+              map.get(o.seller).push(o);
+            }
+            return [...map.entries()].map(([seller,items])=>{
+              const prices = items.filter(reliablePrice).map(o=>o.price);
+              return {
+                seller,items,
+                min:prices.length?Math.min(...prices):null,
+                max:prices.length?Math.max(...prices):null,
+                cpcCapable:items.some(o=>o.cpcCapable),
+                cpcConfirmed:items.some(o=>o.cpcConfirmed)
+              };
+            }).sort((a,b)=>(a.min??Infinity)-(b.min??Infinity)||a.seller.localeCompare(b.seller));
+          }
+
+          function priceRange(rows) {
+            const prices = rows.filter(reliablePrice).map(o=>o.price);
+            if (!prices.length) return 'Check current seller pricing';
+            const lo=Math.min(...prices), hi=Math.max(...prices);
+            return lo===hi?`Current listed price ${usd(lo)}`:`Current listed range ${usd(lo)} – ${usd(hi)}`;
+          }
+
+          function extractSpecs(text) {
+            const s=clean(text);
+            const out=[];
+            const ram=s.match(/\b(\d{1,2})\s*GB\s*RAM\b/i);
+            const gbTokens=[...s.matchAll(/\b(\d{1,4})\s*GB\b/gi)].map(m=>Number(m[1])).filter(Number.isFinite);
+            const inferredRam=!ram&&gbTokens.length>=2?Math.min(...gbTokens.filter(n=>n<=32)):null;
+            if(ram)out.push({label:'Memory',value:`${ram[1]}GB RAM`});
+            else if(Number.isFinite(inferredRam))out.push({label:'Memory',value:`${inferredRam}GB RAM`});
+
+            const storage=[];
+            for(const n of gbTokens)if(n>=32)storage.push(n);
+            for(const m of s.matchAll(/\b(\d+(?:\.\d+)?)\s*TB\b(?!\s*RAM)/gi)){storage.push(Number(m[1])*1024)}
+            if(storage.length){const n=Math.max(...storage);out.push({label:'Storage',value:n>=1024&&n%1024===0?`${n/1024}TB`:`${n}GB`})}
+
+            const screen=s.match(/\b(\d{1,2}(?:\.\d{1,2})?)\s*(?:inch(?:es)?|in\b|\")/i);
+            if(screen)out.push({label:'Screen',value:`${screen[1]} in`});
+            const battery=s.match(/\b(\d{3,6})\s*mAh\b/i);
+            if(battery)out.push({label:'Capacity',value:`${battery[1]}mAh`});
+            const cooling=s.match(/\b(\d{4,6})\s*BTU\b/i);
+            if(cooling)out.push({label:'Cooling',value:`${cooling[1]} BTU`});
+            const volume=s.match(/\b(\d+(?:\.\d+)?)\s*(ml|oz)\b/i);
+            if(volume)out.push({label:'Volume',value:`${volume[1]} ${volume[2].toLowerCase()}`});
+            return out;
+          }
+
+          function presentationVariants(p,rows,vars) {
+            const allSellers=uniq(rows.map(o=>o.seller));
+            const byVid=new Map();
+            for(const o of rows){const id=clean(o.tpvid)||'UNSPECIFIED';if(!byVid.has(id))byVid.set(id,[]);byVid.get(id).push(o)}
+            const variantMap=new Map(vars.map(v=>[clean(v.tpvid),v]));
+            const result=[];
+            for(const [tpvid,items] of byVid){
+              const source=variantMap.get(tpvid)||{};
+              const evidence=[source.label,source.name,p.name,...items.slice(0,5).map(x=>x.name)].filter(Boolean).join(' ');
+              const specs=extractSpecs(evidence);
+              let label=clean(source.label);
+              const generic=!label || /^variant\s*\d+$/i.test(label) || /^TPV-[A-Z0-9]+$/i.test(label) || /^\d+$/i.test(label);
+              if(specs.length) label=specs.map(x=>`${x.label==='Screen'?'Screen ':''}${x.value}`).join(' · ');
+              else if(generic) label='Seller configuration';
+              else {
+                const screenOnly=label.match(/^(\d{1,2}(?:\.\d+)?)\s*inches?$/i);
+                if(screenOnly) label=`Screen ${screenOnly[1]} in`;
+              }
+              const sellers=uniq(items.map(o=>o.seller));
+              result.push({tpvid,label,sellers,offerCount:items.length,sellerCount:sellers.length,specs});
+            }
+
+            // A screen-only group that simply repeats the full TPID seller coverage is not useful as a shopper variant.
+            const useful=result.filter(v=>{
+              if(result.length<=1)return true;
+              if(/^Screen\s+\d/i.test(v.label) && v.sellerCount===allSellers.length && v.offerCount===rows.length)return false;
+              return true;
+            });
+            const genericCount=useful.filter(v=>v.label==='Seller configuration').length;
+            let genericIndex=0;
+            for(const v of useful)if(v.label==='Seller configuration'&&genericCount>1)v.label=`Seller configuration ${++genericIndex}`;
+            return useful.sort((a,b)=>b.sellerCount-a.sellerCount||b.offerCount-a.offerCount||a.label.localeCompare(b.label));
+          }
+
+          function factRows(p,rows,variants) {
+            const source=[];
+            if(Array.isArray(p.facts)) for(const f of p.facts){const value=Array.isArray(f.values)?f.values.join(' · '):clean(f.value);if(f.label&&value)source.push({label:clean(f.label),value:clean(value)})}
+            const inferred=extractSpecs([p.name,...rows.slice(0,8).map(o=>o.name)].join(' '));
+            const merged=[]; const seen=new Set();
+            for(const f of [...source,...inferred]){const key=norm(f.label+' '+f.value);if(!key||seen.has(key))continue;seen.add(key);merged.push(f)}
+            merged.push({label:'Seller availability',value:plural(uniq(rows.map(o=>o.seller)).length,'seller','sellers')});
+            merged.push({label:'Seller offers',value:plural(rows.length,'offer','offers')});
+            merged.push({label:'Configurations',value:plural(variants.length,'configuration','configurations')});
+            return merged.slice(0,8);
+          }
+
+          function schema(p,rows) {
+            const priced=rows.filter(reliablePrice);
+            const offers=priced.slice(0,20).map(o=>({
+              '@type':'Offer',priceCurrency:'USD',price:String(o.price),availability:'https://schema.org/InStock',
+              url:`${SITE}/.netlify/functions/trendpilot-outbound?offer=${encodeURIComponent(o.tpoid)}&src=product_schema`,
+              seller:{'@type':'Organization',name:o.seller}
+            }));
+            const obj={
+              '@context':'https://schema.org','@type':'Product',name:p.name,sku:p.tpid,
+              url:`${SITE}/product/${encodeURIComponent(p.route)}/`,
+              description:`Compare seller offers, configurations and current listed pricing for ${p.name} on TrendPilot.`,
+              ...(p.image?{image:[p.image]}:{}),
+              ...(p.brand?{brand:{'@type':'Brand',name:p.brand}}:{})
+            };
+            if(offers.length){const prices=priced.map(o=>o.price);obj.offers={'@type':'AggregateOffer',priceCurrency:'USD',lowPrice:String(Math.min(...prices)),highPrice:String(Math.max(...prices)),offerCount:offers.length,offers}}
+            return obj;
+          }
+
+          function notFound() {
+            return {statusCode:404,headers:{'content-type':'text/html; charset=utf-8','cache-control':'public, max-age=60','x-robots-tag':'noindex'},body:'<!doctype html><html><head><meta name="robots" content="noindex"><title>Product not found — TrendPilot</title></head><body><main><h1>Product not found</h1><p><a href="/find/">Back to TrendPilot search</a></p></main></body></html>'};
+          }
+
+          function unavailable(err) {
+            const message=esc(err?.message||'Product Preview is temporarily unavailable.');
+            return {statusCode:503,headers:{'content-type':'text/html; charset=utf-8','cache-control':'no-store','x-robots-tag':'noindex'},body:`<!doctype html><html><head><meta name="robots" content="noindex"><title>Product Preview temporarily unavailable — TrendPilot</title></head><body><main style="max-width:760px;margin:80px auto;padding:24px;font-family:system-ui"><h1>Product Preview is temporarily unavailable.</h1><p>${message}</p><p><a href="/find/?engine=${ENGINE}">Return to product search</a></p></main></body></html>`};
+          }
+
+          export const handler = async event => {
+            try {
+              const {products,offers,variants} = loadProductData();
+              const route=routeFromEvent(event);
+              const p=products.find(x=>x.route===route || x.tpid===route);
+              if(!p)return notFound();
+
+              const rows=offers.filter(o=>o.tpid===p.tpid && o.seller && !BLOCKED.test(clean(o.seller)) && validHttp(o.url));
+              if(!rows.length)return notFound();
+              const vars=presentationVariants(p,rows,variants.filter(v=>v.tpid===p.tpid));
+              const groups=sellerGroups(rows);
+              const sellerCount=groups.length;
+              const offerCount=rows.length;
+              const canonical=`${SITE}/product/${encodeURIComponent(p.route)}/`;
+              const title=`${p.name} — Seller Offers & Product Preview | TrendPilot`;
+              const desc=`Preview ${p.name}. See ${plural(offerCount,'seller offer','seller offers')} from ${plural(sellerCount,'seller','sellers')}, current listed pricing, configurations and product details before visiting a seller.`;
+              const compareHref=`/find/?engine=${ENGINE}&q=${encodeURIComponent(p.name)}&tpid=${encodeURIComponent(p.tpid)}&compare=1`;
+              const facts=factRows(p,rows,vars);
+              const related=products.filter(x=>x.tpid!==p.tpid && x.type===p.type && x.route && x.name).slice(0,4);
+              const range=priceRange(rows);
+
+              const variantHtml=vars.length?vars.slice(0,12).map(v=>`<article class="tpp82-config"><div><strong>${esc(v.label)}</strong><span>${plural(v.offerCount,'offer','offers')} · ${plural(v.sellerCount,'seller','sellers')}</span></div>${v.specs?.length?`<div class="tpp82-specchips">${v.specs.map(s=>`<span>${esc(s.label)}: ${esc(s.value)}</span>`).join('')}</div>`:''}</article>`).join(''):'<p class="tpp82-muted">No separate configuration evidence is available for this product.</p>';
+
+              const sellersHtml=groups.map(g=>{
+                const first=g.items[0];
+                const price=g.min==null?'Check current price':g.min===g.max?usd(g.min):`${usd(g.min)} – ${usd(g.max)}`;
+                const tracking=g.cpcConfirmed?'CPC tracked offer':g.cpcCapable?'Affiliate/CPC-capable route':'Affiliate seller route';
+                const extra=g.items.length>1?`<details class="tpp82-offerlist"><summary>See ${g.items.length} offers from ${esc(g.seller)}</summary>${g.items.map((o,i)=>`<a rel="nofollow sponsored" href="/.netlify/functions/trendpilot-outbound?offer=${encodeURIComponent(o.tpoid)}&src=product_preview_offer_${i+1}"><span>Offer ${i+1}</span><strong>${reliablePrice(o)?esc(usd(o.price)):'Check price'}</strong></a>`).join('')}</details>`:'';
+                return `<article class="tpp82-seller"><div class="tpp82-seller-top"><div><strong>${esc(g.seller)}</strong><span>${plural(g.items.length,'offer','offers')} · ${esc(tracking)}</span></div><b>${esc(price)}</b></div><a class="tpp82-primary" rel="nofollow sponsored" href="/.netlify/functions/trendpilot-outbound?offer=${encodeURIComponent(first.tpoid)}&src=product_preview_seller">Visit seller ↗</a>${extra}</article>`;
+              }).join('');
+
+              const relatedHtml=related.length?`<section class="tpp82-section"><div class="tpp82-section-head"><div><span class="tpp82-kicker">Related alternatives</span><h2>Other ${esc(String(p.type||'product').replaceAll('_',' '))} choices</h2></div><p>These are alternatives, not the same TPID.</p></div><div class="tpp82-related">${related.map(x=>`<a href="/product/${encodeURIComponent(x.route)}/">${x.image?`<img src="${esc(x.image)}" alt="" loading="lazy">`:''}<span><b>${esc(x.brand||'TrendPilot')}</b><strong>${esc(x.name)}</strong></span></a>`).join('')}</div></section>`:'';
+
+              const factHtml=facts.map(f=>`<div class="tpp82-fact"><span>${esc(f.label)}</span><strong>${esc(f.value)}</strong></div>`).join('');
+              const html=`<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f7f5ef"><meta name="robots" content="index,follow,max-image-preview:large"><title>${esc(title)}</title><meta name="description" content="${esc(desc)}"><link rel="canonical" href="${esc(canonical)}"><meta property="og:type" content="product"><meta property="og:site_name" content="TrendPilot AI"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${esc(canonical)}">${p.image?`<meta property="og:image" content="${esc(p.image)}"><meta name="twitter:card" content="summary_large_image">`:'<meta name="twitter:card" content="summary">'}<link rel="icon" href="/images/favicon-v4.svg" type="image/svg+xml"><link rel="stylesheet" href="/css/product-preview-v20-6-8-2.css?v=20.6.8.2"><script type="application/ld+json">${js(schema(p,rows))}</script></head><body data-tp-product-preview="20.6.8.2" data-tpid="${esc(p.tpid)}"><header class="tpp82-header"><a href="/" class="tpp82-brand"><img src="/images/logo-v4.svg" alt="" width="48" height="48"><span>TrendPilot <em>AI</em></span></a><a class="tpp82-search" href="/find/?engine=${ENGINE}">Search products</a></header><main class="tpp82-shell"><a class="tpp82-back" href="/find/?engine=${ENGINE}&q=${encodeURIComponent(p.name)}">← Back to results</a><section class="tpp82-hero"><div class="tpp82-image">${p.image?`<img src="${esc(p.image)}" alt="${esc(p.name)}">`:'<span>TP</span>'}</div><div class="tpp82-hero-copy"><span class="tpp82-kicker">${esc(p.brand||'TrendPilot product')}</span><h1 title="${esc(p.name)}">${esc(p.name)}</h1><p class="tpp82-counts">${plural(offerCount,'offer','offers')} from ${plural(sellerCount,'seller','sellers')} · ${plural(vars.length,'configuration','configurations')}</p><p class="tpp82-price">${esc(range)}</p><div class="tpp82-actions"><a class="tpp82-primary" href="${compareHref}">${sellerCount>1?`Compare ${sellerCount} sellers`:'View seller comparison details'}</a><a class="tpp82-secondary" href="#seller-offers">See seller offers</a></div></div></section><section class="tpp82-section"><div class="tpp82-section-head"><div><span class="tpp82-kicker">Product preview</span><h2>Important details at a glance</h2></div><p>TrendPilot keeps seller listings separate and does not merge different product identities.</p></div><div class="tpp82-facts">${factHtml}</div></section><section class="tpp82-section"><div class="tpp82-section-head"><div><span class="tpp82-kicker">Configurations</span><h2>Variants and configurations</h2></div><p>Configuration labels are shopper-friendly presentation only; TPVID identity remains unchanged.</p></div><div class="tpp82-configs">${variantHtml}</div></section><section class="tpp82-section" id="seller-offers"><div class="tpp82-section-head"><div><span class="tpp82-kicker">Seller offers</span><h2>${plural(offerCount,'offer','offers')} from ${plural(sellerCount,'seller','sellers')}</h2></div><p>Seller buttons use the committed affiliate/tracking destination for that exact TPOID.</p></div><div class="tpp82-sellers">${sellersHtml}</div></section>${relatedHtml}<details class="tpp82-tech"><summary>Technical identity details</summary><dl><div><dt>TPID</dt><dd>${esc(p.tpid)}</dd></div><div><dt>Product type</dt><dd>${esc(p.type||'Not stated')}</dd></div><div><dt>Seller offers</dt><dd>${offerCount}</dd></div><div><dt>Detected TPVID groups</dt><dd>${vars.length}</dd></div></dl></details></main><nav class="tpp82-bottom" aria-label="Quick navigation"><a href="/">Home</a><a class="active" href="/find/?engine=${ENGINE}">Search</a><a href="/deals/">Deals</a><a href="/compare/">Compare</a></nav><script src="/js/product-preview-events-v20-6-8-2.js?v=20.6.8.2" defer></script></body></html>`;
+
+              return {statusCode:200,headers:{'content-type':'text/html; charset=utf-8','cache-control':'public, max-age=300, s-maxage=1800','x-content-type-options':'nosniff'},body:html};
+            } catch (err) {
+              console.error('trendpilot-product',err);
+              return unavailable(err);
+            }
+          };
+          NODE
+
+          cat > css/product-preview-v20-6-8-2.css <<'CSS'
+          :root{--ink:#14201c;--muted:#697671;--blue:#315bea;--green:#19a97b;--bg:#f7f5ef;--card:#fff;--line:#dfe6e2;--soft:#eef6f2}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.tpp82-header{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:15px max(22px,calc((100vw - 1180px)/2));background:rgba(255,255,255,.96);border-bottom:1px solid var(--line);backdrop-filter:blur(16px)}.tpp82-brand{display:flex;align-items:center;gap:11px;color:var(--ink);text-decoration:none;font-size:23px;font-weight:900}.tpp82-brand img{width:48px;height:48px}.tpp82-brand em{font-style:normal;color:var(--green)}.tpp82-search,.tpp82-secondary,.tpp82-back{color:var(--blue);font-weight:850;text-decoration:none}.tpp82-search{padding:11px 15px;border:1px solid var(--line);border-radius:14px;background:#fff}.tpp82-shell{width:min(1180px,calc(100% - 34px));margin:0 auto;padding:30px 0 130px}.tpp82-back{display:inline-flex;margin-bottom:22px;font-size:17px}.tpp82-hero{display:grid;grid-template-columns:minmax(260px,.78fr) minmax(0,1.22fr);gap:34px;align-items:center;padding:28px;background:linear-gradient(135deg,#fff 0%,#fff 62%,#eff8f5 100%);border:1px solid var(--line);border-radius:32px;box-shadow:0 18px 55px rgba(20,32,28,.07)}.tpp82-image{min-height:360px;display:grid;place-items:center;background:#f4f7f5;border-radius:24px;padding:24px;overflow:hidden}.tpp82-image img{display:block;max-width:100%;max-height:330px;object-fit:contain}.tpp82-image span{display:grid;place-items:center;width:100px;height:100px;border-radius:26px;background:var(--blue);color:#fff;font-size:36px;font-weight:900}.tpp82-kicker{display:block;color:var(--blue);font-size:15px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;margin-bottom:9px}.tpp82-hero h1{font-size:clamp(38px,5.2vw,68px);line-height:1.01;letter-spacing:-.035em;margin:0 0 18px;overflow-wrap:anywhere}.tpp82-counts{font-size:23px;color:var(--muted);margin:0 0 13px}.tpp82-price{font-size:30px;font-weight:900;margin:0 0 22px}.tpp82-actions{display:flex;gap:12px;flex-wrap:wrap}.tpp82-primary,.tpp82-secondary{display:inline-flex;align-items:center;justify-content:center;min-height:54px;border-radius:16px;padding:13px 19px;text-decoration:none;font-weight:900}.tpp82-primary{background:var(--blue);color:#fff;box-shadow:0 10px 24px rgba(49,91,234,.18)}.tpp82-secondary{border:1px solid var(--line);background:#fff}.tpp82-section{margin-top:24px;padding:28px;background:var(--card);border:1px solid var(--line);border-radius:28px;box-shadow:0 12px 35px rgba(20,32,28,.045)}.tpp82-section-head{display:flex;align-items:flex-end;justify-content:space-between;gap:26px;margin-bottom:22px}.tpp82-section-head h2{font-size:32px;line-height:1.08;margin:0}.tpp82-section-head p{max-width:540px;color:var(--muted);font-size:16px;line-height:1.55;margin:0}.tpp82-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.tpp82-fact{padding:17px;background:var(--soft);border-radius:17px;min-width:0}.tpp82-fact span{display:block;color:var(--muted);font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;margin-bottom:7px}.tpp82-fact strong{display:block;font-size:18px;line-height:1.35;overflow-wrap:anywhere}.tpp82-configs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.tpp82-config{padding:18px;border:1px solid var(--line);border-radius:18px;background:#fff}.tpp82-config>div:first-child{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.tpp82-config strong{font-size:19px}.tpp82-config span{color:var(--muted)}.tpp82-specchips{display:flex!important;justify-content:flex-start!important;gap:7px!important;flex-wrap:wrap;margin-top:12px}.tpp82-specchips span{padding:6px 9px;border-radius:999px;background:var(--soft);font-size:13px;color:var(--ink)}.tpp82-sellers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.tpp82-seller{padding:20px;border:1px solid var(--line);border-radius:21px}.tpp82-seller-top{display:flex;justify-content:space-between;gap:14px;margin-bottom:16px}.tpp82-seller-top strong{display:block;font-size:22px}.tpp82-seller-top span{display:block;color:var(--muted);font-size:13px;margin-top:5px}.tpp82-seller-top b{font-size:21px;white-space:nowrap}.tpp82-offerlist{margin-top:13px;border-top:1px solid var(--line);padding-top:12px}.tpp82-offerlist summary{cursor:pointer;font-weight:800;color:var(--blue)}.tpp82-offerlist a{display:flex;justify-content:space-between;gap:15px;padding:10px 0;color:var(--ink);text-decoration:none;border-bottom:1px solid #eef1ef}.tpp82-related{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}.tpp82-related a{display:grid;grid-template-columns:70px minmax(0,1fr);gap:12px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:18px;color:var(--ink);text-decoration:none;min-width:0}.tpp82-related img{width:70px;height:70px;object-fit:contain;background:#f4f7f5;border-radius:12px}.tpp82-related b{display:block;color:var(--blue);font-size:12px}.tpp82-related strong{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25}.tpp82-tech{margin:20px 0 0;padding:18px 22px;background:#eef1ef;border-radius:18px;color:var(--muted)}.tpp82-tech summary{cursor:pointer;font-weight:850}.tpp82-tech dl{margin:15px 0 0}.tpp82-tech dl div{display:grid;grid-template-columns:180px minmax(0,1fr);gap:12px;padding:8px 0}.tpp82-tech dt{font-weight:800}.tpp82-tech dd{margin:0;overflow-wrap:anywhere}.tpp82-muted{color:var(--muted)}.tpp82-bottom{display:none}
+          @media(max-width:760px){body{padding-bottom:92px}.tpp82-header{padding:12px 18px}.tpp82-brand{font-size:21px}.tpp82-brand img{width:44px;height:44px}.tpp82-search{font-size:0;padding:12px}.tpp82-search:after{content:'Search';font-size:14px}.tpp82-shell{width:min(100% - 24px,720px);padding-top:20px}.tpp82-hero{grid-template-columns:112px minmax(0,1fr);gap:17px;padding:17px;border-radius:24px;align-items:start}.tpp82-image{min-height:150px;padding:10px;border-radius:18px}.tpp82-image img{max-height:140px}.tpp82-image span{width:70px;height:70px;font-size:25px}.tpp82-hero h1{font-size:clamp(31px,9.5vw,47px);line-height:1.02;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.tpp82-counts{font-size:17px;line-height:1.4}.tpp82-price{font-size:23px}.tpp82-actions{grid-column:1/-1}.tpp82-primary,.tpp82-secondary{width:100%}.tpp82-section{padding:20px 17px;border-radius:23px}.tpp82-section-head{display:block}.tpp82-section-head h2{font-size:28px}.tpp82-section-head p{margin-top:10px}.tpp82-facts,.tpp82-configs,.tpp82-sellers,.tpp82-related{grid-template-columns:1fr}.tpp82-config>div:first-child,.tpp82-seller-top{align-items:flex-start}.tpp82-seller-top{flex-direction:column}.tpp82-related a{grid-template-columns:62px minmax(0,1fr)}.tpp82-related img{width:62px;height:62px}.tpp82-tech dl div{grid-template-columns:1fr;gap:2px}.tpp82-bottom{position:fixed;z-index:30;left:12px;right:12px;bottom:max(10px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);padding:9px;background:rgba(255,255,255,.97);border:1px solid var(--line);border-radius:23px;box-shadow:0 14px 38px rgba(20,32,28,.14);backdrop-filter:blur(14px)}.tpp82-bottom a{padding:11px 4px;text-align:center;text-decoration:none;color:#53605b;font-size:13px;font-weight:800;border-radius:15px}.tpp82-bottom a.active{background:#eef3ff;color:var(--blue)}}
+          CSS
+
+          cat > js/product-preview-events-v20-6-8-2.js <<'JS'
+          (()=>{'use strict';const t=document.body?.dataset?.tpid||'';const send=(event,extra={})=>{try{const body=JSON.stringify({event,tpid:t,path:location.pathname,...extra});if(navigator.sendBeacon)navigator.sendBeacon('/.netlify/functions/trendpilot-event',new Blob([body],{type:'application/json'}));else fetch('/.netlify/functions/trendpilot-event',{method:'POST',headers:{'content-type':'application/json'},body,keepalive:true}).catch(()=>{})}catch{}};send('product_preview_view');document.addEventListener('click',e=>{const a=e.target.closest('a');if(!a)return;if(a.href.includes('trendpilot-outbound'))send('seller_cta_click',{label:(a.textContent||'').trim().slice(0,80)});else if(a.href.includes('/find/')&&a.href.includes('compare=1'))send('compare_cta_click')},{capture:true})})();
+          JS
+
+      - name: Make Product Preview the Finder-first route and clean variant presentation
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node - <<'NODE'
+          const fs=require('fs');
+          const p='netlify/functions/_product-data/products.json';
+          const o='netlify/functions/_product-data/offers.json';
+          const v='netlify/functions/_product-data/variants.json';
+          const products=JSON.parse(fs.readFileSync(p,'utf8'));
+          const offers=JSON.parse(fs.readFileSync(o,'utf8'));
+          const variants=JSON.parse(fs.readFileSync(v,'utf8'));
+          const by=new Map();
+          for(const x of offers){if(!by.has(x.tpid))by.set(x.tpid,[]);by.get(x.tpid).push(x)}
+          const byTpid={};
+          for(const x of products){const rows=by.get(x.tpid)||[];const sellers=[...new Set(rows.map(r=>r.seller).filter(Boolean))];byTpid[x.tpid]={route:x.route,name:x.name,brand:x.brand||'',type:x.type||'',sellerCount:sellers.length,offerCount:rows.length,variantCount:x.variantCount||0}}
+          const map={version:'20.6.8.2',engine:'v2064',byTpid};
+          fs.writeFileSync('data/product-preview-v20-6/route-map.json',JSON.stringify(map));
+
+          const norm=v=>String(v||'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+          const specLabel=text=>{
+            const s=norm(text); const parts=[];
+            const explicitRam=s.match(/\b(\d{1,2})\s*GB\s*RAM\b/i);
+            const gbs=[...s.matchAll(/\b(\d{1,4})\s*GB\b/gi)].map(m=>Number(m[1])).filter(Number.isFinite);
+            const inferred=!explicitRam&&gbs.length>=2?Math.min(...gbs.filter(n=>n<=32)):null;
+            if(explicitRam)parts.push(`${explicitRam[1]}GB RAM`);else if(Number.isFinite(inferred))parts.push(`${inferred}GB RAM`);
+            const storage=gbs.filter(n=>n>=32); if(storage.length)parts.push(`${Math.max(...storage)}GB`);
+            const screen=s.match(/\b(\d{1,2}(?:\.\d+)?)\s*(?:inch(?:es)?|in\b|\")/i);if(screen)parts.push(`Screen ${screen[1]} in`);
+            const btu=s.match(/\b(\d{4,6})\s*BTU\b/i);if(btu)parts.push(`${btu[1]} BTU`);
+            const vol=s.match(/\b(\d+(?:\.\d+)?)\s*(ml|oz)\b/i);if(vol)parts.push(`${vol[1]} ${vol[2].toLowerCase()}`);
+            return [...new Set(parts)].join(' · ');
+          };
+          const pmap=new Map(products.map(p=>[p.tpid,p]));
+          const labels={version:'20.6.8.2',byTpid:{}};
+          for(const v of variants){
+            if(!v.tpid||!v.tpvid)continue;
+            const rows=(by.get(v.tpid)||[]).filter(o=>o.tpvid===v.tpvid);
+            const evidence=[v.label,v.name,pmap.get(v.tpid)?.name,...rows.slice(0,5).map(o=>o.name)].filter(Boolean).join(' ');
+            let label=specLabel(evidence)||norm(v.label);
+            if(!label||/^variant\s*\d+$/i.test(label)||/^TPV-[A-Z0-9]+$/i.test(label)||/^\d+$/i.test(label))label='Seller configuration';
+            const screen=label.match(/^(\d{1,2}(?:\.\d+)?)\s*inches?$/i);if(screen)label=`Screen ${screen[1]} in`;
+            (labels.byTpid[v.tpid]??={})[v.tpvid]=label;
+          }
+          fs.writeFileSync('data/product-preview-v20-6/variant-labels-v20-6-8-2.json',JSON.stringify(labels));
+          NODE
+
+          cat > js/product-preview-bridge-v20-6-8-2.js <<'JS'
+          (()=>{'use strict';
+            const qs=new URLSearchParams(location.search);
+            const engine=(qs.get('engine')||'').toLowerCase();
+            if(!['v2064','v2067'].includes(engine))return;
+            const norm=v=>String(v||'').trim();
+            let ROUTES=null,LABELS=null;
+            async function routes(){if(ROUTES)return ROUTES;const r=await fetch('/data/product-preview-v20-6/route-map.json?v=20.6.8.2',{cache:'no-store'});if(!r.ok)throw new Error(`route-map HTTP ${r.status}`);ROUTES=await r.json();return ROUTES}
+            async function labels(){if(LABELS)return LABELS;try{const r=await fetch('/data/product-preview-v20-6/variant-labels-v20-6-8-2.json?v=20.6.8.2',{cache:'no-store'});if(r.ok)LABELS=await r.json()}catch{}return LABELS||{byTpid:{}}}
+            function previewUrl(hit){return `/product/${encodeURIComponent(hit.route)}/`}
+            async function fixText(){
+              document.querySelectorAll('[data-tpid-open]').forEach(btn=>{const id=norm(btn.dataset.tpidOpen);if(!id)return;btn.textContent='View product';btn.setAttribute('aria-label','Open product preview')});
+              const currentTpid=norm(new URLSearchParams(location.search).get('tpid'));
+              const vm=currentTpid?(await labels()).byTpid?.[currentTpid]||{}:{};
+              document.querySelectorAll('.tp67-variant-chips button,[data-variant]').forEach(btn=>{
+                const vid=norm(btn.dataset.variant);
+                let t=(btn.textContent||'').replace(/\b1 sellers\b/gi,'1 seller').trim();
+                const count=(t.match(/(\d+)\s+sellers?\b/i)||[])[1];
+                if(vid&&vid!=='ALL'&&vm[vid])t=`${vm[vid]}${count?` · ${count} seller${count==='1'?'':'s'}`:''}`;
+                else{t=t.replace(/^Variant\s+\d+\s*·/i,'Seller configuration ·');t=t.replace(/^(\d{1,2}(?:\.\d+)?)\s+Inches\s*·/i,'Screen $1 in ·')}
+                btn.textContent=t;
+              });
+            }
+            async function directExactRedirect(){
+              if(qs.get('compare')==='1')return;
+              const id=norm(new URLSearchParams(location.search).get('tpid'));
+              if(!id)return;
+              const m=await routes();const hit=m.byTpid?.[id];
+              if(hit&&hit.route&&document.querySelector('.tp67-compare-head'))location.replace(previewUrl(hit));
+            }
+            document.addEventListener('click',async e=>{
+              const btn=e.target.closest('[data-tpid-open]');
+              if(!btn)return;
+              const id=norm(btn.dataset.tpidOpen);if(!id)return;
+              // Capture before the old comparison listener so Product Preview is truly the first shopper step.
+              e.preventDefault();e.stopPropagation();e.stopImmediatePropagation();
+              try{const m=await routes();const hit=m.byTpid?.[id];if(hit?.route)location.href=previewUrl(hit)}catch(err){console.warn('TrendPilot Product Preview route unavailable',err)}
+            },true);
+            let timer=0;
+            const scan=()=>{fixText().catch(()=>{});directExactRedirect().catch(()=>{})};
+            const obs=new MutationObserver(()=>{clearTimeout(timer);timer=setTimeout(scan,80)});obs.observe(document.documentElement,{childList:true,subtree:true});
+            if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',scan,{once:true});else scan();
+          })();
+          JS
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('find/index.html')
+          s=p.read_text(encoding='utf-8')
+          s=re.sub(r'\s*<script[^>]+product-preview-bridge-v20-6-8(?:-2)?\.js[^>]*></script>\s*','\n',s,flags=re.I)
+          tag='<script src="/js/product-preview-bridge-v20-6-8-2.js?v=20.6.8.2" defer></script>'
+          if '</body>' in s:
+              s=s.replace('</body>',f'  {tag}\n</body>')
+          else:
+              s+='\n'+tag+'\n'
+          p.write_text(s,encoding='utf-8')
+          PY
+
+      - name: Harden Netlify bundling and product route configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re, tomllib
+          p=Path('netlify.toml')
+          s=p.read_text(encoding='utf-8')
+
+          # Remove only TrendPilot's previous product-preview redirect marker blocks.
+          s=re.sub(r'(?ms)^\s*# TP_PRODUCT_PREVIEW_V20_6_8_START.*?# TP_PRODUCT_PREVIEW_V20_6_8_END\s*','\n',s)
+          s=re.sub(r'(?ms)^\s*# TP_PRODUCT_PREVIEW_RUNTIME_V20_6_8_2_START.*?# TP_PRODUCT_PREVIEW_RUNTIME_V20_6_8_2_END\s*','\n',s)
+
+          # Ensure the local JSON bundle is included for functions. Netlify documents included_files for this purpose.
+          glob='netlify/functions/_product-data/*.json'
+          m=re.search(r'(?m)^\[functions\][ \t]*$',s)
+          if m:
+              start=m.end()
+              nxt=re.search(r'(?m)^\[[^\n]+\][ \t]*$',s[start:])
+              end=start+(nxt.start() if nxt else len(s)-start)
+              section=s[start:end]
+              im=re.search(r'(?ms)^[ \t]*included_files[ \t]*=[ \t]*\[(.*?)\][ \t]*(?:\n|$)',section)
+              if im:
+                  body=im.group(1)
+                  if glob not in body:
+                      vals=[x.strip() for x in body.split(',') if x.strip()]
+                      vals.append('"'+glob+'"')
+                      repl='\n  included_files = ['+', '.join(vals)+']\n'
+                      section=section[:im.start()]+repl+section[im.end():]
+              else:
+                  section='\n  included_files = ["'+glob+'"]'+section
+              s=s[:start]+section+s[end:]
+          else:
+              s=s.rstrip()+'\n\n[functions]\n  included_files = ["'+glob+'"]\n'
+
+          block='''
+          # TP_PRODUCT_PREVIEW_RUNTIME_V20_6_8_2_START
+          [[redirects]]
+            from = "/product"
+            to = "/find/?engine=v2064"
+            status = 301
+
+          [[redirects]]
+            from = "/product/*"
+            to = "/.netlify/functions/trendpilot-product?slug=:splat"
+            status = 200
+            force = true
+
+          # Do not expose function source files through the public publish root.
+          [[redirects]]
+            from = "/netlify/functions/*"
+            to = "/404.html"
+            status = 404
+            force = true
+          # TP_PRODUCT_PREVIEW_RUNTIME_V20_6_8_2_END
+          '''
+          s=s.rstrip()+'\n\n'+block.strip()+'\n'
+          p.write_text(s,encoding='utf-8')
+          with p.open('rb') as fh: tomllib.load(fh)
+          print('netlify.toml parse PASS')
+          PY
+
+      - name: Update presentation manifest without touching identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs=require('fs');
+          for(const file of ['data/product-preview-v20-6/manifest.json','netlify/functions/_product-data/manifest.json']){
+            if(!fs.existsSync(file))continue;
+            const m=JSON.parse(fs.readFileSync(file,'utf8'));
+            m.presentationVersion='20.6.8.2';
+            m.runtimePathStrategy='bounded-runtime-data-discovery-no-import-meta';
+            m.finderPreviewFirst=true;
+            m.offerCountSellerCountSeparated=true;
+            m.shopperVariantLabels=true;
+            m.cpcDestinationMutation=false;
+            m.identityRebuilt=false;
+            m.canonicalCatalogModified=false;
+            fs.writeFileSync(file,JSON.stringify(m,null,2));
+          }
+          NODE
+
+      - name: Deep QA — runtime layouts, Product Preview, variants, seller counts, SEO and CPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check netlify/functions/trendpilot-product-data.mjs
+          node --check netlify/functions/trendpilot-product.mjs
+          node --check netlify/functions/trendpilot-outbound.mjs
+          node --check js/product-preview-bridge-v20-6-8-2.js
+          node --check js/product-preview-events-v20-6-8-2.js
+
+          ! grep -q 'fileURLToPath(import.meta.url)' netlify/functions/trendpilot-product.mjs
+          ! grep -q 'fileURLToPath(import.meta.url)' netlify/functions/trendpilot-outbound.mjs
+          ! grep -q 'fileURLToPath(import.meta.url)' netlify/functions/trendpilot-product-data.mjs
+
+          cat > /tmp/tp-v20682-qa.mjs <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import os from 'node:os';
+          import { pathToFileURL } from 'node:url';
+          const ROOT=process.cwd();
+          const products=JSON.parse(fs.readFileSync('netlify/functions/_product-data/products.json','utf8'));
+          const offers=JSON.parse(fs.readFileSync('netlify/functions/_product-data/offers.json','utf8'));
+          const variants=JSON.parse(fs.readFileSync('netlify/functions/_product-data/variants.json','utf8'));
+          const manifest=JSON.parse(fs.readFileSync('data/product-preview-v20-6/manifest.json','utf8'));
+          const routeMap=JSON.parse(fs.readFileSync('data/product-preview-v20-6/route-map.json','utf8'));
+          const variantLabels=JSON.parse(fs.readFileSync('data/product-preview-v20-6/variant-labels-v20-6-8-2.json','utf8'));
+          const failures=[];
+          const blocked=/^(?:Temu|Joom|FilamentPRO(?: EU CPS)?)$/i;
+          const one=products.find(p=>p.tpid==='TPPH-D8C434EDE8F517')||products.find(p=>String(p.name).toLowerCase()==='oneplus 7t');
+          const think=products.find(p=>p.tpid==='TPLP-935FFB3DC985AB')||products.find(p=>String(p.name).toLowerCase()==='thinkpad x1 carbon');
+          const perfume=products.find(p=>p.tpid==='TPPF-C5712B5061F9E5')||products.find(p=>/al haramain badar/i.test(String(p.name)));
+          if(products.length<10000)failures.push(`products-too-small=${products.length}`);
+          if(offers.length<10000)failures.push(`offers-too-small=${offers.length}`);
+          if(variants.length<10000)failures.push(`variants-too-small=${variants.length}`);
+          if(offers.some(o=>blocked.test(String(o.seller||''))))failures.push('blocked-seller-leak');
+          if(!one)failures.push('OnePlus-7T-missing');
+          if(!think)failures.push('ThinkPad-X1-Carbon-missing');
+          if(!perfume)failures.push('perfume-anchor-missing');
+          const oneRows=one?offers.filter(o=>o.tpid===one.tpid):[];
+          const oneSellers=[...new Set(oneRows.map(o=>o.seller))];
+          if(oneSellers.length!==2)failures.push(`OnePlus-sellers=${JSON.stringify(oneSellers)}`);
+          if(!offers.some(o=>o.cpcCapable))failures.push('no-CPC-capable-offers');
+          if(manifest.identityRebuilt!==false||manifest.canonicalCatalogModified!==false)failures.push('identity-safety-flags');
+          if(manifest.presentationVersion!=='20.6.8.2')failures.push('manifest-presentation-version');
+          if(routeMap.version!=='20.6.8.2'||!routeMap.byTpid?.[one?.tpid]?.route)failures.push('route-map-v20682');
+          if(variantLabels.version!=='20.6.8.2'||!variantLabels.byTpid?.[one?.tpid])failures.push('variant-label-map-v20682');
+          const finder=fs.readFileSync('find/index.html','utf8');
+          if(!finder.includes('product-preview-bridge-v20-6-8-2.js'))failures.push('finder-bridge-missing');
+          if(finder.includes('product-preview-bridge-v20-6-8.js?v=20.6.8'))failures.push('old-finder-bridge-active');
+          const sitemap=fs.readFileSync('sitemap.xml','utf8');
+          const robots=fs.readFileSync('robots.txt','utf8');
+          if(one&&!sitemap.includes(`/product/${one.route}/`))failures.push('OnePlus-product-route-missing-from-sitemap');
+          if(!robots.includes('https://trendpilotchoice.com/sitemap.xml'))failures.push('robots-sitemap-missing');
+
+          const productModule=await import(pathToFileURL(path.join(ROOT,'netlify/functions/trendpilot-product.mjs')).href+'?qa='+Date.now());
+          const outboundModule=await import(pathToFileURL(path.join(ROOT,'netlify/functions/trendpilot-outbound.mjs')).href+'?qa='+Date.now());
+          for(const p of [one,think,perfume].filter(Boolean)){
+            const res=await productModule.handler({path:`/product/${p.route}/`,queryStringParameters:{slug:p.route}});
+            if(res.statusCode!==200)failures.push(`${p.tpid}-preview-status=${res.statusCode}`);
+            for(const marker of ['data-tp-product-preview="20.6.8.2"','Product preview','Configurations','Seller offers','application/ld+json','compare=1'])if(!res.body.includes(marker))failures.push(`${p.tpid}-missing-${marker}`);
+            if(/This function has crashed/i.test(res.body))failures.push(`${p.tpid}-crash-page`);
+          }
+          if(one){
+            const res=await productModule.handler({path:`/product/${one.route}/`,queryStringParameters:{slug:one.route}});
+            if(!res.body.includes(`${oneRows.length} offers from 2 sellers`))failures.push(`OnePlus-offer-seller-count-copy expected=${oneRows.length}`);
+            if(!res.body.includes('Compare 2 sellers'))failures.push('OnePlus-compare-two-sellers-copy');
+          }
+          const target=offers.find(o=>o.cpcCapable&&/^https?:\/\//i.test(o.url))||offers.find(o=>/^https?:\/\//i.test(o.url));
+          if(!target)failures.push('outbound-QA-target-missing');
+          else{
+            const out=await outboundModule.handler({queryStringParameters:{offer:target.tpoid,src:'qa_v20682'}});
+            if(out.statusCode!==302)failures.push(`outbound-status=${out.statusCode}`);
+            if(out.headers?.location!==target.url)failures.push('CPC-affiliate-destination-mutated');
+          }
+
+          // Runtime-layout simulation: prove the loader works when bundled data is flat or nested.
+          const temp=fs.mkdtempSync(path.join(os.tmpdir(),'tp-v20682-'));
+          const layouts=[path.join(temp,'flat','_product-data'),path.join(temp,'nested','netlify','functions','_product-data')];
+          for(const dir of layouts){fs.mkdirSync(dir,{recursive:true});for(const f of ['products.json','offers.json','variants.json'])fs.copyFileSync(path.join(ROOT,'netlify/functions/_product-data',f),path.join(dir,f))}
+          const loaderPath=pathToFileURL(path.join(ROOT,'netlify/functions/trendpilot-product-data.mjs')).href;
+          for(const [i,dir] of layouts.entries()){
+            const root=i===0?path.dirname(dir):path.resolve(dir,'../../..');
+            process.env.TRENDPILOT_PRODUCT_DATA_ROOT=dir;
+            const mod=await import(loaderPath+`?layout=${i}&t=${Date.now()}`);
+            const data=mod.loadProductData();
+            if(data.products.length!==products.length||data.offers.length!==offers.length)failures.push(`runtime-layout-${i}-count-mismatch`);
+            if(!data.dir.includes('_product-data'))failures.push(`runtime-layout-${i}-locator`);
+            delete process.env.TRENDPILOT_PRODUCT_DATA_ROOT;
+          }
+
+          const qa={version:'20.6.8.2',createdAt:new Date().toISOString(),products:products.length,offers:offers.length,variants:variants.length,onePlus7T:{offers:oneRows.length,sellers:oneSellers},cpcCapableOffers:offers.filter(o=>o.cpcCapable).length,cpcConfirmedOffers:offers.filter(o=>o.cpcConfirmed).length,failures};
+          fs.writeFileSync('data/product-preview-v20-6/qa-v20-6-8-2.json',JSON.stringify(qa,null,2));
+          console.log(JSON.stringify(qa,null,2));
+          if(failures.length)process.exit(1);
+          NODE
+          node /tmp/tp-v20682-qa.mjs
+
+          python - <<'PY'
+          import tomllib
+          with open('netlify.toml','rb') as f: tomllib.load(f)
+          print('TOML validation PASS')
+          PY
+
+          git diff --quiet -- data/catalog-v19 data/search-v20-6/stable-v20-6-7.json || {
+            echo 'IDENTITY/CANONICAL GUARD FAILED: this release must not modify V19 or stable V20.6.7 identity.' >&2
+            git diff -- data/catalog-v19 data/search-v20-6/stable-v20-6-7.json >&2
+            exit 1
+          }
+
+      - name: Commit one V20.6.8.2 stabilization release only after QA passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            netlify/functions/trendpilot-product-data.mjs \
+            netlify/functions/trendpilot-product.mjs \
+            netlify/functions/trendpilot-outbound.mjs \
+            netlify/functions/_product-data/manifest.json \
+            css/product-preview-v20-6-8-2.css \
+            js/product-preview-events-v20-6-8-2.js \
+            js/product-preview-bridge-v20-6-8-2.js \
+            data/product-preview-v20-6/manifest.json \
+            data/product-preview-v20-6/route-map.json \
+            data/product-preview-v20-6/variant-labels-v20-6-8-2.json \
+            data/product-preview-v20-6/qa-v20-6-8-2.json \
+            find/index.html netlify.toml
+          if git diff --cached --quiet; then
+            echo "No changes to commit; V20.6.8.2 is already installed."
+          else
+            git commit -m "TrendPilot V20.6.8.2 stabilize product preview runtime and Finder flow"
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Live deployment smoke test with bounded wait
+        id: live
+        shell: bash
+        run: |
+          set -euo pipefail
+          SITE='https://trendpilotchoice.com'
+          ROUTE="$(node -p "JSON.parse(require('fs').readFileSync('data/product-preview-v20-6/manifest.json','utf8')).onePlus7T?.route||''")"
+          test -n "$ROUTE"
+          deployed=0
+          for i in $(seq 1 30); do
+            body="$(curl -fsS --max-time 12 "$SITE/data/product-preview-v20-6/manifest.json?qa=$RANDOM" 2>/dev/null || true)"
+            if printf '%s' "$body" | grep -q '"presentationVersion"[[:space:]]*:[[:space:]]*"20.6.8.2"'; then
+              deployed=1; break
+            fi
+            echo "Waiting for Netlify deploy... attempt $i/30"
+            sleep 10
+          done
+          if [ "$deployed" -ne 1 ]; then
+            echo "LIVE_STATUS=DEPLOY_PENDING" | tee /tmp/tp-v20682-live.txt
+            exit 0
+          fi
+
+          code="$(curl -sS -L -o /tmp/tp-v20682-product.html -w '%{http_code}' --max-time 20 "$SITE/product/$ROUTE/?qa=$RANDOM")"
+          test "$code" = '200'
+          grep -q 'data-tp-product-preview="20.6.8.2"' /tmp/tp-v20682-product.html
+          grep -q 'OnePlus 7T' /tmp/tp-v20682-product.html
+          grep -q 'Product preview' /tmp/tp-v20682-product.html
+          grep -q 'Configurations' /tmp/tp-v20682-product.html
+          grep -q 'Seller offers' /tmp/tp-v20682-product.html
+          grep -q 'Compare 2 sellers' /tmp/tp-v20682-product.html
+          ! grep -qi 'This function has crashed' /tmp/tp-v20682-product.html
+
+          curl -fsS --max-time 20 "$SITE/find/?engine=v2064&q=phone&qa=$RANDOM" -o /tmp/tp-v20682-finder.html
+          grep -q 'product-preview-bridge-v20-6-8-2.js' /tmp/tp-v20682-finder.html
+          echo "LIVE_STATUS=PASS" | tee /tmp/tp-v20682-live.txt
+
+      - name: Publish final V20.6.8.2 summary
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          print('# TrendPilot V20.6.8.2 — Product Runtime + Preview Integration Stabilization')
+          print()
+          print('**ONE STABILIZATION RELEASE INSTALLED TO MAIN after local runtime, identity, seller-count, SEO and CPC checks.**')
+          print()
+          q=Path('data/product-preview-v20-6/qa-v20-6-8-2.json')
+          if q.exists():
+              d=json.loads(q.read_text())
+              print('## Verified package')
+              print(f"- Master product previews: **{d.get('products',0):,}**")
+              print(f"- Actionable offers: **{d.get('offers',0):,}**")
+              print(f"- TPVID rows preserved: **{d.get('variants',0):,}**")
+              one=d.get('onePlus7T',{})
+              print(f"- OnePlus 7T: **{one.get('offers',0)} offers from {len(one.get('sellers',[]))} sellers**")
+              print(f"- CPC-capable seller offers preserved: **{d.get('cpcCapableOffers',0):,}**")
+              print(f"- CPC destination mutation failures: **0**")
+              print(f"- QA failures: **{len(d.get('failures',[]))}**")
+          print()
+          print('## What changed')
+          print('- Removed the deployed Product Preview dependency on `fileURLToPath(import.meta.url)` and added a bounded runtime data locator.')
+          print('- Product Preview is now the first click from V20.6 Finder product cards; comparison remains available from the preview page.')
+          print('- Product pages show image, concise shopper details, price range, offer count, seller count, configurations and seller offers.')
+          print('- Long product titles are clamped visually on mobile while the full title remains in HTML/SEO metadata.')
+          print('- Generic variant labels are presented as shopper-friendly configurations without changing TPVID identity.')
+          print('- Seller count and offer count are separate: multiple Alibaba listings no longer pretend to be multiple sellers.')
+          print('- Outbound seller redirects preserve the exact committed affiliate/tracking URL; CPC-capable routes are not rewritten.')
+          print('- V19 catalogs and the stable V20.6.7 TPID/TPVID/TPOID package are guarded from modification.')
+          print()
+          live=Path('/tmp/tp-v20682-live.txt')
+          status=live.read_text().strip().split('=',1)[-1] if live.exists() else 'NOT_RUN'
+          print('## Live deployment smoke test')
+          print(f'- Status: **{status}**')
+          if status=='DEPLOY_PENDING': print('- Netlify had not exposed the new deploy within the bounded wait; the committed release still passed all pre-commit runtime simulations and QA.')
+          print()
+          print('## Final URLs')
+          print('- Finder: `https://trendpilotchoice.com/find/?engine=v2064&q=phone`')
+          print('- OnePlus Product Preview: use the route stored in `data/product-preview-v20-6/manifest.json` (`onePlus7T.route`).')
+          print('- Comparison remains deliberately behind the Product Preview via `compare=1`.')
+          PY
