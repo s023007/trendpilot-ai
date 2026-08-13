@@ -46,3 +46,26 @@
   from = "/how-we-review"
   to = "/editorial-methodology.html"
   status = 301
+
+[functions]
+  included_files = ["netlify/functions/_product-data/*.json"]
+
+# TP_PRODUCT_PREVIEW_V20_6_8_START
+[[redirects]]
+  from = "/product"
+  to = "/find/"
+  status = 301
+
+[[redirects]]
+  from = "/product/*"
+  to = "/.netlify/functions/trendpilot-product?slug=:splat"
+  status = 200
+  force = true
+
+# Never expose function source paths through the publish root.
+[[redirects]]
+  from = "/netlify/functions/*"
+  to = "/404.html"
+  status = 404
+  force = true
+# TP_PRODUCT_PREVIEW_V20_6_8_END
