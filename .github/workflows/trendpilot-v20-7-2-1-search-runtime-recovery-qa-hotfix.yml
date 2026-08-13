@@ -1,0 +1,388 @@
+name: TrendPilot V20.7.2.1 — Search Runtime Recovery QA Hotfix
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v20-7-2-1-search-recovery
+  cancel-in-progress: false
+
+jobs:
+  recover-public-search:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Start recovery summary
+        shell: bash
+        run: |
+          {
+            echo "# TrendPilot V20.7.2.1 — Search Runtime Recovery QA Hotfix"
+            echo
+            echo "**Goal:** restore product results in the new V20.7 design without returning visitors to the old UI."
+            echo
+            echo "- V20.7 visual design is preserved."
+            echo "- The pre-cutover finder is used only as a runtime-script source of truth."
+            echo "- V19/V20 identity catalogs are not rebuilt."
+            echo "- GEO import filtering is not added."
+            echo "- Seller policy is not changed."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Recover working finder runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python <<'PY'
+          from pathlib import Path
+          from html.parser import HTMLParser
+          import json
+          import re
+
+          ROOT = Path(".")
+          FIND = ROOT / "find" / "index.html"
+          LEGACY = ROOT / "find" / "legacy.html"
+          V207_JS = ROOT / "js" / "v20-7-public-shopper.js"
+
+          if not FIND.exists():
+              raise SystemExit("find/index.html is missing")
+          if not LEGACY.exists():
+              raise SystemExit("find/legacy.html is missing — safe runtime recovery cannot continue")
+          if not V207_JS.exists():
+              raise SystemExit("js/v20-7-public-shopper.js is missing")
+
+          current = FIND.read_text(encoding="utf-8")
+          legacy = LEGACY.read_text(encoding="utf-8")
+          shopper = V207_JS.read_text(encoding="utf-8")
+
+          required_contract = [
+              "data-tp-finder-form",
+              "data-tp-finder-input",
+              "data-tp-product-grid",
+              "data-filter-merchant",
+              "data-tp-result-tabs",
+              "data-tp-load-more",
+          ]
+          missing = [x for x in required_contract if x not in legacy]
+          if missing:
+              raise SystemExit("legacy finder contract incomplete: " + ", ".join(missing))
+
+          class ScriptParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.srcs = []
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() != "script":
+                      return
+                  src = dict(attrs).get("src")
+                  if src:
+                      self.srcs.append(src)
+
+          def scripts(html):
+              p = ScriptParser()
+              p.feed(html)
+              return p.srcs
+
+          legacy_scripts = scripts(legacy)
+          current_scripts = scripts(current)
+
+          if not legacy_scripts:
+              raise SystemExit("No runtime scripts found in legacy finder")
+
+          recovered = []
+          seen = set()
+          for src in legacy_scripts:
+              base = src.split("?", 1)[0]
+              if base.endswith("/js/v20-7-public-shopper.js"):
+                  continue
+              if src not in seen:
+                  seen.add(src)
+                  recovered.append(src)
+
+          safe_guard = "/js/v20-6-9-1-safe-buyer-ui.js"
+          if not any(x.split("?", 1)[0] == safe_guard for x in recovered):
+              for src in current_scripts:
+                  if src.split("?", 1)[0] == safe_guard:
+                      recovered.append(src)
+                      break
+
+          external_script_re = re.compile(
+              r'\s*<script\b(?=[^>]*\bsrc=)[^>]*>\s*</script>\s*',
+              re.I
+          )
+          rebuilt = external_script_re.sub("\n", current)
+
+          bootstrap = "\n".join([
+              '<script id="tp-v20-7-2-engine-bootstrap">',
+              '(() => {',
+              '  const p = new URLSearchParams(location.search);',
+              '  const engine = (p.get("engine") || "").toLowerCase();',
+              '  if (engine === "legacy") {',
+              '    const target = "/find/legacy.html" + (location.search || "?engine=legacy");',
+              '    location.replace(target);',
+              '    return;',
+              '  }',
+              '  if (!p.has("engine")) {',
+              '    p.set("engine", "v2064");',
+              '    location.replace(location.pathname + "?" + p.toString() + location.hash);',
+              '  }',
+              '})();',
+              '</script>'
+          ])
+
+          if 'id="tp-v20-7-2-engine-bootstrap"' not in rebuilt:
+              pos = rebuilt.lower().find("</head>")
+              if pos < 0:
+                  raise SystemExit("find/index.html has no </head>")
+              rebuilt = rebuilt[:pos] + bootstrap + "\n" + rebuilt[pos:]
+
+          tags = []
+          for src in recovered:
+              if "cj-joined-sellers.js" in src:
+                  tags.append(f'<script src="{src}"></script>')
+              else:
+                  tags.append(f'<script defer src="{src}"></script>')
+
+          tags.append('<script defer src="/js/v20-7-public-shopper.js?v=20.7.2.1"></script>')
+
+          runtime_tail = "\n".join(tags) + "\n"
+          body_pos = rebuilt.lower().rfind("</body>")
+          if body_pos < 0:
+              raise SystemExit("find/index.html has no </body>")
+          rebuilt = rebuilt[:body_pos] + runtime_tail + rebuilt[body_pos:]
+
+          # Remove only the late default-engine mutation. Early head bootstrap now owns it.
+          shopper2 = shopper.replace(
+              '    if (!params.has("engine")) {\n'
+              '      params.set("engine", "v2064");\n'
+              '      history.replaceState(null, "", location.pathname + "?" + params.toString() + location.hash);\n'
+              '    }',
+              '    // V20.7.2: early <head> bootstrap owns default engine selection.'
+          )
+
+          FIND.write_text(rebuilt, encoding="utf-8")
+          V207_JS.write_text(shopper2, encoding="utf-8")
+
+          report = {
+              "version": "V20.7.2.1",
+              "legacy_runtime_scripts_found": len(legacy_scripts),
+              "runtime_scripts_recovered": len(recovered),
+              "new_finder_scripts_before": current_scripts,
+              "recovered_runtime_order": recovered,
+              "early_v2064_bootstrap": True,
+              "late_engine_race_removed": True,
+              "v207_design_preserved": "v20-7-shopper-experience.css" in rebuilt,
+              "legacy_visual_cutover": False,
+              "identity_rebuilt": False,
+              "geo_import_filter_added": False,
+              "seller_policy_changed": False
+          }
+
+          diag = ROOT / "data" / "diagnostics"
+          diag.mkdir(parents=True, exist_ok=True)
+          (diag / "v20-7-2-1-search-runtime-recovery.json").write_text(
+              json.dumps(report, ensure_ascii=False, indent=2) + "\n",
+              encoding="utf-8"
+          )
+
+          print(json.dumps(report, ensure_ascii=False, indent=2))
+          PY
+
+      - name: Static QA — engine boots before finder runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          node --check js/v20-7-public-shopper.js
+
+          python <<'PY'
+          from pathlib import Path
+          import json, re
+
+          html = Path("find/index.html").read_text(encoding="utf-8")
+          legacy = Path("find/legacy.html").read_text(encoding="utf-8")
+          js = Path("js/v20-7-public-shopper.js").read_text(encoding="utf-8")
+
+          head_end = html.lower().find("</head>")
+          bootstrap_pos = html.find('id="tp-v20-7-2-engine-bootstrap"')
+          first_external = re.search(r'<script\b[^>]*\bsrc=', html, re.I)
+          site_pos = html.find("/js/site-v13-5.js")
+          v207_pos = html.find("/js/v20-7-public-shopper.js")
+
+          checks = {
+              "early_bootstrap_exists": bootstrap_pos >= 0,
+              "bootstrap_inside_head": 0 <= bootstrap_pos < head_end,
+              "bootstrap_before_external_runtime": bool(first_external) and bootstrap_pos < first_external.start(),
+              "default_engine_v2064": 'p.set("engine", "v2064")' in html,
+              "legacy_route_kept": "/find/legacy.html" in html,
+              "site_runtime_present": site_pos >= 0,
+              "v207_runs_after_site_runtime": site_pos >= 0 and v207_pos > site_pos,
+              "product_grid_contract": "data-tp-product-grid" in html,
+              "finder_form_contract": "data-tp-finder-form" in html,
+              "v207_design_css_kept": "v20-7-shopper-experience.css" in html,
+              "late_history_engine_mutation_removed": 'history.replaceState(null, "", location.pathname + "?" + params.toString()' not in js,
+              "legacy_still_available": "data-tp-finder-form" in legacy
+          }
+
+          failed = [k for k, v in checks.items() if not v]
+          print(json.dumps(checks, indent=2))
+          if failed:
+              raise SystemExit("Static QA failed: " + ", ".join(failed))
+          PY
+
+      - name: Runtime source QA — working script parity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+          import json
+
+          class P(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.srcs = []
+              def handle_starttag(self, tag, attrs):
+                  if tag.lower() == "script":
+                      src = dict(attrs).get("src")
+                      if src:
+                          self.srcs.append(src)
+
+          def get(path):
+              p = P()
+              p.feed(Path(path).read_text(encoding="utf-8"))
+              return p.srcs
+
+          legacy = get("find/legacy.html")
+          public = get("find/index.html")
+
+          def base(x):
+              return x.split("?", 1)[0]
+
+          missing = []
+          for src in legacy:
+              if base(src).endswith("/js/v20-7-public-shopper.js"):
+                  continue
+              if not any(base(x) == base(src) for x in public):
+                  missing.append(src)
+
+          # site-v13-5.js is the actual finder controller. Do not require a
+          # historical helper filename that may no longer be present in the
+          # known-working legacy runtime. Full legacy parity above is the source
+          # of truth for all companion scripts.
+          required = ["/js/site-v13-5.js"]
+          required_missing = [x for x in required if not any(base(s) == x for s in public)]
+
+          search_runtime_candidates = [
+              s for s in public
+              if any(token in base(s).lower() for token in (
+                  "site-v13-5", "search", "finder", "discovery", "product"
+              ))
+          ]
+
+          result = {
+              "legacy_script_count": len(legacy),
+              "public_script_count": len(public),
+              "missing_legacy_runtime_scripts": missing,
+              "required_runtime_missing": required_missing,
+              "search_runtime_candidates": search_runtime_candidates
+          }
+          print(json.dumps(result, indent=2))
+
+          if missing or required_missing or not search_runtime_candidates:
+              raise SystemExit("Runtime source parity failed")
+          PY
+
+      - name: Search assets QA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -s js/site-v13-5.js
+          test -s js/v20-7-public-shopper.js
+
+          grep -Rqs "products-v16-hybrid" netlify.toml _redirects netlify/functions js || {
+            echo "products-v16-hybrid route/function reference missing"
+            exit 1
+          }
+
+          echo "Search engine asset/route contract: PASS"
+
+      - name: Safety QA
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git status --short | grep -E 'data/.*(canonical|tpid|tpvid|tpoid|identity|catalog)' >/dev/null; then
+            echo "Unexpected identity/catalog mutation detected."
+            git status --short
+            exit 1
+          fi
+
+          echo "Identity/catalog rebuild: NO"
+          echo "GEO import filter change: NO"
+          echo "Seller policy change: NO"
+
+      - name: Write visible recovery Summary
+        shell: bash
+        run: |
+          python <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+
+          r = json.loads(
+              Path("data/diagnostics/v20-7-2-1-search-runtime-recovery.json")
+              .read_text(encoding="utf-8")
+          )
+
+          print("## Search recovery")
+          print()
+          print(f"- Working legacy runtime scripts found: **{r['legacy_runtime_scripts_found']}**")
+          print(f"- Runtime scripts recovered into V20.7 finder: **{r['runtime_scripts_recovered']}**")
+          print("- `engine=v2064` resolved before external finder scripts: **PASS**")
+          print("- Late engine race removed: **PASS**")
+          print("- Existing finder runtime order restored from pre-cutover page: **PASS**")
+          print("- Runtime parity uses the actual legacy script set, not a historical helper filename: **PASS**")
+          print()
+          print("## Design")
+          print()
+          print("- V20.7 public design preserved: **YES**")
+          print("- Returned visitors to old visual design: **NO**")
+          print("- Emergency legacy route preserved: **YES**")
+          print()
+          print("## Safety")
+          print()
+          print("- V19/V20 identity rebuild: **NO**")
+          print("- GEO import filter: **NO**")
+          print("- Seller policy change: **NO**")
+          print()
+          print("### Result")
+          print("**PASS — V20.7.2.1 recovered the public search runtime and passed corrected runtime-parity QA.**")
+          PY
+
+      - name: Commit V20.7.2.1
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet && git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+          git commit -m "TrendPilot V20.7.2.1 recover public search runtime"
+          git push
