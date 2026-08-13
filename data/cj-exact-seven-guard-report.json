@@ -1,7 +1,7 @@
 {
-  "version": "13.8.9",
-  "generatedAt": "2026-08-12T05:09:00.119556+00:00",
-  "status": "exact-seven-hotfix-installed",
+  "version": "13.8.8",
+  "generatedAt": "2026-08-13T05:11:46.328490+00:00",
+  "status": "exact-seven-installed",
   "approvedAdvertiserCount": 7,
   "approvedAdvertisers": [
     {
@@ -34,7 +34,7 @@
     }
   ],
   "knownCjSellerKeysDiscovered": 28,
-  "cjEvidenceRecordsScanned": 17346,
+  "cjEvidenceRecordsScanned": 21841,
   "evidenceFiles": [
     "data/catalog-v19/source-ingestion/mfi-medical-deeplink-audit.json",
     "data/catalog-v19/source-ingestion/tiktok-shop-us-cj-audit.json",
@@ -42,6 +42,29 @@
     "data/cj-offers.json",
     "data/cj-products.json",
     "data/diagnostics/diecast-expansion-v15-6-6.json",
+    "data/search-v20-6/comparison-v20-6-4/types/air_conditioner.json",
+    "data/search-v20-6/comparison-v20-6-4/types/cookware.json",
+    "data/search-v20-6/comparison-v20-6-4/types/dog_food.json",
+    "data/search-v20-6/comparison-v20-6-4/types/headphones.json",
+    "data/search-v20-6/comparison-v20-6-4/types/laptop.json",
+    "data/search-v20-6/comparison-v20-6-4/types/lighting.json",
+    "data/search-v20-6/comparison-v20-6-4/types/perfume.json",
+    "data/search-v20-6/comparison-v20-6-4/types/phone.json",
+    "data/search-v20-6/comparison-v20-6-4/types/power_bank.json",
+    "data/search-v20-6/comparison-v20-6-4/types/smartwatch.json",
+    "data/search-v20-6/comparison-v20-6-4/types/tools.json",
+    "data/search-v20-6/stable-v20-6-7.json",
+    "data/search-v20-6/visitor/types/air_conditioner.json",
+    "data/search-v20-6/visitor/types/cookware.json",
+    "data/search-v20-6/visitor/types/dog_food.json",
+    "data/search-v20-6/visitor/types/headphones.json",
+    "data/search-v20-6/visitor/types/laptop.json",
+    "data/search-v20-6/visitor/types/lighting.json",
+    "data/search-v20-6/visitor/types/perfume.json",
+    "data/search-v20-6/visitor/types/phone.json",
+    "data/search-v20-6/visitor/types/power_bank.json",
+    "data/search-v20-6/visitor/types/smartwatch.json",
+    "data/search-v20-6/visitor/types/tools.json",
     "data/search-v20/types/air_conditioner.json",
     "data/search-v20/types/cookware.json",
     "data/search-v20/types/dog_food.json",
@@ -65,8 +88,7 @@
       "changed": true,
       "patches": [
         "embedded-exact-allowlist",
-        "visible-results-filtered",
-        "seller-dropdown-structure-aware"
+        "visible-results-filtered"
       ],
       "guardPresent": true,
       "sellerFilterPresent": true
@@ -77,8 +99,7 @@
       "changed": true,
       "patches": [
         "embedded-exact-allowlist",
-        "visible-results-filtered",
-        "seller-dropdown-structure-aware"
+        "visible-results-filtered"
       ],
       "guardPresent": true,
       "sellerFilterPresent": true
