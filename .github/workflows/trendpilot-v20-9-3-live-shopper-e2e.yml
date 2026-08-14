@@ -1,4 +1,4 @@
-name: TrendPilot V20.9.4 — Restored Finder Mobile E2E
+name: TrendPilot V20.9.5 — Restored Finder + Product Truth Mobile E2E
 
 on:
   push:
@@ -8,10 +8,12 @@ on:
       - .github/workflows/trendpilot-v20-9-3-live-shopper-e2e.yml
       - data/v20-9/**
       - find/index.html
+      - product/index.html
       - item/index.html
       - compare/index.html
       - js/finder-v20-7-9.js
       - js/finder-restored-semantic-guard-v20-9-4.js
+      - js/product-detail-truth-v20-9-5.js
       - js/universal-discovery-v20-8.js
       - js/universal-discovery-v20-9-1.js
       - js/finder-shell-v20-9.js
@@ -26,7 +28,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: trendpilot-v20-9-4-live-shopper
+  group: trendpilot-v20-9-5-live-shopper
   cancel-in-progress: true
 
 jobs:
@@ -37,16 +39,22 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v5
 
-      - name: Wait for restored finder and V20.9.4 semantic data
+      - name: Wait for restored finder, V20.9.5 product truth and V20.9.4 semantic data
         shell: bash
         run: |
           set -euo pipefail
           for i in $(seq 1 36); do
-            html_ok=0
+            finder_ok=0
+            product_ok=0
             semantic_ok=0
             if curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/tp-find.html; then
               if grep -q 'finder-v20-7-9.js?v=20.7.11' /tmp/tp-find.html && grep -q 'universal-discovery-v20-8.js?v=20.8.5' /tmp/tp-find.html && grep -q 'finder-restored-semantic-guard-v20-9-4.js?v=20.9.4' /tmp/tp-find.html; then
-                html_ok=1
+                finder_ok=1
+              fi
+            fi
+            if curl -fsSL --max-time 20 'https://trendpilotchoice.com/product/' -o /tmp/tp-product.html; then
+              if grep -q 'product-detail-truth-v20-9-5.js?v=20.9.5' /tmp/tp-product.html; then
+                product_ok=1
               fi
             fi
             if curl -fsSL --max-time 20 'https://trendpilotchoice.com/data/v20-9/semantic-closeout.json?v=20.9.4' -o /tmp/tp-semantic.json; then
@@ -54,14 +62,14 @@ jobs:
                 semantic_ok=1
               fi
             fi
-            if [ "$html_ok" = 1 ] && [ "$semantic_ok" = 1 ]; then
-              echo 'Restored working finder, semantic guard and V20.9.4 quality data are live.'
+            if [ "$finder_ok" = 1 ] && [ "$product_ok" = 1 ] && [ "$semantic_ok" = 1 ]; then
+              echo 'Restored finder, V20.9.5 product truth and V20.9.4 quality data are live.'
               exit 0
             fi
-            echo "Waiting for public deploy ($i/36): finder=$html_ok semantic=$semantic_ok"
+            echo "Waiting for public deploy ($i/36): finder=$finder_ok product=$product_ok semantic=$semantic_ok"
             sleep 10
           done
-          echo 'Restored finder did not become reachable in time.'
+          echo 'Required public assets did not become reachable in time.'
           exit 1
 
       - name: Set up Node
@@ -76,7 +84,7 @@ jobs:
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
 
-      - name: Run Android restored-finder journey
+      - name: Run Android finder and product-detail journey
         env:
           TP_BASE_URL: https://trendpilotchoice.com
         run: node scripts/qa-v20-9-live-shopper.mjs
@@ -86,15 +94,15 @@ jobs:
         shell: bash
         run: |
           if [ ! -s artifacts/live-shopper/report.json ]; then
-            echo '# TrendPilot V20.9.4 — Restored Finder Mobile E2E' >> "$GITHUB_STEP_SUMMARY"
+            echo '# TrendPilot V20.9.5 — Restored Finder + Product Truth Mobile E2E' >> "$GITHUB_STEP_SUMMARY"
             echo >> "$GITHUB_STEP_SUMMARY"
-            echo '**No report produced.** Browser setup or public deployment failed before the finder test could run.' >> "$GITHUB_STEP_SUMMARY"
+            echo '**No report produced.** Browser setup or public deployment failed before the shopper test could run.' >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs=require('fs');
           const r=JSON.parse(fs.readFileSync('artifacts/live-shopper/report.json','utf8'));
-          console.log('# TrendPilot V20.9.4 — Restored Finder Mobile E2E');
+          console.log('# TrendPilot V20.9.5 — Restored Finder + Product Truth Mobile E2E');
           console.log();
           console.log(`- Overall: **${r.passed?'PASS':'FAIL'}**`);
           console.log(`- Public site: **${r.base}**`);
@@ -103,6 +111,7 @@ jobs:
           for(const q of (r.queries||[])) console.log(`- ${q.query}: **${q.count} cards**, first render **${q.renderMs} ms**, first: ${q.first?.title||''}`);
           console.log(`- Seller filter tested: **${r.samples?.seller||'not reached'}**`);
           console.log(`- Internal detail route: **${r.samples?.detailHref||'not reached'}**`);
+          if(r.samples?.redmiDetail) console.log(`- Redmi Note 8 truth sample: **${r.samples.redmiDetail.title||''}**`);
           console.log();
           console.log('## Checks');
           for(const [k,v] of Object.entries(r.checks||{})) console.log(`- ${v?'✅':'❌'} ${k}`);
@@ -113,6 +122,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: trendpilot-v20-9-4-restored-finder
+          name: trendpilot-v20-9-5-restored-finder-product-truth
           path: artifacts/live-shopper
           if-no-files-found: ignore
