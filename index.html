@@ -19,7 +19,8 @@
   <link rel="stylesheet" href="/css/style-v13-2.css?v=13.2.0">
   <link rel="stylesheet" href="/css/style-v13-5.css?v=13.5.0">
   <link rel="stylesheet" href="/css/decision-v14.css?v=14.0.0">
-  <link rel="stylesheet" href="/css/v20-7-shopper-experience.css?v=20.7.0">
+  <link rel="stylesheet" href="/css/v20-7-shopper-experience.css?v=20.7.7">
+  <link rel="stylesheet" href="/css/v20-7-7-stabilizer.css?v=20.7.7">
 </head>
 <body data-tp-page="home" data-v20-public="true">
 <a class="tp-skip" href="#main">Skip to content</a>
@@ -51,11 +52,12 @@
         <h1>Search less. <span>Choose better.</span></h1>
         <p>TrendPilot brings product discovery, seller offers, comparison and practical buying evidence into one cleaner experience.</p>
 
-        <form class="tp-search" data-tp-search data-tp-home-search role="search">
+        <form class="tp-search" data-tp-search data-tp-home-search data-tp-finder-form role="search" action="/find/" method="get">
+          <input type="hidden" name="engine" value="v2064">
           <div class="tp-search-row">
             <label class="tp-search-scope">
               <span class="tp-sr-only">Search category</span>
-              <select data-tp-search-scope>
+              <select data-tp-search-scope data-tp-finder-scope name="scope">
                 <option value="">All departments</option>
                 <option value="electronics">Electronics</option><option value="phones">Phones & tablets</option><option value="computers">Computers</option><option value="audio">Audio</option><option value="home">Home & kitchen</option><option value="beauty">Beauty</option><option value="tools">Tools</option><option value="pets">Pet supplies</option><option value="business">Business sourcing</option>
               </select>
@@ -63,20 +65,19 @@
             <label class="tp-search-input">
               <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.4-3.4"></path></svg>
               <span class="tp-sr-only">Search products</span>
-              <input name="q" type="search" autocomplete="off" placeholder="What are you looking for?">
+              <input data-tp-finder-input name="q" type="search" autocomplete="off" placeholder="What are you looking for?">
             </label>
-            <button class="tp-btn tp-btn-primary tp-search-submit" type="submit">Search</button>
+            <button class="tp-btn tp-btn-primary tp-search-submit" type="submit"><span>Search</span></button>
           </div>
-          <div class="tp-search-suggestions" data-tp-search-suggestions hidden></div>
         </form>
 
         <div class="tp-quick-links">
           <span>Try:</span>
-          <a class="tp-chip" href="/find/?q=phone&scope=phones">Phones</a>
-          <a class="tp-chip" href="/find/?q=laptop&scope=computers">Laptops</a>
-          <a class="tp-chip" href="/find/?q=headphones&scope=audio">Headphones</a>
-          <a class="tp-chip" href="/find/?q=perfume&scope=beauty">Perfume</a>
-          <a class="tp-chip" href="/find/?q=power+bank&scope=electronics">Power banks</a>
+          <a class="tp-chip" href="/find/?q=phone&scope=phones&engine=v2064">Phones</a>
+          <a class="tp-chip" href="/find/?q=laptop&scope=computers&engine=v2064">Laptops</a>
+          <a class="tp-chip" href="/find/?q=headphones&scope=audio&engine=v2064">Headphones</a>
+          <a class="tp-chip" href="/find/?q=perfume&scope=beauty&engine=v2064">Perfume</a>
+          <a class="tp-chip" href="/find/?q=power+bank&scope=electronics&engine=v2064">Power banks</a>
         </div>
       </div>
 
@@ -92,12 +93,12 @@
     <div class="tp-shell">
       <div class="v207-section-head"><div><span class="v207-eyebrow">Browse fast</span><h2>Start with a product type.</h2></div><p>Use a broad category when you want ideas, or search a model when you already know what you need.</p></div>
       <div class="v207-category-grid">
-        <a class="v207-category-card" href="/find/?q=phone&scope=phones"><i class="v207-category-icon">P</i><b>Phones</b><span>Smartphones first</span></a>
-        <a class="v207-category-card" href="/find/?q=laptop&scope=computers"><i class="v207-category-icon">L</i><b>Laptops</b><span>Portable computers</span></a>
-        <a class="v207-category-card" href="/find/?q=headphones&scope=audio"><i class="v207-category-icon">A</i><b>Audio</b><span>Headphones & earbuds</span></a>
-        <a class="v207-category-card" href="/find/?q=perfume&scope=beauty"><i class="v207-category-icon">F</i><b>Fragrance</b><span>Perfume listings</span></a>
-        <a class="v207-category-card" href="/find/?q=power+bank&scope=electronics"><i class="v207-category-icon">B</i><b>Power banks</b><span>Portable charging</span></a>
-        <a class="v207-category-card" href="/find/?q=tools&scope=tools"><i class="v207-category-icon">T</i><b>Tools</b><span>Workshop & DIY</span></a>
+        <a class="v207-category-card" href="/find/?q=phone&scope=phones&engine=v2064"><i class="v207-category-icon">P</i><b>Phones</b><span>Smartphones first</span></a>
+        <a class="v207-category-card" href="/find/?q=laptop&scope=computers&engine=v2064"><i class="v207-category-icon">L</i><b>Laptops</b><span>Portable computers</span></a>
+        <a class="v207-category-card" href="/find/?q=headphones&scope=audio&engine=v2064"><i class="v207-category-icon">A</i><b>Audio</b><span>Headphones & earbuds</span></a>
+        <a class="v207-category-card" href="/find/?q=perfume&scope=beauty&engine=v2064"><i class="v207-category-icon">F</i><b>Fragrance</b><span>Perfume listings</span></a>
+        <a class="v207-category-card" href="/find/?q=power+bank&scope=electronics&engine=v2064"><i class="v207-category-icon">B</i><b>Power banks</b><span>Portable charging</span></a>
+        <a class="v207-category-card" href="/find/?q=tools&scope=tools&engine=v2064"><i class="v207-category-icon">T</i><b>Tools</b><span>Workshop & DIY</span></a>
         <a class="v207-category-card" href="/rare-used/"><i class="v207-category-icon">R</i><b>Rare Finds</b><span>Scarce used items</span></a>
         <a class="v207-category-card" href="/wholesale/"><i class="v207-category-icon">W</i><b>Wholesale</b><span>Bulk & sourcing</span></a>
       </div>
@@ -165,8 +166,8 @@
 <script defer src="/js/coupons-data.js?v=13.2.0"></script>
 <script src="/js/cj-joined-sellers.js?v=13.8.7"></script>
 <script defer src="/js/site-v13-5.js?v=13.8.8"></script>
-<script defer src="/js/v20-7-public-shopper.js?v=20.7.0"></script>
-<script defer src="/js/smart-search-v14.js?v=14.0.0"></script>
-<script defer src="/js/v20-6-9-1-safe-buyer-ui.js"></script>
+<script defer src="/js/v20-7-public-shopper.js?v=20.7.7"></script>
+<script defer src="/js/smart-suggestions-v20-7-7.js?v=20.7.7"></script>
+<script defer src="/js/v20-6-9-1-safe-buyer-ui.js?v=20.7.7"></script>
 </body>
 </html>
