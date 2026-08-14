@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -12,7 +14,22 @@ def load(path):
     return json.loads((ROOT/path).read_text(encoding='utf-8'))
 
 
+def run_final_closeout_pipeline():
+    # The first residual pass intentionally stays conservative. A second explicit-noun
+    # closeout runs before the production contract, then refreshes every downstream
+    # runtime/audit artifact so counts can never drift between build stages.
+    for script in (
+        'scripts/refine-v20-9-2-final-closeout.py',
+        'scripts/export-v20-9-runtime-data.py',
+        'scripts/audit-v20-9-all-products.py',
+        'scripts/finalize-v20-8-9-rare-closeout.py',
+        'scripts/qa-v20-9-product-smoke.py',
+    ):
+        subprocess.run([sys.executable, str(ROOT/script)], cwd=ROOT, check=True)
+
+
 def main():
+    run_final_closeout_pipeline()
     q=load(Path('data/v20-9/quality-report.json'))
     r=load(Path('data/v20-9/residual-report.json'))
     d=load(Path('data/v20-9/diagnostic.json'))
@@ -38,6 +55,7 @@ def main():
         'manifest_residual':m.get('truthCleanup',{}).get('residualUnclassifiedPassVersion'),
         'manifest_rare':m.get('truthCleanup',{}).get('rareCloseoutVersion'),
         'manifest_rare_count':m.get('rarePublished'),'rare_len':len(rare),
+        'final_closeout_classified':q.get('finalCloseoutClassified'),
     }
     def add(name,ok): checks[name]=bool(ok)
     add('records_all_52031',q.get('records')==r.get('records')==d.get('records')==rt.get('records')==52031)
