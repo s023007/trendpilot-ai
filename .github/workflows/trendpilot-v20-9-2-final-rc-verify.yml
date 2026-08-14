@@ -1,0 +1,94 @@
+name: TrendPilot V20.9.2 — Final Independent Verification
+
+on:
+  push:
+    branches: [v20-9-all-product-quality-gate]
+    paths:
+      - .github/workflows/trendpilot-v20-9-2-final-rc-verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Rebuild final product projection
+        run: |
+          python scripts/build-v20-8-universal-discovery.py
+          python scripts/clean-v20-8-universal-output.py
+          python scripts/clean-v20-8-brand-truth.py
+          python scripts/quality-gate-v20-9-all-products.py
+          python scripts/refine-v20-9-2-residual-unclassified.py
+          python scripts/export-v20-9-runtime-data.py
+          python scripts/audit-v20-9-all-products.py
+          python scripts/finalize-v20-8-9-rare-closeout.py
+          python scripts/qa-v20-9-product-smoke.py
+          python scripts/report-v20-9-2-release-contract.py
+      - name: Final contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/universal-discovery-v20-9-1.js
+          node --check js/finder-shell-v20-9.js
+          node --check js/item-detail-v20-9.js
+          node --check js/compare-v20-9.js
+          node --check js/compare-state-v20-9.js
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          c=json.loads(Path('data/v20-9/contract-debug.json').read_text())
+          q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          r=json.loads(Path('data/v20-9/residual-report.json').read_text())
+          d=json.loads(Path('data/v20-9/diagnostic.json').read_text())
+          rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text())
+          m=json.loads(Path('data/v20-8/manifest.json').read_text())
+          rare=json.loads(Path('data/v20-8/rare-index.json').read_text())
+          assert c['passed'], c['failed']
+          assert q['records']==52031
+          assert q['unclassifiedBefore']==9355
+          assert q['unclassifiedAfter']==r['unclassifiedAfterResidual']==d['unclassified']<=2500
+          assert q['residualPassVersion']=='20.9.2'
+          assert q['residualClassified']==r['classifiedByResidual']
+          assert q['blockedSellerLeaks']==0
+          assert q['immutableCommerceFieldsChanged']==0
+          assert rt['productBuckets']==256
+          assert rt['maxProductBucketBytes']<500000
+          assert rt['familyStrategy']=='role-balanced'
+          assert m['truthCleanup']['residualUnclassifiedPassVersion']=='20.9.2'
+          assert m['truthCleanup']['rareCloseoutVersion']=='20.8.9'
+          assert m['rarePublished']==len(rare)==72
+          for k in ('phoneNonMain','tabletNonMain','laptopNonMain','smartwatchNonMain','headphonesNonMain'):
+              assert d['roleAnomalies'][k]['count']==0, (k,d['roleAnomalies'][k]['count'])
+          print('FINAL INDEPENDENT V20.9.2 VERIFICATION PASS')
+          print('unclassified',q['unclassifiedAfter'],'residual',r['classifiedByResidual'],'families',q['familyCount'],'max_bucket',rt['maxProductBucketBytes'])
+          PY
+          grep -q 'universal-discovery-v20-9-1.js?v=20.9.1' find/index.html
+          grep -q 'finder-shell-v20-9.js?v=20.9.0' find/index.html
+          grep -q 'item-detail-v20-9.js?v=20.9.0' item/index.html
+          grep -q 'compare-v20-9.js?v=20.9.0' compare/index.html
+          if grep -q 'finder-v20-7-9.js' find/index.html || grep -q 'buyer-decision-v20-7-11.js' find/index.html || grep -q 'v20-8-8-internal-first-guard.js' find/index.html; then exit 1; fi
+          if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then exit 1; fi
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          r=json.loads(Path('data/v20-9/residual-report.json').read_text())
+          rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text())
+          c=json.loads(Path('data/v20-9/contract-debug.json').read_text())
+          print('# V20.9.2 Final Independent Verification')
+          print(f"- Records: **{q['records']:,}**")
+          print(f"- Unclassified: **{q['unclassifiedBefore']:,} → {q['unclassifiedAfter']:,} ({q['unclassifiedAfterPct']}%)**")
+          print(f"- Residual classifications: **{r['classifiedByResidual']:,}**")
+          print(f"- Families: **{q['familyCount']:,}**")
+          print(f"- Runtime buckets: **{rt['productBuckets']}**, max **{rt['maxProductBucketBytes']:,} bytes**")
+          print(f"- Release contract: **{'PASS' if c['passed'] else 'FAIL'}**")
+          PY

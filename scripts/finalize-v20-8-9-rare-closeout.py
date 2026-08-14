@@ -10,9 +10,10 @@ from collections import Counter
 ROOT = Path(__file__).resolve().parents[1]
 RARE = ROOT / "data/v20-8/rare-index.json"
 MANIFEST = ROOT / "data/v20-8/manifest.json"
+SUMMARY = ROOT / "data/v20-8/taxonomy-summary.json"
 FINDS_DIR = ROOT / "rare-used/finds"
 SITEMAP = ROOT / "sitemap-v20-8.xml"
-VERSION = "20.8.9"
+RARE_VERSION = "20.8.9"
 
 PROMO_PREFIX = re.compile(
     r"^\s*(?:\[(?:free\s+shipping|hot\s+sale|new\s+arrival|best\s+seller)\]\s*|"
@@ -138,7 +139,6 @@ def is_publishable_rare(row: dict) -> bool:
 
 
 def prune_static_seo(rows: list[dict]) -> int:
-    """Keep static Rare SEO only for products that survive final closeout."""
     allowed_paths = {str(r.get("seoUrl") or "") for r in rows if r.get("seoUrl")}
     removed = 0
     if FINDS_DIR.exists():
@@ -191,13 +191,14 @@ def main() -> None:
     seo_removed = prune_static_seo(deduped)
     live_seo = sum(1 for r in deduped if r.get("seoUrl") and (FINDS_DIR / str(r["seoUrl"]).rstrip("/").split("/")[-1] / "index.html").exists())
 
+    global_version = ""
     if MANIFEST.exists():
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
-        manifest["version"] = VERSION
+        global_version = str(manifest.get("version") or "")
         manifest["rarePublished"] = len(deduped)
         manifest["seoPages"] = live_seo
         manifest.setdefault("truthCleanup", {}).update({
-            "rareCloseoutVersion": VERSION,
+            "rareCloseoutVersion": RARE_VERSION,
             "promoPrefixesRemoved": True,
             "accessoryRoleWinsOverCollectibleKeyword": True,
             "rareScoreRequiresRarityEvidence": True,
@@ -207,8 +208,19 @@ def main() -> None:
         })
         MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
+    if SUMMARY.exists():
+        summary = json.loads(SUMMARY.read_text(encoding="utf-8"))
+        summary["rarePublished"] = len(deduped)
+        summary["seoRarePages"] = live_seo
+        summary.setdefault("truthCleanup", {}).update({
+            "rareCloseoutVersion": RARE_VERSION,
+            "staleRareSeoPagesPruned": True,
+        })
+        SUMMARY.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
     print(json.dumps({
-        "version": VERSION,
+        "rare_closeout_version": RARE_VERSION,
+        "global_manifest_version_preserved": global_version,
         "rare_before": len(original),
         "rare_after": len(deduped),
         "removed": len(original)-len(deduped),

@@ -1,0 +1,17 @@
+{
+  "version": "20.9.0",
+  "records": 52031,
+  "productBuckets": 256,
+  "termShards": 1232,
+  "familyCount": 150,
+  "familyRoleIndexedIds": {
+    "main": 33672,
+    "used": 278,
+    "accessory": 3130,
+    "replacement_part": 1849
+  },
+  "maxProductBucketBytes": 311825,
+  "averageProductBucketBytes": 255242,
+  "mobileBucketStrategy": "two-character stable-ID prefix",
+  "familyStrategy": "role-balanced"
+}
