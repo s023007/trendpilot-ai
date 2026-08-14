@@ -2,8 +2,25 @@
   "use strict";
   const V="20.8.0",d=document,$=(s,r=d)=>r.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),L=v=>C(v).toLowerCase(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   const P=new URLSearchParams(location.search),q=C(P.get("q")),forced=P.get("universal")==="1";
-  const known=/^(?:phone|phones|smartphone|smartphones|laptop|laptops|perfume|perfumes|fragrance|fragrances|headphones|headphone|earbuds|smartwatch|watch|power bank|power banks|dog food|air conditioner|3d filament|cookware|lighting|lights|tools|tool)$/i;
-  if(!q||(!forced&&known.test(q)))return;
+  const MANAGED=[
+    /^(?:pho|phon|phone|phones|smartp|smartph|smartpho|smartphon|smartphone|smartphones|mobile phone|mobile phones|cell phone|cell phones)$/i,
+    /\b(?:iphone|samsung galaxy|galaxy\s+[a-zmfsz]?\d+|google pixel|pixel\s+\d+|oneplus|xiaomi|redmi|poco|oppo|vivo|realme|motorola|moto|honor|huawei|nokia|xperia|nothing phone|zenfone|nubia|infinix|tecno)\b/i,
+    /^(?:lap|lapt|lapto|laptop|laptops|notebook|notebooks)$/i,
+    /\b(?:thinkpad|ideapad|thinkbook|chromebook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|xps|legion|surface laptop|lenovo slim)\b/i,
+    /^(?:per|perf|perfu|perfum|perfume|perfumes|frag|fragr|fragra|fragrance|fragrances)$/i,
+    /\b(?:cologne|eau de parfum|eau de toilette|edp|edt)\b/i,
+    /\b(?:headphones?|headsets?|earbuds?|earphones?|airpods?|tws)\b/i,
+    /\b(?:smart ?watch|apple watch|wearable watch|fitness watch)\b/i,
+    /\b(?:power ?banks?|powerbank|portable charger|external battery)\b/i,
+    /\b(?:dog food|puppy food|dog treats?|canine food)\b/i,
+    /\b(?:air conditioner|portable ac|mini split|ductless ac|split ac)\b/i,
+    /\b(?:3d filament|pla filament|petg filament|abs filament|tpu filament)\b/i,
+    /\b(?:cookware|frying pan|saucepan|casserole|wok|skillet)\b/i,
+    /\b(?:lighting|led strip|desk lamp|floor lamp|ceiling light)\b/i,
+    /\b(?:tools?|drill|saw|multimeter|oscilloscope|screwdriver|wrench)\b/i
+  ];
+  const managed=v=>MANAGED.some(r=>r.test(C(v)));
+  if(!q||(!forced&&managed(q)))return;
   const stop=new Set(["the","and","for","with","from","this","that","your","our","new","best","buy","original","official","product","products","item","items","of","to","in","on","by","a","an"]);
   const toks=L(q).replace(/[^a-z0-9.+#/-]+/g," ").split(/\s+/).filter(t=>t&&!stop.has(t)&&(t.length>=3||(/[a-z]/.test(t)&&/\d/.test(t))));
   const cache=new Map();
@@ -34,5 +51,5 @@
     const count=$("[data-v2078-results-count]");if(count)count.textContent=`${rows.length} found`;
     grid.innerHTML=rows.map(card).join("");const more=$("[data-v2078-load-more]");if(more)more.hidden=true;
   }
-  setTimeout(boot,forced?150:1000);
+  setTimeout(boot,forced?150:450);
 })();
