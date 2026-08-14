@@ -2,8 +2,6 @@
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -14,69 +12,62 @@ def load(path):
     return json.loads((ROOT/path).read_text(encoding='utf-8'))
 
 
-def run_final_closeout_pipeline():
-    # The first residual pass intentionally stays conservative. A second explicit-noun
-    # closeout runs before the production contract, then refreshes every downstream
-    # runtime/audit artifact so counts can never drift between build stages.
-    for script in (
-        'scripts/refine-v20-9-2-final-closeout.py',
-        'scripts/export-v20-9-runtime-data.py',
-        'scripts/audit-v20-9-all-products.py',
-        'scripts/finalize-v20-8-9-rare-closeout.py',
-        'scripts/qa-v20-9-product-smoke.py',
-    ):
-        subprocess.run([sys.executable, str(ROOT/script)], cwd=ROOT, check=True)
-
-
 def main():
-    run_final_closeout_pipeline()
+    # IMPORTANT: this script is a pure contract/report checker. It must never
+    # mutate product data or rerun classification/export steps.
     q=load(Path('data/v20-9/quality-report.json'))
     r=load(Path('data/v20-9/residual-report.json'))
+    sem=load(Path('data/v20-9/semantic-closeout.json'))
     d=load(Path('data/v20-9/diagnostic.json'))
     rt=load(Path('data/v20-9/runtime-manifest.json'))
     fam=load(Path('data/v20-9/families.json'))
     roles=load(Path('data/v20-9/family-roles.json'))
     m=load(Path('data/v20-8/manifest.json'))
-    s=load(Path('data/v20-8/taxonomy-summary.json'))
+    tax=load(Path('data/v20-8/taxonomy-summary.json'))
     rare=load(Path('data/v20-8/rare-index.json'))
 
     checks={}
     values={
-        'q_records':q.get('records'),'r_records':r.get('records'),'d_records':d.get('records'),'rt_records':rt.get('records'),
+        'q_records':q.get('records'),'r_records':r.get('records'),'sem_records':sem.get('records'),
+        'd_records':d.get('records'),'rt_records':rt.get('records'),
         'unclassified_before':q.get('unclassifiedBefore'),'residual_before':r.get('unclassifiedBeforeResidual'),
         'residual_version_q':q.get('residualPassVersion'),'residual_classified_q':q.get('residualClassified'),
         'residual_classified_r':r.get('classifiedByResidual'),'unclassified_q':q.get('unclassifiedAfter'),
-        'unclassified_r':r.get('unclassifiedAfterResidual'),'unclassified_d':d.get('unclassified'),
+        'unclassified_r':r.get('unclassifiedAfterResidual'),'unclassified_sem':sem.get('unclassifiedAfter'),
+        'unclassified_d':d.get('unclassified'),'semantic_version':sem.get('version'),
+        'semantic_corrections':sem.get('corrected'),'semantic_violations':sem.get('violations'),
         'blocked':q.get('blockedSellerLeaks'),'immutable':q.get('immutableCommerceFieldsChanged'),
         'runtime_buckets':rt.get('productBuckets'),'runtime_max':rt.get('maxProductBucketBytes'),
         'family_strategy':rt.get('familyStrategy'),'family_len':len(fam),'role_family_len':len(roles),
         'runtime_family_count':rt.get('familyCount'),'quality_family_count':q.get('familyCount'),
-        'manifest_version':m.get('version'),'summary_version':s.get('version'),
+        'manifest_version':m.get('version'),'summary_version':tax.get('version'),
         'manifest_residual':m.get('truthCleanup',{}).get('residualUnclassifiedPassVersion'),
+        'manifest_semantic':m.get('truthCleanup',{}).get('semanticCloseoutVersion'),
         'manifest_rare':m.get('truthCleanup',{}).get('rareCloseoutVersion'),
         'manifest_rare_count':m.get('rarePublished'),'rare_len':len(rare),
         'final_closeout_classified':q.get('finalCloseoutClassified'),
     }
     def add(name,ok): checks[name]=bool(ok)
-    add('records_all_52031',q.get('records')==r.get('records')==d.get('records')==rt.get('records')==52031)
+    add('records_all_52031',q.get('records')==r.get('records')==sem.get('records')==d.get('records')==rt.get('records')==52031)
     add('unclassified_before_9355',q.get('unclassifiedBefore')==9355)
     add('residual_before_3388',r.get('unclassifiedBeforeResidual')==3388)
     add('residual_version',q.get('residualPassVersion')=='20.9.2')
     add('residual_counts_match',q.get('residualClassified')==r.get('classifiedByResidual'))
-    add('final_unclassified_counts_match',q.get('unclassifiedAfter')==r.get('unclassifiedAfterResidual')==d.get('unclassified'))
+    add('semantic_version_2094',sem.get('version')=='20.9.4' and q.get('semanticCloseoutVersion')=='20.9.4')
+    add('semantic_violations_zero',sem.get('violations')==0 and q.get('semanticCloseoutViolations')==0)
+    add('final_unclassified_counts_match',q.get('unclassifiedAfter')==r.get('unclassifiedAfterResidual')==sem.get('unclassifiedAfter')==d.get('unclassified'))
     add('final_unclassified_le_2500',int(q.get('unclassifiedAfter') or 999999)<=2500)
     add('blocked_zero',q.get('blockedSellerLeaks')==0)
     add('immutable_zero',q.get('immutableCommerceFieldsChanged')==0)
     add('runtime_256',rt.get('productBuckets')==256)
     add('runtime_under_500k',int(rt.get('maxProductBucketBytes') or 999999999)<500000)
     add('role_balanced',rt.get('familyStrategy')=='role-balanced')
-    # Family breadth is a sanity floor, not a target. The authoritative contract is that the indexes agree
-    # with each other and every required family+shopper-role route is present below.
     add('family_breadth_ge_140',len(fam)>=140 and len(roles)>=140)
     add('family_index_counts_consistent',len(fam)==len(roles)==int(rt.get('familyCount') or -1)==int(q.get('familyCount') or -2))
     add('manifest_version_2090',m.get('version')=='20.9.0')
-    add('summary_version_2090',s.get('version')=='20.9.0')
+    add('summary_version_2090',tax.get('version')=='20.9.0')
     add('manifest_residual_2092',m.get('truthCleanup',{}).get('residualUnclassifiedPassVersion')=='20.9.2')
+    add('manifest_semantic_2094',m.get('truthCleanup',{}).get('semanticCloseoutVersion')=='20.9.4')
     add('rare_closeout_2089',m.get('truthCleanup',{}).get('rareCloseoutVersion')=='20.8.9')
     add('rare_count_match',m.get('rarePublished')==len(rare))
     add('rare_range',60<=len(rare)<=90)
