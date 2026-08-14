@@ -12,6 +12,7 @@ function decode(v){
 function esc(v){
   return String(v ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
+function stripTags(v){ return clean(decode(String(v??"").replace(/<[^>]+>/g," "))); }
 function stableFacts(body){
   const get = label => {
     const m=body.match(new RegExp(`<div class="spec"><span>${label}</span><strong>([^<]+)</strong></div>`,`i`));
@@ -90,17 +91,22 @@ function cleanVariants(body){
     ? `<h3 class="variant-subhead secondary">Storage-only records</h3><p class="muted compact">RAM is not specified in these catalogue records, so they are not counted as separate confirmed RAM/storage configurations.</p><div class="variants partial-variants">${partial.map(v=>card({...v,label:`${v.storage.join(" · ")} · RAM not specified`})).join("")}</div>`
     : "";
   const configCount=specified.length;
-  const replacement=`<section class="panel"><div class="eyebrow">CONFIGURATIONS</div><h2>Available configurations</h2><p class="muted">RAM/storage combinations are separated from incomplete storage-only evidence.</p>${specifiedHtml}${partialHtml}<p class="truth-note"><strong>Variant check:</strong> Stable model facts such as screen size and battery are not treated as separate variants. Rows that conflict with those facts or have no usable configuration evidence are removed.</p></section>`;
+  const replacement=`<section class="panel technical-panel"><div class="eyebrow">TECHNICAL OPTIONS</div><h2>Specifications & configurations</h2><p class="muted">Secondary technical information for shoppers who need the exact RAM/storage option.</p>${specifiedHtml}${partialHtml}<p class="truth-note"><strong>Variant check:</strong> Stable model facts such as screen size and battery are not treated as separate variants. Rows that conflict with those facts or have no usable configuration evidence are removed.</p></section>`;
   return {body:body.replace(section[0],replacement),count:configCount,partialCount:partial.length,changed:true};
 }
 function cleanVariableSpecs(body,variantInfo){
-  if((variantInfo?.count||0)<=1 && !(variantInfo?.partialCount>0)) return body;
   const sectionRe=/<section class="panel"><div class="eyebrow">PRODUCT PREVIEW<\/div>[\s\S]*?<\/section>/i;
   return body.replace(sectionRe,section=>{
-    let out=section.replace(/<div class="spec"><span>(?:Storage|RAM)<\/span><strong>[^<]*<\/strong><\/div>/gi,"");
-    out=out.replace(/<h2>Important details<\/h2>/i,"<h2>Model facts</h2>");
-    out=out.replace(/<\/div><\/section>$/i,'</div><p class="truth-note"><strong>Configuration note:</strong> RAM and storage vary by seller record and are shown in the configuration section below.</p></section>');
-    return out;
+    let out=section;
+    if((variantInfo?.count||0)>1 || variantInfo?.partialCount>0){
+      out=out.replace(/<div class="spec"><span>(?:Storage|RAM)<\/span><strong>[^<]*<\/strong><\/div>/gi,"");
+    }
+    out=out.replace(/<div class="eyebrow">PRODUCT PREVIEW<\/div>/i,'<div class="eyebrow">MODEL FACTS</div>');
+    out=out.replace(/<h2>Important details<\/h2>/i,"<h2>Technical facts</h2>");
+    if((variantInfo?.count||0)>1 || variantInfo?.partialCount>0){
+      out=out.replace(/<\/div><\/section>$/i,'</div><p class="truth-note"><strong>Configuration note:</strong> RAM and storage vary by seller record and are listed separately below.</p></section>');
+    }
+    return out.replace('class="panel"','class="panel technical-panel"');
   });
 }
 function cleanSellerCards(body){
@@ -118,19 +124,63 @@ function heroTruth(body,variantCount){
   return body.replace(/<section class="hero"><div class="hero-media">([\s\S]*?)<\/div><div class="hero-copy">([\s\S]*?)<p>(\d+) active listing(s?) from (\d+) seller(s?) · \d+ configuration(s?)<\/p><\/div><\/section>/i,
     (all,media,copy,records,_pl,sellers)=>{
       const label=hasExact?`${records} seller record${Number(records)===1?"":"s"}`:`${records} catalogue record${Number(records)===1?"":"s"}`;
-      const cfg=variantCount?` · ${variantCount} RAM/storage configuration${variantCount===1?"":"s"}`:"";
+      const cfg=variantCount?` · ${variantCount} configuration${variantCount===1?"":"s"} available`:"";
       return `<section class="hero"><div class="hero-media">${media}</div><div class="hero-copy">${copy}<p>${label} from ${sellers} seller${Number(sellers)===1?"":"s"}${cfg}${hasExact?"":" · exact product destination not verified"}</p></div></section>`;
     });
+}
+function promoteProductDescription(body){
+  const aboutRe=/<section class="panel about">[\s\S]*?<\/section>/i;
+  const match=body.match(aboutRe);
+  if(!match)return body;
+  let about=match[0]
+    .replace(/<div class="eyebrow">ABOUT THIS PRODUCT<\/div>/i,'<div class="eyebrow">PRODUCT OVERVIEW</div>')
+    .replace(/<h2>What this product is<\/h2>/i,'<h2>About this product</h2>');
+  body=body.replace(match[0],"");
+  const heroRe=/<section class="hero">[\s\S]*?<\/section>/i;
+  return body.replace(heroRe,m=>`${m}${about}`);
+}
+function demoteTechnicalSections(body){
+  const tech=[];
+  body=body.replace(/<section class="panel technical-panel">[\s\S]*?<\/section>/gi,m=>{tech.push(m);return "";});
+  if(!tech.length)return body;
+  const sellerRe=/<section class="panel" id="seller-offers">[\s\S]*?<\/section>/i;
+  const seller=body.match(sellerRe);
+  if(seller)return body.replace(seller[0],`${seller[0]}<div class="technical-wrap"><h2 class="technical-heading">Technical details</h2><p class="muted technical-intro">Optional specifications and configuration evidence.</p>${tech.join("")}</div>`);
+  return body.replace(/<\/main>/i,`<div class="technical-wrap"><h2 class="technical-heading">Technical details</h2>${tech.join("")}</div></main>`);
+}
+function truncateDescription(v,max=165){
+  let t=clean(v);
+  if(t.length<=max)return t;
+  t=t.slice(0,max-1).replace(/\s+\S*$/," ").trim();
+  return `${t}…`;
+}
+function upgradeSeoDescription(body){
+  const summary=stripTags((body.match(/<p class="about-copy">([\s\S]*?)<\/p>/i)||[])[1]||"");
+  const title=stripTags((body.match(/<main>[\s\S]*?<h1>([\s\S]*?)<\/h1>/i)||[])[1]||"");
+  if(!summary)return body;
+  const meta=truncateDescription(summary.length>=90?summary:`${title}. ${summary}`);
+  body=body.replace(/<meta name="description" content="[^"]*">/i,`<meta name="description" content="${esc(meta)}">`);
+  body=body.replace(/<meta property="og:description" content="[^"]*">/i,`<meta property="og:description" content="${esc(meta)}">`);
+  body=body.replace(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/i,(all,json)=>{
+    try{
+      const ld=JSON.parse(json);
+      ld.description=summary;
+      return `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g,"\\u003c")}</script>`;
+    }catch{return all;}
+  });
+  return body;
 }
 function injectTruthStyle(body){
   const css=`
 .truth-note{margin:14px 0 0;color:#667085;font-size:14px;line-height:1.5}.truth-note strong{color:#172033}
+.about{border-color:#d9e5df;background:linear-gradient(180deg,#fff,#fbfdfc)}.about-copy{font-size:18px!important;line-height:1.7!important;color:#344054!important}.buyer-note{font-size:15px}
+.technical-wrap{margin-top:28px}.technical-heading{font-size:25px;margin:0 0 4px}.technical-intro{margin:0 0 12px}.technical-panel{background:#fbfcfd!important}.technical-panel h2{font-size:22px!important}
 .variant-subhead{margin:20px 0 10px;font-size:17px;color:#172033}.variant-subhead.secondary{margin-top:24px}.muted.compact{margin-top:-2px;font-size:14px;line-height:1.45}.partial-variants .variant{background:#fafbfc}
-@media(max-width:650px){main{padding-bottom:118px!important}.hero h1{font-size:clamp(24px,6vw,28px)!important;line-height:1.06!important}.variant{padding:14px!important}.bottom-nav{left:14px!important;right:14px!important;bottom:8px!important;padding:6px 8px calc(6px + env(safe-area-inset-bottom))!important;border-radius:24px!important}.bottom-nav a{padding:8px 6px!important;min-height:46px!important}}
+@media(max-width:650px){main{padding-bottom:118px!important}.hero h1{font-size:clamp(24px,6vw,28px)!important;line-height:1.06!important}.about{margin-top:14px!important}.about h2{font-size:25px!important}.about-copy{font-size:16px!important;line-height:1.65!important}.technical-wrap{margin-top:22px}.variant{padding:14px!important}.bottom{left:14px!important;right:14px!important;bottom:8px!important;padding:5px 7px!important;border-radius:20px!important}.bottom a{min-height:42px!important;font-size:11px!important;padding:0 6px!important}}
 `;
   const i=body.lastIndexOf("</style>");
   if(i>=0)body=body.slice(0,i)+css+body.slice(i);
-  return body.replace("<body>",`<body data-tp-product-truth="${VERSION}">`);
+  return body.replace("<body>",`<body data-tp-product-truth="${VERSION}" data-tp-product-content="seo-cpc-product-first">`);
 }
 function transform(body){
   if(!body||!/<html/i.test(body))return body;
@@ -139,6 +189,9 @@ function transform(body){
   body=cleanVariableSpecs(body,cleaned);
   body=cleanSellerCards(body);
   body=heroTruth(body,cleaned.count);
+  body=promoteProductDescription(body);
+  body=demoteTechnicalSections(body);
+  body=upgradeSeoDescription(body);
   body=injectTruthStyle(body);
   return body;
 }
@@ -148,7 +201,7 @@ exports.handler=async function(event,context){
   const type=String(res?.headers?.["content-type"]||res?.headers?.["Content-Type"]||"");
   if(res?.statusCode===200 && /text\/html/i.test(type)){
     res.body=transform(res.body);
-    res.headers={...(res.headers||{}),"x-trendpilot-product-truth":VERSION};
+    res.headers={...(res.headers||{}),"x-trendpilot-product-truth":VERSION,"x-trendpilot-content-priority":"seo-cpc-product-first"};
   }
   return res;
 };
