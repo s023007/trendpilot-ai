@@ -6,6 +6,7 @@ on:
     paths:
       - scripts/qa-v20-9-live-shopper.mjs
       - .github/workflows/trendpilot-v20-9-3-live-shopper-e2e.yml
+      - data/v20-9/**
       - find/index.html
       - item/index.html
       - compare/index.html
@@ -33,19 +34,30 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v5
 
-      - name: Wait for V20.9.4 public finder
+      - name: Wait for corrected V20.9.4 public runtime
         shell: bash
         run: |
           set -euo pipefail
-          for i in $(seq 1 30); do
+          for i in $(seq 1 36); do
+            html_ok=0
+            semantic_ok=0
             if curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' | grep -q 'universal-discovery-v20-9-1.js?v=20.9.4'; then
-              echo 'Public V20.9.4 finder is reachable.'
+              html_ok=1
+            fi
+            if curl -fsSL --max-time 20 'https://trendpilotchoice.com/data/v20-9/semantic-closeout.json?v=20.9.4' -o /tmp/tp-semantic.json; then
+              if python -c "import json; x=json.load(open('/tmp/tp-semantic.json')); assert x.get('version')=='20.9.4' and x.get('violations')==0 and x.get('records')==52031 and x.get('unclassifiedAfter',999999)<=2500"; then
+                semantic_ok=1
+              fi
+            fi
+            if [ "$html_ok" = 1 ] && [ "$semantic_ok" = 1 ]; then
+              echo 'Corrected public V20.9.4 finder and semantic runtime are reachable.'
+              cat /tmp/tp-semantic.json
               exit 0
             fi
-            echo "Waiting for public deploy ($i/30)..."
+            echo "Waiting for corrected public deploy ($i/36): html=$html_ok semantic=$semantic_ok"
             sleep 10
           done
-          echo 'Public V20.9.4 finder did not become reachable.'
+          echo 'Corrected V20.9.4 public runtime did not become reachable.'
           exit 1
 
       - name: Set up Node
@@ -72,7 +84,7 @@ jobs:
           if [ ! -s artifacts/live-shopper/report.json ]; then
             echo '# TrendPilot V20.9.4 — Live Mobile Shopper E2E' >> "$GITHUB_STEP_SUMMARY"
             echo >> "$GITHUB_STEP_SUMMARY"
-            echo '**No report produced.** The browser setup or live-site availability failed before the shopper test could run.' >> "$GITHUB_STEP_SUMMARY"
+            echo '**No report produced.** The browser setup or corrected live-site availability failed before the shopper test could run.' >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
