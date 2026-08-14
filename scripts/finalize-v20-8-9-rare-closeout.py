@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 from pathlib import Path
 from collections import Counter
 
 ROOT = Path(__file__).resolve().parents[1]
 RARE = ROOT / "data/v20-8/rare-index.json"
 MANIFEST = ROOT / "data/v20-8/manifest.json"
+FINDS_DIR = ROOT / "rare-used/finds"
+SITEMAP = ROOT / "sitemap-v20-8.xml"
 VERSION = "20.8.9"
 
 PROMO_PREFIX = re.compile(
@@ -120,7 +123,6 @@ def normalize_row(source: dict) -> dict:
 def is_publishable_rare(row: dict) -> bool:
     signals = set(row.get("signals") or [])
     title = str(row.get("title") or "").lower()
-    # Known ordinary-product families exposed by QA must never survive on inherited metadata.
     if ("acgam" in title and "desk" in title) or ("robore" in title and "exercise bike" in title):
         return False
     if row.get("type") in {"furniture-desks", "fitness-equipment"} and not ({"used-scarce", "discontinued"} & signals):
@@ -133,6 +135,34 @@ def is_publishable_rare(row: dict) -> bool:
         or ({"specialist", "model-specific"} <= signals)
     )
     return strong and int(row.get("rareScore") or 0) >= 60
+
+
+def prune_static_seo(rows: list[dict]) -> int:
+    """Keep static Rare SEO only for products that survive final closeout."""
+    allowed_paths = {str(r.get("seoUrl") or "") for r in rows if r.get("seoUrl")}
+    removed = 0
+    if FINDS_DIR.exists():
+        for child in FINDS_DIR.iterdir():
+            if not child.is_dir():
+                continue
+            public = f"/rare-used/finds/{child.name}/"
+            if public not in allowed_paths:
+                shutil.rmtree(child)
+                removed += 1
+
+    live_urls: list[str] = []
+    for url in sorted(allowed_paths):
+        slug = url.rstrip("/").split("/")[-1]
+        if (FINDS_DIR / slug / "index.html").exists():
+            live_urls.append(url)
+
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    xml.append('<url><loc>https://trendpilotchoice.com/rare-used/</loc><changefreq>weekly</changefreq></url>')
+    for url in live_urls:
+        xml.append(f'<url><loc>https://trendpilotchoice.com{url}</loc><changefreq>weekly</changefreq></url>')
+    xml.append('</urlset>')
+    SITEMAP.write_text("\n".join(xml) + "\n", encoding="utf-8")
+    return removed
 
 
 def main() -> None:
@@ -158,11 +188,14 @@ def main() -> None:
         deduped.append(row)
 
     RARE.write_text(json.dumps(deduped, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    seo_removed = prune_static_seo(deduped)
+    live_seo = sum(1 for r in deduped if r.get("seoUrl") and (FINDS_DIR / str(r["seoUrl"]).rstrip("/").split("/")[-1] / "index.html").exists())
 
     if MANIFEST.exists():
         manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
         manifest["version"] = VERSION
         manifest["rarePublished"] = len(deduped)
+        manifest["seoPages"] = live_seo
         manifest.setdefault("truthCleanup", {}).update({
             "rareCloseoutVersion": VERSION,
             "promoPrefixesRemoved": True,
@@ -170,6 +203,7 @@ def main() -> None:
             "rareScoreRequiresRarityEvidence": True,
             "genericCollectorTokenRejected": True,
             "priceEvidenceSingleSourceOfTruth": True,
+            "staleRareSeoPagesPruned": True,
         })
         MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -181,6 +215,8 @@ def main() -> None:
         "roles": dict(Counter(x.get("role", "") for x in deduped)),
         "types": len({x.get("type") for x in deduped}),
         "sellers": len({x.get("seller") for x in deduped}),
+        "seo_pages": live_seo,
+        "stale_seo_directories_removed": seo_removed,
     }, ensure_ascii=False, indent=2))
 
 

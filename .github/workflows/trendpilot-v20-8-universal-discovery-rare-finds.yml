@@ -8,12 +8,16 @@ on:
       - scripts/build-v20-8-universal-discovery.py
       - scripts/clean-v20-8-universal-output.py
       - scripts/clean-v20-8-brand-truth.py
+      - scripts/finalize-v20-8-9-rare-closeout.py
       - js/universal-discovery-v20-8.js
       - js/rare-finds-v20-8.js
+      - js/rare-find-detail-v20-8-7.js
       - js/home-rare-v20-8.js
       - css/v20-8-universal.css
+      - css/v20-8-9-rare-closeout.css
       - netlify/functions/discovery-demand-v20-8.cjs
       - rare-used/index.html
+      - rare-used/view/index.html
       - find/index.html
       - .github/workflows/trendpilot-v20-8-universal-discovery-rare-finds.yml
   workflow_dispatch:
@@ -39,24 +43,51 @@ jobs:
       - name: Apply V20.8 brand truth guard
         run: python scripts/clean-v20-8-brand-truth.py
 
-      - name: Syntax and safety QA
+      - name: Apply V20.8.9 Rare final closeout
+        run: python scripts/finalize-v20-8-9-rare-closeout.py
+
+      - name: Syntax, semantic and safety QA
         shell: bash
         run: |
           set -euo pipefail
           python -m py_compile scripts/build-v20-8-universal-discovery.py
           python -m py_compile scripts/clean-v20-8-universal-output.py
           python -m py_compile scripts/clean-v20-8-brand-truth.py
+          python -m py_compile scripts/finalize-v20-8-9-rare-closeout.py
           node --check js/universal-discovery-v20-8.js
           node --check js/rare-finds-v20-8.js
+          node --check js/rare-find-detail-v20-8-7.js
           node --check js/home-rare-v20-8.js
           node --check netlify/functions/discovery-demand-v20-8.cjs
           test -s data/v20-8/manifest.json
           test -s data/v20-8/taxonomy-summary.json
           test -s data/v20-8/rare-index.json
           test -s sitemap-v20-8.xml
+          grep -q '"version": "20.8.9"' data/v20-8/manifest.json
+          grep -q 'rareCloseoutVersion' data/v20-8/manifest.json
+          grep -q 'priceEvidenceSingleSourceOfTruth' data/v20-8/manifest.json
+          grep -q 'staleRareSeoPagesPruned' data/v20-8/manifest.json
           grep -q 'brandMustAppearInTitle' data/v20-8/manifest.json
           grep -q 'trendpilotchoice.com/rare-used/' rare-used/index.html
           grep -q 'universal-discovery-v20-8.js' find/index.html
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+          rows=json.loads(Path('data/v20-8/rare-index.json').read_text())
+          manifest=json.loads(Path('data/v20-8/manifest.json').read_text())
+          assert len(rows)>=20, f'Rare closeout unexpectedly small: {len(rows)}'
+          assert manifest['rarePublished']==len(rows)
+          assert all(int(r.get('rareScore') or 0)>=60 for r in rows)
+          assert not any('mini doll outfit' in r.get('title','').lower() for r in rows)
+          assert not any('acgam' in r.get('title','').lower() and 'desk' in r.get('title','').lower() for r in rows)
+          assert not any('robore' in r.get('title','').lower() and 'exercise bike' in r.get('title','').lower() for r in rows)
+          assert not any('dust collector' in r.get('title','').lower() and 'collector' in (r.get('signals') or []) for r in rows)
+          cb=[r for r in rows if 'carbon brush' in r.get('title','').lower() and 'cb440' in r.get('title','').lower()]
+          assert cb and all(r.get('type')=='power-tool-parts' and r.get('role')=='replacement_part' for r in cb)
+          promo=re.compile(r'^\s*(?:\[(?:free\s+shipping|hot\s+sale|new\s+arrival|best\s+seller)\]|free\s+shipping|hot\s+sale|new\s+arrival|best\s+seller)',re.I)
+          assert not any(promo.search(r.get('title','')) for r in rows)
+          print(f"V20.8.9 Rare closeout PASS: {len(rows)} published, {manifest.get('seoPages',0)} SEO pages")
+          PY
           if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
             echo 'Unexpected identity or canonical catalog mutation'
             git status --short
@@ -70,32 +101,36 @@ jobs:
           import json
           from pathlib import Path
           x=json.loads(Path('data/v20-8/taxonomy-summary.json').read_text())
-          print('# TrendPilot V20.8 — Universal Discovery + Rare Finds')
+          m=json.loads(Path('data/v20-8/manifest.json').read_text())
+          rows=json.loads(Path('data/v20-8/rare-index.json').read_text())
+          print('# TrendPilot V20.8.9 — Universal Discovery + Rare Finds')
           print()
           print(f"- Canonical records scanned: **{x['records']:,}**")
           print(f"- Universal product types after truth cleanup: **{len(x['types']):,}**")
-          print(f"- Rare candidates before publication cleanup: **{x['rareCandidates']:,}**")
-          print(f"- Rare Finds published after truth cleanup: **{x['rarePublished']:,}**")
-          print(f"- Static high-evidence SEO rare pages: **{x['seoRarePages']:,}**")
+          print(f"- Rare candidates before final closeout: **{x['rarePublished']:,}**")
+          print(f"- High-evidence Rare Finds after V20.8.9 closeout: **{len(rows):,}**")
+          print(f"- Static Rare SEO pages after stale-page pruning: **{m.get('seoPages',0):,}**")
           print(f"- Universal search term shards: **{x['termShards']:,}**")
           print(f"- Universal product buckets: **{x['productBuckets']:,}**")
           print()
-          print('## Truth cleanup')
-          print('- Brand must be explicit in listing title or an explicit `by Brand` phrase: **YES**')
-          print('- Seller/network names are prevented from masquerading as brands: **YES**')
-          print('- Replacement-part taxonomy can override stale category metadata: **YES**')
-          print('- Near-duplicate rare model families collapsed: **YES**')
-          print('- Managed queries keep their specialist finder engine: **YES**')
+          print('## Final Rare truth contract')
+          print('- Promo marketing prefixes removed: **YES**')
+          print('- Ordinary accessories kept out unless genuinely scarce/discontinued: **YES**')
+          print('- Ordinary desks / exercise products do not become Rare from noisy metadata: **YES**')
+          print('- Exact-price and seller-feed-price states stay separate: **YES**')
+          print('- Stale Rare SEO pages are pruned after reclassification: **YES**')
+          print('- Rare result cards stay internal-first: **YES**')
+          print('- TikTok Shop US regional availability remains explicit: **YES**')
           print()
           print('## Safety')
           print('- V19 canonical seller catalogs rebuilt: **NO**')
           print('- TPID / TPVID / TPOID rebuilt: **NO**')
           print('- Blocked seller policy changed: **NO**')
-          print('- Search result pages made indexable: **NO**')
-          print('- Rare SEO pages require stronger product and destination evidence: **YES**')
+          print('- GEO import filter added: **NO**')
+          print('- Dynamic Rare detail pages made indexable: **NO**')
           PY
 
-      - name: Commit V20.8 generated discovery assets
+      - name: Commit V20.8.9 generated discovery assets
         shell: bash
         run: |
           set -euo pipefail
@@ -106,5 +141,5 @@ jobs:
             echo 'No generated changes to commit'
             exit 0
           fi
-          git commit -m 'TrendPilot V20.8 build clean universal discovery and rare finds'
+          git commit -m 'TrendPilot V20.8.9 build universal discovery and final Rare truth'
           git push
