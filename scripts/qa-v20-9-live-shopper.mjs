@@ -5,7 +5,7 @@ const BASE=(process.env.TP_BASE_URL||'https://trendpilotchoice.com').replace(/\/
 const OUT='artifacts/live-shopper';
 await fs.mkdir(OUT,{recursive:true});
 
-const report={version:'20.9.4',mode:'restored-working-finder',base:BASE,queries:[],checks:{},samples:{}};
+const report={version:'20.9.5',mode:'restored-working-finder+detail-truth',base:BASE,queries:[],checks:{},samples:{}};
 const fail=(name,msg)=>{report.checks[name]=false;throw new Error(`${name}: ${msg}`)};
 const pass=name=>{report.checks[name]=true};
 
@@ -88,6 +88,38 @@ try{
   const countText=(await page.textContent('[data-v2078-results-count]'))?.trim()||'';
   if(!countText||/ready|try again|no matches/i.test(countText)) fail('results_state_final',countText);
   pass('results_state_final');
+
+  const redmiURL=`${BASE}/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/`;
+  await page.goto(redmiURL,{waitUntil:'domcontentloaded',timeout:90000});
+  await page.waitForFunction(()=>document.documentElement.dataset.tpProductDetailTruth==='20.9.5',{timeout:25000});
+  await page.waitForSelector('main h1',{state:'visible',timeout:15000});
+  const detail=await page.evaluate(()=>{
+    const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
+    const main=document.querySelector('main');
+    const text=clean(main?.innerText||'');
+    const h1=clean(main?.querySelector('h1')?.textContent||'');
+    const visibleConfig=[...main.querySelectorAll('[data-tp-v2095-done="1"]')].filter(el=>getComputedStyle(el).display!=='none').map(el=>clean(el.textContent));
+    const hiddenConfig=[...main.querySelectorAll('[data-tp-v2095-hidden="1"]')].map(el=>clean(el.textContent));
+    return {text,h1,visibleConfig,hiddenConfig};
+  });
+  report.samples.redmiDetail={title:detail.h1,visibleConfig:detail.visibleConfig.slice(0,10),hiddenConfig:detail.hiddenConfig.slice(0,10)};
+
+  if(!/redmi note 8/i.test(detail.h1)||/redmi note 8\s+pro/i.test(detail.h1)) fail('detail_identity_redmi_note_8',detail.h1);
+  pass('detail_identity_redmi_note_8');
+  if(/\b6\.53\s*(?:in|inch|inches)\b/i.test(detail.text)) fail('detail_variant_screen_truth','6.53-inch configuration leaked into Redmi Note 8 detail');
+  pass('detail_variant_screen_truth');
+  if(/\bactive listings?\b/i.test(detail.text)) fail('detail_generic_route_not_active','generic Alibaba records are still labelled active listings');
+  pass('detail_generic_route_not_active');
+  if(!/catalogue records?/i.test(detail.text)) fail('detail_catalogue_record_label','catalogue-record truth label missing');
+  pass('detail_catalogue_record_label');
+  if(!/search on alibaba|browse alibaba/i.test(detail.text)) fail('detail_alibaba_route_truth','generic Alibaba route is not labelled as search/browse');
+  pass('detail_alibaba_route_truth');
+  if(!/no exact verified price yet|check current price/i.test(detail.text)) fail('detail_price_truth','page appears to invent an exact price');
+  pass('detail_price_truth');
+
+  const h1Size=await page.$eval('main h1',el=>parseFloat(getComputedStyle(el).fontSize));
+  if(h1Size>48) fail('detail_mobile_title_size',`mobile h1 is ${h1Size}px`);
+  pass('detail_mobile_title_size');
 
   report.passed=Object.values(report.checks).every(Boolean);
   await fs.writeFile(`${OUT}/report.json`,JSON.stringify(report,null,2));
