@@ -3,10 +3,7 @@ const path = require("node:path");
 
 const VERSION = "20.7.10";
 const DATA_REL = path.join("data","shopper-v20-6","runtime-v20-6-8-3.json");
-const PUBLIC_SELLERS = new Set([
-  "amazon us","amazon uk","alibaba","tiktok shop us","tiktok shop uk",
-  "sunsky-online ww","geekbuying ww","nike","lenovo"
-]);
+const BLOCKED_SELLERS = new Set(["temu","joom","filamentpro","filamentpro eu cps"]);
 let CACHE = null;
 
 function esc(v){
@@ -62,7 +59,7 @@ function bestImage(p){
   for(const g of p?.sellerGroups||[]) for(const o of g?.offers||[]) candidates.push(o?.image,o?.imageUrl,o?.thumbnail,o?.picture);
   return clean(candidates.find(v=>validHttp(v)&&!isPlaceholderImage(v))||"");
 }
-function sellerAllowed(name){ return PUBLIC_SELLERS.has(lower(name)); }
+function sellerAllowed(name){ const n=lower(name); return !!n && !BLOCKED_SELLERS.has(n) && !n.includes("filamentpro"); }
 function unavailable(x){
   return x?.availability==="unavailable" || /(?:unavailable|out of stock|expired|removed|discontinued)/i.test(clean(x?.status||x?.availability));
 }
