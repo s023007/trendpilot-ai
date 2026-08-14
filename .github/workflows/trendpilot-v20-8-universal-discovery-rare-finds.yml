@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - scripts/build-v20-8-universal-discovery.py
+      - scripts/clean-v20-8-universal-output.py
       - .github/workflows/trendpilot-v20-8-universal-discovery-rare-finds.yml
   workflow_dispatch:
 
@@ -24,11 +25,15 @@ jobs:
       - name: Build V20.8 universal discovery index
         run: python scripts/build-v20-8-universal-discovery.py
 
+      - name: Apply V20.8 truth cleanup
+        run: python scripts/clean-v20-8-universal-output.py
+
       - name: Syntax and safety QA
         shell: bash
         run: |
           set -euo pipefail
           python -m py_compile scripts/build-v20-8-universal-discovery.py
+          python -m py_compile scripts/clean-v20-8-universal-output.py
           node --check js/universal-discovery-v20-8.js
           node --check js/rare-finds-v20-8.js
           node --check js/home-rare-v20-8.js
@@ -37,6 +42,7 @@ jobs:
           test -s data/v20-8/taxonomy-summary.json
           test -s data/v20-8/rare-index.json
           test -s sitemap-v20-8.xml
+          grep -q 'brandMustAppearInTitle' data/v20-8/manifest.json
           grep -q 'trendpilotchoice.com/rare-used/' rare-used/index.html
           grep -q 'universal-discovery-v20-8.js' find/index.html
           if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
@@ -55,12 +61,17 @@ jobs:
           print('# TrendPilot V20.8 — Universal Discovery + Rare Finds')
           print()
           print(f"- Canonical records scanned: **{x['records']:,}**")
-          print(f"- Universal product types discovered: **{len(x['types']):,}**")
-          print(f"- Rare candidates: **{x['rareCandidates']:,}**")
-          print(f"- Rare Finds published: **{x['rarePublished']:,}**")
+          print(f"- Universal product types after truth cleanup: **{len(x['types']):,}**")
+          print(f"- Rare candidates before publication cleanup: **{x['rareCandidates']:,}**")
+          print(f"- Rare Finds published after truth cleanup: **{x['rarePublished']:,}**")
           print(f"- Static high-evidence SEO rare pages: **{x['seoRarePages']:,}**")
           print(f"- Universal search term shards: **{x['termShards']:,}**")
           print(f"- Universal product buckets: **{x['productBuckets']:,}**")
+          print()
+          print('## Truth cleanup')
+          print('- Brand must be visible in actual product title: **YES**')
+          print('- Replacement-part taxonomy can override stale category metadata: **YES**')
+          print('- Near-duplicate rare model families collapsed: **YES**')
           print()
           print('## Safety')
           print('- V19 canonical seller catalogs rebuilt: **NO**')
@@ -81,5 +92,5 @@ jobs:
             echo 'No generated changes to commit'
             exit 0
           fi
-          git commit -m 'TrendPilot V20.8 build universal discovery and rare finds'
+          git commit -m 'TrendPilot V20.8 build clean universal discovery and rare finds'
           git push
