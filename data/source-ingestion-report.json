@@ -1,10 +1,10 @@
 {
   "version": "0.6.0",
-  "generatedAt": "2026-08-13T04:30:52+00:00",
+  "generatedAt": "2026-08-14T04:27:50+00:00",
   "cache": {
     "path": "automation/cache/offers.jsonl",
     "committed": false,
-    "offerCount": 174640
+    "offerCount": 173695
   },
   "sources": [
     {
@@ -83,8 +83,8 @@
       "adapter": "xml",
       "network": "Admitad",
       "advertiser": "Joom",
-      "offersAccepted": 99265,
-      "complianceBlocked": 735,
+      "offersAccepted": 98465,
+      "complianceBlocked": 1535,
       "invalidRows": 0
     },
     {
@@ -105,11 +105,7 @@
       "advertiser": "Alibaba",
       "offersAccepted": 24673,
       "complianceBlocked": 327,
-      "invalidRows": 0,
-      "destination_exact": false,
-      "destination_quality": "seller_search_or_category",
-      "destination_label": "Search on Alibaba",
-      "destination_warning": "Exact Alibaba product destination is not proven for this offer."
+      "invalidRows": 0
     },
     {
       "sourceId": "cj-api-products",
@@ -117,8 +113,8 @@
       "adapter": "json",
       "network": "CJ",
       "advertiser": "CJ joined advertisers",
-      "offersAccepted": 19369,
-      "complianceBlocked": 569,
+      "offersAccepted": 19224,
+      "complianceBlocked": 745,
       "invalidRows": 0
     },
     {
@@ -133,9 +129,9 @@
     }
   ],
   "counters": {
-    "offersAccepted": 174640,
-    "complianceBlocked": 1949,
-    "duplicatesWithinSources": 45
+    "offersAccepted": 173695,
+    "complianceBlocked": 2925,
+    "duplicatesWithinSources": 22
   },
   "note": "Private feed URLs are read from GitHub Actions secrets and are never written to reports or the repository."
 }

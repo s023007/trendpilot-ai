@@ -1,19 +1,19 @@
 {
   "version": "8.0.0",
-  "generatedAt": "2026-08-13T05:10:26+00:00",
-  "pageCount": 41,
-  "buyerPageCount": 13,
+  "generatedAt": "2026-08-14T05:04:48+00:00",
+  "pageCount": 42,
+  "buyerPageCount": 14,
   "issueCounts": {
     "missingMain": 1,
-    "v8CssMissing": 25,
-    "v8JsMissing": 25,
+    "v8CssMissing": 26,
+    "v8JsMissing": 26,
     "weakDescription": 4,
     "missingTitle": 1,
     "emptyVisualContainers": 1
   },
   "severityCounts": {
     "error": 2,
-    "warning": 55
+    "warning": 57
   },
   "pages": [
     {
@@ -156,6 +156,25 @@
     {
       "path": "find/index.html",
       "buyerPage": true,
+      "readableCharacters": 1545,
+      "images": 2,
+      "externalImages": 0,
+      "issues": [
+        {
+          "code": "v8CssMissing",
+          "severity": "warning",
+          "detail": "V8 stylesheet is not linked."
+        },
+        {
+          "code": "v8JsMissing",
+          "severity": "warning",
+          "detail": "V8 script is not linked."
+        }
+      ]
+    },
+    {
+      "path": "find/legacy.html",
+      "buyerPage": true,
       "readableCharacters": 2855,
       "images": 2,
       "externalImages": 0,
@@ -202,7 +221,7 @@
     {
       "path": "index.html",
       "buyerPage": true,
-      "readableCharacters": 4037,
+      "readableCharacters": 2712,
       "images": 2,
       "externalImages": 0,
       "issues": [

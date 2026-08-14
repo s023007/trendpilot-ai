@@ -1,6 +1,6 @@
 {
   "version": "0.8.0",
-  "generatedAt": "2026-08-13T04:50:17+00:00",
+  "generatedAt": "2026-08-14T04:45:56+00:00",
   "publicationMode": "manual-review",
   "sources": [
     {
@@ -89,7 +89,7 @@
       "type": "stackexchange",
       "label": "Stack Overflow — hot questions",
       "status": "processed",
-      "signals": 2
+      "signals": 7
     },
     {
       "id": "youtube-tech-us",
@@ -109,20 +109,20 @@
     }
   ],
   "counters": {
-    "rawSignals": 192,
-    "blockedSignals": 4,
-    "nonCommercialSignals": 172,
-    "softwareCommercialSignals": 16,
+    "rawSignals": 197,
+    "blockedSignals": 3,
+    "nonCommercialSignals": 184,
+    "softwareCommercialSignals": 10,
     "ambiguousSignals": 0,
     "lowScoreSignals": 0,
     "insufficientEvidence": 0,
-    "unmonetisableSignals": 16,
-    "noConfirmedAffiliateRoute": 16,
+    "unmonetisableSignals": 10,
+    "noConfirmedAffiliateRoute": 10,
     "projectOnlyWithoutAffiliateRoute": 0,
     "purgedStaleCandidates": 0,
     "reviewCandidates": 3,
-    "readyForApproval": 2,
-    "publishedApprovedTrends": 4,
+    "readyForApproval": 1,
+    "publishedApprovedTrends": 1,
     "approvalHeldForEvidence": 0
   },
   "note": "New trends are held for review. Sensitive, ambiguous and weakly evidenced signals are blocked before publication."
