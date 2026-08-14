@@ -107,6 +107,8 @@ try{
   pass('detail_identity_redmi_note_8');
   if(/\b6\.53\s*(?:in|inch|inches)\b/i.test(detail.text)) fail('detail_variant_screen_truth','6.53-inch configuration leaked into Redmi Note 8 detail');
   pass('detail_variant_screen_truth');
+  if(detail.visibleConfig.some(x=>/^(?:configuration|variant|option)\s*\d*/i.test(x))) fail('detail_no_placeholder_configuration',JSON.stringify(detail.visibleConfig));
+  pass('detail_no_placeholder_configuration');
   if(/\bactive listings?\b/i.test(detail.text)) fail('detail_generic_route_not_active','generic Alibaba records are still labelled active listings');
   pass('detail_generic_route_not_active');
   if(!/catalogue records?/i.test(detail.text)) fail('detail_catalogue_record_label','catalogue-record truth label missing');
