@@ -9,6 +9,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PRODUCTS = ROOT / 'data/v20-8/products'
 Q = ROOT / 'data/v20-9/quality-report.json'
+RESIDUAL = ROOT / 'data/v20-9/residual-report.json'
 SUMMARY = ROOT / 'data/v20-8/taxonomy-summary.json'
 MANIFEST = ROOT / 'data/v20-8/manifest.json'
 REPORT = ROOT / 'data/v20-9/semantic-closeout.json'
@@ -101,6 +102,8 @@ def main() -> None:
     roles = collections.Counter(str(r.get('ro') or 'main') for r in rows)
     families = collections.Counter(str(r.get('fa') or r.get('ty') or 'unclassified') for r in rows)
     reasons = collections.Counter(x['reason'] for x in changed)
+    unclassified_after = int(types.get('unclassified', 0))
+    unclassified_pct = round(100 * unclassified_after / max(1, len(rows)), 2)
 
     # Hard guard uses the same first-match contract as the correction pass.
     violations = []
@@ -120,6 +123,8 @@ def main() -> None:
         'records': len(rows),
         'corrected': len(changed),
         'violations': len(violations),
+        'unclassifiedAfter': unclassified_after,
+        'unclassifiedAfterPct': unclassified_pct,
         'byReason': reasons.most_common(),
         'samples': changed[:100],
         'violationSamples': violations[:25],
@@ -127,8 +132,26 @@ def main() -> None:
     REPORT.parent.mkdir(parents=True, exist_ok=True)
     REPORT.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
+    residual_before = None
+    if RESIDUAL.exists():
+        residual = json.loads(RESIDUAL.read_text(encoding='utf-8'))
+        residual_before = int(residual.get('unclassifiedBeforeResidual') or unclassified_after)
+        residual['unclassifiedAfterResidual'] = unclassified_after
+        residual['classifiedByResidual'] = max(0, residual_before - unclassified_after)
+        residual['unclassifiedAfterResidualPct'] = unclassified_pct
+        residual['semanticCloseoutVersion'] = VERSION
+        residual['semanticCorrections'] = len(changed)
+        residual['semanticCloseoutViolations'] = len(violations)
+        RESIDUAL.write_text(json.dumps(residual, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
     if Q.exists():
         q = json.loads(Q.read_text(encoding='utf-8'))
+        unclassified_before = int(q.get('unclassifiedBefore') or unclassified_after)
+        q['unclassifiedAfter'] = unclassified_after
+        q['unclassifiedReduction'] = max(0, unclassified_before - unclassified_after)
+        q['unclassifiedAfterPct'] = unclassified_pct
+        if residual_before is not None:
+            q['residualClassified'] = max(0, residual_before - unclassified_after)
         q['types'] = types.most_common()
         q['roles'] = roles.most_common()
         q['families'] = families.most_common()
@@ -143,16 +166,22 @@ def main() -> None:
         s['types'] = [{'slug': k, 'label': label(k), 'count': v} for k, v in types.most_common()]
         s['roles'] = dict(roles)
         s['families'] = [{'slug': k, 'label': label(k), 'count': v} for k, v in families.most_common()]
-        s.setdefault('qualityGateV20_9', {}).update({
+        gate = s.setdefault('qualityGateV20_9', {})
+        gate.update({
+            'unclassifiedAfter': unclassified_after,
+            'unclassifiedAfterPct': unclassified_pct,
             'semanticCloseoutVersion': VERSION,
             'semanticCorrections': len(changed),
             'semanticCloseoutViolations': len(violations),
         })
+        if residual_before is not None:
+            gate['residualClassified'] = max(0, residual_before - unclassified_after)
         SUMMARY.write_text(json.dumps(s, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
     if MANIFEST.exists():
         m = json.loads(MANIFEST.read_text(encoding='utf-8'))
         m.setdefault('truthCleanup', {}).update({
+            'residualUnclassifiedRemaining': unclassified_after,
             'semanticCloseoutVersion': VERSION,
             'semanticCorrections': len(changed),
             'semanticCloseoutViolations': len(violations),
