@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   audit-all-products:
@@ -37,6 +37,8 @@ jobs:
           assert x['records'] >= 50000, x['records']
           assert x['unclassified'] > 0
           assert x['unclassifiedProbeHits']
+          assert 'mainWithStrongAccessoryGrammar' in x['roleAnomalies']
+          assert 'mainWithStrongReplacementGrammar' in x['roleAnomalies']
           print('PASS diagnostic records=',x['records'],'unclassified=',x['unclassified'])
           PY
 
@@ -52,8 +54,8 @@ jobs:
           print(f"- Records audited: **{x['records']:,}**")
           print(f"- Unclassified: **{x['unclassified']:,} ({x['unclassifiedPct']}%)**")
           print(f"- Reclassification probe families with hits: **{len(x['unclassifiedProbeHits']):,}**")
-          print(f"- Main-role listings with accessory cues: **{x['roleAnomalies']['mainWithAccessoryCue']['count']:,}**")
-          print(f"- Main-role listings with replacement cues: **{x['roleAnomalies']['mainWithReplacementCue']['count']:,}**")
+          print(f"- Main-role listings with strong accessory grammar: **{x['roleAnomalies']['mainWithStrongAccessoryGrammar']['count']:,}**")
+          print(f"- Main-role listings with strong replacement grammar: **{x['roleAnomalies']['mainWithStrongReplacementGrammar']['count']:,}**")
           print()
           print('## Largest probe hits inside Unclassified')
           for k,v in sorted(x['unclassifiedProbeHits'].items(), key=lambda kv: kv[1]['count'], reverse=True)[:20]:
@@ -61,17 +63,3 @@ jobs:
           print()
           print('Diagnostic only. V19 identity and canonical catalogs were not modified.')
           PY
-
-      - name: Commit diagnostic report
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'TrendPilot Bot'
-          git config user.email 'actions@users.noreply.github.com'
-          git add data/v20-9/diagnostic.json
-          if git diff --cached --quiet; then
-            echo 'No diagnostic changes to commit'
-            exit 0
-          fi
-          git commit -m 'TrendPilot V20.9 record all-product diagnostic'
-          git push
