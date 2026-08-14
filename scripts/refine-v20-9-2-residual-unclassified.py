@@ -16,6 +16,27 @@ MANIFEST=ROOT/'data/v20-8/manifest.json'
 VERSION='20.9.2'
 
 RULES=[
+    # V20.9.2 closeout: conservative residual rules for explicit nouns that remained
+    # unclassified after the all-product gate. Specific/part/accessory rules stay
+    # before broad family rules so finished products are not mixed with parts.
+    ('automotive-parts','automotive',r'\b(?:brake\s+pads?|brake\s+disc|brake\s+rotor|spark\s+plugs?|fuel\s+injector|wheel\s+bearing|control\s+arm|tie\s+rod|shock\s+absorber|strut\s+assembly|oxygen\s+sensor|o2\s+sensor|carburetor|engine\s+mount|timing\s+belt|serpentine\s+belt)\b',r'\b(?:toy|model|keychain|poster|sticker)\b'),
+    ('car-electronics','automotive',r'\b(?:car\s+stereo|car\s+radio|carplay|android\s+auto|obd\s*2|obdii|automotive\s+scanner|car\s+diagnostic\s+scanner|parking\s+sensor|reverse\s+sensor|car\s+gps|vehicle\s+gps)\b',r'\b(?:case|cover|holder|mount\s+for)\b'),
+    ('car-accessories','automotive',r'\b(?:car|vehicle|automotive)\b[^,;]{0,45}\b(?:seat\s+cover|floor\s+mat|sun\s*shade|organizer|phone\s+mount|phone\s+holder|charger|vacuum|cleaning\s+brush|trash\s+can|cup\s+holder)\b|\b(?:steering\s+wheel\s+cover|car\s+seat\s+cover|car\s+floor\s+mats?|car\s+sun\s*shade|car\s+organizer|car\s+phone\s+(?:mount|holder)|car\s+charger)\b',r'\b(?:baby\s+car\s+seat|infant\s+car\s+seat)\b'),
+    ('pet-feeders','pets',r'\b(?:automatic\s+(?:pet|dog|cat)\s+feeder|(?:pet|dog|cat)\s+(?:food\s+)?feeder|(?:pet|dog|cat)\s+(?:food|water)\s+bowl|(?:pet|dog|cat)\s+water\s+fountain)\b',''),
+    ('pet-collars-leashes','pets',r'\b(?:(?:pet|dog|cat)\s+(?:collar|leash|lead|harness)|(?:collar|leash|harness)\s+for\s+(?:dogs?|cats?|pets?))\b',''),
+    ('pet-beds','pets',r'\b(?:(?:pet|dog|cat)\s+(?:bed|sofa|hammock)|(?:bed|sofa|hammock)\s+for\s+(?:dogs?|cats?|pets?))\b',''),
+    ('pet-litter','pets',r'\b(?:cat\s+litter|litter\s+box|self[- ]cleaning\s+litter\s+box|cat\s+toilet)\b',''),
+    ('pet-grooming','pets',r'\b(?:pet|dog|cat)\b[^,;]{0,45}\b(?:grooming\s+brush|grooming\s+comb|deshedding\s+tool|hair\s+remover|nail\s+clipper|grooming\s+kit)\b|\b(?:grooming\s+brush|deshedding\s+tool)\b[^,;]{0,35}\b(?:dog|cat|pet)\b',''),
+    ('lighting','lighting',r'\b(?:led\s+(?:strip\s+)?lights?|night\s+light|wall\s+lamp|desk\s+lamp|floor\s+lamp|table\s+lamp|ceiling\s+light|pendant\s+light|solar\s+(?:garden\s+)?lights?|garden\s+lights?|motion\s+sensor\s+light|ring\s+light|light\s+bulbs?|under[- ]cabinet\s+light)\b',r'\b(?:car\s+headlight|headlight|tail\s+light|indicator\s+light|warning\s+light|bike\s+light|bicycle\s+light|toy\s+light)\b'),
+    ('baby-products','baby',r'\b(?:baby\s+(?:bath|bib|bibs|pacifier|teether|feeding\s+set|feeding\s+bowl|feeding\s+spoon|blanket|swaddle|sleeping\s+bag|play\s+mat|changing\s+mat|safety\s+gate|walker|bouncer|high\s+chair)|infant\s+(?:bib|pacifier|teether|feeding\s+set|blanket|swaddle|walker|bouncer|high\s+chair))\b',''),
+    ('garden-supplies','home',r'\b(?:gardening\s+tool|garden\s+tool|plant\s+pot|flower\s+pot|garden\s+planter|watering\s+can|garden\s+hose|pruning\s+shears?|garden\s+gloves?|garden\s+sprinkler|hose\s+nozzle|plant\s+support|plant\s+stand|seed\s+starter|garden\s+edging|weed\s+puller|watering\s+wand|garden\s+sprayer)\b',''),
+    ('kitchen-tools','kitchen',r'\b(?:chef(?:\'s)?\s+knife|paring\s+knife|bread\s+knife|steak\s+knife|santoku\s+knife|boning\s+knife|kitchen\s+cleaver|kitchen\s+scissors|kitchen\s+shears|spatula|whisk|kitchen\s+tongs?|colander|kitchen\s+grater|cheese\s+grater|vegetable\s+peeler|garlic\s+press|potato\s+masher)\b',r'\b(?:toy|miniature|dollhouse|keychain|pendant)\b'),
+    ('hair-care','beauty',r'\b(?:lace\s+front\s+wig|human\s+hair\s+wig|synthetic\s+wig|hair\s+extensions?|hair\s+bundles?|clip[- ]in\s+hair|ponytail\s+extension|hair\s+weft)\b',''),
+    ('jewelry-craft','jewelry-craft',r'\b(?:wedding\s+ring|engagement\s+ring|sterling\s+silver\s+ring|silver\s+ring|gold\s+ring|fashion\s+ring|finger\s+ring|adjustable\s+ring|cocktail\s+ring|signet\s+ring|women(?:\'s)?\s+ring|men(?:\'s)?\s+ring)\b',r'\b(?:ring\s+light|o[- ]?ring|piston\s+ring|key\s+ring|ring\s+toss|napkin\s+ring|towel\s+ring|phone\s+ring)\b'),
+    ('bags','bags',r'\b(?:duffel\s+bag|duffle\s+bag|gym\s+bag|weekender\s+bag|messenger\s+bag|waist\s+bag|fanny\s+pack|makeup\s+bag|cosmetic\s+bag|toiletry\s+bag|beach\s+bag|shopping\s+tote|canvas\s+tote)\b',r'\b(?:tool\s+bag|vacuum\s+bag|dust\s+bag|filter\s+bag|trash\s+bag|garbage\s+bag|pet\s+waste\s+bag)\b'),
+    ('toys-remote-control','toys',r'\b(?:remote\s+control\s+(?:car|truck|boat|toy)|rc\s+(?:car|truck|boat|helicopter|toy)|radio\s+controlled\s+(?:car|truck|boat|toy))\b',''),
+    ('pet-toys','pets',r'\b(?:pet\s+toy|dog\s+toy|cat\s+toy|interactive\s+cat\s+toy|chew\s+toy\s+for\s+dogs?)\b',''),
+    ('toys','toys',r'\b(?:toy|toys)\b',r'\b(?:(?:pet|dog|cat)\s+toys?|toys?\s+for\s+(?:pets?|dogs?|cats?)|toy\s+(?:storage|organizer|box|chest|bag|shelf|rack)|storage\s+for\s+toys?|toy\s+display)\b'),
     ('keyboard','computer',r'\bkeyboard\b',r'\b(?:tray|holder|stand|cover|case|skin|sticker|keycap|wrist\s+rest)\b'),
     ('mouse','computer',r'\b(?:usb|wireless|bluetooth|compact|ergonomic|gaming|optical|multi[- ]device)[^,;]{0,35}\bmouse\b|\bmouse\b[^,;]{0,35}\b(?:usb|wireless|bluetooth|compact|ergonomic|gaming|optical)\b',r'\b(?:mouse\s*pad|mousepad|mouse\s*mat|mouse\s*trap|toy\s*mouse)\b'),
     ('computer-accessories','computer',r'\b(?:monitor\s+(?:arm|mount|stand)|dual\s+monitor\s+(?:arm|mount|stand)|triple\s+monitor\s+(?:arm|mount|stand)|keyboard\s+tray)\b',''),
@@ -42,7 +63,7 @@ RULES=[
     ('garden-supplies','home',r'\b(?:gardening\s+tool|garden\s+tool|plant\s+pot|flower\s+pot|garden\s+planter|watering\s+can|garden\s+hose)\b',''),
 ]
 COMPILED=[(ty,fa,re.compile(pos,re.I),re.compile(neg,re.I) if neg else None) for ty,fa,pos,neg in RULES]
-ROLE_BY_TYPE={'computer-accessories':'accessory','phone-parts':'replacement_part'}
+ROLE_BY_TYPE={'computer-accessories':'accessory','phone-parts':'replacement_part','car-accessories':'accessory','automotive-parts':'replacement_part'}
 
 
 def label(slug:str)->str:
