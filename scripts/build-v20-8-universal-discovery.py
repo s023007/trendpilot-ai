@@ -3,9 +3,9 @@ from __future__ import annotations
 import collections, hashlib, html, json, math, re, shutil, unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlparse, parse_qs, unquote
 
-ROOT=Path(__file__).resolve().parents[1]; CAT=ROOT/'data/catalog-v19'; OUT=ROOT/'data/v20-8'; SITE='https://trendpilotchoice.com'; V='20.8.3'
+ROOT=Path(__file__).resolve().parents[1]; CAT=ROOT/'data/catalog-v19'; OUT=ROOT/'data/v20-8'; SITE='https://trendpilotchoice.com'; V='20.8.4'
 BLOCK={'temu','joom','filamentpro','filamentpro eu cps','filamentpro-eu-cps'}
 STOP={'the','and','for','with','from','this','that','your','our','new','best','sale','hot','price','buy','original','official','wholesale','factory','global','product','products','item','items','pcs','piece','pieces','pack','set','sets','of','to','in','on','by','a','an'}
 USED={'used','refurbished','open-box','open box','renewed','pre-owned','preowned'}
@@ -63,16 +63,57 @@ def identity(rec,seller_slug):
     if brand and model and conf=='explicit': return f'brand-model:{brand}:{model}',True
     return f'seller:{seller_slug}:{n(rec.get("productKey"))}',False
 
+def nested_urls(raw,max_depth=4):
+    out=[];seen=set();queue=[c(raw)]
+    keys={'ulp','url','target','target_url','dest','destination','destination_url','dl_target_url','redirect','redirect_url','u'}
+    while queue and len(out)<40:
+        cur=queue.pop(0)
+        for _ in range(3):
+            dec=unquote(cur)
+            if dec==cur:break
+            cur=dec
+        if not cur or cur in seen:continue
+        seen.add(cur);out.append(cur)
+        try:
+            p=urlparse(cur);qs=parse_qs(p.query)
+        except:continue
+        if len(out)>max_depth*10:break
+        for k,vals in qs.items():
+            if k.lower() in keys:
+                for v in vals:
+                    if v:queue.append(v)
+    return out
+
 def exact_link(rec,slug_,network):
-    links=rec.get('links') or {}; u=c(links.get('affiliateUrl') or links.get('destinationUrl'))
-    if not u:return False
-    try:p=urlparse(u); path=p.path.lower()
-    except:return False
-    if slug_ in {'alibaba','tiktok-shop-us'}:return False
-    if n(network)=='cj':return len(path.strip('/'))>2
-    if slug_=='aliexpress':return '/item/' in path or bool(re.search(r'/\d{8,}\.html',path))
-    if slug_=='geekbuying':return len(path.strip('/'))>8 and not any(x in path for x in ('/category/','/search','/promotion'))
-    return len(path.strip('/'))>8
+    links=rec.get('links') or {}; raw=c(links.get('affiliateUrl') or links.get('destinationUrl'))
+    if not raw:return False
+    candidates=nested_urls(raw)
+    if slug_=='tiktok-shop-us':return False
+    if slug_=='alibaba':return False
+    if slug_=='aliexpress':
+        for u in candidates:
+            try:p=urlparse(u);host=p.netloc.lower();path=p.path.lower()
+            except:continue
+            if 'aliexpress.' in host and ('/item/' in path or bool(re.search(r'/\d{8,}\.html',path))):return True
+        return False
+    if slug_=='geekbuying':
+        for u in candidates:
+            try:p=urlparse(u);host=p.netloc.lower();path=p.path.lower()
+            except:continue
+            if 'geekbuying.' in host and len(path.strip('/'))>8 and not any(x in path for x in ('/category/','/search','/promotion')):return True
+        return False
+    if n(network)=='cj':
+        # CJ wrappers are only exact when an embedded destination looks product-specific.
+        for u in candidates[1:] or candidates:
+            try:p=urlparse(u);path=p.path.lower()
+            except:continue
+            if len(path.strip('/'))>6 and not any(x in path for x in ('/search','/category','/collections','/products')):return True
+        return False
+    for u in candidates:
+        try:p=urlparse(u);path=p.path.lower()
+        except:continue
+        if len(path.strip('/'))>8 and not any(x in path for x in ('/search','/category','/collections')):return True
+    return False
 
 def price(rec):
     try:
