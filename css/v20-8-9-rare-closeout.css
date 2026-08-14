@@ -1,0 +1,26 @@
+/* TrendPilot V20.8.9 — Rare Finds final closeout */
+.tp80-rare-card .tp-price-confidence{display:none!important}
+.tp80-rare-card .tp80-primary{margin-top:10px;min-height:46px}
+.tp80-rare-meta{color:#667085;line-height:1.45;margin:8px 0}
+.tp80-detail-copy h1{font-size:clamp(26px,4vw,44px);line-height:1.06;overflow-wrap:anywhere;word-break:normal;text-wrap:balance}
+.tp80-price-block{margin:10px 0 12px}
+.tp80-price-block .tp80-price{margin-bottom:4px}
+.tp80-leave-note{margin:16px 0 8px;padding:13px 14px;border-radius:15px;background:#f8fafc;border:1px solid #e4e9f1}
+.tp80-leave-note strong{display:block;color:#101828;margin-bottom:3px}
+.tp80-leave-note p{margin:0;color:#667085;line-height:1.45;font-size:13px}
+.tp80-seller-exit.broad{background:#fff;color:#3157e8;border:1px solid #b9c7f8}
+.tp80-market-notice{border-left:4px solid #3157e8}
+.tp80-facts{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:650px){
+  .tp80-detail-copy h1{font-size:clamp(22px,6.3vw,28px);line-height:1.1;margin:9px 0 12px}
+  .tp80-detail-hero{gap:18px}
+  .tp80-detail-media{min-height:240px}
+  .tp80-detail-media img{max-height:280px}
+  .tp80-facts{grid-template-columns:1fr 1fr}
+  .tp80-facts span{padding:10px}
+  .tp80-rare-card h2{font-size:17px}
+}
+@media(max-width:390px){
+  .tp80-facts{grid-template-columns:1fr}
+  .tp80-rare-card{grid-template-columns:100px 1fr;gap:12px;padding:12px}
+}
