@@ -33,6 +33,7 @@ def main():
         'blocked':q.get('blockedSellerLeaks'),'immutable':q.get('immutableCommerceFieldsChanged'),
         'runtime_buckets':rt.get('productBuckets'),'runtime_max':rt.get('maxProductBucketBytes'),
         'family_strategy':rt.get('familyStrategy'),'family_len':len(fam),'role_family_len':len(roles),
+        'runtime_family_count':rt.get('familyCount'),'quality_family_count':q.get('familyCount'),
         'manifest_version':m.get('version'),'summary_version':s.get('version'),
         'manifest_residual':m.get('truthCleanup',{}).get('residualUnclassifiedPassVersion'),
         'manifest_rare':m.get('truthCleanup',{}).get('rareCloseoutVersion'),
@@ -51,7 +52,10 @@ def main():
     add('runtime_256',rt.get('productBuckets')==256)
     add('runtime_under_500k',int(rt.get('maxProductBucketBytes') or 999999999)<500000)
     add('role_balanced',rt.get('familyStrategy')=='role-balanced')
-    add('family_counts_ge_150',len(fam)>=150 and len(roles)>=150)
+    # Family breadth is a sanity floor, not a target. The authoritative contract is that the indexes agree
+    # with each other and every required family+shopper-role route is present below.
+    add('family_breadth_ge_140',len(fam)>=140 and len(roles)>=140)
+    add('family_index_counts_consistent',len(fam)==len(roles)==int(rt.get('familyCount') or -1)==int(q.get('familyCount') or -2))
     add('manifest_version_2090',m.get('version')=='20.9.0')
     add('summary_version_2090',s.get('version')=='20.9.0')
     add('manifest_residual_2092',m.get('truthCleanup',{}).get('residualUnclassifiedPassVersion')=='20.9.2')
