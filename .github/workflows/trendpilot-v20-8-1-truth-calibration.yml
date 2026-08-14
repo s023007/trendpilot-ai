@@ -19,8 +19,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Apply V20.8.1
-        run: python scripts/apply-v20-8-1-truth-calibration.py
+      - name: Apply V20.8.1 builder calibration
+        run: python scripts/apply-v20-8-1-rarity-builder-v2.py
 
       - name: Rebuild universal and rare data
         run: python scripts/build-v20-8-universal-discovery.py
@@ -34,8 +34,18 @@ jobs:
           python -m py_compile scripts/build-v20-8-universal-discovery.py
           grep -q 'Seller-feed price' js/universal-discovery-v20-8.js
           grep -q 'Exact price' js/universal-discovery-v20-8.js
-          grep -q 'V=.20.8.1' scripts/build-v20-8-universal-discovery.py
+          grep -q "V='20.8.1'" scripts/build-v20-8-universal-discovery.py
           grep -q '20.8.1' data/v20-8/manifest.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=json.loads(Path('data/v20-8/rare-index.json').read_text())
+          strong={'used-scarce','collector','discontinued'}
+          bad=[r for r in rows if r.get('role')=='replacement_part' and not strong.intersection(r.get('signals') or []) and int(r.get('rareScore') or 0)>79]
+          if bad:
+              raise SystemExit('Uncalibrated replacement rarity: '+str([(x.get('title'),x.get('rareScore')) for x in bad[:3]]))
+          print('Rare calibration QA: PASS')
+          PY
           if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
             echo 'Unexpected canonical identity/catalog mutation'
             exit 1
