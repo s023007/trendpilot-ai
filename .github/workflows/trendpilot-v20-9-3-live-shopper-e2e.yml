@@ -1,0 +1,101 @@
+name: TrendPilot V20.9.3 — Live Mobile Shopper E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/qa-v20-9-live-shopper.mjs
+      - .github/workflows/trendpilot-v20-9-3-live-shopper-e2e.yml
+      - find/index.html
+      - item/index.html
+      - compare/index.html
+      - js/universal-discovery-v20-9-1.js
+      - js/finder-shell-v20-9.js
+      - js/item-detail-v20-9.js
+      - js/compare-v20-9.js
+      - js/compare-state-v20-9.js
+      - css/v20-8-universal.css
+      - css/compare-v20-9.css
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-v20-9-3-live-shopper
+  cancel-in-progress: true
+
+jobs:
+  live-mobile-shopper:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+
+      - name: Wait for V20.9.1 public finder
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            if curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' | grep -q 'universal-discovery-v20-9-1.js?v=20.9.1'; then
+              echo 'Public V20.9.1 finder is reachable.'
+              exit 0
+            fi
+            echo "Waiting for public deploy ($i/30)..."
+            sleep 10
+          done
+          echo 'Public V20.9.1 finder did not become reachable.'
+          exit 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Chromium QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run Android shopper journey
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v20-9-live-shopper.mjs
+
+      - name: Write shopper QA summary
+        if: always()
+        shell: bash
+        run: |
+          if [ ! -s artifacts/live-shopper/report.json ]; then
+            echo '# TrendPilot V20.9.3 — Live Mobile Shopper E2E' >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+            echo '**No report produced.** The browser setup or live-site availability failed before the shopper test could run.' >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs=require('fs');
+          const r=JSON.parse(fs.readFileSync('artifacts/live-shopper/report.json','utf8'));
+          console.log('# TrendPilot V20.9.3 — Live Mobile Shopper E2E');
+          console.log();
+          console.log(`- Overall: **${r.passed?'PASS':'FAIL'}**`);
+          console.log(`- Public site: **${r.base}**`);
+          console.log(`- Search queries tested: **${(r.queries||[]).map(x=>x.query).join(', ')}**`);
+          console.log(`- Seller filter tested: **${r.samples?.seller||'not reached'}**`);
+          console.log(`- Detail page tested: **${r.samples?.detail?.title||'not reached'}**`);
+          console.log(`- Compare products rendered: **${r.samples?.compare?.count??'not reached'}**`);
+          console.log();
+          console.log('## Checks');
+          for(const [k,v] of Object.entries(r.checks||{})) console.log(`- ${v?'✅':'❌'} ${k}`);
+          if(r.error){console.log();console.log('## Failure');console.log('```');console.log(r.error);console.log('```');}
+          NODE
+
+      - name: Upload live QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v20-9-3-live-shopper
+          path: artifacts/live-shopper
+          if-no-files-found: ignore
