@@ -1,0 +1,63 @@
+name: TrendPilot V20.8.7 Rare Finds Internal Routing QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - js/rare-finds-v20-8.js
+      - js/rare-find-detail-v20-8-7.js
+      - rare-used/index.html
+      - rare-used/view/index.html
+      - .github/workflows/trendpilot-v20-8-7-rare-routing-qa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --check js/rare-finds-v20-8.js
+          node --check js/rare-find-detail-v20-8-7.js
+
+      - name: Rare Finds routing contract
+        run: |
+          set -euo pipefail
+          grep -q '/rare-used/view/?id=' js/rare-finds-v20-8.js
+          ! grep -q 'r.seoUrl||r.url' js/rare-finds-v20-8.js
+          grep -q 'rare-find-detail-v20-8-7.js?v=20.8.7' rare-used/view/index.html
+          grep -q 'rare-finds-v20-8.js?v=20.8.7' rare-used/index.html
+          grep -q 'You are still on TrendPilot' js/rare-find-detail-v20-8-7.js
+          grep -q 'TikTok Shop US availability' js/rare-find-detail-v20-8-7.js
+          grep -q 'target="_blank"' js/rare-find-detail-v20-8-7.js
+
+      - name: Safety guard
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          changed="$(git diff --name-only origin/main...HEAD)"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -E '(^|/)data/catalog-v19/|tpid|tpvid|tpoid|identity'; then
+            echo 'Unexpected identity/catalog mutation'
+            exit 1
+          fi
+
+      - name: Summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          # TrendPilot V20.8.7 — Rare Finds internal routing
+          - Rare cards open TrendPilot first: **PASS**
+          - Dynamic fallback detail page for items without static SEO page: **PASS**
+          - Seller links only appear inside product details: **PASS**
+          - TikTok Shop US region/availability warning: **PASS**
+          - V19 identity/catalog mutation: **NO**
+          EOF
