@@ -20,9 +20,9 @@
   <link rel="dns-prefetch" href="//sc02.alicdn.com">
   <link rel="stylesheet" href="/css/style-v13-2.css?v=13.2.0">
   <link rel="stylesheet" href="/css/style-v13-5.css?v=13.5.0">
-  <link rel="stylesheet" href="/css/v20-7-shopper-experience.css?v=20.7.10">
-  <link rel="stylesheet" href="/css/v20-7-8-finder.css?v=20.7.10">
-  <link rel="stylesheet" href="/css/v20-7-9-finder.css?v=20.7.10">
+  <link rel="stylesheet" href="/css/v20-7-shopper-experience.css?v=20.7.11">
+  <link rel="stylesheet" href="/css/v20-7-8-finder.css?v=20.7.11">
+  <link rel="stylesheet" href="/css/v20-7-9-finder.css?v=20.7.11">
   <script id="tp-v20-7-10-engine-bootstrap">
   (() => {
     const p = new URLSearchParams(location.search);
@@ -33,6 +33,7 @@
     if (p.has("q") && !p.has("engine")) { p.set("engine", "v2064"); location.replace(location.pathname + "?" + p.toString() + location.hash); }
   })();
   </script>
+  <link rel="stylesheet" href="/css/buyer-decision-v20-7-11.css?v=20.7.11">
 </head>
 <body data-tp-page="finder" data-v20-public="true">
 <a class="tp-skip" href="#main">Skip to content</a>
@@ -63,7 +64,7 @@
   </div></section>
   <section class="v207-results-wrap"><div class="tp-shell v207-layout">
     <aside class="tp-filter-panel" data-tp-filter-panel><div class="tp-filter-head"><h2>Refine results</h2><button class="tp-btn tp-btn-light tp-btn-small tp-filter-toggle" data-tp-filter-toggle type="button" aria-expanded="false" aria-controls="tp-filter-fields">Filters</button></div>
-      <div class="tp-filter-primary" id="tp-filter-fields"><div class="tp-filter-group"><label for="tp-merchant">Seller</label><select id="tp-merchant" data-filter-merchant><option value="">All sellers</option></select></div><div class="tp-filter-group"><label for="tp-price">Price</label><select id="tp-price" data-filter-price><option value="">Any verified price</option><option value="0-10">Under $10</option><option value="10-25">$10–25</option><option value="25-50">$25–50</option><option value="50-100">$50–100</option><option value="100+">Over $100</option></select></div><div class="tp-filter-group"><label for="tp-sort">Sort</label><select id="tp-sort" data-filter-sort><option value="smart">Best match</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></div></div>
+      <div class="tp-filter-primary" id="tp-filter-fields"><div class="tp-filter-group"><label for="tp-merchant">Seller</label><select id="tp-merchant" data-filter-merchant><option value="">All sellers</option></select></div><div class="tp-filter-group"><label>Price & budget</label><div class="tp-budget-shell" data-budget-tools></div><select id="tp-price" data-filter-price hidden><option value="">Any price</option></select></div><div class="tp-filter-group"><label for="tp-sort">Sort</label><select id="tp-sort" data-filter-sort><option value="smart">Best match</option><option value="best-value">Best value</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></div></div>
     </aside>
     <section class="tp-main-col" aria-label="Product results"><div class="tp-results-head"><div><h2 data-v2078-results-title>Search the product catalogue</h2><p data-v2078-finder-status>Search by product type or model, or use one of the popular searches above.</p></div><span class="tp-results-count" data-v2078-results-count role="status" aria-live="polite">Ready</span></div>
       <div class="tp-product-grid" data-v2078-product-grid aria-live="polite"><div class="tp78-empty"><h3>What are you looking for?</h3><p>Start with a product category or model.</p></div></div><button class="tp-btn tp-btn-light tp78-load-more" data-v2078-load-more type="button" hidden>Show more products</button>
@@ -72,8 +73,9 @@
 </main>
 <footer class="tp-footer" data-v13-footer><div class="tp-shell tp-footer-grid"><div><a class="tp-brand" href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><span>TrendPilot <em>AI</em></span></a><p>Product discovery and comparison with seller evidence kept visible.</p></div><div><h2>Shop</h2><a href="/find/">Find products</a><a href="/compare/">Compare</a><a href="/deals/">Deals</a><a href="/price-watch/">Saved products</a></div><div><h2>Explore</h2><a href="/products/">Electronics</a><a href="/rare-used/">Rare Finds</a><a href="/tickets/">Tickets</a><a href="/sourcing/">Business sourcing</a></div><div><h2>Trust</h2><a href="/editorial-methodology.html">How we rank</a><a href="/affiliate-disclosure.html">Affiliate disclosure</a><a href="/privacy.html">Privacy</a><a href="/contact.html">Contact</a></div></div><div class="tp-shell tp-footer-bottom"><span>© <span data-year></span> TrendPilot AI.</span><span>Prices, stock and delivery can change. Confirm them before payment.</span></div></footer>
 <nav class="tp-bottom-nav" aria-label="Mobile navigation"><a data-bottom-link href="/"><b>⌂</b><span>Home</span></a><a data-bottom-link href="/find/"><b>⌕</b><span>Search</span></a><a data-bottom-link href="/deals/"><b>↓</b><span>Deals</span></a><a data-bottom-link href="/compare/"><b>⇄</b><span>Compare</span><i class="tp-count" data-compare-count hidden>0</i></a></nav>
-<script defer src="/js/smart-suggestions-v20-7-7.js?v=20.7.10"></script>
-<script defer src="/js/seller-diversity-v20-7-10.js?v=20.7.10"></script>
-<script defer src="/js/finder-v20-7-9.js?v=20.7.10"></script>
+<script defer src="/js/smart-suggestions-v20-7-7.js?v=20.7.11"></script>
+<script defer src="/js/seller-diversity-v20-7-10.js?v=20.7.11"></script>
+<script defer src="/js/finder-v20-7-9.js?v=20.7.11"></script>
+<script defer src="/js/buyer-decision-v20-7-11.js?v=20.7.11"></script>
 </body>
 </html>

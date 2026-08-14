@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const V="20.7.10",d=document,$=(s,r=d)=>r.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),L=v=>C(v).toLowerCase(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])),U=v=>/^https?:\/\//i.test(C(v)),P=new URLSearchParams(location.search);
+  const V="20.7.11",d=document,$=(s,r=d)=>r.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),L=v=>C(v).toLowerCase(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])),U=v=>/^https?:\/\//i.test(C(v)),P=new URLSearchParams(location.search);
   const BLOCK=new Set(["temu","joom","filamentpro","filamentpro eu cps"]);
   const FILE={phone:"phone",laptop:"laptop",perfume:"perfume",smartwatch:"smartwatch",headphones:"headphones",power_bank:"power_bank",dog_food:"dog_food",air_conditioner:"air_conditioner","3d_filament":"3d_filament",cookware:"cookware",lighting:"lighting",tools:"tools"};
   const LABEL={phone:"Phone",laptop:"Laptop",perfume:"Fragrance",smartwatch:"Smart watch",headphones:"Audio",power_bank:"Power bank",dog_food:"Dog food",air_conditioner:"Air conditioner","3d_filament":"3D filament",cookware:"Cookware",lighting:"Lighting",tools:"Tools"};
