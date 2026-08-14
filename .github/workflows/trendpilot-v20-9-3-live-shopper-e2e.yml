@@ -11,6 +11,7 @@ on:
       - item/index.html
       - compare/index.html
       - js/finder-v20-7-9.js
+      - js/finder-restored-semantic-guard-v20-9-4.js
       - js/universal-discovery-v20-8.js
       - js/universal-discovery-v20-9-1.js
       - js/finder-shell-v20-9.js
@@ -44,7 +45,7 @@ jobs:
             html_ok=0
             semantic_ok=0
             if curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/tp-find.html; then
-              if grep -q 'finder-v20-7-9.js?v=20.7.11' /tmp/tp-find.html && grep -q 'universal-discovery-v20-8.js?v=20.8.5' /tmp/tp-find.html; then
+              if grep -q 'finder-v20-7-9.js?v=20.7.11' /tmp/tp-find.html && grep -q 'universal-discovery-v20-8.js?v=20.8.5' /tmp/tp-find.html && grep -q 'finder-restored-semantic-guard-v20-9-4.js?v=20.9.4' /tmp/tp-find.html; then
                 html_ok=1
               fi
             fi
@@ -54,7 +55,7 @@ jobs:
               fi
             fi
             if [ "$html_ok" = 1 ] && [ "$semantic_ok" = 1 ]; then
-              echo 'Restored working finder and V20.9.4 semantic data are live.'
+              echo 'Restored working finder, semantic guard and V20.9.4 quality data are live.'
               exit 0
             fi
             echo "Waiting for public deploy ($i/36): finder=$html_ok semantic=$semantic_ok"
