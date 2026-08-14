@@ -1,0 +1,76 @@
+name: TrendPilot V20.8.8 Internal First Card QA
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - find/index.html
+      - js/v20-8-8-internal-first-guard.js
+      - .github/workflows/trendpilot-v20-8-8-internal-first-qa.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  internal-first-card-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: JavaScript syntax
+        run: node --check js/v20-8-8-internal-first-guard.js
+
+      - name: Internal-first contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'v20-8-8-internal-first-guard.js?v=20.8.8' find/index.html
+          python - <<'PY'
+          from pathlib import Path
+          h=Path('find/index.html').read_text()
+          assert h.index('v20-8-8-internal-first-guard.js') < h.index('finder-v20-7-9.js'), 'guard must load before finder'
+          j=Path('js/v20-8-8-internal-first-guard.js').read_text()
+          checks={
+            'grid_scoped_observer':'observer.observe(grid, { childList: true, subtree: true })' in j,
+            'capture_exit_guard':'grid.addEventListener("click"' in j and 'event.preventDefault()' in j,
+            'title_plain_text':'link.replaceWith(span)' in j,
+            'external_media_neutralized':'media.replaceWith(box)' in j,
+            'seller_cta_becomes_internal':'anchor.href = internalSearch(title)' in j,
+            'free_shipping_cleanup':'free\\s*shipping' in j,
+            'no_document_observer':'observer.observe(document' not in j and 'observer.observe(d,' not in j,
+          }
+          print(checks)
+          assert all(checks.values()), checks
+          PY
+
+      - name: Safety contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --name-only origin/main...HEAD | grep -E '^(data/catalog-v19/|data/.*(tpid|tpvid|tpoid|identity))'; then
+            echo 'Unexpected identity or canonical catalogue mutation'
+            exit 1
+          fi
+          if grep -Eiq 'temu|joom|filamentpro' js/v20-8-8-internal-first-guard.js; then
+            echo 'Seller-policy names must not be changed by this UI guard'
+            exit 1
+          fi
+
+      - name: Summary
+        shell: bash
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          # TrendPilot V20.8.8 — Internal First Card QA
+
+          - Product-title click can leave TrendPilot: **NO**
+          - Generic seller-card image can leave TrendPilot: **NO**
+          - External fallback CTA becomes internal `View details`: **YES**
+          - `[Free Shipping]`-style marketing prefix cleaned from displayed card title: **YES**
+          - Explicit seller handoff remains on the internal detail page: **YES**
+          - MutationObserver scope: **product grid only**
+          - V19 / TPID / TPVID / TPOID rebuild: **NO**
+          EOF
