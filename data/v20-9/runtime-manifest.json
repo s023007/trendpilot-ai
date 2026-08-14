@@ -3,15 +3,15 @@
   "records": 52031,
   "productBuckets": 256,
   "termShards": 1232,
-  "familyCount": 150,
+  "familyCount": 149,
   "familyRoleIndexedIds": {
-    "main": 34601,
+    "main": 34541,
     "used": 278,
-    "accessory": 3147,
-    "replacement_part": 1853
+    "accessory": 3150,
+    "replacement_part": 2044
   },
-  "maxProductBucketBytes": 311219,
-  "averageProductBucketBytes": 254623,
+  "maxProductBucketBytes": 311064,
+  "averageProductBucketBytes": 254366,
   "mobileBucketStrategy": "two-character stable-ID prefix",
   "familyStrategy": "role-balanced"
 }

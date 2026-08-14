@@ -1,0 +1,1665 @@
+{
+  "version": "20.9.4",
+  "records": 52031,
+  "corrected": 670,
+  "violations": 0,
+  "unclassifiedAfter": 2282,
+  "unclassifiedAfterPct": 4.39,
+  "byReason": [
+    [
+      "smartwatch-main",
+      209
+    ],
+    [
+      "phone-display-part",
+      200
+    ],
+    [
+      "phone-screen-protector",
+      163
+    ],
+    [
+      "car-jump-starter",
+      21
+    ],
+    [
+      "portable-monitor",
+      19
+    ],
+    [
+      "laptop-motherboard",
+      10
+    ],
+    [
+      "laptop-privacy-filter",
+      10
+    ],
+    [
+      "laptop-screen-part",
+      10
+    ],
+    [
+      "tool-battery-power-adapter",
+      10
+    ],
+    [
+      "phone-power-case",
+      9
+    ],
+    [
+      "phone-repair-tool",
+      7
+    ],
+    [
+      "perfume-vending-machine",
+      1
+    ],
+    [
+      "laptop-screen-protector",
+      1
+    ]
+  ],
+  "samples": [
+    {
+      "id": "063d8a312816dd",
+      "title": "OEM LCD Screen for Samsung Galaxy A12/A32 5G/M12 SM-A125 SM-A326 SM-M127 With Digitizer Full Assembly",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Sunsky-online WW"
+    },
+    {
+      "id": "060d6ebf377a48",
+      "title": "Suitable for Milwaukee 18V 18-20V lithium battery for electric power tools Car emergency jump starter efficiency & convenience",
+      "reason": "car-jump-starter",
+      "before": [
+        "automotive-parts",
+        "automotive",
+        "replacement_part"
+      ],
+      "after": [
+        "car-jump-starter",
+        "automotive",
+        "main"
+      ],
+      "seller": "AliExpress"
+    },
+    {
+      "id": "03955d2fc9b738",
+      "title": "LA-6901P FOR Acer Aspire 5750 5750G 5755G Notebook 5750G Laptop Motherboard P5WE0 LA-6901P HM65 MBRCG02006",
+      "reason": "laptop-motherboard",
+      "before": [
+        "laptop",
+        "laptop",
+        "main"
+      ],
+      "after": [
+        "laptop-parts",
+        "laptop",
+        "replacement_part"
+      ],
+      "seller": "AliExpress"
+    },
+    {
+      "id": "0f3fd913cbbdac",
+      "title": "DZ09 Smart Watch with Touch Screen for Smartphone Sim Card for iPhone Android Smartwatch DZ09",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0b3f71b04b5565",
+      "title": "Laptop Motherboard For HP 6450B 6550B 6540B 613298-001 613297-001 100% Tested System board",
+      "reason": "laptop-motherboard",
+      "before": [
+        "laptop",
+        "laptop",
+        "main"
+      ],
+      "after": [
+        "laptop-parts",
+        "laptop",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0c406065e2ee87",
+      "title": "NCC VS TS8 for iphone 8 digitizer lcd,for iphone 8 display digitizer,lcd display for iphone 8",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "05bfe0ce984b7e",
+      "title": "DEWALT 1600 Peak Amp Lithium Jump Starter with USB Power Bank DXAELJ16 Compact",
+      "reason": "car-jump-starter",
+      "before": [
+        "power-bank",
+        "power-bank",
+        "main"
+      ],
+      "after": [
+        "car-jump-starter",
+        "automotive",
+        "main"
+      ],
+      "seller": "TikTok Shop US"
+    },
+    {
+      "id": "067903f55f07f3",
+      "title": "High Quality for Huawei Y9 2019 LCD Display with Touch Screen Digitizer Assembly LCD Enjoy 9 Plus JKM-LX1 JKM-LX2 JKM-LX3",
+      "reason": "phone-display-part",
+      "before": [
+        "consumer-electronics",
+        "consumer-electronics",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "05a08f85cac81c",
+      "title": "2019 arrival f8 1.44 inch ipx7 waterproof sport mobile phone smartwatch sleep heart rate monitoring smart phones watch",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "09258ef15cd472",
+      "title": "ODM API SDK Smart Watch Android 7.1 OS 2.8Inch Big Screen GPS 5G Wifi Bluetooth 4G Watch Mobile Phone Custom Smart Watch 2019",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "01fe42cf33bd7e",
+      "title": "DT98 Smartwatch Bracelet Sync Information Smartphone ECG Health Heart Rate Monitor Large Memory Smart Watch reloj inteligente",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0def1c7ce37684",
+      "title": "4.5USD Factory Smart Watch DZ09 sim card smart mobile phone A1 smartwatch 2019",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "05c08400761900",
+      "title": "For Samsung for Galaxy A50 SM-A505FN/DS A505F/DS A505 LCD Display Touch Screen Digitizer Assembly with Frame for Samsung A50 LCD",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0aac36892978fa",
+      "title": "NEW Arrive 6.39\" Original for Xiaomi mobile phone touch screen Accessories for Xiaomi Mi MIX 3 LCD, For MIX3 Display With frame",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0537ae5b72c304",
+      "title": "AMOLED Original For Samsung mobile phones LCD, for Samsung Galaxy S8 LCD assembly, for Samsung S8 Display G950 G950F with frame",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "082373149db34f",
+      "title": "Heart rate monitor Y3plus Smart Bracelet with blue tooth earphone colorful screen Y3 smart watch",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "04e7b912d63a81",
+      "title": "2019 waterproof GSM SIM card touch screen mobile phone Q18 dZ09 smart watch for smartphone",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "04c6b611029ad7",
+      "title": "S99C 3G GSM GPS Camera Wifi Smart Watch with Heart Rate 1GB RAM 16GB Camera Android 5.1Sport Watch for Iphone Smartphone",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0e5bd2567611e9",
+      "title": "Factory Original Dropshipping Phone LCD Screen and Digitizer Full Assembly (TFT Material ) for Galaxy J7 Neo, J701F/DS, J701M",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "01c07a16489bf7",
+      "title": "IP67 Smartwatch Fitness Sport Sleep Tracker Smart Band For Men Women Smart Watch",
+      "reason": "smartwatch-main",
+      "before": [
+        "smartwatch-accessories",
+        "smartwatch",
+        "accessory"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0a962bf6700fca",
+      "title": "China supplier online shopping site for samsung galaxy s7 edge g9300 original lcd ,for samsung galaxy S6 S7 S8 S9 lcd Screen",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "02dbab06e02019",
+      "title": "2020 Other Mobile Phone Accessories Smartwatch Smart Bracelet B57 OEM/ ODM 2019 Amazon Best Sell Fitness Running Watch",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "007298d9a72503",
+      "title": "Multi-function Smart Watch with BT Earbuds, Touch Screen Waterproof Sports Smartwatch with Health Monitor & Call Reminder for Android & iOS, Smartwatc",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "TikTok Shop US"
+    },
+    {
+      "id": "065c5e45569acb",
+      "title": "Stretchy Solo Loop Band for Apple Smart Watch (Band Only), 5 Counts Soft Nylon Elastic Braided Smartwatch Band, Smartwatches Accessories, Breathable R",
+      "reason": "smartwatch-main",
+      "before": [
+        "smartwatch-accessories",
+        "smartwatch",
+        "accessory"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "TikTok Shop US"
+    },
+    {
+      "id": "0f4fb58bc93334",
+      "title": "3 in 1 sports smart watch with bluetooth headsetwireless earbuds bluetooth headset earspot bracelet headphone",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0dbd2328facbbb",
+      "title": "B9 Color Bluetooth Headset Talk Smart Bracelet Heart Rate Monitor Fitness Tracker Smart Watch",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0ea045c5bf549c",
+      "title": "Wholesale For Samsung Galaxy Note 5 LCD Screen, Full LCD Display Assembly For Samsung N5",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0ef16b125c1b3c",
+      "title": "M1 Talkband Smart Bracelet Bluetooth Smartwatch Headset Talk Band Smart Watch with Bluetooth Earphone",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0c5d4df35ab5ac",
+      "title": "Bracelet wristband Fitness Tracker Sport Smartwatch With Bluetooth Earphone Smartwatch bracelet earbuds Watch for iOS Android",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "037c00acac991e",
+      "title": "M1 Newest Style Smart Watch with Bluetooth Earphone Heart Rate Monitor Smart Wristband Long Time Standby Sport Watch Men",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0b8eca7333dcd9",
+      "title": "LEMFO M1 AI Smart Watch For Women Men With Bluetooth Headphone Hate Rate Blood Pressure Monitor Sport SmartWatch Android IOS",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "060b1edf117866",
+      "title": "watches men man watch Heart rate sleep monitor pedometer fossil smart watch for tecno mobile phone samsung galaxy s6 edge plus",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "080f98efe8f1ce",
+      "title": "KingCrop Oled mobile phone lcds for iphone x Lcd Display Touch Screen Digitizer Assembly For apple iphone x lcd screen",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0bb4ab5fcf72e2",
+      "title": "s 2020 Wireless Earbuds Earphone Smartwatch M1",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0b8026a6ce9eb9",
+      "title": "Freefron 3d 9h Cell Phone Full Cover Tempered Glass For Samsung Galaxy Note 10 Pro Note10 S10 Screen Protector",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0b6a2fbcc29e9e",
+      "title": "11Inch-27inch Computer Privacy Screen Filter 23 Removable Monitor Laptop Matte Anti-Spy Screen Protector",
+      "reason": "laptop-privacy-filter",
+      "before": [
+        "laptop",
+        "laptop",
+        "main"
+      ],
+      "after": [
+        "laptop-accessories",
+        "laptop",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0a4f832f0bce88",
+      "title": "10pcs wholesale 9H 2.5D Back rear Tempered For iphone xs max xr 6 7 8 X 6plus 7plus 8plus mix models Glass screen Protector",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0005599335ac76",
+      "title": "9h anti-shock mobile tempered temper glass screen protector protective for iphone 6 6S x xs max xr 7plus 8plus 7 8",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "04c95052716d61",
+      "title": "TPU Screen Protector for Samsung S10 Full Screen Cover S10 Lite PET Film",
+      "reason": "phone-screen-protector",
+      "before": [
+        "other-pet-supplies",
+        "other-pet-supplies",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "07e175a86b381b",
+      "title": "3 Pack Privacy Screen Protector with 3 Pack Camera Lens Protector For iPhone 17 16 15 14 13 12 11 Pro Max Tempered Glass Privacy Screen Camera Protect",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "TikTok Shop US"
+    },
+    {
+      "id": "041883182cffe0",
+      "title": "Artificial Rhinestone Decor Watch Protective Case, 1 Count Smart Watch Protective Cover Compatible With Apple Watch, Smart Watch Protective Accessorie",
+      "reason": "smartwatch-main",
+      "before": [
+        "smartwatch-accessories",
+        "smartwatch",
+        "accessory"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "TikTok Shop US"
+    },
+    {
+      "id": "021b551968d428",
+      "title": "7/8 Nano Hammer Anti Shock Screen Protector Film For iPhone Series All Model",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0fdab54ea87970",
+      "title": "Wireless Charger Stand 3 in 1 Wireless Charger for Mobile Phones and Smart Watch for Airpods",
+      "reason": "smartwatch-main",
+      "before": [
+        "smartwatch-accessories",
+        "smartwatch",
+        "accessory"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "08d30a0c5958dc",
+      "title": "9h 3d Curved Full Ab Glue Adhesive Cover Phone Protective Film For Samsung Galaxy S10 Plus",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0cdba0c7887d3f",
+      "title": "Protective Film For Xiaomi Mi Band 4 Smart Wristband Bracelet Full Screen Protector Film Not Tempered Glass",
+      "reason": "phone-screen-protector",
+      "before": [
+        "jewelry-craft",
+        "jewelry-craft",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0263d5c75edd86",
+      "title": "Nano Flexible Self-Restore 360 Full Screen Cover Protective Film For iPhone X Whole Body Screen Protector",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "099378ce938f64",
+      "title": "Crystal Clear Real Glass High Quality Tempered Glass Screen Protector Glasses For iPhone 11 PRO MAX",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "0254411799e596",
+      "title": "Premium Nuglas for iPhone 11 Pro Max / Xs Max glass screen protector for wholesales",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "026997551af7e7",
+      "title": "11D Full Cover Tempered Glass Film For iphone 7 8 6 6s PLus Screen Edge Protector For iphone 11 Pro Max Protective Glass",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1145d720ccfc39",
+      "title": "LCD Replacement For Xiaomi Mi A1 Display For Xiaomi Mi 5X /A1 Touch and Display LCD Screen Assembly",
+      "reason": "phone-display-part",
+      "before": [
+        "replacement-parts",
+        "parts",
+        "replacement_part"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "19dc2f90316494",
+      "title": "New Mobile Phone Lcds A20s A207 lcd screen for Samsung galaxy A20s lcd display touch screen digitizer assembly",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1f5ad40e5a1526",
+      "title": "XJS Brand new Laptop Lcd Screen For Macbook Pro A1502, New 13'' Retina Display Assembly A1502 Lcd",
+      "reason": "laptop-screen-part",
+      "before": [
+        "laptop",
+        "laptop",
+        "main"
+      ],
+      "after": [
+        "laptop-parts",
+        "laptop",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1a0025e3c8e435",
+      "title": "Repair wholesale mobile phone lcd touch screen display for Motorola moto z play xt1635 lcd display digitizer",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "17363a7ce3455f",
+      "title": "7 plus mobile phone lcd screen and OEM Factory Original for iphone 7plus lcd screen lcd refurbish",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "165133030ec755",
+      "title": "mobile phone lcds display for iphone x xs max for iphone lcd screen",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1f3173b9568e92",
+      "title": "for iphone 7 display screens,white black for iphone 7 lcd original,mobile phone lcds display for iphone 7 touch screen",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1690b4a36cb077",
+      "title": "LCD Screen and Digitizer Full Assembly For Samsung Galaxy A21S",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Sunsky-online WW"
+    },
+    {
+      "id": "194eb621ed70fa",
+      "title": "HDTS8IP6S Discount Premium LCD For iPhone 6S LCD Screen Assembly Wholesale Online Saft And Fast",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1ed2b05b8fbbd6",
+      "title": "New for Samsung for Galaxy A50 2019 A505F/DS A505FN/DS A505F A505FD Display Touch Screen Digitizer Assembly for Samsung A50 LCD",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "12fda6be8a8448",
+      "title": "Pantalla LCD For Samsung Galaxy J320 LCD Screen, Wholesale LCD Screen Digitizer For Samsung J320 OLED J3 2016",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "17c6ea31c5f729",
+      "title": "smart watch dz09 phone mobile phone Internet touch screen q18 dz09 and a1 smartwatch",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1ca9b4008282b8",
+      "title": "Newest heart rate fitness tracker blood pressure monitor 2 in 1 bracelet tws smart watch earphone L818",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1763de2a4d1dc2",
+      "title": "Top quality mobile phone LCD A50 For Samsung A50 A505f lcd screen Display A505 LCD Touch Screen Digitizer Assembly witn Frame",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "14ae1f1e8c85c9",
+      "title": "High quality tianma LCD for i phone6 for iphone 6LCD, buy for iphone screen in bulk",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1d78d33a752846",
+      "title": "CENOVO W10 Intel Cherry Trail Z8350 2GB 32GB Battery 6000mAh Laptop Screen Two in One Tablet PC Gaming Laptop Computer",
+      "reason": "laptop-screen-part",
+      "before": [
+        "tablet",
+        "tablet",
+        "main"
+      ],
+      "after": [
+        "laptop-parts",
+        "laptop",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1376299de0a03b",
+      "title": "Kospet Optimus Pro waterproof Smart Watch 3GB+32GB Support LTE 4G Phone Call Heart Rate Tracker Double System Smartwatch men",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "189b16d8d76373",
+      "title": "Fumot New design M1 smart watch with earbuds bt5.0 headset",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "11825f554a56ca",
+      "title": "Suitable for DeWalt DCB Series 18V/20V Lithium Battery Adapter + DC-DC Step-Down Device(12V,10A,120W)With Fuse",
+      "reason": "tool-battery-power-adapter",
+      "before": [
+        "power-tools",
+        "power-tools",
+        "main"
+      ],
+      "after": [
+        "power-tool-accessories",
+        "tools",
+        "accessory"
+      ],
+      "seller": "AliExpress"
+    },
+    {
+      "id": "101ad095c1d9b6",
+      "title": "OEM original quality lcd display assembly for iphone xs max",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1e8d11e3007b4a",
+      "title": "2020 New arrivals women men smartwatch i series 4 bluetooth mobile phone smart watch for apple iphone ios phone",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "16d4bd91cce702",
+      "title": "Soonki phone accessories high brightness superior touch stability lcd assembly for iphone x oled lcd digitizer",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1619dae35e579d",
+      "title": "EARBUDS Style fitness 2 in 1 Earphone Smart Watch with TWS Bluetooth earphones",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1957f378ad4a5a",
+      "title": "High quality BT smart watch V9 with sim card sport smartwatch v9 for mobile phone",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1fa8cb87ef48d7",
+      "title": "Mobile Phone LCDs for Huawei Honor 9 Lite Display with Touch Digitizer Assembly",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "14713f00cfab35",
+      "title": "2019 M1 Newest AI Smart Watch With Bluetooth Earphone Heart Rate Monitor Smart Wristband Long Time Standby Sport Watch Men",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1407b1bd707e02",
+      "title": "Newest M1 Smart Watch With Bluetooth Earphone Health Tracker Pedometer Fitness Bracelet Smart Wristband with Wireless Headphone",
+      "reason": "smartwatch-main",
+      "before": [
+        "headphones",
+        "headphones",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1082be59983df6",
+      "title": "TS8 lcd display 7 digitizer assembly, touch screen lcd display panel for iphone 7",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "11ee28914b6eb0",
+      "title": "made in japan android sport smart watch mobile phone prices in pakistan dubai",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "12b6b77d9c211b",
+      "title": "Shenzhen Factory W34 Smart Watch Connected Mobile Phone APP Smartwatch Cheap 1.54 Inch Smart Watch 2019",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "10607aed5ca81c",
+      "title": "full glue cover tempered glass for xiaomi mi9/mi9 SE full adhesive screen protector film for Redmi 7/for Redmi note 7 pro/mix3",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1f065d2ccba828",
+      "title": "for iphone xr screen protector tempered glass xs x xs max 9H 2.5D Anti-shock Fingerprint glass screen tempered glass",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "129fe245581364",
+      "title": "XDL-194 slim battery case for Samsung galaxy Note 10+ 5G 6000mAh wireless charging power bank case MT-7728",
+      "reason": "phone-power-case",
+      "before": [
+        "power-bank",
+        "power-bank",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1ade04743bc0a7",
+      "title": "Tianma quality lcd display digitizer for iphone 6",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "14e2e40c07e1cd",
+      "title": "explosion proof 9D Gorilla Tempered Glass 0.18mm For Iphone Xs max with 100 degree arc",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "1135ea767a78a0",
+      "title": "Anti-Explosion 9H 0.26mm Cover Metal Tempered Glass Film Protector for iPhone X/8/8 Plus/7/7 plus/6s/6 plus/5s",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "18e7301d578287",
+      "title": "Back PVC Film Protection For iPhone 11Pro Max Screen Protector on the For iphone 11 2019 11 Pro Max Film with logo and without",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "12385b7fffbdaa",
+      "title": "15W Phone 2W TWS Earphone 2.5W Smart Watch 3in1 Wireless Charger For Apple Watch iPhone Airpods Huawei Xiaomi",
+      "reason": "smartwatch-main",
+      "before": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "10d4a0c94eab22",
+      "title": "FESTOOL AIRSTREAM 18V Lithium Battery Convert To Makita 18V Power Battery Adapter Cordless Electric Screwdriver Series Tool",
+      "reason": "tool-battery-power-adapter",
+      "before": [
+        "tools",
+        "tools",
+        "main"
+      ],
+      "after": [
+        "power-tool-accessories",
+        "tools",
+        "accessory"
+      ],
+      "seller": "AliExpress"
+    },
+    {
+      "id": "10b7c597e94427",
+      "title": "Charger Stand for Apple Watch, Durable Silicone Smart Watch Charging Stand, Silicone Charging Stand Holder for Apple Watch Charging Station, Gift for",
+      "reason": "smartwatch-main",
+      "before": [
+        "smartwatch-accessories",
+        "smartwatch",
+        "accessory"
+      ],
+      "after": [
+        "smartwatch",
+        "smartwatch",
+        "main"
+      ],
+      "seller": "TikTok Shop US"
+    },
+    {
+      "id": "1f8fdce45edb5c",
+      "title": "Hot selling tempered glass screen protector full size for iPhone 11 Pro",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "16d59998184a61",
+      "title": "Amazon 2020 new tempered glass screen protector 10D glass 9D glass for iPhone 7/8 plus X XS MAX XR",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "12ece6c29e2e0a",
+      "title": "TYPE-C Input Dual USB 8x 18650 Battery DIY Holder LCD Display Power Bank Case Box For iphone",
+      "reason": "phone-power-case",
+      "before": [
+        "power-bank",
+        "power-bank",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "190990b4c8fd1c",
+      "title": "Clear Magnetic Flip Tempered Glass Mobile Phone Accessories Case with Metal Bumper for Apple iPhone 11 Pro Max XS XR X 8 Plus 7",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "22ed8937b41c77",
+      "title": "Hot 3D Full Protection For iPhone 11 Pro Max Back Camera Lens Screen for iPhone11 Aluminum Metal Rear Lens Tempered Glass Film",
+      "reason": "phone-screen-protector",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-accessories",
+        "phone",
+        "accessory"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "25192ac44cddee",
+      "title": "with frame lcd screen for Samsung galaxy S4 S5 S6 s7 s8 s9 s10 lcd Display",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "28ed48519417eb",
+      "title": "100% Original New Mobile Accessory For iPhone 7 LCD Touch Screen,LCD Display Screen For iPhone 7",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "23528d7243d35d",
+      "title": "Mobile Phone LCDs Touch Screen Digitizer For Huawei Honor 4C LCD Display For Huawei G Play Mini",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "2ad14882bea883",
+      "title": "lcd touch screen display for iphone X repair, phone lcd for iphone 10",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "226f6d9c658d31",
+      "title": "5.0'' for Huawei Nova Screen LCD Digitizer Assembly for Huawei Nova Display CAN-L11 CAN-L12 CAN-L01 CAZ-TL10 CAN-L01L11 LCD",
+      "reason": "phone-display-part",
+      "before": [
+        "consumer-electronics",
+        "consumer-electronics",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    },
+    {
+      "id": "293af1f45283e5",
+      "title": "Full original quality lcd screen for iphone x replace",
+      "reason": "phone-display-part",
+      "before": [
+        "phone",
+        "phone",
+        "main"
+      ],
+      "after": [
+        "phone-parts",
+        "phone",
+        "replacement_part"
+      ],
+      "seller": "Alibaba"
+    }
+  ],
+  "violationSamples": []
+}
