@@ -91,18 +91,17 @@ try{
 
   const redmiURL=`${BASE}/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/`;
   await page.goto(redmiURL,{waitUntil:'domcontentloaded',timeout:90000});
-  await page.waitForFunction(()=>document.documentElement.dataset.tpProductDetailTruth==='20.9.5',{timeout:25000});
+  await page.waitForSelector('body[data-tp-product-truth="20.9.5"]',{state:'attached',timeout:25000});
   await page.waitForSelector('main h1',{state:'visible',timeout:15000});
   const detail=await page.evaluate(()=>{
     const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
     const main=document.querySelector('main');
     const text=clean(main?.innerText||'');
     const h1=clean(main?.querySelector('h1')?.textContent||'');
-    const visibleConfig=[...main.querySelectorAll('[data-tp-v2095-done="1"]')].filter(el=>getComputedStyle(el).display!=='none').map(el=>clean(el.textContent));
-    const hiddenConfig=[...main.querySelectorAll('[data-tp-v2095-hidden="1"]')].map(el=>clean(el.textContent));
-    return {text,h1,visibleConfig,hiddenConfig};
+    const visibleConfig=[...main.querySelectorAll('.variants .variant')].filter(el=>getComputedStyle(el).display!=='none').map(el=>clean(el.textContent));
+    return {text,h1,visibleConfig};
   });
-  report.samples.redmiDetail={title:detail.h1,visibleConfig:detail.visibleConfig.slice(0,10),hiddenConfig:detail.hiddenConfig.slice(0,10)};
+  report.samples.redmiDetail={title:detail.h1,visibleConfig:detail.visibleConfig.slice(0,10)};
 
   if(!/redmi note 8/i.test(detail.h1)||/redmi note 8\s+pro/i.test(detail.h1)) fail('detail_identity_redmi_note_8',detail.h1);
   pass('detail_identity_redmi_note_8');
