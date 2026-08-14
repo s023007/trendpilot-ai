@@ -1,9 +1,8 @@
 name: TrendPilot V20.9.4 — Universal Product Quality Gate
 
 on:
+  workflow_dispatch:
   push:
-    branches:
-      - main
     paths:
       - scripts/build-v20-8-universal-discovery.py
       - scripts/clean-v20-8-universal-output.py
@@ -22,26 +21,17 @@ on:
       - js/item-detail-v20-9.js
       - js/compare-v20-9.js
       - js/compare-state-v20-9.js
-      - js/rare-finds-v20-8.js
-      - js/rare-find-detail-v20-8-7.js
-      - js/home-rare-v20-8.js
-      - css/v20-8-universal.css
-      - css/compare-v20-9.css
-      - netlify/functions/discovery-demand-v20-8.cjs
-      - index.html
-      - rare-used/index.html
-      - rare-used/view/index.html
       - find/index.html
       - item/index.html
       - compare/index.html
+      - rare-used/**
       - .github/workflows/trendpilot-v20-8-universal-discovery-rare-finds.yml
-  workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: trendpilot-v20-9-4-product-quality
+  group: trendpilot-v20-9-product-build-main
   cancel-in-progress: true
 
 jobs:
@@ -51,13 +41,16 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v5
         with:
+          ref: main
           fetch-depth: 0
 
       - name: Build universal source projection
         run: python scripts/build-v20-8-universal-discovery.py
 
       - name: Apply established V20.8 truth guards
+        shell: bash
         run: |
+          set -euo pipefail
           python scripts/clean-v20-8-universal-output.py
           python scripts/clean-v20-8-brand-truth.py
 
@@ -223,12 +216,44 @@ jobs:
           set -euo pipefail
           git config user.name 'TrendPilot Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add data/v20-8/manifest.json data/v20-8/taxonomy-summary.json data/v20-8/rare-index.json data/v20-9 rare-used/finds sitemap-v20-8.xml robots.txt
+
+          # Safety first: generated work must never touch canonical identity/catalog evidence.
+          if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
+            echo 'Unexpected identity or canonical catalog mutation before commit'
+            git status --short
+            exit 1
+          fi
+
+          # Commit every generated V20.8/V20.9 projection/runtime asset that the build is
+          # allowed to mutate. This intentionally includes data/v20-8/products and runtime
+          # shards, which were the unstaged files that previously blocked pull --rebase.
+          git add data/v20-8 data/v20-9 rare-used/finds sitemap-v20-8.xml robots.txt
+
+          # Refuse to continue if any tracked/untracked build output remains outside the
+          # allowlist. A clean worktree after staging is required before rebase/push.
+          if [ -n "$(git status --porcelain)" ]; then
+            remaining="$(git status --porcelain | grep -vE '^[ MARC?]{2} (data/v20-8/|data/v20-9/|rare-used/finds/|sitemap-v20-8\.xml$|robots\.txt$)' || true)"
+            if [ -n "$remaining" ]; then
+              echo 'Unexpected generated paths remain outside the V20.9.4 commit allowlist:'
+              echo "$remaining"
+              exit 1
+            fi
+          fi
+
           if git diff --cached --quiet; then
             echo 'No generated product changes to commit'
             exit 0
           fi
+
           git commit -m 'TrendPilot V20.9.4 build final semantic runtime'
+
+          # There must be no unstaged/untracked changes before pull --rebase.
+          if [ -n "$(git status --porcelain)" ]; then
+            echo 'Worktree is not clean after generated-asset commit:'
+            git status --short
+            exit 1
+          fi
+
           for attempt in 1 2 3; do
             if git pull --rebase origin main && git push origin HEAD:main; then
               exit 0
