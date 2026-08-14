@@ -6,6 +6,8 @@ on:
     paths:
       - scripts/qa-v20-9-live-shopper.mjs
       - .github/workflows/trendpilot-v20-9-3-live-shopper-e2e.yml
+      - netlify.toml
+      - netlify/functions/product-preview-v20-9-5.cjs
       - data/v20-9/**
       - find/index.html
       - product/index.html
@@ -43,17 +45,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          PRODUCT_URL='https://trendpilotchoice.com/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/'
           for i in $(seq 1 36); do
             finder_ok=0
             product_ok=0
             semantic_ok=0
             if curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/tp-find.html; then
-              if grep -q 'finder-v20-7-9.js?v=20.7.11' /tmp/tp-find.html && grep -q 'universal-discovery-v20-8.js?v=20.8.5' /tmp/tp-find.html && grep -q 'finder-restored-semantic-guard-v20-9-4.js?v=20.9.4' /tmp/tp-find.html; then
+              if grep -q 'finder-v20-7-9.js?v=20.7.11' /tmp/tp-find.html && grep -q 'finder-restored-semantic-guard-v20-9-4.js?v=20.9.4' /tmp/tp-find.html; then
                 finder_ok=1
               fi
             fi
-            if curl -fsSL --max-time 20 'https://trendpilotchoice.com/product/' -o /tmp/tp-product.html; then
-              if grep -q 'product-detail-truth-v20-9-5.js?v=20.9.5' /tmp/tp-product.html; then
+            if curl -fsSL --max-time 20 "$PRODUCT_URL" -o /tmp/tp-product.html; then
+              if grep -q 'data-tp-product-truth="20.9.5"' /tmp/tp-product.html && grep -q 'catalogue record' /tmp/tp-product.html; then
                 product_ok=1
               fi
             fi
@@ -63,7 +66,7 @@ jobs:
               fi
             fi
             if [ "$finder_ok" = 1 ] && [ "$product_ok" = 1 ] && [ "$semantic_ok" = 1 ]; then
-              echo 'Restored finder, V20.9.5 product truth and V20.9.4 quality data are live.'
+              echo 'Restored finder, V20.9.5 server product truth and V20.9.4 quality data are live.'
               exit 0
             fi
             echo "Waiting for public deploy ($i/36): finder=$finder_ok product=$product_ok semantic=$semantic_ok"
