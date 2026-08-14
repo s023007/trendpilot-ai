@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const V="20.8.1",d=document,$=(s,r=d)=>r.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),L=v=>C(v).toLowerCase(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  const V="20.8.2",d=document,$=(s,r=d)=>r.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),L=v=>C(v).toLowerCase(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   const P=new URLSearchParams(location.search),q=C(P.get("q")),forced=P.get("universal")==="1";
   const MANAGED=[
     /^(?:pho|phon|phone|phones|smartp|smartph|smartpho|smartphon|smartphone|smartphones|mobile phone|mobile phones|cell phone|cell phones)$/i,

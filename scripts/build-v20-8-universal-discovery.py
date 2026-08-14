@@ -5,13 +5,13 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
-ROOT=Path(__file__).resolve().parents[1]; CAT=ROOT/'data/catalog-v19'; OUT=ROOT/'data/v20-8'; SITE='https://trendpilotchoice.com'; V='20.8.1'
+ROOT=Path(__file__).resolve().parents[1]; CAT=ROOT/'data/catalog-v19'; OUT=ROOT/'data/v20-8'; SITE='https://trendpilotchoice.com'; V='20.8.2'
 BLOCK={'temu','joom','filamentpro','filamentpro eu cps','filamentpro-eu-cps'}
 STOP={'the','and','for','with','from','this','that','your','our','new','best','sale','hot','price','buy','original','official','wholesale','factory','global','product','products','item','items','pcs','piece','pieces','pack','set','sets','of','to','in','on','by','a','an'}
 USED={'used','refurbished','open-box','open box','renewed','pre-owned','preowned'}
-REPL=re.compile(r'\b(?:replacement|spare part|repair part|replacement part|battery for|filter for|belt for|gasket for|brush for|carbon brush|cartridge for|sensor for|screen for|display for|charging port|flex cable|motherboard|pcb board|oem part|compatible with|fits?)\b',re.I)
+REPL=re.compile(r'\b(?:replacement(?:\s+part)?|spare\s+part|repair\s+part|battery\s+for|filter\s+for|belt\s+for|gasket\s+for|carbon\s+brush|cartridge\s+for|sensor\s+for|screen\s+for|display\s+for|charging\s+port|flex\s+cable|motherboard|pcb\s+board|oem\s+part)\b',re.I)
 ACC=re.compile(r'\b(?:case|cover|holder|stand|mount|strap|lanyard|sleeve|pouch|organizer|adapter|charger|charging cable|usb cable|cable|cord|dock|bag|screen protector|tempered glass)\b',re.I)
-RARE={'rare':24,'hard to find':24,'hard-to-find':24,'discontinued':24,'obsolete':22,'vintage':22,'limited edition':20,'collector':18,'collectible':18,'new old stock':22,'surplus':16,'legacy':12,'classic':10,'out of production':22,'replacement':12,'spare':10,'oem':10}
+RARE={'rare':24,'hard to find':24,'hard-to-find':24,'discontinued':24,'obsolete':22,'vintage':8,'limited edition':20,'collector':18,'collectible':18,'new old stock':22,'surplus':16,'legacy':12,'classic':10,'out of production':22,'replacement':12,'spare':10,'oem':10}
 SPECIAL=('industrial','laboratory','medical','surgical','dental','aviation','aircraft','cnc','oscilloscope','multimeter','sensor','calibrator','microscope','diagnostic','hydraulic','pneumatic','bearing','gasket','carburetor','relay','solenoid','encoder','servo','diecast','scale model','model car','model aircraft','filament','3d printer','replacement part','carbon brush')
 TYPE=[('phone',r'\b(?:smartphone|mobile phone|cell phone|iphone|galaxy|pixel|oneplus|redmi|poco|oppo|vivo|realme)\b'),('laptop',r'\b(?:laptop|notebook computer|chromebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|xps)\b'),('perfume',r'\b(?:perfume|fragrance|cologne|eau de parfum|eau de toilette|parfum|edp|edt)\b'),('headphones',r'\b(?:headphones?|headsets?|earbuds?|earphones?|airpods?|tws)\b'),('smartwatch',r'\b(?:smart ?watch|fitness watch|gps watch|apple watch)\b'),('power-bank',r'\b(?:power ?bank|portable charger|external battery)\b'),('tools',r'\b(?:drill|saw|wrench|screwdriver|pliers|multimeter|oscilloscope|soldering iron|grinder|router|ratchet|tool set)\b'),('medical',r'\b(?:medical|surgical|patient|diagnostic|hospital|clinical|dental)\b'),('diecast-collectibles',r'\b(?:diecast|scale model|model car|model aircraft|collectible)\b'),('3d-printing',r'\b(?:3d printer|3d filament|pla filament|petg filament|abs filament|tpu filament)\b'),('lighting',r'\b(?:lamp|lighting|light fixture|led strip|bulb|ceiling light|wall light|desk lamp|floor lamp)\b'),('cookware',r'\b(?:cookware|frying pan|saucepan|stockpot|casserole|wok|skillet|cooking pot)\b'),('pet-supplies',r'\b(?:dog food|cat food|pet food|dog treat|cat treat|pet supplies)\b'),('jewelry-craft',r'\b(?:beads?|jewelry|jewellery|charms?|pendant|bracelet|necklace|earrings?)\b'),('air-conditioning',r'\b(?:air conditioner|portable ac|mini split|ductless ac|split ac)\b')]
 TYPE=[(n,re.compile(p,re.I)) for n,p in TYPE]
@@ -24,15 +24,28 @@ def esc(v): return html.escape(c(v),quote=True)
 def placeholder(u): return (not u) or bool(re.search(r'(?:no[-_ ]?(?:photo|image)|placeholder|image[-_ ]?not[-_ ]?available|default[-_ ]?(?:product|image)|blank[-_ ]?image)',u,re.I))
 
 def product_type(rec,title):
+    text=n(title)
+    # Explicit title evidence beats stale seller taxonomy for specialist parts.
+    if re.search(r'\b(?:carbon brush|armature|stator|rotor)\b',text) and re.search(r'\b(?:power tool|drill|saw|sander|grinder|router|motor)\b',text): return 'power-tool-parts'
+    if re.search(r'\bair conditioner\b',text) and re.search(r'\b(?:board|receiver|sensor|part|remote|motor|compressor|fan)\b',text): return 'air-conditioning-parts'
+    for name,pat in TYPE:
+        if pat.search(title): return name
     tax=rec.get('taxonomy') or {}; path=tax.get('canonicalPath') or []
     if isinstance(path,list) and path:
         last=c(path[-1]).lower().replace('_','-')
         if last and last not in {'other','misc','general','products','product'}: return slug(last)
-    for name,pat in TYPE:
-        if pat.search(title): return name
     for v in (tax.get('sourceSubcategory'),tax.get('canonicalCategory'),tax.get('sourceCategory')):
         if c(v) and n(v) not in {'other','misc','general'}: return slug(v)
     return 'unclassified'
+
+def brand_truth(raw,title,seller):
+    raw=c(raw); nr=n(raw); nt=n(title); ns=n(seller)
+    if raw and nr and nr!=ns and f' {nr} ' in f' {nt} ': return raw
+    m=re.search(r'\bby\s+([A-Z][A-Za-z0-9&.-]*(?:\s+[A-Z][A-Za-z0-9&.-]*){0,2})\b',c(title))
+    if m:
+        cand=c(m.group(1)); nc=n(cand)
+        if nc and nc not in {ns,'seller','store','shop','official','factory','manufacturer'}: return cand
+    return ''
 
 def role(title,condition):
     if n(condition) in USED: return 'used'
@@ -107,7 +120,7 @@ def main():
             tax=r.get('taxonomy') or {}; cond=c((r.get('offer') or {}).get('condition') or ((r.get('specs') or {}).get('sourceFields') or {}).get('condition')); ty=product_type(r,title); ro=role(title,cond); ident,strong=identity(r,sl)
             media=c((r.get('media') or {}).get('imageUrl')); links=r.get('links') or {}; url=c(links.get('affiliateUrl') or links.get('destinationUrl')); net=c(seller.get('network') or (r.get('source') or {}).get('network')); ex=exact_link(r,sl,net); pr=price(r); cur=c((r.get('offer') or {}).get('currency') or 'USD').upper(); idf=r.get('identifiers') or {}; qual=r.get('quality') or {}; qs=float(qual.get('inputQuality') or 0); qs=max(qs,70 if qual.get('sourceQualified') else 0); uid=hashlib.sha1(c(r.get('productKey') or f'{sl}:{title}').encode()).hexdigest()[:14]
             cat=ty; cats[cat]+=1; ids_count[ident]+=1; sellers[sn]+=1; types[ty]+=1; roles[ro]+=1
-            rows.append({'id':uid,'title':title,'brand':c(r.get('brand')),'type':ty,'typeLabel':ty.replace('-',' ').title(),'category':cat,'sourceCategory':c(tax.get('sourceCategory')),'sourceSubcategory':c(tax.get('sourceSubcategory')),'seller':sn,'sellerSlug':sl,'network':net,'role':ro,'condition':cond,'price':pr,'currency':cur,'image':'' if placeholder(media) else media,'url':url,'exact':ex,'quality':round(qs,1),'identity':ident,'strongIdentity':strong,'sellerProductId':c(idf.get('sellerProductId')),'mpn':c(idf.get('mpn')),'gtin':c(idf.get('gtin') or idf.get('ean') or idf.get('upc') or idf.get('isbn')),'model':c(idf.get('model'))})
+            rows.append({'id':uid,'title':title,'brand':brand_truth(r.get('brand'),title,sn),'type':ty,'typeLabel':ty.replace('-',' ').title(),'category':cat,'sourceCategory':c(tax.get('sourceCategory')),'sourceSubcategory':c(tax.get('sourceSubcategory')),'seller':sn,'sellerSlug':sl,'network':net,'role':ro,'condition':cond,'price':pr,'currency':cur,'image':'' if placeholder(media) else media,'url':url,'exact':ex,'quality':round(qs,1),'identity':ident,'strongIdentity':strong,'sellerProductId':c(idf.get('sellerProductId')),'mpn':c(idf.get('mpn')),'gtin':c(idf.get('gtin') or idf.get('ean') or idf.get('upc') or idf.get('isbn')),'model':c(idf.get('model'))})
     for r in rows:
         score=12.;sig=[];t=n(r['title']);cond=n(r['condition']);strong_rarity=False
         if cond in USED:
@@ -117,12 +130,12 @@ def main():
         add=0
         for term,val in RARE.items():
             if term in t:
-                weight={'rare':15,'hard to find':18,'hard-to-find':18,'discontinued':28,'obsolete':24,'vintage':22,'limited edition':20,'collector':18,'collectible':18,'new old stock':24,'surplus':12,'legacy':12,'classic':8,'out of production':28,'replacement':6,'spare':5,'oem':4}.get(term,val)
+                weight={'rare':15,'hard to find':18,'hard-to-find':18,'discontinued':28,'obsolete':24,'vintage':8,'limited edition':20,'collector':18,'collectible':18,'new old stock':24,'surplus':12,'legacy':12,'classic':8,'out of production':28,'replacement':6,'spare':5,'oem':4}.get(term,val)
                 add=max(add,weight)
                 if term in {'discontinued','obsolete','out of production','legacy'}:
                     if 'discontinued' not in sig:sig.append('discontinued')
                     strong_rarity=True
-                if term in {'limited edition','collector','collectible','vintage','classic','new old stock'}:
+                if term in {'limited edition','collector','collectible','new old stock'}:
                     if 'collector' not in sig:sig.append('collector')
                     strong_rarity=True
                 if term in {'rare','hard to find','hard-to-find'}:strong_rarity=True
@@ -154,10 +167,12 @@ def main():
     sh=collections.defaultdict(dict)
     for tk,v in term.items():sh[re.sub('[^a-z0-9]','',tk)[:2].ljust(2,'_') or '__'][tk]=v
     for p,z in sh.items():(OUT/'terms'/f'{p}.json').write_text(json.dumps(z,ensure_ascii=False,separators=(',',':')))
-    rare=sorted([r for r in rows if r['rareScore']>=60 and r['image'] and r['url'] and r['quality']>=65],key=lambda x:(x['rareScore'],x['exact'],x['quality'],bool(x['price'])),reverse=True); rout=[];tc=collections.Counter();sc=collections.Counter()
+    rare=sorted([r for r in rows if r['rareScore']>=60 and r['image'] and r['url'] and r['quality']>=65],key=lambda x:(x['rareScore'],x['exact'],x['quality'],bool(x['price'])),reverse=True); rout=[];tc=collections.Counter();sc=collections.Counter();seen_sim=set()
     for r in rare:
+        sim=(r['seller'],r['type'],r['role'],' '.join(toks(r['title'])[:7]))
+        if sim in seen_sim:continue
         if tc[r['type']]>=90 or sc[r['seller']]>=140:continue
-        tc[r['type']]+=1;sc[r['seller']]+=1;rout.append(r.copy())
+        seen_sim.add(sim);tc[r['type']]+=1;sc[r['seller']]+=1;rout.append(r.copy())
         if len(rout)>=800:break
     seo=ROOT/'rare-used/finds';shutil.rmtree(seo,ignore_errors=True);seo.mkdir(parents=True);cnt=0;tc=collections.Counter();sc=collections.Counter()
     for r in rout:
