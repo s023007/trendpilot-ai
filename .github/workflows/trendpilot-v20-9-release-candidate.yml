@@ -1,4 +1,4 @@
-name: TrendPilot V20.9 — Full Release Candidate
+name: TrendPilot V20.9.1 — Full Release Candidate
 
 on:
   push:
@@ -10,9 +10,11 @@ on:
       - scripts/audit-v20-9-all-products.py
       - scripts/qa-v20-9-product-smoke.py
       - scripts/finalize-v20-8-9-rare-closeout.py
-      - js/universal-discovery-v20-9.js
+      - js/universal-discovery-v20-9-1.js
       - js/item-detail-v20-9.js
       - js/compare-v20-9.js
+      - js/compare-state-v20-9.js
+      - index.html
       - find/index.html
       - item/index.html
       - compare/index.html
@@ -55,25 +57,35 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node --check js/universal-discovery-v20-9.js
+          node --check js/universal-discovery-v20-9-1.js
           node --check js/item-detail-v20-9.js
           node --check js/compare-v20-9.js
+          node --check js/compare-state-v20-9.js
           node --check js/rare-finds-v20-8.js
           node --check js/rare-find-detail-v20-8-7.js
           python -m py_compile scripts/quality-gate-v20-9-all-products.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/finalize-v20-8-9-rare-closeout.py
-          grep -q 'universal-discovery-v20-9.js?v=20.9.0' find/index.html
+          grep -q 'universal-discovery-v20-9-1.js?v=20.9.1' find/index.html
+          grep -q 'compare-state-v20-9.js?v=20.9.0' find/index.html index.html
           grep -q 'item-detail-v20-9.js?v=20.9.0' item/index.html
           grep -q 'compare-v20-9.js?v=20.9.0' compare/index.html
           grep -q 'https://trendpilotchoice.com/compare/' compare/index.html
           grep -q 'data-tp85-fact-family' item/index.html
           grep -q 'data-tp85-compare' item/index.html
-          grep -q 'tp-v209-compare' js/universal-discovery-v20-9.js
+          grep -q 'tp-v209-compare' js/universal-discovery-v20-9-1.js
           grep -q 'tp-v209-compare' js/item-detail-v20-9.js
           grep -q 'tp-v209-compare' js/compare-v20-9.js
-          grep -q 'tp-v209-seller:' js/universal-discovery-v20-9.js
-          grep -q 'roleAppropriate' js/universal-discovery-v20-9.js
-          grep -q '/data/v20-9/products/' js/universal-discovery-v20-9.js js/item-detail-v20-9.js js/compare-v20-9.js
-          if grep -RE 'new MutationObserver\([^)]*document|observe\(document' js/universal-discovery-v20-9.js js/item-detail-v20-9.js js/compare-v20-9.js; then
+          grep -q 'tp-v209-seller:' js/universal-discovery-v20-9-1.js
+          grep -q 'roleOK' js/universal-discovery-v20-9-1.js
+          grep -q '/data/v20-9/products/' js/universal-discovery-v20-9-1.js js/item-detail-v20-9.js js/compare-v20-9.js
+          grep -q 'V20.9 universal shopping decision engine' index.html
+          grep -q 'Automotive' index.html
+          grep -q 'Pet supplies' index.html
+          grep -q 'Fashion' index.html
+          if grep -q 'finder-v20-7-9.js' find/index.html || grep -q 'buyer-decision-v20-7-11.js' find/index.html || grep -q 'v20-8-8-internal-first-guard.js' find/index.html; then
+            echo 'Legacy finder/card mutator leaked into authoritative V20.9.1 finder'
+            exit 1
+          fi
+          if grep -RE 'new MutationObserver\([^)]*document|observe\(document' js/universal-discovery-v20-9-1.js js/item-detail-v20-9.js js/compare-v20-9.js js/compare-state-v20-9.js; then
             echo 'Whole-document MutationObserver is forbidden'
             exit 1
           fi
@@ -108,7 +120,9 @@ jobs:
           assert m.get('rarePublished')==len(rare)
           assert 60 <= len(rare) <= 90
           assert m.get('seoPages')<=len(rare)
-          print('PASS full V20.9 data contract')
+          for k in ('phoneNonMain','tabletNonMain','laptopNonMain','smartwatchNonMain','headphonesNonMain'):
+              assert d['roleAnomalies'][k]['count']==0, (k,d['roleAnomalies'][k]['count'])
+          print('PASS full V20.9.1 data contract')
           PY
           if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
             echo 'Unexpected V19 identity/canonical mutation'
@@ -125,12 +139,13 @@ jobs:
           from pathlib import Path
           q=Path('data/v20-9/quality-report.json')
           if not q.exists():
-              print('# V20.9 release candidate did not reach data report stage')
+              print('# V20.9.1 release candidate did not reach data report stage')
               raise SystemExit
           x=json.loads(q.read_text())
+          d=json.loads(Path('data/v20-9/diagnostic.json').read_text())
           rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text())
           m=json.loads(Path('data/v20-8/manifest.json').read_text())
-          print('# TrendPilot V20.9 — Full Release Candidate')
+          print('# TrendPilot V20.9.1 — Full Release Candidate')
           print()
           print(f"- Records: **{x['records']:,}**")
           print(f"- Unclassified: **{x['unclassifiedBefore']:,} → {x['unclassifiedAfter']:,} ({x['unclassifiedAfterPct']}%)**")
@@ -138,16 +153,21 @@ jobs:
           print(f"- Role corrections: **{sum(i['count'] for i in x['roleChanges']):,}**")
           print(f"- Families: **{x['familyCount']:,}**")
           print(f"- Mobile runtime buckets: **{rt['productBuckets']}**; largest **{rt['maxProductBucketBytes']:,} bytes**")
+          print(f"- Strong accessory grammar still marked main: **{d['roleAnomalies']['mainWithStrongAccessoryGrammar']['count']:,}**")
+          print(f"- Strong replacement grammar still marked main: **{d['roleAnomalies']['mainWithStrongReplacementGrammar']['count']:,}**")
           print(f"- Blocked seller leaks: **{x['blockedSellerLeaks']}**")
           print(f"- Immutable price/link/ID/seller fields changed: **{x['immutableCommerceFieldsChanged']}**")
           print(f"- Global data version: **{m.get('version')}**")
           print(f"- Rare closeout preserved: **{m.get('truthCleanup',{}).get('rareCloseoutVersion')}**")
           print()
           print('## Public product experience')
+          print('- V20.9.1 authoritative finder for every query: **PASS if job green**')
           print('- Main/accessory/replacement/used intent gate: **PASS if job green**')
           print('- Per-query seller persistence: **PASS if job green**')
+          print('- Exact vs seller-feed price evidence: **PASS if job green**')
           print('- Internal TrendPilot detail before seller exit: **PASS if job green**')
           print('- Same-family compare: **PASS if job green**')
+          print('- Expanded homepage product families: **PASS if job green**')
           print('- Mobile two-character data buckets: **PASS if job green**')
           print('- Rare V20.8.9 closeout retained: **PASS if job green**')
           PY
