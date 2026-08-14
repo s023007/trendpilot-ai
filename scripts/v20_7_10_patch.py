@@ -1,0 +1,72 @@
+from pathlib import Path
+
+finder = Path('js/finder-v20-7-9.js')
+s = finder.read_text()
+s = s.replace('const V="20.7.9"', 'const V="20.7.10"')
+
+marker = 'const filterRows=(a,q,t)=>a.filter(r=>!Array.isArray(r?.sellers)||r.sellers.some(seller)).map(r=>({...r,__score:score(r,q,t)})).filter(r=>r.__score>0).sort((a,b)=>b.__score-a.__score||Number(b.sellerCount||0)-Number(a.sellerCount||0)),F=()=>'
+replacement = '''function diversifyRows(rows){
+    const buckets=new Map(),multi=[];
+    for(const r of rows){
+      const ss=[...new Set((Array.isArray(r?.sellers)?r.sellers:[]).map(C).filter(seller))];
+      if(ss.length>1){multi.push(r);continue}
+      const k=ss[0]||"Unknown";
+      if(!buckets.has(k))buckets.set(k,[]);
+      buckets.get(k).push(r);
+    }
+    const names=[...buckets.keys()].sort((a,b)=>{
+      if(a==="Alibaba"&&b!=="Alibaba")return 1;
+      if(b==="Alibaba"&&a!=="Alibaba")return -1;
+      return (buckets.get(a)?.length||0)-(buckets.get(b)?.length||0);
+    });
+    const out=[],seen=new Set();
+    for(const r of multi){out.push(r);seen.add(r.tpid)}
+    let left=true,round=0;
+    while(left&&round<rows.length){
+      left=false;
+      for(const n of names){
+        const a=buckets.get(n)||[],take=n==="Alibaba"?3:1;
+        for(let j=0;j<take;j++){
+          const r=a[round*take+j];
+          if(r){left=true;if(!seen.has(r.tpid)){out.push(r);seen.add(r.tpid)}}
+        }
+      }
+      round++;
+    }
+    for(const r of rows)if(!seen.has(r.tpid))out.push(r);
+    return out;
+  }
+  const filterRows=(a,q,t)=>diversifyRows(a.filter(r=>!Array.isArray(r?.sellers)||r.sellers.some(seller)).map(r=>({...r,__score:score(r,q,t)})).filter(r=>r.__score>0).sort((a,b)=>b.__score-a.__score||Number(b.sellerCount||0)-Number(a.sellerCount||0))),F=()=>'''
+if marker not in s:
+    raise SystemExit('finder filterRows marker not found')
+s = s.replace(marker, replacement, 1)
+
+insert_after = 'const seller=n=>{n=L(n);return !!n&&!BLOCK.has(n)},broad=(q,t)=>!!(t&&BROAD[t]?.test(C(q))),tokens=q=>L(q).replace(/[^a-z0-9]+/g," ").split(/\\s+/).filter(x=>x.length>1&&!["for","the","and","with","from","best","buy"].includes(x));'
+if insert_after not in s:
+    raise SystemExit('finder helper marker not found')
+s = s.replace(insert_after, insert_after + '\n  const goodImage=v=>U(v)&&!/(?:no[-_ ]?(?:photo|image)|placeholder|image[-_ ]?not[-_ ]?available|default[-_ ]?(?:product|image)|blank[-_ ]?image|missing[-_ ]?image)/i.test(L(v));', 1)
+
+image_old = 'image:U(m?.image)?C(m.image):U(r.image)?C(r.image):""'
+if image_old not in s:
+    raise SystemExit('finder image marker not found')
+s = s.replace(image_old, 'image:goodImage(m?.image)?C(m.image):goodImage(r.image)?C(r.image):""', 1)
+finder.write_text(s)
+
+idx = Path('find/index.html')
+h = idx.read_text().replace('20.7.9', '20.7.10')
+idx.write_text(h)
+
+fn = Path('netlify/functions/product-preview-v20-6-8-3.cjs')
+p = fn.read_text()
+old_robots = 'const robots=sellers?"index,follow,max-image-preview:large":"noindex,follow,max-image-preview:large";'
+if old_robots in p:
+    p = p.replace(old_robots, 'const hasExact=groups.some(g=>activeOffers(g).some(o=>exactEvidence(o,g)));\n  const robots=(sellers&&hasExact)?"index,follow,max-image-preview:large":"noindex,follow,max-image-preview:large";', 1)
+
+old_mobile = '@media(max-width:650px){header{padding:12px 15px}.logo{font-size:21px}.logo img{width:38px;height:38px}.search{padding:9px 13px}main{padding:18px 15px 112px}.hero{grid-template-columns:1fr;gap:16px}.hero-media{width:min(230px,72vw);min-height:220px;margin:auto;padding:13px;border-radius:22px}.hero-media>img{height:194px}.hero-copy{text-align:left}.brand{font-size:16px}.hero h1{font-size:clamp(29px,8vw,37px);line-height:1.04;margin-top:5px;letter-spacing:-.035em}.hero p{font-size:15px}.panel{padding:18px;border-radius:21px;margin:14px 0}.panel h2{font-size:25px}.muted,.about-copy{font-size:15px}.specgrid{grid-template-columns:1fr 1fr}.spec strong{font-size:19px}.variant{align-items:flex-start;flex-direction:column;gap:4px}.seller-head{align-items:flex-start}.seller-top{flex-direction:column}.seller-price{text-align:left}.cta{width:100%}.bottom{left:10px;right:10px}.bottom a{font-size:13px;padding:0 7px}.suboffer{font-size:13px}}'
+new_mobile = '@media(max-width:650px){header{padding:10px 14px}.logo{font-size:20px}.logo img{width:36px;height:36px}.search{padding:8px 12px;border-radius:13px}main{padding:14px 14px 122px}.back{margin-bottom:12px;font-size:14px}.hero{display:flex;flex-direction:column;gap:14px;align-items:stretch;margin-bottom:18px}.hero-copy{order:1;width:100%;text-align:left}.hero-media{order:2;width:100%;max-width:340px;min-height:250px;margin:0 auto;padding:14px;border-radius:22px}.hero-media>img{height:222px;max-width:100%;object-fit:contain}.brand{font-size:15px}.hero h1{font-size:clamp(26px,7vw,32px);line-height:1.08;margin:5px 0 9px;letter-spacing:-.03em;overflow-wrap:break-word;word-break:normal}.hero p{font-size:14px;line-height:1.4}.panel{padding:16px;border-radius:19px;margin:12px 0}.panel h2{font-size:23px}.muted,.about-copy{font-size:15px}.specgrid{grid-template-columns:1fr 1fr}.spec{padding:13px}.spec strong{font-size:18px}.variant{align-items:flex-start;flex-direction:column;gap:4px}.seller-head{align-items:flex-start}.seller-top{flex-direction:column}.seller-price{text-align:left}.cta{width:100%}.bottom{left:10px;right:10px;padding:6px;border-radius:20px}.bottom a{min-height:46px;font-size:12px;padding:0 7px}.suboffer{font-size:13px}}'
+if old_mobile not in p:
+    raise SystemExit('product mobile CSS marker not found')
+p = p.replace(old_mobile, new_mobile, 1)
+p = p.replace('@media(max-width:380px){.specgrid{grid-template-columns:1fr}.hero h1{font-size:29px}.bottom a{font-size:12px}}', '@media(max-width:380px){.specgrid{grid-template-columns:1fr}.hero h1{font-size:25px}.hero-media{min-height:230px}.hero-media>img{height:204px}.bottom a{font-size:11px}}')
+fn.write_text(p)
+print('V20.7.10 patch applied')
