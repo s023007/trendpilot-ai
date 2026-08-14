@@ -1,8 +1,8 @@
 {
   "version": "20.8.4",
   "records": 52031,
-  "rarePublished": 167,
-  "seoPages": 30,
+  "rarePublished": 87,
+  "seoPages": 28,
   "policy": {
     "blockedSellers": [
       "filamentpro",
@@ -14,5 +14,10 @@
     "universalTaxonomy": true,
     "searchPages": "noindex",
     "rareSeoPages": "high-evidence exact-destination candidates only"
+  },
+  "truthCleanup": {
+    "brandMustAppearInTitle": true,
+    "replacementTypeUsesTitleEvidence": true,
+    "nearDuplicateRareFamiliesCollapsed": true
   }
 }
