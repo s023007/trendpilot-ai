@@ -1,0 +1,56 @@
+name: TrendPilot V20.8.1 Truth Calibration
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/trendpilot-v20-8-1-truth-calibration.yml
+
+permissions:
+  contents: write
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Apply V20.8.1
+        run: python scripts/apply-v20-8-1-truth-calibration.py
+
+      - name: Rebuild universal and rare data
+        run: python scripts/build-v20-8-universal-discovery.py
+
+      - name: Syntax and truth QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/universal-discovery-v20-8.js
+          node --check js/rare-finds-v20-8.js
+          python -m py_compile scripts/build-v20-8-universal-discovery.py
+          grep -q 'Seller-feed price' js/universal-discovery-v20-8.js
+          grep -q 'Exact price' js/universal-discovery-v20-8.js
+          grep -q 'V=.20.8.1' scripts/build-v20-8-universal-discovery.py
+          grep -q '20.8.1' data/v20-8/manifest.json
+          if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
+            echo 'Unexpected canonical identity/catalog mutation'
+            exit 1
+          fi
+
+      - name: Commit V20.8.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add scripts/build-v20-8-universal-discovery.py js/universal-discovery-v20-8.js js/rare-finds-v20-8.js css/v20-8-universal.css find/index.html rare-used/index.html data/v20-8 rare-used/finds sitemap-v20-8.xml robots.txt
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git commit -m 'TrendPilot V20.8.1 calibrate rarity and price truth'
+          git push
