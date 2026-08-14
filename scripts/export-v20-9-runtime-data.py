@@ -13,12 +13,29 @@ OUT = ROOT / "data/v20-9"
 PRODUCTS = OUT / "products"
 TERMS = OUT / "terms"
 VERSION = "20.9.0"
+ROLES = ("main","used","accessory","replacement_part")
 STOP = {"the","and","for","with","from","this","that","your","our","new","best","sale","hot","price","buy","original","official","wholesale","factory","global","product","products","item","items","pcs","piece","pieces","pack","set","sets","of","to","in","on","by","a","an"}
 
 
 def tokens(value: object) -> list[str]:
     text = str(value or "").lower()
     return [x for x in re.findall(r"[a-z0-9]+(?:[.+#/-][a-z0-9]+)*", text) if x not in STOP and (len(x) >= 3 or (re.search(r"[a-z]", x) and re.search(r"\d", x)))]
+
+
+def interleave(role_map: dict[str,list[str]], limit: int=1600) -> list[str]:
+    pools={role:list(role_map.get(role,[])) for role in ROLES}
+    out=[]
+    i=0
+    while len(out)<limit:
+        added=False
+        for role in ROLES:
+            pool=pools[role]
+            if i<len(pool):
+                out.append(pool[i]);added=True
+                if len(out)>=limit:break
+        if not added:break
+        i+=1
+    return out
 
 
 def main() -> None:
@@ -37,7 +54,7 @@ def main() -> None:
     PRODUCTS.mkdir(parents=True, exist_ok=True)
     TERMS.mkdir(parents=True, exist_ok=True)
 
-    # Two-character ID buckets: ~256 compact files instead of loading multi-megabyte one-character buckets on mobile.
+    # Two-character ID buckets: 256 compact files instead of multi-megabyte one-character buckets on mobile.
     buckets: dict[str, dict[str, dict]] = collections.defaultdict(dict)
     for r in rows:
         rid = str(r.get("id") or "")
@@ -76,15 +93,34 @@ def main() -> None:
     for prefix, data in shards.items():
         (TERMS / f"{prefix}.json").write_text(json.dumps(data, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
 
+    # Family indexes are role-balanced. A family with thousands of main products must not starve an explicit
+    # accessory/part/used query when common tokens such as "phone" or "case" are too frequent for the term index.
+    quality_order=sorted(rows,key=lambda r:(bool(r.get('x')),bool(r.get('im')),bool(r.get('p')),int(r.get('r') or 0)),reverse=True)
+    family_roles: dict[str,dict[str,list[str]]] = collections.defaultdict(lambda:collections.defaultdict(list))
+    for r in quality_order:
+        fam=str(r.get('fa') or r.get('ty') or 'unclassified')
+        role=str(r.get('ro') or 'main')
+        if role not in ROLES: role='main'
+        if len(family_roles[fam][role])<1400:
+            family_roles[fam][role].append(r['id'])
+    role_payload={fam:{role:ids for role,ids in role_map.items() if ids} for fam,role_map in family_roles.items()}
+    balanced_families={fam:interleave(role_map) for fam,role_map in role_payload.items()}
+    (OUT/'family-roles.json').write_text(json.dumps(role_payload,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+    (OUT/'families.json').write_text(json.dumps(balanced_families,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+
     sizes = [p.stat().st_size for p in PRODUCTS.glob("*.json")]
+    role_counts={role:sum(len(role_map.get(role,[])) for role_map in role_payload.values()) for role in ROLES}
     runtime = {
         "version": VERSION,
         "records": len(rows),
         "productBuckets": len(buckets),
         "termShards": len(shards),
+        "familyCount": len(role_payload),
+        "familyRoleIndexedIds": role_counts,
         "maxProductBucketBytes": max(sizes) if sizes else 0,
         "averageProductBucketBytes": round(sum(sizes) / max(1, len(sizes))),
         "mobileBucketStrategy": "two-character stable-ID prefix",
+        "familyStrategy": "role-balanced",
     }
     (OUT / "runtime-manifest.json").write_text(json.dumps(runtime, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(runtime, indent=2))
