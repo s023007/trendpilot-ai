@@ -24,6 +24,7 @@ function stableFacts(body){
 }
 function parseVariant(label,counts,stable){
   const t=clean(decode(label));
+  if(!t || /^(?:configuration|variant|option)\s*\d*$/i.test(t) || /^standard configuration$/i.test(t)) return null;
   const screen=Number((t.match(/(\d+(?:\.\d+)?)\s*(?:in|inch|inches)\b/i)||[])[1]||0);
   const battery=Number((t.match(/(\d{3,5})\s*mAh\b/i)||[])[1]||0);
   if(stable.screen&&screen&&Math.abs(stable.screen-screen)>.08)return null;
@@ -73,7 +74,7 @@ function cleanVariants(body){
   }
   const vals=[...merged.values()];
   const cards=vals.map(v=>`<div class="variant"><strong>${esc(v.label)}</strong><span>${v.offers} catalogue record${v.offers===1?"":"s"} · ${v.sellers} seller${v.sellers===1?"":"s"}</span></div>`).join("");
-  const replacement=`<section class="panel"><div class="eyebrow">CONFIGURATIONS</div><h2>Available configurations</h2><p class="muted">Distinct RAM/storage configurations shown after model-level fact checks.</p><div class="variants">${cards}</div><p class="truth-note"><strong>Variant check:</strong> Stable model facts such as screen size and battery are not treated as separate variants. Rows that conflict with those facts are removed.</p></section>`;
+  const replacement=`<section class="panel"><div class="eyebrow">CONFIGURATIONS</div><h2>Available configurations</h2><p class="muted">Distinct RAM/storage configurations shown after model-level fact checks.</p><div class="variants">${cards}</div><p class="truth-note"><strong>Variant check:</strong> Stable model facts such as screen size and battery are not treated as separate variants. Rows that conflict with those facts or have no usable configuration evidence are removed.</p></section>`;
   return {body:body.replace(section[0],replacement),count:vals.length,changed:true};
 }
 function cleanSellerCards(body){
