@@ -1,0 +1,43 @@
+name: TrendPilot V20.7.10 — Product Seller Policy Hotfix
+
+on:
+  push:
+    paths:
+      - '.github/workflows/v20-7-10-product-seller-policy-hotfix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - name: Patch product seller policy safely
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('netlify/functions/product-preview-v20-6-8-3.cjs')
+          s=p.read_text()
+          s,n=re.subn(r'const PUBLIC_SELLERS = new Set\(\[.*?\]\);', 'const BLOCKED_SELLERS = new Set(["temu","joom","filamentpro","filamentpro eu cps"]);', s, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit('PUBLIC_SELLERS block not found exactly once')
+          old='function sellerAllowed(name){ return PUBLIC_SELLERS.has(lower(name)); }'
+          new='function sellerAllowed(name){ const n=lower(name); return !!n && !BLOCKED_SELLERS.has(n) && !n.includes("filamentpro"); }'
+          if old not in s:
+              raise SystemExit('sellerAllowed contract not found')
+          s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
+          node --check netlify/functions/product-preview-v20-6-8-3.cjs
+      - name: Commit policy-safe product preview
+        run: |
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add netlify/functions/product-preview-v20-6-8-3.cjs
+          git diff --cached --quiet && exit 0
+          git commit -m 'TrendPilot V20.7.10 keep all approved sellers on product pages'
+          git push origin HEAD:main
