@@ -1,451 +1,591 @@
 {
-  "version": "20.8.4",
-  "generatedAt": "2026-08-14T11:33:57.878651+00:00",
+  "version": "20.9.0",
+  "generatedAt": "2026-08-14T12:38:27.550441+00:00",
   "records": 52031,
   "types": [
     {
-      "slug": "unclassified",
-      "label": "Unclassified",
-      "count": 9355
-    },
-    {
-      "slug": "phone",
-      "label": "Phone",
-      "count": 7185
+      "slug": "phone-accessories",
+      "label": "Phone Accessories",
+      "count": 4041
     },
     {
       "slug": "headphones",
       "label": "Headphones",
-      "count": 4163
+      "count": 3894
+    },
+    {
+      "slug": "unclassified",
+      "label": "Unclassified",
+      "count": 3388
+    },
+    {
+      "slug": "phone",
+      "label": "Phone",
+      "count": 3278
     },
     {
       "slug": "other-home-kitchen",
       "label": "Other Home Kitchen",
-      "count": 3172
+      "count": 2915
     },
     {
       "slug": "power-tools",
       "label": "Power Tools",
-      "count": 2595
-    },
-    {
-      "slug": "tools",
-      "label": "Tools",
-      "count": 2058
+      "count": 2495
     },
     {
       "slug": "smartwatch",
       "label": "Smartwatch",
-      "count": 1668
+      "count": 1682
     },
     {
       "slug": "laptop",
       "label": "Laptop",
-      "count": 1141
+      "count": 1345
     },
     {
       "slug": "other-sports-outdoors",
       "label": "Other Sports Outdoors",
-      "count": 1071
+      "count": 937
+    },
+    {
+      "slug": "tools",
+      "label": "Tools",
+      "count": 903
     },
     {
       "slug": "jewelry-craft",
       "label": "Jewelry Craft",
-      "count": 954
+      "count": 847
     },
     {
-      "slug": "replacement-parts",
-      "label": "Replacement Parts",
-      "count": 765
+      "slug": "kitchen-appliances",
+      "label": "Kitchen Appliances",
+      "count": 816
     },
     {
-      "slug": "other-business-sourcing",
-      "label": "Other Business Sourcing",
-      "count": 679
-    },
-    {
-      "slug": "other-cameras",
-      "label": "Other Cameras",
-      "count": 673
-    },
-    {
-      "slug": "wholesale-products",
-      "label": "Wholesale Products",
-      "count": 625
-    },
-    {
-      "slug": "other-audio",
-      "label": "Other Audio",
-      "count": 602
-    },
-    {
-      "slug": "lighting",
-      "label": "Lighting",
-      "count": 601
+      "slug": "furniture",
+      "label": "Furniture",
+      "count": 626
     },
     {
       "slug": "power-tool-parts",
       "label": "Power Tool Parts",
-      "count": 599
+      "count": 618
+    },
+    {
+      "slug": "speaker",
+      "label": "Speaker",
+      "count": 604
+    },
+    {
+      "slug": "other-cameras",
+      "label": "Other Cameras",
+      "count": 589
     },
     {
       "slug": "power-bank",
       "label": "Power Bank",
-      "count": 584
+      "count": 582
+    },
+    {
+      "slug": "industrial-components",
+      "label": "Industrial Components",
+      "count": 572
+    },
+    {
+      "slug": "tablet",
+      "label": "Tablet",
+      "count": 556
+    },
+    {
+      "slug": "footwear",
+      "label": "Footwear",
+      "count": 544
+    },
+    {
+      "slug": "lighting",
+      "label": "Lighting",
+      "count": 537
+    },
+    {
+      "slug": "microphone",
+      "label": "Microphone",
+      "count": 532
+    },
+    {
+      "slug": "replacement-parts",
+      "label": "Replacement Parts",
+      "count": 527
+    },
+    {
+      "slug": "baby-products",
+      "label": "Baby Products",
+      "count": 510
+    },
+    {
+      "slug": "shirts-tops",
+      "label": "Shirts Tops",
+      "count": 493
+    },
+    {
+      "slug": "dresses",
+      "label": "Dresses",
+      "count": 482
     },
     {
       "slug": "other-apparel",
       "label": "Other Apparel",
-      "count": 580
+      "count": 463
     },
     {
-      "slug": "strollers",
-      "label": "Strollers",
-      "count": 570
-    },
-    {
-      "slug": "gaming-accessories",
-      "label": "Gaming Accessories",
-      "count": 478
-    },
-    {
-      "slug": "consumer-electronics",
-      "label": "Consumer Electronics",
+      "slug": "other-audio",
+      "label": "Other Audio",
       "count": 458
     },
     {
       "slug": "cookware",
       "label": "Cookware",
-      "count": 456
-    },
-    {
-      "slug": "furniture",
-      "label": "Furniture",
-      "count": 449
-    },
-    {
-      "slug": "tablets",
-      "label": "Tablets",
-      "count": 443
-    },
-    {
-      "slug": "perfume",
-      "label": "Perfume",
-      "count": 331
-    },
-    {
-      "slug": "other-phones-tablets",
-      "label": "Other Phones Tablets",
-      "count": 320
-    },
-    {
-      "slug": "other-computers",
-      "label": "Other Computers",
-      "count": 319
-    },
-    {
-      "slug": "phone-parts",
-      "label": "Phone Parts",
-      "count": 308
-    },
-    {
-      "slug": "electrical-equipment-supplies",
-      "label": "Electrical Equipment Supplies",
-      "count": 288
-    },
-    {
-      "slug": "coffee-tea",
-      "label": "Coffee Tea",
-      "count": 285
-    },
-    {
-      "slug": "other-software",
-      "label": "Other Software",
-      "count": 265
-    },
-    {
-      "slug": "dresses",
-      "label": "Dresses",
-      "count": 255
-    },
-    {
-      "slug": "speakers",
-      "label": "Speakers",
-      "count": 250
-    },
-    {
-      "slug": "microphones",
-      "label": "Microphones",
-      "count": 232
-    },
-    {
-      "slug": "t-shirts",
-      "label": "T Shirts",
-      "count": 227
-    },
-    {
-      "slug": "pet-supplies",
-      "label": "Pet Supplies",
-      "count": 215
-    },
-    {
-      "slug": "other-pet-supplies",
-      "label": "Other Pet Supplies",
-      "count": 214
-    },
-    {
-      "slug": "other-automotive",
-      "label": "Other Automotive",
-      "count": 192
-    },
-    {
-      "slug": "other-projectors-tv",
-      "label": "Other Projectors Tv",
-      "count": 178
-    },
-    {
-      "slug": "keyboards",
-      "label": "Keyboards",
-      "count": 176
-    },
-    {
-      "slug": "home-organization",
-      "label": "Home Organization",
-      "count": 169
-    },
-    {
-      "slug": "televisions",
-      "label": "Televisions",
-      "count": 168
-    },
-    {
-      "slug": "3d-printing",
-      "label": "3D Printing",
-      "count": 166
-    },
-    {
-      "slug": "boots",
-      "label": "Boots",
-      "count": 156
-    },
-    {
-      "slug": "other-smart-home",
-      "label": "Other Smart Home",
-      "count": 154
-    },
-    {
-      "slug": "other-beauty-care",
-      "label": "Other Beauty Care",
-      "count": 152
-    },
-    {
-      "slug": "thermal-printer",
-      "label": "Thermal Printer",
-      "count": 149
-    },
-    {
-      "slug": "phone-mounts-stands",
-      "label": "Phone Mounts Stands",
-      "count": 146
-    },
-    {
-      "slug": "other-tools",
-      "label": "Other Tools",
-      "count": 141
-    },
-    {
-      "slug": "digital-cameras",
-      "label": "Digital Cameras",
-      "count": 133
+      "count": 454
     },
     {
       "slug": "hand-tools",
       "label": "Hand Tools",
-      "count": 129
+      "count": 449
     },
     {
-      "slug": "air-conditioning",
-      "label": "Air Conditioning",
-      "count": 117
+      "slug": "consumer-electronics",
+      "label": "Consumer Electronics",
+      "count": 422
     },
     {
-      "slug": "medical",
-      "label": "Medical",
-      "count": 114
+      "slug": "pants-jeans",
+      "label": "Pants Jeans",
+      "count": 400
     },
     {
-      "slug": "food-storage",
-      "label": "Food Storage",
-      "count": 108
+      "slug": "other-business-sourcing",
+      "label": "Other Business Sourcing",
+      "count": 398
     },
     {
-      "slug": "jeans",
-      "label": "Jeans",
-      "count": 107
+      "slug": "makeup",
+      "label": "Makeup",
+      "count": 395
     },
     {
-      "slug": "phone-cases",
-      "label": "Phone Cases",
-      "count": 106
+      "slug": "phone-parts",
+      "label": "Phone Parts",
+      "count": 384
     },
     {
-      "slug": "pens-pencils",
-      "label": "Pens Pencils",
-      "count": 104
+      "slug": "computer-storage",
+      "label": "Computer Storage",
+      "count": 375
     },
     {
-      "slug": "kitchen-appliances",
-      "label": "Kitchen Appliances",
-      "count": 101
+      "slug": "headphone-accessories",
+      "label": "Headphone Accessories",
+      "count": 372
     },
     {
-      "slug": "jackets",
-      "label": "Jackets",
-      "count": 100
+      "slug": "wholesale-products",
+      "label": "Wholesale Products",
+      "count": 346
     },
     {
-      "slug": "streaming-devices",
-      "label": "Streaming Devices",
-      "count": 100
+      "slug": "home-organization",
+      "label": "Home Organization",
+      "count": 325
     },
     {
-      "slug": "trousers",
-      "label": "Trousers",
-      "count": 99
+      "slug": "camera",
+      "label": "Camera",
+      "count": 322
     },
     {
-      "slug": "custom-logo",
-      "label": "Custom Logo",
-      "count": 96
+      "slug": "perfume",
+      "label": "Perfume",
+      "count": 317
     },
     {
-      "slug": "other-toys-games",
-      "label": "Other Toys Games",
-      "count": 92
-    },
-    {
-      "slug": "skirts",
-      "label": "Skirts",
-      "count": 89
-    },
-    {
-      "slug": "grooming",
-      "label": "Grooming",
-      "count": 88
-    },
-    {
-      "slug": "other-printing-3d",
-      "label": "Other Printing 3D",
-      "count": 81
-    },
-    {
-      "slug": "desktops",
-      "label": "Desktops",
-      "count": 80
-    },
-    {
-      "slug": "car-head-unit",
-      "label": "Car Head Unit",
-      "count": 80
-    },
-    {
-      "slug": "smartphones",
-      "label": "Smartphones",
-      "count": 79
-    },
-    {
-      "slug": "other-jewelry-watches",
-      "label": "Other Jewelry Watches",
-      "count": 77
-    },
-    {
-      "slug": "automotive-parts",
-      "label": "Automotive Parts",
-      "count": 76
-    },
-    {
-      "slug": "appliance-parts",
-      "label": "Appliance Parts",
-      "count": 75
-    },
-    {
-      "slug": "video-games",
-      "label": "Video Games",
-      "count": 74
-    },
-    {
-      "slug": "computer-parts",
-      "label": "Computer Parts",
-      "count": 73
-    },
-    {
-      "slug": "hoodies-sweatshirts",
-      "label": "Hoodies Sweatshirts",
-      "count": 71
-    },
-    {
-      "slug": "mini-pcs",
-      "label": "Mini Pcs",
-      "count": 69
-    },
-    {
-      "slug": "gimbals-stabilizers",
-      "label": "Gimbals Stabilizers",
-      "count": 68
-    },
-    {
-      "slug": "action-cameras",
-      "label": "Action Cameras",
-      "count": 66
-    },
-    {
-      "slug": "phone-chargers-cables",
-      "label": "Phone Chargers Cables",
-      "count": 66
-    },
-    {
-      "slug": "mice",
-      "label": "Mice",
-      "count": 65
-    },
-    {
-      "slug": "storage-drives",
-      "label": "Storage Drives",
-      "count": 62
-    },
-    {
-      "slug": "monitors",
-      "label": "Monitors",
-      "count": 59
+      "slug": "bags",
+      "label": "Bags",
+      "count": 296
     },
     {
       "slug": "home-decor",
       "label": "Home Decor",
-      "count": 59
+      "count": 292
     },
     {
-      "slug": "tripods",
-      "label": "Tripods",
-      "count": 59
+      "slug": "game-console",
+      "label": "Game Console",
+      "count": 291
     },
     {
-      "slug": "other-bags-accessories",
-      "label": "Other Bags Accessories",
-      "count": 57
+      "slug": "gaming-accessories",
+      "label": "Gaming Accessories",
+      "count": 283
     },
     {
-      "slug": "game-consoles",
-      "label": "Game Consoles",
-      "count": 53
+      "slug": "sweaters-hoodies",
+      "label": "Sweaters Hoodies",
+      "count": 266
     },
     {
-      "slug": "other-makeup",
-      "label": "Other Makeup",
-      "count": 53
+      "slug": "jackets-coats",
+      "label": "Jackets Coats",
+      "count": 257
+    },
+    {
+      "slug": "vacuum-cleaner",
+      "label": "Vacuum Cleaner",
+      "count": 256
+    },
+    {
+      "slug": "electrical-equipment-supplies",
+      "label": "Electrical Equipment Supplies",
+      "count": 255
+    },
+    {
+      "slug": "bedding",
+      "label": "Bedding",
+      "count": 249
+    },
+    {
+      "slug": "kitchen-tools",
+      "label": "Kitchen Tools",
+      "count": 245
+    },
+    {
+      "slug": "printer",
+      "label": "Printer",
+      "count": 244
+    },
+    {
+      "slug": "keyboard",
+      "label": "Keyboard",
+      "count": 238
+    },
+    {
+      "slug": "other-software",
+      "label": "Other Software",
+      "count": 226
+    },
+    {
+      "slug": "other-computers",
+      "label": "Other Computers",
+      "count": 224
+    },
+    {
+      "slug": "television",
+      "label": "Television",
+      "count": 223
+    },
+    {
+      "slug": "other-phones-tablets",
+      "label": "Other Phones Tablets",
+      "count": 213
+    },
+    {
+      "slug": "desktop-computers",
+      "label": "Desktop Computers",
+      "count": 207
+    },
+    {
+      "slug": "toys",
+      "label": "Toys",
+      "count": 207
+    },
+    {
+      "slug": "headwear",
+      "label": "Headwear",
+      "count": 198
+    },
+    {
+      "slug": "game-controller",
+      "label": "Game Controller",
+      "count": 193
+    },
+    {
+      "slug": "skincare",
+      "label": "Skincare",
+      "count": 185
+    },
+    {
+      "slug": "3d-printing",
+      "label": "3D Printing",
+      "count": 182
+    },
+    {
+      "slug": "automotive-parts",
+      "label": "Automotive Parts",
+      "count": 179
+    },
+    {
+      "slug": "coffee-tea",
+      "label": "Coffee Tea",
+      "count": 177
+    },
+    {
+      "slug": "other-pet-supplies",
+      "label": "Other Pet Supplies",
+      "count": 174
+    },
+    {
+      "slug": "fans",
+      "label": "Fans",
+      "count": 174
+    },
+    {
+      "slug": "computer-memory",
+      "label": "Computer Memory",
+      "count": 161
     },
     {
       "slug": "cleaning",
       "label": "Cleaning",
+      "count": 161
+    },
+    {
+      "slug": "tablet-accessories",
+      "label": "Tablet Accessories",
+      "count": 156
+    },
+    {
+      "slug": "other-projectors-tv",
+      "label": "Other Projectors Tv",
+      "count": 153
+    },
+    {
+      "slug": "pet-food",
+      "label": "Pet Food",
+      "count": 152
+    },
+    {
+      "slug": "car-electronics",
+      "label": "Car Electronics",
+      "count": 151
+    },
+    {
+      "slug": "projector",
+      "label": "Projector",
+      "count": 149
+    },
+    {
+      "slug": "other-automotive",
+      "label": "Other Automotive",
+      "count": 148
+    },
+    {
+      "slug": "beauty-care",
+      "label": "Beauty Care",
+      "count": 147
+    },
+    {
+      "slug": "climate-appliances",
+      "label": "Climate Appliances",
+      "count": 146
+    },
+    {
+      "slug": "fitness-equipment",
+      "label": "Fitness Equipment",
+      "count": 142
+    },
+    {
+      "slug": "stationery",
+      "label": "Stationery",
+      "count": 125
+    },
+    {
+      "slug": "hair-care",
+      "label": "Hair Care",
+      "count": 121
+    },
+    {
+      "slug": "strollers",
+      "label": "Strollers",
+      "count": 120
+    },
+    {
+      "slug": "curtains-window",
+      "label": "Curtains Window",
+      "count": 116
+    },
+    {
+      "slug": "car-accessories",
+      "label": "Car Accessories",
+      "count": 115
+    },
+    {
+      "slug": "medical",
+      "label": "Medical",
+      "count": 112
+    },
+    {
+      "slug": "other-tools",
+      "label": "Other Tools",
+      "count": 106
+    },
+    {
+      "slug": "pet-toys",
+      "label": "Pet Toys",
+      "count": 104
+    },
+    {
+      "slug": "shorts",
+      "label": "Shorts",
+      "count": 103
+    },
+    {
+      "slug": "computer-accessories",
+      "label": "Computer Accessories",
+      "count": 101
+    },
+    {
+      "slug": "mouse",
+      "label": "Mouse",
+      "count": 99
+    },
+    {
+      "slug": "monitor",
+      "label": "Monitor",
+      "count": 99
+    },
+    {
+      "slug": "food-storage",
+      "label": "Food Storage",
+      "count": 98
+    },
+    {
+      "slug": "smartwatch-accessories",
+      "label": "Smartwatch Accessories",
+      "count": 97
+    },
+    {
+      "slug": "wallets",
+      "label": "Wallets",
+      "count": 97
+    },
+    {
+      "slug": "air-conditioning",
+      "label": "Air Conditioning",
+      "count": 91
+    },
+    {
+      "slug": "laptop-accessories",
+      "label": "Laptop Accessories",
+      "count": 91
+    },
+    {
+      "slug": "camera-accessories",
+      "label": "Camera Accessories",
+      "count": 89
+    },
+    {
+      "slug": "measuring-tools",
+      "label": "Measuring Tools",
+      "count": 88
+    },
+    {
+      "slug": "arts-crafts",
+      "label": "Arts Crafts",
+      "count": 84
+    },
+    {
+      "slug": "furniture-desks",
+      "label": "Furniture Desks",
+      "count": 82
+    },
+    {
+      "slug": "streaming-devices",
+      "label": "Streaming Devices",
+      "count": 82
+    },
+    {
+      "slug": "motherboard",
+      "label": "Motherboard",
+      "count": 81
+    },
+    {
+      "slug": "computer-parts",
+      "label": "Computer Parts",
+      "count": 71
+    },
+    {
+      "slug": "other-smart-home",
+      "label": "Other Smart Home",
+      "count": 71
+    },
+    {
+      "slug": "other-toys-games",
+      "label": "Other Toys Games",
+      "count": 70
+    },
+    {
+      "slug": "soldering",
+      "label": "Soldering",
+      "count": 69
+    },
+    {
+      "slug": "pet-beds",
+      "label": "Pet Beds",
+      "count": 69
+    },
+    {
+      "slug": "grooming",
+      "label": "Grooming",
+      "count": 68
+    },
+    {
+      "slug": "other-jewelry-watches",
+      "label": "Other Jewelry Watches",
+      "count": 67
+    },
+    {
+      "slug": "furniture-chairs",
+      "label": "Furniture Chairs",
+      "count": 66
+    },
+    {
+      "slug": "gimbals-stabilizers",
+      "label": "Gimbals Stabilizers",
+      "count": 66
+    },
+    {
+      "slug": "other-printing-3d",
+      "label": "Other Printing 3D",
+      "count": 65
+    },
+    {
+      "slug": "appliance-parts",
+      "label": "Appliance Parts",
+      "count": 64
+    },
+    {
+      "slug": "pet-grooming",
+      "label": "Pet Grooming",
+      "count": 53
+    },
+    {
+      "slug": "skirts",
+      "label": "Skirts",
+      "count": 52
+    },
+    {
+      "slug": "pet-collars-leashes",
+      "label": "Pet Collars Leashes",
+      "count": 52
+    },
+    {
+      "slug": "nail-care",
+      "label": "Nail Care",
+      "count": 50
+    },
+    {
+      "slug": "pet-supplies",
+      "label": "Pet Supplies",
       "count": 48
     },
     {
@@ -454,134 +594,94 @@
       "count": 47
     },
     {
-      "slug": "portable-projector",
-      "label": "Portable Projector",
-      "count": 47
-    },
-    {
-      "slug": "shorts",
-      "label": "Shorts",
+      "slug": "tripods",
+      "label": "Tripods",
       "count": 45
     },
     {
-      "slug": "hats-caps",
-      "label": "Hats Caps",
+      "slug": "pens-pencils",
+      "label": "Pens Pencils",
+      "count": 45
+    },
+    {
+      "slug": "pet-feeders",
+      "label": "Pet Feeders",
       "count": 43
     },
     {
-      "slug": "rings",
-      "label": "Rings",
-      "count": 42
-    },
-    {
-      "slug": "car-chargers",
-      "label": "Car Chargers",
+      "slug": "toys-remote-control",
+      "label": "Toys Remote Control",
       "count": 42
     },
     {
       "slug": "watches",
       "label": "Watches",
-      "count": 39
-    },
-    {
-      "slug": "wireless-carplay-adapter",
-      "label": "Wireless Carplay Adapter",
-      "count": 38
-    },
-    {
-      "slug": "hair-styling-tools",
-      "label": "Hair Styling Tools",
       "count": 37
     },
     {
-      "slug": "tops-blouses",
-      "label": "Tops Blouses",
+      "slug": "custom-logo",
+      "label": "Custom Logo",
+      "count": 37
+    },
+    {
+      "slug": "home-appliances",
+      "label": "Home Appliances",
+      "count": 37
+    },
+    {
+      "slug": "rings",
+      "label": "Rings",
       "count": 36
     },
     {
-      "slug": "laptops",
-      "label": "Laptops",
-      "count": 32
+      "slug": "graphics-card",
+      "label": "Graphics Card",
+      "count": 35
     },
     {
-      "slug": "collars-leashes",
-      "label": "Collars Leashes",
-      "count": 31
+      "slug": "camera-lens",
+      "label": "Camera Lens",
+      "count": 35
     },
     {
-      "slug": "sweaters-knitwear",
-      "label": "Sweaters Knitwear",
-      "count": 29
+      "slug": "other-bags-accessories",
+      "label": "Other Bags Accessories",
+      "count": 34
     },
     {
       "slug": "home-garden-lighting-light-ropes-strings",
       "label": "Home Garden Lighting Light Ropes Strings",
-      "count": 29
-    },
-    {
-      "slug": "handbags",
-      "label": "Handbags",
-      "count": 28
+      "count": 27
     },
     {
       "slug": "sleepwear",
       "label": "Sleepwear",
-      "count": 27
-    },
-    {
-      "slug": "robot-vacuum",
-      "label": "Robot Vacuum",
-      "count": 26
-    },
-    {
-      "slug": "coats",
-      "label": "Coats",
-      "count": 26
-    },
-    {
-      "slug": "other-footwear",
-      "label": "Other Footwear",
-      "count": 26
-    },
-    {
-      "slug": "backpacks",
-      "label": "Backpacks",
-      "count": 25
-    },
-    {
-      "slug": "graphics-cards",
-      "label": "Graphics Cards",
-      "count": 25
-    },
-    {
-      "slug": "belts",
-      "label": "Belts",
-      "count": 25
+      "count": 24
     },
     {
       "slug": "swimwear",
       "label": "Swimwear",
-      "count": 25
+      "count": 24
     },
     {
-      "slug": "soundbars",
-      "label": "Soundbars",
-      "count": 23
+      "slug": "drawing-tablet",
+      "label": "Drawing Tablet",
+      "count": 22
     },
     {
-      "slug": "saws",
-      "label": "Saws",
+      "slug": "camping",
+      "label": "Camping",
+      "count": 22
+    },
+    {
+      "slug": "belts",
+      "label": "Belts",
       "count": 21
     },
     {
-      "slug": "eyewear",
-      "label": "Eyewear",
-      "count": 20
-    },
-    {
-      "slug": "photo-lighting",
-      "label": "Photo Lighting",
-      "count": 20
+      "slug": "webcam",
+      "label": "Webcam",
+      "count": 21
     },
     {
       "slug": "festive-party-supplies",
@@ -589,73 +689,33 @@
       "count": 19
     },
     {
+      "slug": "photo-lighting",
+      "label": "Photo Lighting",
+      "count": 19
+    },
+    {
+      "slug": "eyewear",
+      "label": "Eyewear",
+      "count": 18
+    },
+    {
       "slug": "projector-screens",
       "label": "Projector Screens",
       "count": 18
     },
     {
-      "slug": "camera-lenses",
-      "label": "Camera Lenses",
-      "count": 18
-    },
-    {
-      "slug": "home-projectors",
-      "label": "Home Projectors",
-      "count": 17
-    },
-    {
-      "slug": "smartwatches",
-      "label": "Smartwatches",
+      "slug": "router-networking",
+      "label": "Router Networking",
       "count": 16
     },
     {
-      "slug": "power-banks",
-      "label": "Power Banks",
-      "count": 15
-    },
-    {
-      "slug": "screen-protectors",
-      "label": "Screen Protectors",
-      "count": 15
-    },
-    {
-      "slug": "casual-shirts",
-      "label": "Casual Shirts",
+      "slug": "pet-litter",
+      "label": "Pet Litter",
       "count": 14
-    },
-    {
-      "slug": "memory-ram",
-      "label": "Memory Ram",
-      "count": 14
-    },
-    {
-      "slug": "diecast-collectibles",
-      "label": "Diecast Collectibles",
-      "count": 13
-    },
-    {
-      "slug": "curtains-window",
-      "label": "Curtains Window",
-      "count": 13
-    },
-    {
-      "slug": "stylus-pens",
-      "label": "Stylus Pens",
-      "count": 13
     },
     {
       "slug": "audio-interfaces",
       "label": "Audio Interfaces",
-      "count": 13
-    },
-    {
-      "slug": "wallets-cardholders",
-      "label": "Wallets Cardholders",
-      "count": 13
-    },
-    {
-      "slug": "drills",
-      "label": "Drills",
       "count": 12
     },
     {
@@ -664,23 +724,8 @@
       "count": 11
     },
     {
-      "slug": "soldering",
-      "label": "Soldering",
-      "count": 10
-    },
-    {
-      "slug": "face-makeup",
-      "label": "Face Makeup",
-      "count": 10
-    },
-    {
       "slug": "docks-hubs",
       "label": "Docks Hubs",
-      "count": 9
-    },
-    {
-      "slug": "remote-control-toys",
-      "label": "Remote Control Toys",
       "count": 9
     },
     {
@@ -689,99 +734,39 @@
       "count": 9
     },
     {
-      "slug": "security-camera",
-      "label": "Security Camera",
-      "count": 9
-    },
-    {
-      "slug": "measuring-tools",
-      "label": "Measuring Tools",
-      "count": 9
-    },
-    {
-      "slug": "skin-care",
-      "label": "Skin Care",
-      "count": 9
-    },
-    {
-      "slug": "activewear",
-      "label": "Activewear",
-      "count": 8
-    },
-    {
-      "slug": "cycling",
-      "label": "Cycling",
-      "count": 8
-    },
-    {
       "slug": "underwear",
       "label": "Underwear",
       "count": 8
     },
     {
-      "slug": "notebooks-paper",
-      "label": "Notebooks Paper",
+      "slug": "security-camera",
+      "label": "Security Camera",
       "count": 7
     },
     {
-      "slug": "3d-filament",
-      "label": "3D Filament",
+      "slug": "cycling",
+      "label": "Cycling",
       "count": 7
     },
     {
-      "slug": "sneakers",
-      "label": "Sneakers",
-      "count": 7
-    },
-    {
-      "slug": "polo-shirts",
-      "label": "Polo Shirts",
+      "slug": "diecast-collectibles",
+      "label": "Diecast Collectibles",
       "count": 6
     },
     {
-      "slug": "phones-accessories",
-      "label": "Phones Accessories",
+      "slug": "activewear",
+      "label": "Activewear",
       "count": 6
     },
     {
-      "slug": "luggage",
-      "label": "Luggage",
-      "count": 6
-    },
-    {
-      "slug": "webcams",
-      "label": "Webcams",
-      "count": 6
-    },
-    {
-      "slug": "camera-bags",
-      "label": "Camera Bags",
+      "slug": "stylus-pens",
+      "label": "Stylus Pens",
       "count": 6
     },
     {
       "slug": "womens-underwear",
       "label": "Womens Underwear",
       "count": 5
-    },
-    {
-      "slug": "blazers",
-      "label": "Blazers",
-      "count": 5
-    },
-    {
-      "slug": "multimeters",
-      "label": "Multimeters",
-      "count": 4
-    },
-    {
-      "slug": "tool-storage",
-      "label": "Tool Storage",
-      "count": 4
-    },
-    {
-      "slug": "fitness-equipment",
-      "label": "Fitness Equipment",
-      "count": 4
     },
     {
       "slug": "home-garden-lighting-lighting-fixtures-wall-light-fixtures",
@@ -794,18 +779,8 @@
       "count": 4
     },
     {
-      "slug": "hair-care",
-      "label": "Hair Care",
-      "count": 4
-    },
-    {
-      "slug": "chassis-parts",
-      "label": "Chassis Parts",
-      "count": 4
-    },
-    {
-      "slug": "makeup-tools",
-      "label": "Makeup Tools",
+      "slug": "3d-filament",
+      "label": "3D Filament",
       "count": 4
     },
     {
@@ -814,33 +789,8 @@
       "count": 4
     },
     {
-      "slug": "pet-feeder",
-      "label": "Pet Feeder",
-      "count": 4
-    },
-    {
-      "slug": "camping",
-      "label": "Camping",
-      "count": 4
-    },
-    {
-      "slug": "bathroom",
-      "label": "Bathroom",
-      "count": 4
-    },
-    {
-      "slug": "motherboards",
-      "label": "Motherboards",
-      "count": 3
-    },
-    {
-      "slug": "metal-processing-equipment-accessories",
-      "label": "Metal Processing Equipment Accessories",
-      "count": 3
-    },
-    {
-      "slug": "pet-water-fountain",
-      "label": "Pet Water Fountain",
+      "slug": "tool-storage",
+      "label": "Tool Storage",
       "count": 3
     },
     {
@@ -864,6 +814,26 @@
       "count": 3
     },
     {
+      "slug": "chassis-parts",
+      "label": "Chassis Parts",
+      "count": 3
+    },
+    {
+      "slug": "makeup-tools",
+      "label": "Makeup Tools",
+      "count": 3
+    },
+    {
+      "slug": "car-head-unit",
+      "label": "Car Head Unit",
+      "count": 3
+    },
+    {
+      "slug": "luggage",
+      "label": "Luggage",
+      "count": 3
+    },
+    {
       "slug": "air-conditioning-parts",
       "label": "Air Conditioning Parts",
       "count": 3
@@ -874,18 +844,8 @@
       "count": 3
     },
     {
-      "slug": "private-label",
-      "label": "Private Label",
-      "count": 3
-    },
-    {
       "slug": "home-garden-lighting-flood-spot-lights",
       "label": "Home Garden Lighting Flood Spot Lights",
-      "count": 3
-    },
-    {
-      "slug": "office-printers",
-      "label": "Office Printers",
       "count": 3
     },
     {
@@ -894,19 +854,9 @@
       "count": 3
     },
     {
-      "slug": "pet-grooming",
-      "label": "Pet Grooming",
+      "slug": "bathroom",
+      "label": "Bathroom",
       "count": 3
-    },
-    {
-      "slug": "lip-makeup",
-      "label": "Lip Makeup",
-      "count": 2
-    },
-    {
-      "slug": "home-garden-household-appliances-climate-control-appliances-space-heaters",
-      "label": "Home Garden Household Appliances Climate Control Appliances Space Heaters",
-      "count": 2
     },
     {
       "slug": "home-garden-business-home-security-motion-sensors",
@@ -919,18 +869,8 @@
       "count": 2
     },
     {
-      "slug": "pet-litter-box",
-      "label": "Pet Litter Box",
-      "count": 2
-    },
-    {
       "slug": "racket-sports",
       "label": "Racket Sports",
-      "count": 2
-    },
-    {
-      "slug": "smart-locks",
-      "label": "Smart Locks",
       "count": 2
     },
     {
@@ -941,11 +881,6 @@
     {
       "slug": "home-garden-lighting-light-bulbs",
       "label": "Home Garden Lighting Light Bulbs",
-      "count": 2
-    },
-    {
-      "slug": "bedding",
-      "label": "Bedding",
       "count": 2
     },
     {
@@ -964,28 +899,8 @@
       "count": 2
     },
     {
-      "slug": "home-garden-household-appliances-climate-control-appliances-humidifiers",
-      "label": "Home Garden Household Appliances Climate Control Appliances Humidifiers",
-      "count": 2
-    },
-    {
-      "slug": "dolls-figures",
-      "label": "Dolls Figures",
-      "count": 2
-    },
-    {
       "slug": "home-garden-lighting-accessories",
       "label": "Home Garden Lighting Accessories",
-      "count": 2
-    },
-    {
-      "slug": "slippers",
-      "label": "Slippers",
-      "count": 2
-    },
-    {
-      "slug": "pet-beds",
-      "label": "Pet Beds",
       "count": 2
     },
     {
@@ -994,23 +909,8 @@
       "count": 2
     },
     {
-      "slug": "pet-toy",
-      "label": "Pet Toy",
-      "count": 2
-    },
-    {
       "slug": "wearable-devices",
       "label": "Wearable Devices",
-      "count": 2
-    },
-    {
-      "slug": "nail-care",
-      "label": "Nail Care",
-      "count": 2
-    },
-    {
-      "slug": "eye-makeup",
-      "label": "Eye Makeup",
       "count": 2
     },
     {
@@ -1019,13 +919,13 @@
       "count": 2
     },
     {
-      "slug": "fragrance",
-      "label": "Fragrance",
+      "slug": "smart-locks",
+      "label": "Smart Locks",
       "count": 1
     },
     {
-      "slug": "board-games",
-      "label": "Board Games",
+      "slug": "video-games",
+      "label": "Video Games",
       "count": 1
     },
     {
@@ -1049,6 +949,11 @@
       "count": 1
     },
     {
+      "slug": "private-label",
+      "label": "Private Label",
+      "count": 1
+    },
+    {
       "slug": "scarves-gloves",
       "label": "Scarves Gloves",
       "count": 1
@@ -1056,16 +961,6 @@
     {
       "slug": "perles-europeennes-en-resine",
       "label": "Perles Europeennes En Resine",
-      "count": 1
-    },
-    {
-      "slug": "formal-shoes",
-      "label": "Formal Shoes",
-      "count": 1
-    },
-    {
-      "slug": "educational-toys",
-      "label": "Educational Toys",
       "count": 1
     },
     {
@@ -1084,8 +979,13 @@
       "count": 1
     },
     {
-      "slug": "baby-monitors",
-      "label": "Baby Monitors",
+      "slug": "blazers",
+      "label": "Blazers",
+      "count": 1
+    },
+    {
+      "slug": "metal-processing-equipment-accessories",
+      "label": "Metal Processing Equipment Accessories",
       "count": 1
     },
     {
@@ -1129,16 +1029,6 @@
       "count": 1
     },
     {
-      "slug": "baby-feeding",
-      "label": "Baby Feeding",
-      "count": 1
-    },
-    {
-      "slug": "tv-boxes-mini-pcs",
-      "label": "Tv Boxes Mini Pcs",
-      "count": 1
-    },
-    {
       "slug": "pendentifs-zircon-cubique",
       "label": "Pendentifs Zircon Cubique",
       "count": 1
@@ -1159,11 +1049,6 @@
       "count": 1
     },
     {
-      "slug": "samples-prototyping",
-      "label": "Samples Prototyping",
-      "count": 1
-    },
-    {
       "slug": "oscilloscopes",
       "label": "Oscilloscopes",
       "count": 1
@@ -1174,21 +1059,21 @@
       "count": 1
     },
     {
-      "slug": "home-garden-lighting-lamps",
-      "label": "Home Garden Lighting Lamps",
+      "slug": "desktops",
+      "label": "Desktops",
       "count": 1
     },
     {
-      "slug": "home-garden-household-appliances-climate-control-appliances-air-purifiers",
-      "label": "Home Garden Household Appliances Climate Control Appliances Air Purifiers",
+      "slug": "home-garden-lighting-lamps",
+      "label": "Home Garden Lighting Lamps",
       "count": 1
     }
   ],
   "roles": {
-    "main": 37494,
-    "replacement_part": 1873,
-    "accessory": 12442,
-    "used": 222
+    "replacement_part": 1849,
+    "used": 278,
+    "main": 44134,
+    "accessory": 5770
   },
   "sellers": [
     {
@@ -1245,13 +1130,775 @@
     }
   ],
   "rareCandidates": 548,
-  "rarePublished": 87,
+  "rarePublished": 72,
   "seoRarePages": 28,
   "termShards": 1232,
   "productBuckets": 16,
   "truthCleanup": {
     "brandMustAppearInTitle": true,
     "replacementTypeUsesTitleEvidence": true,
-    "nearDuplicateRareFamiliesCollapsed": true
+    "nearDuplicateRareFamiliesCollapsed": true,
+    "rareCloseoutVersion": "20.8.9",
+    "staleRareSeoPagesPruned": true
+  },
+  "families": [
+    {
+      "slug": "phone",
+      "label": "Phone",
+      "count": 7703
+    },
+    {
+      "slug": "headphones",
+      "label": "Headphones",
+      "count": 4266
+    },
+    {
+      "slug": "unclassified",
+      "label": "Unclassified",
+      "count": 3388
+    },
+    {
+      "slug": "other-home-kitchen",
+      "label": "Other Home Kitchen",
+      "count": 2915
+    },
+    {
+      "slug": "apparel",
+      "label": "Apparel",
+      "count": 2795
+    },
+    {
+      "slug": "power-tools",
+      "label": "Power Tools",
+      "count": 2495
+    },
+    {
+      "slug": "tools",
+      "label": "Tools",
+      "count": 2127
+    },
+    {
+      "slug": "smartwatch",
+      "label": "Smartwatch",
+      "count": 1779
+    },
+    {
+      "slug": "home-appliances",
+      "label": "Home Appliances",
+      "count": 1493
+    },
+    {
+      "slug": "computer",
+      "label": "Computer",
+      "count": 1467
+    },
+    {
+      "slug": "laptop",
+      "label": "Laptop",
+      "count": 1436
+    },
+    {
+      "slug": "home",
+      "label": "Home",
+      "count": 1143
+    },
+    {
+      "slug": "beauty",
+      "label": "Beauty",
+      "count": 966
+    },
+    {
+      "slug": "other-sports-outdoors",
+      "label": "Other Sports Outdoors",
+      "count": 937
+    },
+    {
+      "slug": "jewelry-craft",
+      "label": "Jewelry Craft",
+      "count": 847
+    },
+    {
+      "slug": "furniture",
+      "label": "Furniture",
+      "count": 774
+    },
+    {
+      "slug": "tablet",
+      "label": "Tablet",
+      "count": 734
+    },
+    {
+      "slug": "kitchen",
+      "label": "Kitchen",
+      "count": 699
+    },
+    {
+      "slug": "baby",
+      "label": "Baby",
+      "count": 630
+    },
+    {
+      "slug": "speaker",
+      "label": "Speaker",
+      "count": 604
+    },
+    {
+      "slug": "other-cameras",
+      "label": "Other Cameras",
+      "count": 589
+    },
+    {
+      "slug": "power-bank",
+      "label": "Power Bank",
+      "count": 582
+    },
+    {
+      "slug": "industrial",
+      "label": "Industrial",
+      "count": 572
+    },
+    {
+      "slug": "lighting",
+      "label": "Lighting",
+      "count": 537
+    },
+    {
+      "slug": "microphone",
+      "label": "Microphone",
+      "count": 532
+    },
+    {
+      "slug": "parts",
+      "label": "Parts",
+      "count": 527
+    },
+    {
+      "slug": "pets",
+      "label": "Pets",
+      "count": 487
+    },
+    {
+      "slug": "camera",
+      "label": "Camera",
+      "count": 467
+    },
+    {
+      "slug": "other-apparel",
+      "label": "Other Apparel",
+      "count": 463
+    },
+    {
+      "slug": "other-audio",
+      "label": "Other Audio",
+      "count": 458
+    },
+    {
+      "slug": "automotive",
+      "label": "Automotive",
+      "count": 445
+    },
+    {
+      "slug": "consumer-electronics",
+      "label": "Consumer Electronics",
+      "count": 422
+    },
+    {
+      "slug": "other-business-sourcing",
+      "label": "Other Business Sourcing",
+      "count": 398
+    },
+    {
+      "slug": "bags",
+      "label": "Bags",
+      "count": 393
+    },
+    {
+      "slug": "wholesale-products",
+      "label": "Wholesale Products",
+      "count": 346
+    },
+    {
+      "slug": "perfume",
+      "label": "Perfume",
+      "count": 317
+    },
+    {
+      "slug": "game-console",
+      "label": "Game Console",
+      "count": 291
+    },
+    {
+      "slug": "gaming-accessories",
+      "label": "Gaming Accessories",
+      "count": 283
+    },
+    {
+      "slug": "electrical-equipment-supplies",
+      "label": "Electrical Equipment Supplies",
+      "count": 255
+    },
+    {
+      "slug": "toys",
+      "label": "Toys",
+      "count": 249
+    },
+    {
+      "slug": "printer",
+      "label": "Printer",
+      "count": 247
+    },
+    {
+      "slug": "other-software",
+      "label": "Other Software",
+      "count": 226
+    },
+    {
+      "slug": "other-computers",
+      "label": "Other Computers",
+      "count": 224
+    },
+    {
+      "slug": "television",
+      "label": "Television",
+      "count": 223
+    },
+    {
+      "slug": "other-phones-tablets",
+      "label": "Other Phones Tablets",
+      "count": 213
+    },
+    {
+      "slug": "game-controller",
+      "label": "Game Controller",
+      "count": 193
+    },
+    {
+      "slug": "3d-printing",
+      "label": "3D Printing",
+      "count": 182
+    },
+    {
+      "slug": "coffee-tea",
+      "label": "Coffee Tea",
+      "count": 177
+    },
+    {
+      "slug": "other-pet-supplies",
+      "label": "Other Pet Supplies",
+      "count": 174
+    },
+    {
+      "slug": "sports",
+      "label": "Sports",
+      "count": 171
+    },
+    {
+      "slug": "other-projectors-tv",
+      "label": "Other Projectors Tv",
+      "count": 153
+    },
+    {
+      "slug": "projector",
+      "label": "Projector",
+      "count": 149
+    },
+    {
+      "slug": "other-automotive",
+      "label": "Other Automotive",
+      "count": 148
+    },
+    {
+      "slug": "office",
+      "label": "Office",
+      "count": 125
+    },
+    {
+      "slug": "medical",
+      "label": "Medical",
+      "count": 112
+    },
+    {
+      "slug": "other-tools",
+      "label": "Other Tools",
+      "count": 106
+    },
+    {
+      "slug": "food-storage",
+      "label": "Food Storage",
+      "count": 98
+    },
+    {
+      "slug": "air-conditioning",
+      "label": "Air Conditioning",
+      "count": 94
+    },
+    {
+      "slug": "arts-crafts",
+      "label": "Arts Crafts",
+      "count": 84
+    },
+    {
+      "slug": "streaming-devices",
+      "label": "Streaming Devices",
+      "count": 82
+    },
+    {
+      "slug": "other-smart-home",
+      "label": "Other Smart Home",
+      "count": 71
+    },
+    {
+      "slug": "other-toys-games",
+      "label": "Other Toys Games",
+      "count": 70
+    },
+    {
+      "slug": "other-jewelry-watches",
+      "label": "Other Jewelry Watches",
+      "count": 67
+    },
+    {
+      "slug": "gimbals-stabilizers",
+      "label": "Gimbals Stabilizers",
+      "count": 66
+    },
+    {
+      "slug": "other-printing-3d",
+      "label": "Other Printing 3D",
+      "count": 65
+    },
+    {
+      "slug": "pet-supplies",
+      "label": "Pet Supplies",
+      "count": 48
+    },
+    {
+      "slug": "socks",
+      "label": "Socks",
+      "count": 47
+    },
+    {
+      "slug": "tripods",
+      "label": "Tripods",
+      "count": 45
+    },
+    {
+      "slug": "pens-pencils",
+      "label": "Pens Pencils",
+      "count": 45
+    },
+    {
+      "slug": "watches",
+      "label": "Watches",
+      "count": 37
+    },
+    {
+      "slug": "custom-logo",
+      "label": "Custom Logo",
+      "count": 37
+    },
+    {
+      "slug": "rings",
+      "label": "Rings",
+      "count": 36
+    },
+    {
+      "slug": "other-bags-accessories",
+      "label": "Other Bags Accessories",
+      "count": 34
+    },
+    {
+      "slug": "home-garden-lighting-light-ropes-strings",
+      "label": "Home Garden Lighting Light Ropes Strings",
+      "count": 27
+    },
+    {
+      "slug": "sleepwear",
+      "label": "Sleepwear",
+      "count": 24
+    },
+    {
+      "slug": "swimwear",
+      "label": "Swimwear",
+      "count": 24
+    },
+    {
+      "slug": "belts",
+      "label": "Belts",
+      "count": 21
+    },
+    {
+      "slug": "festive-party-supplies",
+      "label": "Festive Party Supplies",
+      "count": 19
+    },
+    {
+      "slug": "photo-lighting",
+      "label": "Photo Lighting",
+      "count": 19
+    },
+    {
+      "slug": "eyewear",
+      "label": "Eyewear",
+      "count": 18
+    },
+    {
+      "slug": "projector-screens",
+      "label": "Projector Screens",
+      "count": 18
+    },
+    {
+      "slug": "router-networking",
+      "label": "Router Networking",
+      "count": 16
+    },
+    {
+      "slug": "audio-interfaces",
+      "label": "Audio Interfaces",
+      "count": 12
+    },
+    {
+      "slug": "home-garden-household-supplies-household-thermometers",
+      "label": "Home Garden Household Supplies Household Thermometers",
+      "count": 11
+    },
+    {
+      "slug": "docks-hubs",
+      "label": "Docks Hubs",
+      "count": 9
+    },
+    {
+      "slug": "aquarium-supplies",
+      "label": "Aquarium Supplies",
+      "count": 9
+    },
+    {
+      "slug": "underwear",
+      "label": "Underwear",
+      "count": 8
+    },
+    {
+      "slug": "security-camera",
+      "label": "Security Camera",
+      "count": 7
+    },
+    {
+      "slug": "diecast-collectibles",
+      "label": "Diecast Collectibles",
+      "count": 6
+    },
+    {
+      "slug": "activewear",
+      "label": "Activewear",
+      "count": 6
+    },
+    {
+      "slug": "stylus-pens",
+      "label": "Stylus Pens",
+      "count": 6
+    },
+    {
+      "slug": "womens-underwear",
+      "label": "Womens Underwear",
+      "count": 5
+    },
+    {
+      "slug": "home-garden-lighting-lighting-fixtures-wall-light-fixtures",
+      "label": "Home Garden Lighting Lighting Fixtures Wall Light Fixtures",
+      "count": 4
+    },
+    {
+      "slug": "team-sports",
+      "label": "Team Sports",
+      "count": 4
+    },
+    {
+      "slug": "3d-filament",
+      "label": "3D Filament",
+      "count": 4
+    },
+    {
+      "slug": "antivirus-security",
+      "label": "Antivirus Security",
+      "count": 4
+    },
+    {
+      "slug": "tool-storage",
+      "label": "Tool Storage",
+      "count": 3
+    },
+    {
+      "slug": "hardware-tools-measuring-tools-sensors-hygrometers",
+      "label": "Hardware Tools Measuring Tools Sensors Hygrometers",
+      "count": 3
+    },
+    {
+      "slug": "smart-lighting",
+      "label": "Smart Lighting",
+      "count": 3
+    },
+    {
+      "slug": "product",
+      "label": "Product",
+      "count": 3
+    },
+    {
+      "slug": "baby-strollers-accessories",
+      "label": "Baby Strollers Accessories",
+      "count": 3
+    },
+    {
+      "slug": "chassis-parts",
+      "label": "Chassis Parts",
+      "count": 3
+    },
+    {
+      "slug": "makeup-tools",
+      "label": "Makeup Tools",
+      "count": 3
+    },
+    {
+      "slug": "car-head-unit",
+      "label": "Car Head Unit",
+      "count": 3
+    },
+    {
+      "slug": "luggage",
+      "label": "Luggage",
+      "count": 3
+    },
+    {
+      "slug": "home-garden-lighting-flood-spot-lights",
+      "label": "Home Garden Lighting Flood Spot Lights",
+      "count": 3
+    },
+    {
+      "slug": "labels-paper",
+      "label": "Labels Paper",
+      "count": 3
+    },
+    {
+      "slug": "bathroom",
+      "label": "Bathroom",
+      "count": 3
+    },
+    {
+      "slug": "home-garden-business-home-security-motion-sensors",
+      "label": "Home Garden Business Home Security Motion Sensors",
+      "count": 2
+    },
+    {
+      "slug": "fishing",
+      "label": "Fishing",
+      "count": 2
+    },
+    {
+      "slug": "racket-sports",
+      "label": "Racket Sports",
+      "count": 2
+    },
+    {
+      "slug": "running-gear",
+      "label": "Running Gear",
+      "count": 2
+    },
+    {
+      "slug": "home-garden-lighting-light-bulbs",
+      "label": "Home Garden Lighting Light Bulbs",
+      "count": 2
+    },
+    {
+      "slug": "pendentifs-en-resine",
+      "label": "Pendentifs En Resine",
+      "count": 2
+    },
+    {
+      "slug": "home-garden-lighting-in-ground-lights",
+      "label": "Home Garden Lighting In Ground Lights",
+      "count": 2
+    },
+    {
+      "slug": "video-doorbells",
+      "label": "Video Doorbells",
+      "count": 2
+    },
+    {
+      "slug": "home-garden-lighting-accessories",
+      "label": "Home Garden Lighting Accessories",
+      "count": 2
+    },
+    {
+      "slug": "enamel-pendants",
+      "label": "Enamel Pendants",
+      "count": 2
+    },
+    {
+      "slug": "wearable-devices",
+      "label": "Wearable Devices",
+      "count": 2
+    },
+    {
+      "slug": "personal-care",
+      "label": "Personal Care",
+      "count": 2
+    },
+    {
+      "slug": "smart-locks",
+      "label": "Smart Locks",
+      "count": 1
+    },
+    {
+      "slug": "video-games",
+      "label": "Video Games",
+      "count": 1
+    },
+    {
+      "slug": "pinzas-de-garra-para-el-cabello",
+      "label": "Pinzas De Garra Para El Cabello",
+      "count": 1
+    },
+    {
+      "slug": "home-garden-lighting-lighting-fixtures",
+      "label": "Home Garden Lighting Lighting Fixtures",
+      "count": 1
+    },
+    {
+      "slug": "presentoirs-en-carte",
+      "label": "Presentoirs En Carte",
+      "count": 1
+    },
+    {
+      "slug": "cubic-zirconia-pendants",
+      "label": "Cubic Zirconia Pendants",
+      "count": 1
+    },
+    {
+      "slug": "private-label",
+      "label": "Private Label",
+      "count": 1
+    },
+    {
+      "slug": "scarves-gloves",
+      "label": "Scarves Gloves",
+      "count": 1
+    },
+    {
+      "slug": "perles-europeennes-en-resine",
+      "label": "Perles Europeennes En Resine",
+      "count": 1
+    },
+    {
+      "slug": "bracelets",
+      "label": "Bracelets",
+      "count": 1
+    },
+    {
+      "slug": "suits",
+      "label": "Suits",
+      "count": 1
+    },
+    {
+      "slug": "cardboard-box",
+      "label": "Cardboard Box",
+      "count": 1
+    },
+    {
+      "slug": "blazers",
+      "label": "Blazers",
+      "count": 1
+    },
+    {
+      "slug": "metal-processing-equipment-accessories",
+      "label": "Metal Processing Equipment Accessories",
+      "count": 1
+    },
+    {
+      "slug": "perles-en-porcelaine",
+      "label": "Perles En Porcelaine",
+      "count": 1
+    },
+    {
+      "slug": "perles-en-silicone",
+      "label": "Perles En Silicone",
+      "count": 1
+    },
+    {
+      "slug": "sports-protection",
+      "label": "Sports Protection",
+      "count": 1
+    },
+    {
+      "slug": "cadenas-artesanales-con-abalorios",
+      "label": "Cadenas Artesanales Con Abalorios",
+      "count": 1
+    },
+    {
+      "slug": "resin-cabochons",
+      "label": "Resin Cabochons",
+      "count": 1
+    },
+    {
+      "slug": "electronics-video-video-accessories-television-parts-accessories-tv-monitor-mounts",
+      "label": "Electronics Video Video Accessories Television Parts Accessories Tv Monitor Mounts",
+      "count": 1
+    },
+    {
+      "slug": "home-garden-lighting",
+      "label": "Home Garden Lighting",
+      "count": 1
+    },
+    {
+      "slug": "automobiles-motorcycles",
+      "label": "Automobiles Motorcycles",
+      "count": 1
+    },
+    {
+      "slug": "pendentifs-zircon-cubique",
+      "label": "Pendentifs Zircon Cubique",
+      "count": 1
+    },
+    {
+      "slug": "calottes-coupelles",
+      "label": "Calottes Coupelles",
+      "count": 1
+    },
+    {
+      "slug": "perles-acryliques-opaques",
+      "label": "Perles Acryliques Opaques",
+      "count": 1
+    },
+    {
+      "slug": "model-cars-collectibles",
+      "label": "Model Cars Collectibles",
+      "count": 1
+    },
+    {
+      "slug": "oscilloscopes",
+      "label": "Oscilloscopes",
+      "count": 1
+    },
+    {
+      "slug": "pendentifs-en-verre",
+      "label": "Pendentifs En Verre",
+      "count": 1
+    },
+    {
+      "slug": "desktops",
+      "label": "Desktops",
+      "count": 1
+    },
+    {
+      "slug": "home-garden-lighting-lamps",
+      "label": "Home Garden Lighting Lamps",
+      "count": 1
+    }
+  ],
+  "qualityGateV20_9": {
+    "unclassifiedBefore": 9355,
+    "unclassifiedAfter": 3388,
+    "typeCorrections": 21440,
+    "roleCorrections": 8302,
+    "titleCleanups": 1545,
+    "immutableCommerceFieldsChanged": 0
   }
 }
