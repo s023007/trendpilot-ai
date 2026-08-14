@@ -41,7 +41,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v5
 
-      - name: Wait for restored finder, V20.9.5 product truth and V20.9.4 semantic data
+      - name: Wait for restored finder, split product truth and V20.9.4 semantic data
         shell: bash
         run: |
           set -euo pipefail
@@ -56,7 +56,10 @@ jobs:
               fi
             fi
             if curl -fsSL --max-time 20 "$PRODUCT_URL" -o /tmp/tp-product.html; then
-              if grep -q 'data-tp-product-truth="20.9.5"' /tmp/tp-product.html && grep -q 'catalogue record' /tmp/tp-product.html; then
+              if grep -q 'data-tp-product-truth="20.9.5"' /tmp/tp-product.html \
+                && grep -q 'RAM + storage specified' /tmp/tp-product.html \
+                && grep -q 'Storage-only records' /tmp/tp-product.html \
+                && grep -q 'RAM and storage vary by seller record' /tmp/tp-product.html; then
                 product_ok=1
               fi
             fi
@@ -66,7 +69,7 @@ jobs:
               fi
             fi
             if [ "$finder_ok" = 1 ] && [ "$product_ok" = 1 ] && [ "$semantic_ok" = 1 ]; then
-              echo 'Restored finder, V20.9.5 server product truth and V20.9.4 quality data are live.'
+              echo 'Restored finder, split V20.9.5 product truth and V20.9.4 quality data are live.'
               exit 0
             fi
             echo "Waiting for public deploy ($i/36): finder=$finder_ok product=$product_ok semantic=$semantic_ok"
