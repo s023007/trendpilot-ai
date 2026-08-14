@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
-ROOT=Path(__file__).resolve().parents[1]; CAT=ROOT/'data/catalog-v19'; OUT=ROOT/'data/v20-8'; SITE='https://trendpilotchoice.com'; V='20.8.2'
+ROOT=Path(__file__).resolve().parents[1]; CAT=ROOT/'data/catalog-v19'; OUT=ROOT/'data/v20-8'; SITE='https://trendpilotchoice.com'; V='20.8.3'
 BLOCK={'temu','joom','filamentpro','filamentpro eu cps','filamentpro-eu-cps'}
 STOP={'the','and','for','with','from','this','that','your','our','new','best','sale','hot','price','buy','original','official','wholesale','factory','global','product','products','item','items','pcs','piece','pieces','pack','set','sets','of','to','in','on','by','a','an'}
 USED={'used','refurbished','open-box','open box','renewed','pre-owned','preowned'}
@@ -26,7 +26,8 @@ def placeholder(u): return (not u) or bool(re.search(r'(?:no[-_ ]?(?:photo|image
 def product_type(rec,title):
     text=n(title)
     # Explicit title evidence beats stale seller taxonomy for specialist parts.
-    if re.search(r'\b(?:carbon brush|armature|stator|rotor)\b',text) and re.search(r'\b(?:power tool|drill|saw|sander|grinder|router|motor)\b',text): return 'power-tool-parts'
+    if 'carbon brush' in text: return 'power-tool-parts'
+    if re.search(r'\b(?:armature|stator|rotor)\b',text) and re.search(r'\b(?:power tool|drill|saw|sander|grinder|router|motor)\b',text): return 'power-tool-parts'
     if re.search(r'\bair conditioner\b',text) and re.search(r'\b(?:board|receiver|sensor|part|remote|motor|compressor|fan)\b',text): return 'air-conditioning-parts'
     for name,pat in TYPE:
         if pat.search(title): return name
@@ -129,16 +130,18 @@ def main():
             score+=12;sig.append('replacement-part')
         add=0
         for term,val in RARE.items():
-            if term in t:
-                weight={'rare':15,'hard to find':18,'hard-to-find':18,'discontinued':28,'obsolete':24,'vintage':8,'limited edition':20,'collector':18,'collectible':18,'new old stock':24,'surplus':12,'legacy':12,'classic':8,'out of production':28,'replacement':6,'spare':5,'oem':4}.get(term,val)
-                add=max(add,weight)
-                if term in {'discontinued','obsolete','out of production','legacy'}:
-                    if 'discontinued' not in sig:sig.append('discontinued')
-                    strong_rarity=True
-                if term in {'limited edition','collector','collectible','new old stock'}:
-                    if 'collector' not in sig:sig.append('collector')
-                    strong_rarity=True
-                if term in {'rare','hard to find','hard-to-find'}:strong_rarity=True
+            if term not in t:continue
+            # 'collector' can mean dust/data/solar collector; only count collector language when it clearly describes collectibility.
+            if term=='collector' and not re.search(r"\b(?:collector(?:'s)?\s+(?:item|edition|series|model|piece|set)|for\s+collectors?)\b",t):continue
+            weight={'rare':15,'hard to find':18,'hard-to-find':18,'discontinued':28,'obsolete':24,'vintage':8,'limited edition':20,'collector':18,'collectible':18,'new old stock':24,'surplus':12,'legacy':12,'classic':8,'out of production':28,'replacement':6,'spare':5,'oem':4}.get(term,val)
+            add=max(add,weight)
+            if term in {'discontinued','obsolete','out of production','legacy'}:
+                if 'discontinued' not in sig:sig.append('discontinued')
+                strong_rarity=True
+            if term in {'limited edition','collector','collectible','new old stock'}:
+                if 'collector' not in sig:sig.append('collector')
+                strong_rarity=True
+            if term in {'rare','hard to find','hard-to-find'}:strong_rarity=True
         score+=add
         if any(x in t for x in SPECIAL):score+=8;sig.append('specialist')
         if re.search(r'\b(?=[a-z0-9.-]{4,}\b)(?=[a-z0-9.-]*[a-z])(?=[a-z0-9.-]*\d)[a-z0-9.-]+\b',t):score+=8;sig.append('model-specific')

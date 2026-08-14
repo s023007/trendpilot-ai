@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const V="20.8.2",d=document,$=(s,r=d)=>r.querySelector(s),$$=(s,r=d)=>[...r.querySelectorAll(s)],E=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  const V="20.8.3",d=document,$=(s,r=d)=>r.querySelector(s),$$=(s,r=d)=>[...r.querySelectorAll(s)],E=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   let rows=[],filter="all";
   const money=r=>`${r.currency==="USD"?"US$":E(r.currency+" ")}${Number(r.price).toLocaleString(undefined,{maximumFractionDigits:2})}`;
   function rarity(score){score=Number(score||0);if(score>=90)return`Exceptional find · ${score}`;if(score>=80)return`Very rare · ${score}`;if(score>=65)return`Hard to find · ${score}`;return`Specialist find · ${score}`}
