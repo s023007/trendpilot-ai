@@ -7,6 +7,7 @@ on:
     paths:
       - scripts/quality-gate-v20-9-all-products.py
       - scripts/audit-v20-9-all-products.py
+      - scripts/export-v20-9-runtime-data.py
       - scripts/finalize-v20-8-9-rare-closeout.py
       - .github/workflows/trendpilot-v20-9-quality-gate-candidate.yml
   workflow_dispatch:
@@ -26,6 +27,9 @@ jobs:
       - name: Apply candidate quality gate in workspace
         run: python scripts/quality-gate-v20-9-all-products.py
 
+      - name: Export V20.9 mobile runtime data
+        run: python scripts/export-v20-9-runtime-data.py
+
       - name: Audit remaining products after quality gate
         run: python scripts/audit-v20-9-all-products.py
 
@@ -36,29 +40,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile scripts/quality-gate-v20-9-all-products.py scripts/audit-v20-9-all-products.py scripts/finalize-v20-8-9-rare-closeout.py
+          python -m py_compile scripts/quality-gate-v20-9-all-products.py scripts/audit-v20-9-all-products.py scripts/export-v20-9-runtime-data.py scripts/finalize-v20-8-9-rare-closeout.py
           test -s data/v20-9/quality-report.json
           test -s data/v20-9/diagnostic.json
           test -s data/v20-9/families.json
+          test -s data/v20-9/runtime-manifest.json
           python - <<'PY'
           import json
           from pathlib import Path
           x=json.loads(Path('data/v20-9/quality-report.json').read_text())
           d=json.loads(Path('data/v20-9/diagnostic.json').read_text())
+          rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text())
           m=json.loads(Path('data/v20-8/manifest.json').read_text())
           s=json.loads(Path('data/v20-8/taxonomy-summary.json').read_text())
           assert x['records']==52031, x['records']
           assert d['records']==52031, d['records']
+          assert rt['records']==52031, rt['records']
           assert d['unclassified']==x['unclassifiedAfter'], (d['unclassified'],x['unclassifiedAfter'])
           assert x['blockedSellerLeaks']==0, x['blockedSellerLeaks']
           assert x['immutableCommerceFieldsChanged']==0, x['immutableCommerceFieldsChanged']
-          assert x['unclassifiedAfter'] < x['unclassifiedBefore'], (x['unclassifiedBefore'],x['unclassifiedAfter'])
+          assert x['unclassifiedAfter'] <= 3500, x['unclassifiedAfter']
+          assert rt['productBuckets'] >= 240, rt['productBuckets']
+          assert rt['maxProductBucketBytes'] < 500000, rt['maxProductBucketBytes']
           for k in ('phoneNonMain','tabletNonMain','laptopNonMain','smartwatchNonMain','headphonesNonMain'):
               assert x['semanticProbes'][k]==0, (k,x['semanticProbes'][k])
           assert m.get('version')=='20.9.0', m.get('version')
           assert m.get('truthCleanup',{}).get('rareCloseoutVersion')=='20.8.9'
           assert s.get('version')=='20.9.0', s.get('version')
-          print('PASS candidate quality gate + remaining audit + Rare version preservation')
+          print('PASS candidate quality gate + mobile runtime + remaining audit + Rare version preservation')
           PY
           if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
             echo 'Unexpected identity or canonical catalog mutation'
@@ -80,6 +89,7 @@ jobs:
               raise SystemExit
           x=json.loads(p.read_text())
           d=json.loads(dpath.read_text()) if dpath.exists() else {}
+          rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text()) if Path('data/v20-9/runtime-manifest.json').exists() else {}
           m=json.loads(Path('data/v20-8/manifest.json').read_text())
           print('# TrendPilot V20.9 — All Product Quality Gate Candidate')
           print()
@@ -95,6 +105,9 @@ jobs:
           print(f"- Immutable commerce fields changed: **{x['immutableCommerceFieldsChanged']}**")
           print(f"- Global manifest version after Rare closeout: **{m.get('version')}**")
           print(f"- Rare closeout contract: **{m.get('truthCleanup',{}).get('rareCloseoutVersion')}**")
+          if rt:
+              print(f"- Mobile product buckets: **{rt['productBuckets']:,}**")
+              print(f"- Largest mobile product bucket: **{rt['maxProductBucketBytes']:,} bytes**")
           print()
           print('## Semantic probes')
           for k,v in x['semanticProbes'].items(): print(f'- {k}: **{v}**')
