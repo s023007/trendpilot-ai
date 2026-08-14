@@ -1,4 +1,4 @@
-name: TrendPilot V20.9.1 — Universal Product Quality Gate
+name: TrendPilot V20.9.2 — Universal Product Quality Gate
 
 on:
   push:
@@ -9,11 +9,14 @@ on:
       - scripts/clean-v20-8-universal-output.py
       - scripts/clean-v20-8-brand-truth.py
       - scripts/quality-gate-v20-9-all-products.py
+      - scripts/refine-v20-9-2-residual-unclassified.py
       - scripts/export-v20-9-runtime-data.py
       - scripts/audit-v20-9-all-products.py
       - scripts/qa-v20-9-product-smoke.py
+      - scripts/report-v20-9-2-release-contract.py
       - scripts/finalize-v20-8-9-rare-closeout.py
       - js/universal-discovery-v20-9-1.js
+      - js/finder-shell-v20-9.js
       - js/item-detail-v20-9.js
       - js/compare-v20-9.js
       - js/compare-state-v20-9.js
@@ -47,33 +50,39 @@ jobs:
       - name: Build universal source projection
         run: python scripts/build-v20-8-universal-discovery.py
 
-      - name: Apply existing V20.8 truth cleanup
-        run: python scripts/clean-v20-8-universal-output.py
-
-      - name: Apply brand truth guard
-        run: python scripts/clean-v20-8-brand-truth.py
+      - name: Apply established V20.8 truth guards
+        run: |
+          python scripts/clean-v20-8-universal-output.py
+          python scripts/clean-v20-8-brand-truth.py
 
       - name: Apply V20.9 all-product quality gate
         run: python scripts/quality-gate-v20-9-all-products.py
 
-      - name: Export V20.9 mobile runtime data
+      - name: Apply V20.9.2 high-confidence residual pass
+        run: python scripts/refine-v20-9-2-residual-unclassified.py
+
+      - name: Export role-balanced V20.9 mobile runtime
         run: python scripts/export-v20-9-runtime-data.py
 
-      - name: Audit final V20.9 products
+      - name: Audit final V20.9.2 product projection
         run: python scripts/audit-v20-9-all-products.py
 
-      - name: Apply V20.8.9 Rare closeout without downgrading V20.9
+      - name: Preserve Rare V20.8.9 closeout
         run: python scripts/finalize-v20-8-9-rare-closeout.py
 
       - name: Cross-family product smoke QA
         run: python scripts/qa-v20-9-product-smoke.py
 
-      - name: Syntax, semantic and safety QA
+      - name: Build granular release contract
+        run: python scripts/report-v20-9-2-release-contract.py
+
+      - name: Syntax, semantic, runtime and safety QA
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile scripts/build-v20-8-universal-discovery.py scripts/clean-v20-8-universal-output.py scripts/clean-v20-8-brand-truth.py scripts/quality-gate-v20-9-all-products.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/finalize-v20-8-9-rare-closeout.py
+          python -m py_compile scripts/build-v20-8-universal-discovery.py scripts/clean-v20-8-universal-output.py scripts/clean-v20-8-brand-truth.py scripts/quality-gate-v20-9-all-products.py scripts/refine-v20-9-2-residual-unclassified.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/report-v20-9-2-release-contract.py scripts/finalize-v20-8-9-rare-closeout.py
           node --check js/universal-discovery-v20-9-1.js
+          node --check js/finder-shell-v20-9.js
           node --check js/item-detail-v20-9.js
           node --check js/compare-v20-9.js
           node --check js/compare-state-v20-9.js
@@ -85,11 +94,15 @@ jobs:
           test -s data/v20-8/taxonomy-summary.json
           test -s data/v20-8/rare-index.json
           test -s data/v20-9/quality-report.json
+          test -s data/v20-9/residual-report.json
           test -s data/v20-9/diagnostic.json
           test -s data/v20-9/families.json
+          test -s data/v20-9/family-roles.json
           test -s data/v20-9/runtime-manifest.json
+          test -s data/v20-9/contract-debug.json
           test -s sitemap-v20-8.xml
           grep -q 'universal-discovery-v20-9-1.js?v=20.9.1' find/index.html
+          grep -q 'finder-shell-v20-9.js?v=20.9.0' find/index.html
           grep -q 'compare-state-v20-9.js?v=20.9.0' find/index.html index.html
           grep -q 'item-detail-v20-9.js?v=20.9.0' item/index.html
           grep -q 'compare-v20-9.js?v=20.9.0' compare/index.html
@@ -103,38 +116,28 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
+          x=json.loads(Path('data/v20-9/contract-debug.json').read_text())
+          print(json.dumps(x,ensure_ascii=False,indent=2))
+          if not x.get('passed'):
+              raise SystemExit('V20.9.2 production contract failed: '+', '.join(x.get('failed') or []))
           q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          r=json.loads(Path('data/v20-9/residual-report.json').read_text())
           d=json.loads(Path('data/v20-9/diagnostic.json').read_text())
           rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text())
-          manifest=json.loads(Path('data/v20-8/manifest.json').read_text())
-          summary=json.loads(Path('data/v20-8/taxonomy-summary.json').read_text())
+          m=json.loads(Path('data/v20-8/manifest.json').read_text())
           rare=json.loads(Path('data/v20-8/rare-index.json').read_text())
-          assert q['records']==52031
-          assert d['records']==52031
-          assert rt['records']==52031
-          assert manifest.get('version')=='20.9.0', manifest.get('version')
-          assert summary.get('version')=='20.9.0', summary.get('version')
-          assert manifest.get('truthCleanup',{}).get('rareCloseoutVersion')=='20.8.9'
+          assert q['unclassifiedAfter']==r['unclassifiedAfterResidual']==d['unclassified']
+          assert q['unclassifiedAfter']<=2500
           assert q['blockedSellerLeaks']==0
           assert q['immutableCommerceFieldsChanged']==0
-          assert q['unclassifiedAfter']<=3500, q['unclassifiedAfter']
-          assert d['unclassified']==q['unclassifiedAfter']
-          assert rt['productBuckets']==256
-          assert rt['maxProductBucketBytes']<500000
-          for k in ('phoneNonMain','tabletNonMain','laptopNonMain','smartwatchNonMain','headphonesNonMain'):
-              assert q['semanticProbes'][k]==0, (k,q['semanticProbes'][k])
-              assert d['roleAnomalies'][k]['count']==0, (k,d['roleAnomalies'][k]['count'])
-          assert len(rare)>=20
-          assert manifest['rarePublished']==len(rare)
-          assert all(int(r.get('rareScore') or 0)>=60 for r in rare)
-          assert not any('mini doll outfit' in r.get('title','').lower() for r in rare)
-          assert not any('acgam' in r.get('title','').lower() and 'desk' in r.get('title','').lower() for r in rare)
-          assert not any('robore' in r.get('title','').lower() and 'exercise bike' in r.get('title','').lower() for r in rare)
-          cb=[r for r in rare if 'carbon brush' in r.get('title','').lower() and 'cb440' in r.get('title','').lower()]
-          assert cb and all(r.get('type')=='power-tool-parts' and r.get('role')=='replacement_part' for r in cb)
-          print('V20.9.1 product + finder + runtime + Rare contracts PASS')
+          assert rt['productBuckets']==256 and rt['maxProductBucketBytes']<500000
+          assert rt.get('familyStrategy')=='role-balanced'
+          assert m.get('truthCleanup',{}).get('residualUnclassifiedPassVersion')=='20.9.2'
+          assert m.get('truthCleanup',{}).get('rareCloseoutVersion')=='20.8.9'
+          assert m.get('rarePublished')==len(rare)
+          print('V20.9.2 PRODUCTION PRODUCT CONTRACT PASS')
           PY
-          if grep -RE 'new MutationObserver\([^)]*document|observe\(document' js/universal-discovery-v20-9-1.js js/item-detail-v20-9.js js/compare-v20-9.js js/compare-state-v20-9.js; then
+          if grep -RE 'new MutationObserver\([^)]*document|observe\(document' js/universal-discovery-v20-9-1.js js/finder-shell-v20-9.js js/item-detail-v20-9.js js/compare-v20-9.js js/compare-state-v20-9.js; then
             echo 'Whole-document MutationObserver is forbidden'
             exit 1
           fi
@@ -144,43 +147,47 @@ jobs:
             exit 1
           fi
 
-      - name: Write V20.9.1 build summary
+      - name: Write V20.9.2 build summary
         shell: bash
         run: |
           python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json
           from pathlib import Path
           q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          r=json.loads(Path('data/v20-9/residual-report.json').read_text())
           d=json.loads(Path('data/v20-9/diagnostic.json').read_text())
           rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text())
           m=json.loads(Path('data/v20-8/manifest.json').read_text())
           rare=json.loads(Path('data/v20-8/rare-index.json').read_text())
-          print('# TrendPilot V20.9.1 — All Product Families Quality Gate')
+          contract=json.loads(Path('data/v20-9/contract-debug.json').read_text())
+          print('# TrendPilot V20.9.2 — All Product Families Quality Gate')
           print()
           print(f"- Catalogue records preserved: **{q['records']:,}**")
-          print(f"- Unclassified before: **{q['unclassifiedBefore']:,}**")
-          print(f"- Unclassified after: **{q['unclassifiedAfter']:,} ({q['unclassifiedAfterPct']}%)**")
-          print(f"- Reclassified from Unclassified: **{q['unclassifiedReduction']:,}**")
-          print(f"- Type corrections: **{sum(x['count'] for x in q['typeChanges']):,}**")
-          print(f"- Role corrections: **{sum(x['count'] for x in q['roleChanges']):,}**")
+          print(f"- Unclassified: **{q['unclassifiedBefore']:,} → {q['unclassifiedAfter']:,} ({q['unclassifiedAfterPct']}%)**")
+          print(f"- Base type corrections: **{sum(x['count'] for x in q['typeChanges']):,}**")
+          print(f"- High-confidence residual classifications: **{r['classifiedByResidual']:,}**")
+          print(f"- Base role corrections: **{sum(x['count'] for x in q['roleChanges']):,}**")
           print(f"- Product families: **{q['familyCount']:,}**")
           print(f"- Mobile product buckets: **{rt['productBuckets']:,}**")
           print(f"- Largest mobile bucket: **{rt['maxProductBucketBytes']:,} bytes**")
-          print(f"- Strong accessory-grammar rows still marked main: **{d['roleAnomalies']['mainWithStrongAccessoryGrammar']['count']:,}**")
-          print(f"- Strong replacement-grammar rows still marked main: **{d['roleAnomalies']['mainWithStrongReplacementGrammar']['count']:,}**")
+          print(f"- Family retrieval strategy: **{rt.get('familyStrategy')}**")
+          print(f"- Strong accessory grammar still marked main: **{d['roleAnomalies']['mainWithStrongAccessoryGrammar']['count']:,}**")
+          print(f"- Strong replacement grammar still marked main: **{d['roleAnomalies']['mainWithStrongReplacementGrammar']['count']:,}**")
           print(f"- Blocked seller leaks: **{q['blockedSellerLeaks']}**")
           print(f"- Commerce/identity evidence fields changed: **{q['immutableCommerceFieldsChanged']}**")
           print(f"- Rare Finds preserved: **{len(rare):,}**")
           print(f"- Rare closeout contract: **{m.get('truthCleanup',{}).get('rareCloseoutVersion')}**")
+          print(f"- Release contract: **{'PASS' if contract.get('passed') else 'FAIL'}**")
           print()
           print('## Shopper behavior')
-          print('- V20.9.1 is authoritative for every public finder query: **YES**')
-          print('- Generic product searches show main/used, not accessories/parts: **YES**')
+          print('- V20.9.1 authoritative finder for every public query: **YES**')
+          print('- Generic searches show main/used instead of accessories/parts: **YES**')
           print('- Explicit accessory/part/used intent is supported: **YES**')
           print('- Seller filter persists per query: **YES**')
-          print('- Exact-product and seller-feed price labels stay separate: **YES**')
-          print('- Search cards open TrendPilot details before seller: **YES**')
+          print('- Exact-product and seller-feed prices stay visibly separate: **YES**')
+          print('- Product cards open TrendPilot details before seller exit: **YES**')
           print('- Comparison is limited to the same product family: **YES**')
+          print('- Ambiguous residual products remain unclassified instead of forced: **YES**')
           print()
           print('## Safety')
           print('- V19 canonical seller catalogs rebuilt: **NO**')
@@ -190,7 +197,7 @@ jobs:
           print('- Rare closeout weakened: **NO**')
           PY
 
-      - name: Commit V20.9 generated discovery assets
+      - name: Commit V20.9.2 generated product assets
         shell: bash
         run: |
           set -euo pipefail
@@ -198,8 +205,8 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add data/v20-8/manifest.json data/v20-8/taxonomy-summary.json data/v20-8/rare-index.json data/v20-9 rare-used/finds sitemap-v20-8.xml robots.txt
           if git diff --cached --quiet; then
-            echo 'No generated changes to commit'
+            echo 'No generated product changes to commit'
             exit 0
           fi
-          git commit -m 'TrendPilot V20.9 build all-product quality runtime'
+          git commit -m 'TrendPilot V20.9.2 build final all-product runtime'
           git push
