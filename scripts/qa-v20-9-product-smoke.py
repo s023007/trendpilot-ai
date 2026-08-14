@@ -10,6 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 P8=ROOT/'data/v20-8/products'
 Q=ROOT/'data/v20-9/quality-report.json'
 F=ROOT/'data/v20-9/families.json'
+FR=ROOT/'data/v20-9/family-roles.json'
 RT=ROOT/'data/v20-9/runtime-manifest.json'
 BLOCK={'temu','joom','filamentpro','filamentpro eu cps','filamentpro-eu-cps'}
 USED_EVIDENCE=re.compile(r'\b(?:used|refurbished|renewed|pre[-\s]?owned|second[-\s]?hand|open[-\s]?box)\b',re.I)
@@ -36,8 +37,6 @@ def main():
     by_role=collections.Counter(r.get('ro') for r in rows)
     assert not any(str(r.get('se') or '').strip().lower() in BLOCK for r in rows)
 
-    # Coverage is intentionally broad but thresholds remain conservative enough to verify real catalogue presence,
-    # not to force uncertain products into a category simply to make a test pass.
     required_types={
         'tablet':40,'camera':40,'printer':30,'furniture':100,'furniture-desks':20,
         'vacuum-cleaner':20,'kitchen-appliances':40,'automotive-parts':40,
@@ -52,8 +51,6 @@ def main():
         bad=[r for r in rows if r.get('ty')==core and r.get('ro') not in {'main','used'}]
         assert not bad, f'{core} still contains accessory/part roles: {len(bad)}'
 
-    # A used/refurbished accessory is still an accessory product type, but "used" is the shopper role that should win.
-    # Likewise a refurbished motherboard/spare part remains a parts type while its role truthfully says used.
     used_typed_specials=0
     for r in rows:
         ty=str(r.get('ty') or '')
@@ -69,17 +66,38 @@ def main():
                 used_typed_specials+=1
                 assert used_is_supported(r), ('used replacement part lacks used evidence',ty,r.get('t'),r.get('co'))
 
-    # Regression from the user-visible tablet issue: a tablet bundled WITH a case is still the tablet, not an accessory.
     bundled=[r for r in rows if r.get('ty')=='tablet' and re.search(r'\btablet\b',str(r.get('t') or ''),re.I) and re.search(r'\bwith\b.{0,45}\bcase\b',str(r.get('t') or ''),re.I)]
     assert bundled, 'No bundled-tablet regression examples found'
     assert all(r.get('ro') in {'main','used'} for r in bundled), 'Tablet bundled with case regressed to accessory'
 
-    # Product family metadata must exist broadly enough for same-family comparison.
     assert sum(1 for r in rows if r.get('fa')) >= 50000
     assert len(by_family)>=100
     fam=json.loads(F.read_text())
+    role_index=json.loads(FR.read_text())
     for name in ('phone','tablet','laptop','computer','camera','tools','furniture','automotive','pets','beauty','apparel','sports'):
         assert fam.get(name), f'Family index missing {name}'
+        assert role_index.get(name), f'Role-stratified family index missing {name}'
+
+    # Search must not starve an explicit shopper role merely because a family has thousands of main products.
+    expected_role_coverage={
+        ('phone','main'),('phone','accessory'),('phone','replacement_part'),
+        ('tablet','main'),('tablet','accessory'),
+        ('laptop','main'),('laptop','accessory'),
+        ('computer','main'),('computer','replacement_part'),
+        ('camera','main'),('camera','accessory'),
+        ('tools','main'),('tools','replacement_part'),
+        ('automotive','accessory'),('automotive','replacement_part'),
+    }
+    missing_roles=[f'{family}:{role}' for family,role in sorted(expected_role_coverage) if not role_index.get(family,{}).get(role)]
+    assert not missing_roles, f'Family role search coverage missing: {missing_roles}'
+
+    # Balanced family lists must contain IDs from more than one role when the family actually has multiple roles.
+    row_by_id={r['id']:r for r in rows}
+    for family in ('phone','tablet','laptop','camera','tools','automotive'):
+        roles={row_by_id[x].get('ro') for x in fam.get(family,[])[:720] if x in row_by_id}
+        available=set(role_index.get(family,{}))
+        if len(available)>=2:
+            assert len(roles)>=2, (family,roles,available)
 
     q=json.loads(Q.read_text())
     rt=json.loads(RT.read_text())
@@ -90,6 +108,7 @@ def main():
         'records':len(rows),'types':len(by_type),'families':len(by_family),'roles':dict(by_role),
         'unclassified':by_type.get('unclassified',0),'bundledTabletMainExamples':len(bundled),
         'usedTypedAccessoriesOrParts':used_typed_specials,
+        'roleIndexedFamilies':len(role_index),
         'runtimeBuckets':rt['productBuckets'],'largestRuntimeBucketBytes':rt['maxProductBucketBytes']
     },indent=2))
 
