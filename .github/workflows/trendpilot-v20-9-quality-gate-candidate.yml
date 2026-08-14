@@ -1,0 +1,84 @@
+name: TrendPilot V20.9 — All Product Quality Gate Candidate
+
+on:
+  push:
+    branches:
+      - v20-9-all-product-quality-gate
+    paths:
+      - scripts/quality-gate-v20-9-all-products.py
+      - .github/workflows/trendpilot-v20-9-quality-gate-candidate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate-quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V20.9 branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Apply candidate quality gate in workspace
+        run: python scripts/quality-gate-v20-9-all-products.py
+
+      - name: Candidate semantic QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/quality-gate-v20-9-all-products.py
+          test -s data/v20-9/quality-report.json
+          test -s data/v20-9/families.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          assert x['records']==52031, x['records']
+          assert x['blockedSellerLeaks']==0, x['blockedSellerLeaks']
+          assert x['immutableCommerceFieldsChanged']==0, x['immutableCommerceFieldsChanged']
+          assert x['unclassifiedAfter'] < x['unclassifiedBefore'], (x['unclassifiedBefore'],x['unclassifiedAfter'])
+          for k in ('phoneNonMain','tabletNonMain','laptopNonMain','smartwatchNonMain','headphonesNonMain'):
+              assert x['semanticProbes'][k]==0, (k,x['semanticProbes'][k])
+          print('PASS candidate quality gate')
+          PY
+          if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
+            echo 'Unexpected identity or canonical catalog mutation'
+            git status --short
+            exit 1
+          fi
+
+      - name: Write candidate summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          p=Path('data/v20-9/quality-report.json')
+          if not p.exists():
+              print('# TrendPilot V20.9 candidate did not produce a report')
+              raise SystemExit
+          x=json.loads(p.read_text())
+          print('# TrendPilot V20.9 — All Product Quality Gate Candidate')
+          print()
+          print(f"- Records: **{x['records']:,}**")
+          print(f"- Unclassified before: **{x['unclassifiedBefore']:,}**")
+          print(f"- Unclassified after: **{x['unclassifiedAfter']:,} ({x['unclassifiedAfterPct']}%)**")
+          print(f"- Reclassified out of Unclassified: **{x['unclassifiedReduction']:,}**")
+          print(f"- Type corrections: **{sum(i['count'] for i in x['typeChanges']):,}**")
+          print(f"- Role corrections: **{sum(i['count'] for i in x['roleChanges']):,}**")
+          print(f"- Product families: **{x['familyCount']:,}**")
+          print(f"- Marketing title cleanups: **{x['titleCleanups']:,}**")
+          print(f"- Blocked seller leaks: **{x['blockedSellerLeaks']}**")
+          print(f"- Immutable commerce fields changed: **{x['immutableCommerceFieldsChanged']}**")
+          print()
+          print('## Semantic probes')
+          for k,v in x['semanticProbes'].items(): print(f'- {k}: **{v}**')
+          print()
+          print('## Largest type corrections')
+          for i in x['typeChanges'][:20]: print(f"- {i['from']} → {i['to']}: **{i['count']:,}**")
+          print()
+          print('Candidate only. No generated product data is committed by this workflow.')
+          PY
