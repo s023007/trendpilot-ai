@@ -231,13 +231,11 @@ jobs:
 
           # Refuse to continue if any tracked/untracked build output remains outside the
           # allowlist. A clean worktree after staging is required before rebase/push.
-          if [ -n "$(git status --porcelain)" ]; then
-            remaining="$(git status --porcelain | grep -vE '^[ MARC?]{2} (data/v20-8/|data/v20-9/|rare-used/finds/|sitemap-v20-8\.xml$|robots\.txt$)' || true)"
-            if [ -n "$remaining" ]; then
-              echo 'Unexpected generated paths remain outside the V20.9.4 commit allowlist:'
-              echo "$remaining"
-              exit 1
-            fi
+          unexpected="$(git status --porcelain | grep -vE '^[ MARC?]{2} (data/v20-8/|data/v20-9/|rare-used/finds/|sitemap-v20-8\.xml$|robots\.txt$)' || true)"
+          if [ -n "$unexpected" ]; then
+            echo 'Unexpected generated paths remain outside the V20.9.4 commit allowlist:'
+            echo "$unexpected"
+            exit 1
           fi
 
           if git diff --cached --quiet; then
