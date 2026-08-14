@@ -1,0 +1,9 @@
+(() => {
+  "use strict";
+  const d=document,$=(s,r=d)=>r.querySelector(s),$$=(s,r=d)=>[...r.querySelectorAll(s)],E=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  let rows=[],filter="all";
+  function card(r){const price=r.price?`${r.currency==="USD"?"US$":E(r.currency+" ")}${Number(r.price).toLocaleString(undefined,{maximumFractionDigits:2})}`:"Check current price";return `<article class="tp80-rare-card"><a class="tp80-rare-image" href="${E(r.seoUrl||r.url)}"><img src="${E(r.image)}" alt="${E(r.title)}" width="520" height="520" loading="lazy"></a><div><span class="tp80-rare-score">Rare ${r.rareScore}</span><p class="tp80-brand">${E(r.brand||r.seller)}</p><h2><a href="${E(r.seoUrl||r.url)}">${E(r.title)}</a></h2><p class="tp80-card-price">${E(price)}</p><p>${E(r.typeLabel)} · ${E(r.seller)}</p><div class="tp80-signals">${(r.signals||[]).slice(0,3).map(s=>`<span>${E(s.replaceAll("-"," "))}</span>`).join("")}</div></div></article>`}
+  function draw(){const list=filter==="all"?rows:rows.filter(r=>(r.signals||[]).includes(filter));$("[data-rare-grid]").innerHTML=list.slice(0,72).map(card).join("")||"<p>No current verified items in this rarity group.</p>";$("[data-rare-stats]").textContent=`${list.length} rare finds · ${new Set(list.map(x=>x.type)).size} product types · ${new Set(list.map(x=>x.seller)).size} sellers`}
+  async function boot(){try{const r=await fetch("/data/v20-8/rare-index.json?v=20.8.0",{cache:"force-cache"});rows=await r.json();draw()}catch(e){$("[data-rare-grid]").innerHTML="<p>Rare Finds is updating. Please try again shortly.</p>"}$$('[data-rare-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.rareFilter;$$('[data-rare-filter]').forEach(x=>x.classList.toggle('active',x===b));draw()}))}
+  d.readyState==="loading"?d.addEventListener("DOMContentLoaded",boot,{once:true}):boot();
+})();
