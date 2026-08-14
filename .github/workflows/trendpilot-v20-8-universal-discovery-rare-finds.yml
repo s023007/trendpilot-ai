@@ -101,7 +101,7 @@ jobs:
           test -s data/v20-9/runtime-manifest.json
           test -s data/v20-9/contract-debug.json
           test -s sitemap-v20-8.xml
-          grep -q 'universal-discovery-v20-9-1.js?v=20.9.1' find/index.html
+          grep -q 'universal-discovery-v20-9-1.js?v=20.9.4' find/index.html
           grep -q 'finder-shell-v20-9.js?v=20.9.0' find/index.html
           grep -q 'compare-state-v20-9.js?v=20.9.0' find/index.html index.html
           grep -q 'item-detail-v20-9.js?v=20.9.0' item/index.html
@@ -110,7 +110,7 @@ jobs:
           grep -q 'noindex,follow' item/index.html
           grep -q 'trendpilotchoice.com/rare-used/' rare-used/index.html
           if grep -q 'finder-v20-7-9.js' find/index.html || grep -q 'buyer-decision-v20-7-11.js' find/index.html || grep -q 'v20-8-8-internal-first-guard.js' find/index.html; then
-            echo 'Legacy finder/card mutator leaked into authoritative V20.9.1 finder'
+            echo 'Legacy finder/card mutator leaked into authoritative V20.9.4 finder'
             exit 1
           fi
           python - <<'PY'
@@ -180,7 +180,7 @@ jobs:
           print(f"- Release contract: **{'PASS' if contract.get('passed') else 'FAIL'}**")
           print()
           print('## Shopper behavior')
-          print('- V20.9.1 authoritative finder for every public query: **YES**')
+          print('- V20.9.4 authoritative finder for every public query: **YES**')
           print('- Generic searches show main/used instead of accessories/parts: **YES**')
           print('- Explicit accessory/part/used intent is supported: **YES**')
           print('- Seller filter persists per query: **YES**')
