@@ -1,0 +1,69 @@
+name: TrendPilot V20.8.4 Nested Destination Truth
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/trendpilot-v20-8-4-nested-destination-truth.yml
+
+permissions:
+  contents: write
+
+jobs:
+  destination-truth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Apply V20.8.4
+        run: python scripts/apply-v20-8-4-nested-destination-truth.py
+
+      - name: Rebuild Universal Discovery
+        run: python scripts/build-v20-8-universal-discovery.py
+
+      - name: Destination truth QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/universal-discovery-v20-8.js
+          node --check js/rare-finds-v20-8.js
+          python -m py_compile scripts/build-v20-8-universal-discovery.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[]
+          for p in (Path('data/v20-8/products')).glob('*.json'):
+              try: rows.extend(json.loads(p.read_text()).values())
+              except Exception: pass
+          cb=[r for r in rows if 'cb440' in (r.get('t') or '').lower()]
+          if not cb: raise SystemExit('CB440 probe missing')
+          if not any(r.get('x') for r in cb): raise SystemExit('AliExpress nested exact destination not detected for CB440')
+          if any(r.get('ty')!='power-tool-parts' for r in cb): raise SystemExit('CB440 type regression')
+          if any(int(r.get('r') or 0)>79 for r in cb): raise SystemExit('CB440 rarity regression')
+          manifest=json.loads(Path('data/v20-8/manifest.json').read_text())
+          if manifest.get('version')!='20.8.4': raise SystemExit('Manifest version mismatch')
+          if manifest.get('seoPages',0)<1: raise SystemExit('No high-evidence rare SEO pages after nested exact detection')
+          print('V20.8.4 truth QA: PASS', {'cb440':[(x.get('r'),x.get('x')) for x in cb[:3]], 'seoPages':manifest.get('seoPages')})
+          PY
+          if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
+            echo 'Unexpected canonical identity/catalog mutation'
+            exit 1
+          fi
+
+      - name: Commit V20.8.4
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add scripts/build-v20-8-universal-discovery.py js/universal-discovery-v20-8.js js/rare-finds-v20-8.js find/index.html rare-used/index.html data/v20-8 rare-used/finds sitemap-v20-8.xml robots.txt
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git commit -m 'TrendPilot V20.8.4 resolve nested exact destinations'
+          git push
