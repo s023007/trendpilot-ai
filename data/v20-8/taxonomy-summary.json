@@ -1,6 +1,6 @@
 {
   "version": "20.9.0",
-  "generatedAt": "2026-08-14T15:48:19.023049+00:00",
+  "generatedAt": "2026-08-14T16:47:30.729014+00:00",
   "records": 52031,
   "types": [
     {
@@ -24,14 +24,14 @@
       "count": 2915
     },
     {
-      "slug": "unclassified",
-      "label": "Unclassified",
-      "count": 2499
-    },
-    {
       "slug": "power-tools",
       "label": "Power Tools",
       "count": 2495
+    },
+    {
+      "slug": "unclassified",
+      "label": "Unclassified",
+      "count": 2282
     },
     {
       "slug": "smartwatch",
@@ -61,7 +61,7 @@
     {
       "slug": "kitchen-appliances",
       "label": "Kitchen Appliances",
-      "count": 827
+      "count": 823
     },
     {
       "slug": "furniture",
@@ -81,12 +81,17 @@
     {
       "slug": "lighting",
       "label": "Lighting",
-      "count": 606
+      "count": 600
     },
     {
       "slug": "other-cameras",
       "label": "Other Cameras",
       "count": 589
+    },
+    {
+      "slug": "baby-products",
+      "label": "Baby Products",
+      "count": 583
     },
     {
       "slug": "power-bank",
@@ -116,11 +121,6 @@
     {
       "slug": "replacement-parts",
       "label": "Replacement Parts",
-      "count": 527
-    },
-    {
-      "slug": "baby-products",
-      "label": "Baby Products",
       "count": 527
     },
     {
@@ -219,11 +219,6 @@
       "count": 309
     },
     {
-      "slug": "kitchen-tools",
-      "label": "Kitchen Tools",
-      "count": 303
-    },
-    {
       "slug": "home-decor",
       "label": "Home Decor",
       "count": 292
@@ -232,6 +227,11 @@
       "slug": "game-console",
       "label": "Game Console",
       "count": 291
+    },
+    {
+      "slug": "kitchen-tools",
+      "label": "Kitchen Tools",
+      "count": 284
     },
     {
       "slug": "gaming-accessories",
@@ -404,6 +404,11 @@
       "count": 141
     },
     {
+      "slug": "kitchen-supplies",
+      "label": "Kitchen Supplies",
+      "count": 135
+    },
+    {
       "slug": "stationery",
       "label": "Stationery",
       "count": 125
@@ -464,6 +469,11 @@
       "count": 101
     },
     {
+      "slug": "camping",
+      "label": "Camping",
+      "count": 99
+    },
+    {
       "slug": "smartwatch-accessories",
       "label": "Smartwatch Accessories",
       "count": 97
@@ -516,7 +526,7 @@
     {
       "slug": "garden-supplies",
       "label": "Garden Supplies",
-      "count": 75
+      "count": 74
     },
     {
       "slug": "pet-beds",
@@ -617,11 +627,6 @@
       "slug": "pens-pencils",
       "label": "Pens Pencils",
       "count": 45
-    },
-    {
-      "slug": "camping",
-      "label": "Camping",
-      "count": 43
     },
     {
       "slug": "toys-remote-control",
@@ -1178,14 +1183,14 @@
       "count": 2889
     },
     {
-      "slug": "unclassified",
-      "label": "Unclassified",
-      "count": 2499
-    },
-    {
       "slug": "power-tools",
       "label": "Power Tools",
       "count": 2495
+    },
+    {
+      "slug": "unclassified",
+      "label": "Unclassified",
+      "count": 2282
     },
     {
       "slug": "tools",
@@ -1215,7 +1220,7 @@
     {
       "slug": "home",
       "label": "Home",
-      "count": 1227
+      "count": 1226
     },
     {
       "slug": "beauty",
@@ -1228,14 +1233,14 @@
       "count": 937
     },
     {
+      "slug": "kitchen",
+      "label": "Kitchen",
+      "count": 917
+    },
+    {
       "slug": "jewelry-craft",
       "label": "Jewelry Craft",
       "count": 863
-    },
-    {
-      "slug": "kitchen",
-      "label": "Kitchen",
-      "count": 805
     },
     {
       "slug": "furniture",
@@ -1250,7 +1255,7 @@
     {
       "slug": "baby",
       "label": "Baby",
-      "count": 647
+      "count": 703
     },
     {
       "slug": "speaker",
@@ -1260,7 +1265,7 @@
     {
       "slug": "lighting",
       "label": "Lighting",
-      "count": 606
+      "count": 600
     },
     {
       "slug": "other-cameras",
@@ -1358,6 +1363,11 @@
       "count": 255
     },
     {
+      "slug": "sports",
+      "label": "Sports",
+      "count": 248
+    },
+    {
       "slug": "printer",
       "label": "Printer",
       "count": 247
@@ -1386,11 +1396,6 @@
       "slug": "game-controller",
       "label": "Game Controller",
       "count": 193
-    },
-    {
-      "slug": "sports",
-      "label": "Sports",
-      "count": 192
     },
     {
       "slug": "3d-printing",
@@ -1910,14 +1915,14 @@
   ],
   "qualityGateV20_9": {
     "unclassifiedBefore": 9355,
-    "unclassifiedAfter": 2499,
+    "unclassifiedAfter": 2282,
     "typeCorrections": 21440,
     "roleCorrections": 8302,
     "titleCleanups": 1545,
     "immutableCommerceFieldsChanged": 0,
-    "unclassifiedAfterPct": 4.8,
+    "unclassifiedAfterPct": 4.39,
     "residualPassVersion": "20.9.2",
-    "residualClassified": 889,
-    "finalCloseoutClassified": 119
+    "residualClassified": 1106,
+    "finalCloseoutClassified": 73
   }
 }

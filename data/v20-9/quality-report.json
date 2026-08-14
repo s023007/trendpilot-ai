@@ -2,9 +2,9 @@
   "version": "20.9.0",
   "records": 52031,
   "unclassifiedBefore": 9355,
-  "unclassifiedAfter": 2499,
-  "unclassifiedReduction": 6856,
-  "unclassifiedAfterPct": 4.8,
+  "unclassifiedAfter": 2282,
+  "unclassifiedReduction": 7073,
+  "unclassifiedAfterPct": 4.39,
   "typeChanges": [
     {
       "from": "phone",
@@ -5308,12 +5308,12 @@
       2915
     ],
     [
-      "unclassified",
-      2499
-    ],
-    [
       "power-tools",
       2495
+    ],
+    [
+      "unclassified",
+      2282
     ],
     [
       "smartwatch",
@@ -5337,7 +5337,7 @@
     ],
     [
       "kitchen-appliances",
-      827
+      823
     ],
     [
       "furniture",
@@ -5353,11 +5353,15 @@
     ],
     [
       "lighting",
-      606
+      600
     ],
     [
       "other-cameras",
       589
+    ],
+    [
+      "baby-products",
+      583
     ],
     [
       "power-bank",
@@ -5381,10 +5385,6 @@
     ],
     [
       "replacement-parts",
-      527
-    ],
-    [
-      "baby-products",
       527
     ],
     [
@@ -5464,16 +5464,16 @@
       309
     ],
     [
-      "kitchen-tools",
-      303
-    ],
-    [
       "home-decor",
       292
     ],
     [
       "game-console",
       291
+    ],
+    [
+      "kitchen-tools",
+      284
     ],
     [
       "gaming-accessories",
@@ -5612,6 +5612,10 @@
       141
     ],
     [
+      "kitchen-supplies",
+      135
+    ],
+    [
       "stationery",
       125
     ],
@@ -5660,6 +5664,10 @@
       101
     ],
     [
+      "camping",
+      99
+    ],
+    [
       "smartwatch-accessories",
       97
     ],
@@ -5701,7 +5709,7 @@
     ],
     [
       "garden-supplies",
-      75
+      74
     ],
     [
       "pet-beds",
@@ -5782,10 +5790,6 @@
     [
       "pens-pencils",
       45
-    ],
-    [
-      "camping",
-      43
     ],
     [
       "toys-remote-control",
@@ -6192,12 +6196,12 @@
       2889
     ],
     [
-      "unclassified",
-      2499
-    ],
-    [
       "power-tools",
       2495
+    ],
+    [
+      "unclassified",
+      2282
     ],
     [
       "tools",
@@ -6221,7 +6225,7 @@
     ],
     [
       "home",
-      1227
+      1226
     ],
     [
       "beauty",
@@ -6232,12 +6236,12 @@
       937
     ],
     [
-      "jewelry-craft",
-      863
+      "kitchen",
+      917
     ],
     [
-      "kitchen",
-      805
+      "jewelry-craft",
+      863
     ],
     [
       "furniture",
@@ -6249,7 +6253,7 @@
     ],
     [
       "baby",
-      647
+      703
     ],
     [
       "speaker",
@@ -6257,7 +6261,7 @@
     ],
     [
       "lighting",
-      606
+      600
     ],
     [
       "other-cameras",
@@ -6336,6 +6340,10 @@
       255
     ],
     [
+      "sports",
+      248
+    ],
+    [
       "printer",
       247
     ],
@@ -6358,10 +6366,6 @@
     [
       "game-controller",
       193
-    ],
-    [
-      "sports",
-      192
     ],
     [
       "3d-printing",
@@ -6789,8 +6793,12 @@
     "ordinaryTabletWithIncludedCaseKeptMain": 25
   },
   "residualPassVersion": "20.9.2",
-  "residualClassified": 889,
+  "residualClassified": 1106,
   "residualBreakdown": [
+    {
+      "type": "kitchen-supplies",
+      "count": 135
+    },
     {
       "type": "toys",
       "count": 129
@@ -6804,16 +6812,24 @@
       "count": 94
     },
     {
+      "type": "camping",
+      "count": 77
+    },
+    {
       "type": "garden-supplies",
-      "count": 75
+      "count": 74
+    },
+    {
+      "type": "baby-products",
+      "count": 73
     },
     {
       "type": "lighting",
-      "count": 69
+      "count": 63
     },
     {
       "type": "kitchen-tools",
-      "count": 58
+      "count": 39
     },
     {
       "type": "luggage",
@@ -6828,10 +6844,6 @@
       "count": 24
     },
     {
-      "type": "camping",
-      "count": 21
-    },
-    {
       "type": "pet-supplies",
       "count": 21
     },
@@ -6841,10 +6853,6 @@
     },
     {
       "type": "computer-accessories",
-      "count": 17
-    },
-    {
-      "type": "baby-products",
       "count": 17
     },
     {
@@ -6884,16 +6892,16 @@
       "count": 11
     },
     {
-      "type": "kitchen-appliances",
-      "count": 11
-    },
-    {
       "type": "pet-feeders",
       "count": 8
     },
     {
       "type": "home-organization",
       "count": 8
+    },
+    {
+      "type": "kitchen-appliances",
+      "count": 7
     },
     {
       "type": "camera",
@@ -6948,5 +6956,5 @@
       "count": 1
     }
   ],
-  "finalCloseoutClassified": 119
+  "finalCloseoutClassified": 73
 }
