@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const V="20.7.9",d=document,$=(s,r=d)=>r.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),L=v=>C(v).toLowerCase(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])),U=v=>/^https?:\/\//i.test(C(v)),P=new URLSearchParams(location.search);
+  const V="20.7.10",d=document,$=(s,r=d)=>r.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),L=v=>C(v).toLowerCase(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c])),U=v=>/^https?:\/\//i.test(C(v)),P=new URLSearchParams(location.search);
   const BLOCK=new Set(["temu","joom","filamentpro","filamentpro eu cps"]);
   const FILE={phone:"phone",laptop:"laptop",perfume:"perfume",smartwatch:"smartwatch",headphones:"headphones",power_bank:"power_bank",dog_food:"dog_food",air_conditioner:"air_conditioner","3d_filament":"3d_filament",cookware:"cookware",lighting:"lighting",tools:"tools"};
   const LABEL={phone:"Phone",laptop:"Laptop",perfume:"Fragrance",smartwatch:"Smart watch",headphones:"Audio",power_bank:"Power bank",dog_food:"Dog food",air_conditioner:"Air conditioner","3d_filament":"3D filament",cookware:"Cookware",lighting:"Lighting",tools:"Tools"};
@@ -14,6 +14,7 @@
   const FLOOR={phone:10,laptop:50,perfume:3,smartwatch:8,headphones:3,power_bank:3,dog_food:1,air_conditioner:30,"3d_filament":3,cookware:3,lighting:1,tools:1};
   const S={type:"",q:"",raw:[],list:[],i:0,shown:[],size:18,busy:false,buckets:new Map(),generic:false};
   const seller=n=>{n=L(n);return !!n&&!BLOCK.has(n)},broad=(q,t)=>!!(t&&BROAD[t]?.test(C(q))),tokens=q=>L(q).replace(/[^a-z0-9]+/g," ").split(/\s+/).filter(x=>x.length>1&&!["for","the","and","with","from","best","buy"].includes(x));
+  const goodImage=v=>U(v)&&!/(?:no[-_ ]?(?:photo|image)|placeholder|image[-_ ]?not[-_ ]?available|default[-_ ]?(?:product|image)|blank[-_ ]?image|missing[-_ ]?image)/i.test(L(v));
   const type=q=>{q=L(q);if(BROAD.phone.test(q)||/\b(?:iphone|galaxy|pixel|oneplus|xiaomi|redmi|poco|oppo|vivo|realme|motorola|moto|honor|huawei|nokia|xperia|nothing phone|zenfone|nubia|infinix|tecno)\b/i.test(q))return"phone";if(BROAD.laptop.test(q)||/\b(?:thinkpad|ideapad|thinkbook|chromebook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|xps|legion|surface laptop|lenovo slim)\b/i.test(q))return"laptop";if(BROAD.perfume.test(q)||/\b(?:cologne|eau de parfum|eau de toilette|edp|edt)\b/i.test(q))return"perfume";if(BROAD.smartwatch.test(q)||/\b(?:apple watch|wearable watch)\b/i.test(q))return"smartwatch";if(BROAD.headphones.test(q)||/\b(?:airpods?|tws)\b/i.test(q))return"headphones";if(BROAD.power_bank.test(q)||/\b(?:portable charger|external battery)\b/i.test(q))return"power_bank";if(BROAD.dog_food.test(q)||/\b(?:dog treats?|canine food)\b/i.test(q))return"dog_food";if(BROAD.air_conditioner.test(q)||/\b(?:ductless ac|split ac)\b/i.test(q))return"air_conditioner";if(BROAD["3d_filament"].test(q)||/\b(?:petg|pla|abs|tpu)\s+filament\b/i.test(q))return"3d_filament";if(BROAD.cookware.test(q)||/\b(?:frying pan|saucepan|casserole|wok|skillet)\b/i.test(q))return"cookware";if(BROAD.lighting.test(q)||/\b(?:led strip|desk lamp|floor lamp|ceiling light)\b/i.test(q))return"lighting";if(BROAD.tools.test(q)||/\b(?:drill|saw|multimeter|oscilloscope|screwdriver|wrench)\b/i.test(q))return"tools";return""};
   const suffix=id=>(C(id).match(/^TP[A-Z]{2,8}-([A-Z0-9]{8,})$/i)||[])[1]?.toLowerCase()||"";
   async function meta(id){const x=suffix(id);if(!x)return null;const b=x.slice(0,2);if(!S.buckets.has(b))S.buckets.set(b,fetch(`/data/shopper-v20-6-8-4/products/${b}.json?v=${V}`,{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null));return(await S.buckets.get(b))?.[x]||null}
@@ -23,10 +24,41 @@
   const queryOK=(x,q,t)=>broad(q,t)||tokens(q).every(k=>L(x).includes(k)),dynamic=g=>/tiktok/i.test(C(g?.seller))&&(g?.availability==="check-live"||g?.availability_dynamic===true),exact=g=>g?.destination_exact===true||/^(?:exact-tracked|exact-direct)$/i.test(C(g?.primary?.kind)),groups=m=>(Array.isArray(m?.sellerGroups)?m.sellerGroups:[]).filter(g=>seller(g?.seller)&&g?.availability!=="unavailable"&&!dynamic(g));
   function price(gs,t){const a=[],f=FLOOR[t]??.01;for(const g of gs)if(exact(g))for(const v of[g?.minPrice,g?.primary?.price]){const n=Number(v);if(n>=f&&n<=20000)a.push(n)}return a.length?Math.min(...a):0}
   function brand(m,r,x,t){const b=C(m?.brand||r?.brand);if(!b)return LABEL[t]||"Product";if(L(x).includes(L(b)))return b;if(t==="phone"){if(L(b)==="xiaomi"&&/\b(?:xiaomi|redmi)\b/i.test(x))return"Xiaomi";if(L(b)==="google"&&/\bpixel\b/i.test(x))return"Google";if(L(b)==="samsung"&&/\bgalaxy\b/i.test(x))return"Samsung";if(L(b)==="apple"&&/\biphone\b/i.test(x))return"Apple"}return LABEL[t]||"Product"}
-  async function prep(r,t){if(!r?.tpid)return null;const m=await meta(r.tpid);if(!role(m,r,t))return null;const x=title(m,r);if(!queryOK(x,S.q,t))return null;const all=Array.isArray(m?.sellerGroups)?m.sellerGroups.filter(g=>seller(g?.seller)):[],gs=groups(m),ss=gs.length?[...new Set(gs.map(g=>C(g.seller)))]:all.length?[]:[...new Set((r.sellers||[]).filter(seller))];if(all.length&&!ss.length)return null;const route=C(m?.route).startsWith("/product/")?C(m.route):(suffix(r.tpid)?`/product/item--${suffix(r.tpid)}/`:"");if(!route)return null;return{r,m,t,title:x,brand:brand(m,r,x,t),image:U(m?.image)?C(m.image):U(r.image)?C(r.image):"",price:price(gs,t),route,sellers:ss,sellerCount:Math.max(1,ss.length||Number(r.sellerCount||0)),variants:Math.max(1,Number(r.variantCount||1)),desc:C(m?.summary)||`${LABEL[t]||"Product"} choice — compare details and seller offers before buying.`,score:Number(r.__score||0)}}
+  async function prep(r,t){if(!r?.tpid)return null;const m=await meta(r.tpid);if(!role(m,r,t))return null;const x=title(m,r);if(!queryOK(x,S.q,t))return null;const all=Array.isArray(m?.sellerGroups)?m.sellerGroups.filter(g=>seller(g?.seller)):[],gs=groups(m),ss=gs.length?[...new Set(gs.map(g=>C(g.seller)))]:all.length?[]:[...new Set((r.sellers||[]).filter(seller))];if(all.length&&!ss.length)return null;const route=C(m?.route).startsWith("/product/")?C(m.route):(suffix(r.tpid)?`/product/item--${suffix(r.tpid)}/`:"");if(!route)return null;return{r,m,t,title:x,brand:brand(m,r,x,t),image:goodImage(m?.image)?C(m.image):goodImage(r.image)?C(r.image):"",price:price(gs,t),route,sellers:ss,sellerCount:Math.max(1,ss.length||Number(r.sellerCount||0)),variants:Math.max(1,Number(r.variantCount||1)),desc:C(m?.summary)||`${LABEL[t]||"Product"} choice — compare details and seller offers before buying.`,score:Number(r.__score||0)}}
   async function load(t){const r=await fetch(`/data/search-v20-6/comparison-v20-6-4/browse-lite/${FILE[t]}.json?v=${V}`,{cache:"no-store"});if(!r.ok)throw Error(`catalogue ${t}: ${r.status}`);const j=await r.json();if(!Array.isArray(j?.products))throw Error("invalid catalogue");return j.products}
   function score(r,q,t){if(broad(q,t))return 100;const h=L(rowText(r)),ts=tokens(q);let n=0;for(const k of ts)if(h.includes(k))n++;return n===ts.length?300+n:n?80+n:0}
-  const filterRows=(a,q,t)=>a.filter(r=>!Array.isArray(r?.sellers)||r.sellers.some(seller)).map(r=>({...r,__score:score(r,q,t)})).filter(r=>r.__score>0).sort((a,b)=>b.__score-a.__score||Number(b.sellerCount||0)-Number(a.sellerCount||0)),F=()=>({seller:C($("[data-filter-merchant]")?.value),price:C($("[data-filter-price]")?.value),sort:C($("[data-filter-sort]")?.value||"smart")});
+  function diversifyRows(rows){
+    const buckets=new Map(),multi=[];
+    for(const r of rows){
+      const ss=[...new Set((Array.isArray(r?.sellers)?r.sellers:[]).map(C).filter(seller))];
+      if(ss.length>1){multi.push(r);continue}
+      const k=ss[0]||"Unknown";
+      if(!buckets.has(k))buckets.set(k,[]);
+      buckets.get(k).push(r);
+    }
+    const names=[...buckets.keys()].sort((a,b)=>{
+      if(a==="Alibaba"&&b!=="Alibaba")return 1;
+      if(b==="Alibaba"&&a!=="Alibaba")return -1;
+      return (buckets.get(a)?.length||0)-(buckets.get(b)?.length||0);
+    });
+    const out=[],seen=new Set();
+    for(const r of multi){out.push(r);seen.add(r.tpid)}
+    let left=true,round=0;
+    while(left&&round<rows.length){
+      left=false;
+      for(const n of names){
+        const a=buckets.get(n)||[],take=n==="Alibaba"?3:1;
+        for(let j=0;j<take;j++){
+          const r=a[round*take+j];
+          if(r){left=true;if(!seen.has(r.tpid)){out.push(r);seen.add(r.tpid)}}
+        }
+      }
+      round++;
+    }
+    for(const r of rows)if(!seen.has(r.tpid))out.push(r);
+    return out;
+  }
+  const filterRows=(a,q,t)=>diversifyRows(a.filter(r=>!Array.isArray(r?.sellers)||r.sellers.some(seller)).map(r=>({...r,__score:score(r,q,t)})).filter(r=>r.__score>0).sort((a,b)=>b.__score-a.__score||Number(b.sellerCount||0)-Number(a.sellerCount||0))),F=()=>({seller:C($("[data-filter-merchant]")?.value),price:C($("[data-filter-price]")?.value),sort:C($("[data-filter-sort]")?.value||"smart")});
   function itemOK(x){const f=F();if(f.seller&&!x.sellers.includes(f.seller))return false;if(f.price){const p=x.price;if(!(p>0))return false;if(f.price==="0-10"&&p>=10)return false;if(f.price==="10-25"&&(p<10||p>=25))return false;if(f.price==="25-50"&&(p<25||p>=50))return false;if(f.price==="50-100"&&(p<50||p>=100))return false;if(f.price==="100+"&&p<100)return false}return true}
   const sortItems=a=>{const s=F().sort;if(s==="price-low")return a.sort((x,y)=>(x.price||1e9)-(y.price||1e9));if(s==="price-high")return a.sort((x,y)=>(y.price||-1)-(x.price||-1));return a.sort((x,y)=>y.score-x.score||y.sellerCount-x.sellerCount||y.variants-x.variants)},saved=()=>{try{return new Set(JSON.parse(localStorage.getItem("trendpilot-v20-saved-tpids")||"[]"))}catch{return new Set()}},save=x=>localStorage.setItem("trendpilot-v20-saved-tpids",JSON.stringify([...x].slice(-100))),money=p=>p>0?`From US$${p.toLocaleString(undefined,{maximumFractionDigits:2})}`:"Check current price";
   function card(x,i){const sv=saved().has(x.r.tpid),img=x.image?`<img src="${E(x.image)}" alt="${E(x.title)}" loading="${i<2?"eager":"lazy"}" decoding="async" width="180" height="180" referrerpolicy="no-referrer">`:`<span class="tp78-fallback">${E((x.brand||"TP").slice(0,2).toUpperCase())}</span>`,sl=x.sellerCount===1?(x.sellers[0]||"1 seller"):`${x.sellerCount} sellers`;return`<article class="tp78-card" data-v2079-card="${E(x.r.tpid)}"><a class="tp78-media" href="${E(x.route)}" aria-label="View ${E(x.title)}">${img}</a><div class="tp78-body"><div class="tp78-top"><span class="tp78-brand">${E(x.brand)}</span><span class="tp78-source">${E(sl)}</span></div><h3><a href="${E(x.route)}">${E(x.title)}</a></h3><div class="tp78-price">${E(money(x.price))}</div><div class="tp78-meta"><span>${E(sl)}</span><span>•</span><span>${x.variants} variant${x.variants===1?"":"s"}</span></div><p class="tp78-description">${E(x.desc)}</p><div class="tp78-actions"><a class="tp78-view" href="${E(x.route)}">View product <span aria-hidden="true">→</span></a><a class="tp78-icon" href="${E(x.route)}#seller-offers" aria-label="View seller offers" title="Seller offers">≡</a><button class="tp78-icon${sv?" is-saved":""}" data-v2079-save="${E(x.r.tpid)}" type="button" aria-label="${sv?"Remove saved product":"Save product"}">${sv?"♥":"♡"}</button></div></div></article>`}
