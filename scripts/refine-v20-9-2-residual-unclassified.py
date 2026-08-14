@@ -67,6 +67,10 @@ RULES=[
     ('drinkware','kitchen',r'\b(?:travel\s+mug|coffee\s+mug|insulated\s+tumbler|water\s+bottle|stainless\s+steel\s+tumbler|vacuum\s+flask)\b',''),
     ('coffee-tea','kitchen',r'\b(?:coffee\s+beans?|ground\s+coffee|coffee\s+grounds|tea\s+bags?|loose\s+leaf\s+tea|instant\s+coffee)\b',''),
     ('garden-supplies','home',r'\b(?:gardening\s+tool|garden\s+tool|plant\s+pot|flower\s+pot|garden\s+planter|watering\s+can|garden\s+hose)\b',''),
+    # Final gap closeout. These only run on records still unclassified after all specific rules.
+    ('kitchen-supplies','kitchen',r'\bkitchen\b',r'\b(?:toy|dollhouse|miniature|keychain|sticker|poster|wall\s+art|sign)\b'),
+    ('camping','sports',r'\bcamping\b',r'\b(?:toy|sticker|poster|keychain)\b'),
+    ('baby-products','baby',r'\bbaby\b',r'\b(?:doll|toy|sticker|poster|keychain)\b'),
 ]
 COMPILED=[(ty,fa,re.compile(pos,re.I),re.compile(neg,re.I) if neg else None) for ty,fa,pos,neg in RULES]
 ROLE_BY_TYPE={'computer-accessories':'accessory','phone-parts':'replacement_part','car-accessories':'accessory','automotive-parts':'replacement_part'}
