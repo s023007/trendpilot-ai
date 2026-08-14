@@ -1,0 +1,77 @@
+name: TrendPilot V20.9 — All Product Diagnostic
+
+on:
+  push:
+    branches:
+      - v20-9-all-product-quality-gate
+    paths:
+      - scripts/audit-v20-9-all-products.py
+      - .github/workflows/trendpilot-v20-9-all-product-diagnostic.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  audit-all-products:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout V20.9 branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Audit all generated products
+        run: python scripts/audit-v20-9-all-products.py
+
+      - name: Diagnostic QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/audit-v20-9-all-products.py
+          test -s data/v20-9/diagnostic.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          x=json.loads(Path('data/v20-9/diagnostic.json').read_text())
+          assert x['records'] >= 50000, x['records']
+          assert x['unclassified'] > 0
+          assert x['unclassifiedProbeHits']
+          print('PASS diagnostic records=',x['records'],'unclassified=',x['unclassified'])
+          PY
+
+      - name: Write diagnostic summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          x=json.loads(Path('data/v20-9/diagnostic.json').read_text())
+          print('# TrendPilot V20.9 — All Product Diagnostic')
+          print()
+          print(f"- Records audited: **{x['records']:,}**")
+          print(f"- Unclassified: **{x['unclassified']:,} ({x['unclassifiedPct']}%)**")
+          print(f"- Reclassification probe families with hits: **{len(x['unclassifiedProbeHits']):,}**")
+          print(f"- Main-role listings with accessory cues: **{x['roleAnomalies']['mainWithAccessoryCue']['count']:,}**")
+          print(f"- Main-role listings with replacement cues: **{x['roleAnomalies']['mainWithReplacementCue']['count']:,}**")
+          print()
+          print('## Largest probe hits inside Unclassified')
+          for k,v in sorted(x['unclassifiedProbeHits'].items(), key=lambda kv: kv[1]['count'], reverse=True)[:20]:
+              print(f"- {k}: **{v['count']:,}**")
+          print()
+          print('Diagnostic only. V19 identity and canonical catalogs were not modified.')
+          PY
+
+      - name: Commit diagnostic report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add data/v20-9/diagnostic.json
+          if git diff --cached --quiet; then
+            echo 'No diagnostic changes to commit'
+            exit 0
+          fi
+          git commit -m 'TrendPilot V20.9 record all-product diagnostic'
+          git push
