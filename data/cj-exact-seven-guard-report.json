@@ -1,7 +1,7 @@
 {
-  "version": "13.8.8",
-  "generatedAt": "2026-08-13T05:11:46.328490+00:00",
-  "status": "exact-seven-installed",
+  "version": "13.8.9",
+  "generatedAt": "2026-08-14T05:06:15.653616+00:00",
+  "status": "exact-seven-hotfix-installed",
   "approvedAdvertiserCount": 7,
   "approvedAdvertisers": [
     {
@@ -88,7 +88,8 @@
       "changed": true,
       "patches": [
         "embedded-exact-allowlist",
-        "visible-results-filtered"
+        "visible-results-filtered",
+        "seller-dropdown-structure-aware"
       ],
       "guardPresent": true,
       "sellerFilterPresent": true
@@ -99,7 +100,8 @@
       "changed": true,
       "patches": [
         "embedded-exact-allowlist",
-        "visible-results-filtered"
+        "visible-results-filtered",
+        "seller-dropdown-structure-aware"
       ],
       "guardPresent": true,
       "sellerFilterPresent": true
