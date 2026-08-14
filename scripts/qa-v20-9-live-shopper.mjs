@@ -57,12 +57,19 @@ try{
   rejectBad('laptop',resultSets.laptop,/\b(?:motherboard|mainboard|replacement battery|battery for|charger for|adapter for|keyboard for|screen for|lcd for|hinge|palmrest|bottom case|top case|cooling fan|heatsink|dc jack|docking station|laptop sleeve|laptop bag|laptop stand)\b/i);
   rejectBad('perfume',resultSets.perfume,/\b(?:vending machine|dispensing machine|empty perfume bottle|refillable perfume bottle|perfume atomizer|filling machine|packaging machine|display stand)\b/i);
   rejectBad('power_bank',resultSets['power bank'],/\b(?:jump starter|battery adapter|adapter converter|power ?bank case|housing|shell|pcb|circuit board|battery holder)\b/i);
-  rejectBad('lighting',resultSets.lighting,/\b(?:scooter|e-?bike|bicycle|motorcycle|automotive|headlight|taillight|turn signal|helmet)\b/i);
+  rejectBad('lighting',resultSets.lighting,/\b(?:scooter|e-?bike|bicycle|motorcycle|automotive|headlight|taillight|turn signal|helmet|laryngoscope|otoscope|ophthalmoscope|medical lamp|surgical lamp)\b/i);
 
   await search('phone');
   const options=await page.$$eval('[data-filter-merchant] option',os=>os.map(o=>({value:o.value,text:o.textContent?.trim()||''})).filter(x=>x.value));
   if(!options.length) fail('seller_filter_available','no seller options were populated');
   pass('seller_filter_available');
+  const toggle=page.locator('[data-tp-filter-toggle]');
+  if(await toggle.isVisible()){
+    const expanded=await toggle.getAttribute('aria-expanded');
+    if(expanded!=='true')await toggle.click();
+  }
+  await page.waitForSelector('[data-filter-merchant]',{state:'visible',timeout:10000});
+  pass('mobile_filters_open');
   const chosen=options[0].value;
   await page.selectOption('[data-filter-merchant]',chosen);
   await page.waitForFunction(v=>document.querySelector('[data-filter-merchant]')?.value===v,chosen);
