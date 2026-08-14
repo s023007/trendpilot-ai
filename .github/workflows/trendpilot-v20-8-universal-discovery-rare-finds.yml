@@ -7,6 +7,13 @@ on:
     paths:
       - scripts/build-v20-8-universal-discovery.py
       - scripts/clean-v20-8-universal-output.py
+      - js/universal-discovery-v20-8.js
+      - js/rare-finds-v20-8.js
+      - js/home-rare-v20-8.js
+      - css/v20-8-universal.css
+      - netlify/functions/discovery-demand-v20-8.cjs
+      - rare-used/index.html
+      - find/index.html
       - .github/workflows/trendpilot-v20-8-universal-discovery-rare-finds.yml
   workflow_dispatch:
 
@@ -72,6 +79,7 @@ jobs:
           print('- Brand must be visible in actual product title: **YES**')
           print('- Replacement-part taxonomy can override stale category metadata: **YES**')
           print('- Near-duplicate rare model families collapsed: **YES**')
+          print('- Managed queries keep their specialist finder engine: **YES**')
           print()
           print('## Safety')
           print('- V19 canonical seller catalogs rebuilt: **NO**')
