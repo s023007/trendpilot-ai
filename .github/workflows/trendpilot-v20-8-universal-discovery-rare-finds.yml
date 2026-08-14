@@ -7,6 +7,7 @@ on:
     paths:
       - scripts/build-v20-8-universal-discovery.py
       - scripts/clean-v20-8-universal-output.py
+      - scripts/clean-v20-8-brand-truth.py
       - js/universal-discovery-v20-8.js
       - js/rare-finds-v20-8.js
       - js/home-rare-v20-8.js
@@ -35,12 +36,16 @@ jobs:
       - name: Apply V20.8 truth cleanup
         run: python scripts/clean-v20-8-universal-output.py
 
+      - name: Apply V20.8 brand truth guard
+        run: python scripts/clean-v20-8-brand-truth.py
+
       - name: Syntax and safety QA
         shell: bash
         run: |
           set -euo pipefail
           python -m py_compile scripts/build-v20-8-universal-discovery.py
           python -m py_compile scripts/clean-v20-8-universal-output.py
+          python -m py_compile scripts/clean-v20-8-brand-truth.py
           node --check js/universal-discovery-v20-8.js
           node --check js/rare-finds-v20-8.js
           node --check js/home-rare-v20-8.js
@@ -76,7 +81,8 @@ jobs:
           print(f"- Universal product buckets: **{x['productBuckets']:,}**")
           print()
           print('## Truth cleanup')
-          print('- Brand must be visible in actual product title: **YES**')
+          print('- Brand must be explicit in listing title or an explicit `by Brand` phrase: **YES**')
+          print('- Seller/network names are prevented from masquerading as brands: **YES**')
           print('- Replacement-part taxonomy can override stale category metadata: **YES**')
           print('- Near-duplicate rare model families collapsed: **YES**')
           print('- Managed queries keep their specialist finder engine: **YES**')
