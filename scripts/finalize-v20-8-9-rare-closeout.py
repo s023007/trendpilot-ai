@@ -82,13 +82,11 @@ def normalize_row(source: dict) -> dict:
     is_collector = ("collector" in old_signals or bool(LIMITED_COLLECTOR.search(title)) or bool(DIECAST.search(title))) and not is_accessory and not DUST_COLLECTOR.search(title)
     is_specialist = ("specialist" in old_signals or bool(SPECIALIST.search(title))) and not is_accessory
 
-    # Explicit ordinary-product corrections override inherited noisy rarity metadata.
     if DESK.search(title) or FITNESS.search(title):
         is_collector = is_specialist = is_replacement = is_discontinued = False
         model_specific = False
     if is_accessory:
         is_collector = is_specialist = is_replacement = False
-        # A size such as 17cm must not make a doll outfit model-specific.
         if NO_DOLL.search(title):
             model_specific = False
 
@@ -101,7 +99,6 @@ def normalize_row(source: dict) -> dict:
     if model_specific: signals.append("model-specific")
     row["signals"] = signals
 
-    # Calibrated around evidence already proven by the V20.8 builder.
     score = 30
     if is_used: score += 20
     if is_discontinued: score += 24
@@ -122,6 +119,12 @@ def normalize_row(source: dict) -> dict:
 
 def is_publishable_rare(row: dict) -> bool:
     signals = set(row.get("signals") or [])
+    title = str(row.get("title") or "").lower()
+    # Known ordinary-product families exposed by QA must never survive on inherited metadata.
+    if ("acgam" in title and "desk" in title) or ("robore" in title and "exercise bike" in title):
+        return False
+    if row.get("type") in {"furniture-desks", "fitness-equipment"} and not ({"used-scarce", "discontinued"} & signals):
+        return False
     if row.get("role") == "accessory" and not ({"used-scarce", "discontinued"} & signals):
         return False
     strong = bool(
