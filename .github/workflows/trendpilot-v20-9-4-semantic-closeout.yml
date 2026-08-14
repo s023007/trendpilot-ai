@@ -1,0 +1,100 @@
+name: TrendPilot V20.9.4 — Catalogue Semantic Closeout
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - scripts/semantic-closeout-v20-9-4.py
+      - .github/workflows/trendpilot-v20-9-4-semantic-closeout.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v20-9-4-semantic-closeout
+  cancel-in-progress: true
+
+jobs:
+  semantic-closeout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Correct deployed semantic false positives
+        run: python scripts/semantic-closeout-v20-9-4.py
+
+      - name: Re-export V20.9 runtime
+        run: python scripts/export-v20-9-runtime-data.py
+
+      - name: Re-audit product projection
+        run: python scripts/audit-v20-9-all-products.py
+
+      - name: Run cross-family smoke QA
+        run: python scripts/qa-v20-9-product-smoke.py
+
+      - name: Rebuild release contract
+        run: python scripts/report-v20-9-2-release-contract.py
+
+      - name: Semantic closeout safety gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/semantic-closeout-v20-9-4.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/report-v20-9-2-release-contract.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          s=json.loads(Path('data/v20-9/semantic-closeout.json').read_text())
+          c=json.loads(Path('data/v20-9/contract-debug.json').read_text())
+          q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          assert s['version']=='20.9.4'
+          assert s['violations']==0
+          assert c['passed'] is True
+          assert q['unclassifiedAfter']<=2500
+          assert q.get('semanticCloseoutVersion')=='20.9.4'
+          assert q.get('semanticCloseoutViolations')==0
+          print('V20.9.4 SEMANTIC CLOSEOUT PASS')
+          PY
+          if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
+            echo 'Unexpected canonical/identity mutation'
+            git status --short
+            exit 1
+          fi
+
+      - name: Write summary
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          s=json.loads(Path('data/v20-9/semantic-closeout.json').read_text())
+          q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          print('# TrendPilot V20.9.4 — Catalogue Semantic Closeout')
+          print()
+          print(f"- Records preserved: **{s['records']:,}**")
+          print(f"- Semantic corrections: **{s['corrected']:,}**")
+          print(f"- Remaining targeted violations: **{s['violations']}**")
+          print(f"- Unclassified remains: **{q['unclassifiedAfter']:,} ({q['unclassifiedAfterPct']}%)**")
+          print()
+          print('## Corrected patterns')
+          for reason,count in s['byReason']:
+              print(f'- {reason}: **{count:,}**')
+          PY
+
+      - name: Commit corrected runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add data/v20-8/products data/v20-8/manifest.json data/v20-8/taxonomy-summary.json data/v20-9
+          if git diff --cached --quiet; then
+            echo 'No semantic data changes to commit'
+            exit 0
+          fi
+          git commit -m 'TrendPilot V20.9.4 semantic closeout runtime'
+          git push
