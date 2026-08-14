@@ -1,0 +1,63 @@
+name: TrendPilot V20.8.3 Rarity Semantics
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/trendpilot-v20-8-3-rarity-semantics.yml
+
+permissions:
+  contents: write
+
+jobs:
+  semantic-truth:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Apply V20.8.3 semantics
+        run: python scripts/apply-v20-8-3-rarity-semantics.py
+
+      - name: Rebuild Universal Discovery
+        run: python scripts/build-v20-8-universal-discovery.py
+
+      - name: Semantic QA
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/universal-discovery-v20-8.js
+          node --check js/rare-finds-v20-8.js
+          python -m py_compile scripts/build-v20-8-universal-discovery.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          rows=json.loads(Path('data/v20-8/rare-index.json').read_text())
+          cb=[r for r in rows if 'cb440' in (r.get('title') or '').lower()]
+          if not cb: raise SystemExit('CB440 probe missing')
+          if any(r.get('type')!='power-tool-parts' for r in cb): raise SystemExit('CB440 type regression')
+          if any('collector' in (r.get('signals') or []) for r in cb): raise SystemExit('Dust collector false collectible signal')
+          if any(int(r.get('rareScore') or 0)>79 for r in cb): raise SystemExit('CB440 rarity still inflated')
+          print('V20.8.3 semantic QA: PASS',[(r.get('rareScore'),r.get('type')) for r in cb[:3]])
+          PY
+          if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
+            echo 'Unexpected canonical identity/catalog mutation'
+            exit 1
+          fi
+
+      - name: Commit V20.8.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add scripts/build-v20-8-universal-discovery.py js/universal-discovery-v20-8.js js/rare-finds-v20-8.js find/index.html rare-used/index.html data/v20-8 rare-used/finds sitemap-v20-8.xml robots.txt
+          if git diff --cached --quiet; then
+            echo 'No changes to commit'
+            exit 0
+          fi
+          git commit -m 'TrendPilot V20.8.3 fix rarity semantics'
+          git push
