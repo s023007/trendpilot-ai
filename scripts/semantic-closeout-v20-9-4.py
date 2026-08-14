@@ -14,32 +14,48 @@ MANIFEST = ROOT / 'data/v20-8/manifest.json'
 REPORT = ROOT / 'data/v20-9/semantic-closeout.json'
 VERSION = '20.9.4'
 
-# These are narrow corrections learned from the deployed Android shopper journey.
-# They intentionally target explicit product nouns/grammar rather than broad tokens.
+# Ordered, narrow corrections learned from the deployed Android shopper journey.
+# First matching rule wins. High-risk ambiguous grammar is deliberately excluded.
 RULES = [
-    ('phone-display-part', 'phone-parts', 'phone', 'replacement_part', re.compile(
-        r'\b(?:lcd|oled|amoled|touch\s*screen|digitizer)\b[^,;]{0,55}\b(?:display|screen|assembly)?\b[^,;]{0,65}\b(?:for|compatible\s+with|fits?)\b[^,;]{0,80}\b(?:iphone|samsung|galaxy|redmi|xiaomi|huawei|honor|oppo|vivo|realme|phone)\b|'
-        r'\b(?:mobile\s+phone|smartphone)\b[^,;]{0,55}\b(?:lcd\s+display|oled\s+display|display\s+assembly|screen\s+assembly|digitizer|touch\s*screen)\b|'
-        r'\b(?:lcd\s+display|oled\s+display|display\s+assembly|screen\s+assembly|digitizer|touch\s*screen)\b[^,;]{0,80}\b(?:iphone|samsung|galaxy|redmi|xiaomi|huawei|honor|oppo|vivo|realme)\b', re.I)),
+    ('smartwatch-main', 'smartwatch', 'smartwatch', 'main', re.compile(
+        r'^(?!.*\b(?:watch\s+band|watch\s+strap|watch\s+case|watch\s+cover|watch\s+charger|charging\s+cable|screen\s+protector)\b).*\b(?:smart\s*watch|smartwatch)\b', re.I)),
     ('phone-power-case', 'phone-accessories', 'phone', 'accessory', re.compile(
-        r'\b(?:power\s*bank|powerbank|battery|charging)\s+case\b[^,;]{0,80}\b(?:iphone|phone|galaxy|samsung|pixel|redmi|huawei|honor|oppo|vivo)\b|'
-        r'\bcase\b[^,;]{0,30}\b(?:with\s+)?(?:power\s*bank|powerbank|battery)\b[^,;]{0,70}\b(?:iphone|phone|galaxy|samsung)\b', re.I)),
+        r'\b(?:power\s*bank|powerbank|battery)\s+case\b[^,;]{0,90}\b(?:iphone|phone|galaxy|samsung|pixel|redmi|xiaomi|huawei|honor|oppo|vivo|realme)\b|'
+        r'\bcase\b[^,;]{0,35}\b(?:with\s+)?(?:power\s*bank|powerbank|battery)\b[^,;]{0,80}\b(?:iphone|phone|galaxy|samsung)\b', re.I)),
+    ('phone-screen-protector', 'phone-accessories', 'phone', 'accessory', re.compile(
+        r'\b(?:screen\s+protector|tempered\s+glass|screen\s+guard|protective\s+film)\b[^,;]{0,90}\b(?:iphone|phone|galaxy|samsung|pixel|redmi|xiaomi|huawei|honor|oppo|vivo|realme)\b|'
+        r'\b(?:iphone|galaxy|samsung|pixel|redmi|xiaomi|huawei|honor|oppo|vivo|realme)\b[^,;]{0,90}\b(?:screen\s+protector|tempered\s+glass|screen\s+guard|protective\s+film)\b', re.I)),
+    ('phone-display-part', 'phone-parts', 'phone', 'replacement_part', re.compile(
+        r'^(?!.*\b(?:smart\s*watch|smartwatch|earbuds?|earphones?|headphones?|power\s*bank|powerbank|portable\s+(?:lcd\s+)?monitor|gaming\s+monitor|unlocked\s+(?:mobile\s+)?phone|cell\s+phone|quad\s+core|\d+\s*gb\s+ram|\d+\s*gb\s+rom)\b)'
+        r'(?=.*\b(?:iphone|samsung|galaxy|redmi|xiaomi|huawei|honor|oppo|vivo|realme|motorola|nokia|blackberry)\b)'
+        r'.*\b(?:lcd\s+(?:screen|display|panel)|oled\s+(?:screen|display|panel)|amoled\s+(?:screen|display|panel)|display\s+assembly|screen\s+assembly|digitizer(?:\s+assembly)?|touch\s*screen\s+(?:digitizer|assembly)|lcds?\b)\b'
+        r'.*\b(?:replacement|replace|repair|assembly|digitizer|with\s+frame|for\s+(?:iphone|samsung|galaxy|redmi|xiaomi|huawei|honor|oppo|vivo|realme|motorola|nokia|blackberry))\b', re.I)),
     ('phone-repair-tool', 'tools', 'tools', 'main', re.compile(
-        r'\b(?:phone|mobile\s+phone|smartphone)\b[^,;]{0,70}\b(?:screen\s+removal|repair\s+tool|repair\s+station|heating\s+station|separator\s+machine|opening\s+tool|circuit\s+repair)\b|'
-        r'\b(?:heating\s+station|separator\s+machine|screen\s+separator|repair\s+station)\b[^,;]{0,80}\b(?:phone|mobile\s+phone|smartphone)\b', re.I)),
+        r'\b(?:phone|mobile\s+phone|smartphone)\b[^,;]{0,75}\b(?:screen\s+removal|repair\s+tool|repair\s+station|heating\s+station|separator\s+machine|opening\s+tool|circuit\s+repair)\b|'
+        r'\b(?:heating\s+station|separator\s+machine|screen\s+separator|repair\s+station)\b[^,;]{0,85}\b(?:phone|mobile\s+phone|smartphone)\b', re.I)),
     ('laptop-privacy-filter', 'laptop-accessories', 'laptop', 'accessory', re.compile(
-        r'\bprivacy\s+(?:screen\s+)?filter\b[^,;]{0,70}\b(?:laptop|laptops|notebook|notebooks)\b|'
-        r'\b(?:laptop|laptops|notebook|notebooks)\b[^,;]{0,70}\bprivacy\s+(?:screen\s+)?filter\b', re.I)),
+        r'\bprivacy\s+(?:screen\s+)?filter\b[^,;]{0,80}\b(?:laptop|laptops|notebook|notebooks|macbook)\b|'
+        r'\b(?:laptop|laptops|notebook|notebooks|macbook)\b[^,;]{0,80}\bprivacy\s+(?:screen\s+)?filter\b|'
+        r'\banti[- ]?spy\b[^,;]{0,60}\b(?:laptop|macbook)\b', re.I)),
+    ('laptop-screen-protector', 'laptop-accessories', 'laptop', 'accessory', re.compile(
+        r'\b(?:laptop|notebook|macbook)\b[^,;]{0,65}\b(?:screen\s+protector|screen\s+guard|protective\s+film|anti[- ]glare\s+(?:film|protector))\b|'
+        r'\b(?:screen\s+protector|screen\s+guard|protective\s+film|anti[- ]glare\s+(?:film|protector))\b[^,;]{0,65}\b(?:laptop|notebook|macbook)\b', re.I)),
+    ('portable-monitor', 'monitor', 'computer', 'main', re.compile(
+        r'\bportable\s+(?:lcd\s+|oled\s+|touch\s*screen\s+)?monitor\b|'
+        r'\bportable\s+(?:touch\s*screen|display)\b[^,;]{0,45}\b(?:monitor|1080p|4k)\b', re.I)),
     ('laptop-motherboard', 'laptop-parts', 'laptop', 'replacement_part', re.compile(
-        r'\b(?:motherboard|mainboard|system\s+board)\b[^,;]{0,90}\b(?:laptop|notebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|aspire|legion)\b|'
-        r'\b(?:laptop|notebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|aspire|legion)\b[^,;]{0,90}\b(?:motherboard|mainboard|system\s+board)\b', re.I)),
+        r'^(?!.*\b(?:\d+\s*gb\s+ram|\d+\s*gb\s+(?:ssd|rom)|windows?\s*(?:10|11)|win\s*(?:10|11))\b)'
+        r'(?:.*\b(?:motherboard|mainboard|system\s+board)\b[^,;]{0,95}\b(?:laptop|notebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|aspire|legion)\b|'
+        r'.*\b(?:laptop|notebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|aspire|legion)\b[^,;]{0,95}\b(?:motherboard|mainboard|system\s+board)\b)', re.I)),
     ('laptop-screen-part', 'laptop-parts', 'laptop', 'replacement_part', re.compile(
-        r'\b(?:lcd|oled|display|screen|touch\s*screen)\b[^,;]{0,50}\b(?:for|replacement\s+for|compatible\s+with)\b[^,;]{0,90}\b(?:laptop|notebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|aspire|legion)\b', re.I)),
+        r'^(?!.*\b(?:privacy|anti[- ]?spy|screen\s+protector|screen\s+guard|protective\s+film|portable\s+monitor|displayport|hdmi\s+(?:adapter|cable)|usb[- ]?c\s+monitor)\b)'
+        r'(?:.*\b(?:lcd\s+screen|oled\s+screen|display\s+assembly|screen\s+assembly|replacement\s+screen|laptop\s+screen)\b[^,;]{0,75}\b(?:for|compatible\s+with)?\s*(?:laptop|notebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|aspire|legion)\b|'
+        r'.*\b(?:laptop|notebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|aspire|legion)\b[^,;]{0,75}\b(?:lcd\s+screen|oled\s+screen|display\s+assembly|screen\s+assembly|replacement\s+screen)\b)', re.I)),
     ('perfume-vending-machine', 'industrial-components', 'industrial', 'main', re.compile(
-        r'\b(?:perfume|fragrance)\b[^,;]{0,70}\b(?:vending\s+machine|dispensing\s+machine|filling\s+machine|packaging\s+machine)\b|'
-        r'\b(?:vending\s+machine|dispensing\s+machine|filling\s+machine|packaging\s+machine)\b[^,;]{0,70}\b(?:perfume|fragrance)\b', re.I)),
+        r'\b(?:perfume|fragrance)\b[^,;]{0,75}\b(?:vending\s+machine|dispensing\s+machine|filling\s+machine|packaging\s+machine)\b|'
+        r'\b(?:vending\s+machine|dispensing\s+machine|filling\s+machine|packaging\s+machine)\b[^,;]{0,75}\b(?:perfume|fragrance)\b', re.I)),
     ('tool-battery-power-adapter', 'power-tool-accessories', 'tools', 'accessory', re.compile(
-        r'\b(?:makita|dewalt|milwaukee|bosch|m18)\b[^,;]{0,100}\b(?:battery\s+adapter|adapter\s+converter|converter\s+charger|usb\s+c\s+power\s*bank)\b', re.I)),
+        r'\b(?:makita|dewalt|milwaukee|bosch|m18)\b[^,;]{0,105}\b(?:battery\s+adapter|adapter\s+converter|converter\s+charger|usb\s+c\s+power\s*bank)\b', re.I)),
     ('car-jump-starter', 'car-jump-starter', 'automotive', 'main', re.compile(
         r'\b(?:car\s+)?jump\s*starter\b|\bjumpstart(?:er)?\b', re.I)),
 ]
@@ -47,6 +63,13 @@ RULES = [
 
 def label(slug: str) -> str:
     return slug.replace('-', ' ').title()
+
+
+def first_rule(title: str):
+    for rule in RULES:
+        if rule[4].search(title):
+            return rule
+    return None
 
 
 def main() -> None:
@@ -57,9 +80,9 @@ def main() -> None:
         dirty = False
         for rid, row in data.items():
             title = str(row.get('t') or '')
-            for reason, ty, fa, role, pattern in RULES:
-                if not pattern.search(title):
-                    continue
+            rule = first_rule(title)
+            if rule:
+                reason, ty, fa, role, _ = rule
                 before = (str(row.get('ty') or ''), str(row.get('fa') or ''), str(row.get('ro') or 'main'))
                 after = (ty, fa, role if str(row.get('ro') or '') != 'used' else 'used')
                 if before != after:
@@ -70,7 +93,6 @@ def main() -> None:
                     row['s'] = ' '.join(dict.fromkeys((str(row.get('s') or '') + ' ' + title + ' ' + ty + ' ' + fa + ' ' + row['ro']).lower().split()))
                     changed.append({'id': rid, 'title': title, 'reason': reason, 'before': before, 'after': after, 'seller': row.get('se')})
                     dirty = True
-                break
             rows.append(row)
         if dirty:
             path.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
@@ -80,15 +102,18 @@ def main() -> None:
     families = collections.Counter(str(r.get('fa') or r.get('ty') or 'unclassified') for r in rows)
     reasons = collections.Counter(x['reason'] for x in changed)
 
-    # Hard guard: the exact false-positive grammars must not remain in a main row of the wrong family.
+    # Hard guard uses the same first-match contract as the correction pass.
     violations = []
     for r in rows:
         title = str(r.get('t') or '')
+        rule = first_rule(title)
+        if not rule:
+            continue
+        reason, target_ty, target_fa, target_role, _ = rule
         ty, fa, role = str(r.get('ty') or ''), str(r.get('fa') or ''), str(r.get('ro') or 'main')
-        for reason, target_ty, target_fa, target_role, pattern in RULES:
-            if pattern.search(title) and role != 'used' and (ty, fa, role) != (target_ty, target_fa, target_role):
-                violations.append({'id': r.get('id'), 'title': title, 'reason': reason, 'actual': [ty, fa, role]})
-                break
+        expected_role = role if role == 'used' else target_role
+        if role != 'used' and (ty, fa, role) != (target_ty, target_fa, expected_role):
+            violations.append({'id': r.get('id'), 'title': title, 'reason': reason, 'actual': [ty, fa, role]})
 
     payload = {
         'version': VERSION,
