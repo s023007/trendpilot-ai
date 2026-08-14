@@ -5,14 +5,14 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 
-ROOT=Path(__file__).resolve().parents[1]; CAT=ROOT/'data/catalog-v19'; OUT=ROOT/'data/v20-8'; SITE='https://trendpilotchoice.com'; V='20.8.0'
+ROOT=Path(__file__).resolve().parents[1]; CAT=ROOT/'data/catalog-v19'; OUT=ROOT/'data/v20-8'; SITE='https://trendpilotchoice.com'; V='20.8.1'
 BLOCK={'temu','joom','filamentpro','filamentpro eu cps','filamentpro-eu-cps'}
 STOP={'the','and','for','with','from','this','that','your','our','new','best','sale','hot','price','buy','original','official','wholesale','factory','global','product','products','item','items','pcs','piece','pieces','pack','set','sets','of','to','in','on','by','a','an'}
 USED={'used','refurbished','open-box','open box','renewed','pre-owned','preowned'}
 REPL=re.compile(r'\b(?:replacement|spare part|repair part|replacement part|battery for|filter for|belt for|gasket for|brush for|carbon brush|cartridge for|sensor for|screen for|display for|charging port|flex cable|motherboard|pcb board|oem part|compatible with|fits?)\b',re.I)
 ACC=re.compile(r'\b(?:case|cover|holder|stand|mount|strap|lanyard|sleeve|pouch|organizer|adapter|charger|charging cable|usb cable|cable|cord|dock|bag|screen protector|tempered glass)\b',re.I)
 RARE={'rare':24,'hard to find':24,'hard-to-find':24,'discontinued':24,'obsolete':22,'vintage':22,'limited edition':20,'collector':18,'collectible':18,'new old stock':22,'surplus':16,'legacy':12,'classic':10,'out of production':22,'replacement':12,'spare':10,'oem':10}
-SPECIAL=('industrial','laboratory','medical','surgical','dental','aviation','aircraft','cnc','oscilloscope','multimeter','sensor','calibrator','microscope','diagnostic','hydraulic','pneumatic','bearing','gasket','carburetor','relay','solenoid','encoder','servo','diecast','scale model','model car','model aircraft','filament','3d printer','replacement part')
+SPECIAL=('industrial','laboratory','medical','surgical','dental','aviation','aircraft','cnc','oscilloscope','multimeter','sensor','calibrator','microscope','diagnostic','hydraulic','pneumatic','bearing','gasket','carburetor','relay','solenoid','encoder','servo','diecast','scale model','model car','model aircraft','filament','3d printer','replacement part','carbon brush')
 TYPE=[('phone',r'\b(?:smartphone|mobile phone|cell phone|iphone|galaxy|pixel|oneplus|redmi|poco|oppo|vivo|realme)\b'),('laptop',r'\b(?:laptop|notebook computer|chromebook|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|xps)\b'),('perfume',r'\b(?:perfume|fragrance|cologne|eau de parfum|eau de toilette|parfum|edp|edt)\b'),('headphones',r'\b(?:headphones?|headsets?|earbuds?|earphones?|airpods?|tws)\b'),('smartwatch',r'\b(?:smart ?watch|fitness watch|gps watch|apple watch)\b'),('power-bank',r'\b(?:power ?bank|portable charger|external battery)\b'),('tools',r'\b(?:drill|saw|wrench|screwdriver|pliers|multimeter|oscilloscope|soldering iron|grinder|router|ratchet|tool set)\b'),('medical',r'\b(?:medical|surgical|patient|diagnostic|hospital|clinical|dental)\b'),('diecast-collectibles',r'\b(?:diecast|scale model|model car|model aircraft|collectible)\b'),('3d-printing',r'\b(?:3d printer|3d filament|pla filament|petg filament|abs filament|tpu filament)\b'),('lighting',r'\b(?:lamp|lighting|light fixture|led strip|bulb|ceiling light|wall light|desk lamp|floor lamp)\b'),('cookware',r'\b(?:cookware|frying pan|saucepan|stockpot|casserole|wok|skillet|cooking pot)\b'),('pet-supplies',r'\b(?:dog food|cat food|pet food|dog treat|cat treat|pet supplies)\b'),('jewelry-craft',r'\b(?:beads?|jewelry|jewellery|charms?|pendant|bracelet|necklace|earrings?)\b'),('air-conditioning',r'\b(?:air conditioner|portable ac|mini split|ductless ac|split ac)\b')]
 TYPE=[(n,re.compile(p,re.I)) for n,p in TYPE]
 
@@ -70,6 +70,13 @@ def desc(r):
     bits=[m[x] for x in r['signals'] if x in m][:3] or ['low-coverage catalogue evidence']
     return 'TrendPilot flagged this item as hard to find because it has '+', '.join(bits)+'.'
 
+def rarity_label(score):
+    score=int(score or 0)
+    if score>=90:return f'Exceptional find · {score}'
+    if score>=80:return f'Very rare · {score}'
+    if score>=65:return f'Hard to find · {score}'
+    return f'Specialist find · {score}'
+
 def seo_html(r):
     canonical=SITE+r['seoUrl']; description=desc(r); img=r['image']; offer=None
     if r['price'] and r['exact']:
@@ -82,7 +89,7 @@ def seo_html(r):
     if offer:ld['offers']=offer
     signals=''.join(f'<span>{esc(x.replace("-"," ").title())}</span>' for x in r['signals'][:5])
     ptxt=(('$' if r['currency']=='USD' else r['currency']+' ')+f'{r["price"]:,.2f}'.replace('.00','')) if r['price'] and r['exact'] else 'Check current price'
-    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{esc(r['title'])} — Rare Find | TrendPilot AI</title><meta name="description" content="{esc(description)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="{esc(canonical)}"><meta property="og:type" content="product"><meta property="og:site_name" content="TrendPilot AI"><meta property="og:title" content="{esc(r['title'])}"><meta property="og:description" content="{esc(description)}"><meta property="og:image" content="{esc(img)}"><meta property="og:url" content="{esc(canonical)}"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/css/v20-8-universal.css?v={V}"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False).replace('</','<\\/')}</script></head><body class="tp80-rare-detail"><header class="tp80-minihead"><a href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><b>TrendPilot <em>AI</em></b></a><a href="/find/">Search</a></header><main><nav class="tp80-breadcrumb"><a href="/">Home</a> / <a href="/rare-used/">Rare Finds</a> / <span>{esc(r['typeLabel'])}</span></nav><section class="tp80-detail-hero"><div class="tp80-detail-media"><img src="{esc(img)}" alt="{esc(r['title'])}" width="800" height="800"></div><div class="tp80-detail-copy"><span class="tp80-rare-score">Rare score {r['rareScore']}/100</span><p class="tp80-brand">{esc(r['brand'] or r['seller'])}</p><h1>{esc(r['title'])}</h1><p class="tp80-price">{esc(ptxt)}</p><div class="tp80-signals">{signals}</div><p>{esc(description)}</p><div class="tp80-facts"><span><b>Seller</b>{esc(r['seller'])}</span><span><b>Type</b>{esc(r['typeLabel'])}</span><span><b>Condition</b>{esc(r['condition'] or 'Check seller')}</span></div><a class="tp80-primary" href="{esc(r['url'])}" target="_blank" rel="sponsored nofollow noopener">View seller listing ↗</a><p class="tp80-note">Confirm price, stock, condition and delivery with the seller.</p></div></section><section class="tp80-info"><h2>Why this is a rare find</h2><p>{esc(description)} Rarity is a discovery signal, not a guarantee of value.</p><a href="/find/?q={esc(r['title'].replace(' ','+'))}&universal=1">Search for similar products</a></section></main></body></html>'''
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{esc(r['title'])} — Rare Find | TrendPilot AI</title><meta name="description" content="{esc(description)}"><meta name="robots" content="index,follow,max-image-preview:large"><link rel="canonical" href="{esc(canonical)}"><meta property="og:type" content="product"><meta property="og:site_name" content="TrendPilot AI"><meta property="og:title" content="{esc(r['title'])}"><meta property="og:description" content="{esc(description)}"><meta property="og:image" content="{esc(img)}"><meta property="og:url" content="{esc(canonical)}"><meta name="twitter:card" content="summary_large_image"><link rel="stylesheet" href="/css/v20-8-universal.css?v={V}"><script type="application/ld+json">{json.dumps(ld,ensure_ascii=False).replace('</','<\\/')}</script></head><body class="tp80-rare-detail"><header class="tp80-minihead"><a href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><b>TrendPilot <em>AI</em></b></a><a href="/find/">Search</a></header><main><nav class="tp80-breadcrumb"><a href="/">Home</a> / <a href="/rare-used/">Rare Finds</a> / <span>{esc(r['typeLabel'])}</span></nav><section class="tp80-detail-hero"><div class="tp80-detail-media"><img src="{esc(img)}" alt="{esc(r['title'])}" width="800" height="800"></div><div class="tp80-detail-copy"><span class="tp80-rare-score">{esc(rarity_label(r['rareScore']))}</span><p class="tp80-brand">{esc(r['brand'] or r['seller'])}</p><h1>{esc(r['title'])}</h1><p class="tp80-price">{esc(ptxt)}</p><div class="tp80-signals">{signals}</div><p>{esc(description)}</p><div class="tp80-facts"><span><b>Seller</b>{esc(r['seller'])}</span><span><b>Type</b>{esc(r['typeLabel'])}</span><span><b>Condition</b>{esc(r['condition'] or 'Check seller')}</span></div><a class="tp80-primary" href="{esc(r['url'])}" target="_blank" rel="sponsored nofollow noopener">View seller listing ↗</a><p class="tp80-note">Confirm price, stock, condition and delivery with the seller.</p></div></section><section class="tp80-info"><h2>Why this is a rare find</h2><p>{esc(description)} Rarity is a discovery signal, not a guarantee of value.</p><a href="/find/?q={esc(r['title'].replace(' ','+'))}&universal=1">Search for similar products</a></section></main></body></html>'''
 
 def main():
     cs=json.loads((CAT/'catalog-set-v1.json').read_text()); approved={x['slug']:x['name'] for x in cs.get('sellers',[]) if n(x.get('slug')) not in BLOCK and n(x.get('name')) not in BLOCK}
@@ -102,25 +109,37 @@ def main():
             cat=ty; cats[cat]+=1; ids_count[ident]+=1; sellers[sn]+=1; types[ty]+=1; roles[ro]+=1
             rows.append({'id':uid,'title':title,'brand':c(r.get('brand')),'type':ty,'typeLabel':ty.replace('-',' ').title(),'category':cat,'sourceCategory':c(tax.get('sourceCategory')),'sourceSubcategory':c(tax.get('sourceSubcategory')),'seller':sn,'sellerSlug':sl,'network':net,'role':ro,'condition':cond,'price':pr,'currency':cur,'image':'' if placeholder(media) else media,'url':url,'exact':ex,'quality':round(qs,1),'identity':ident,'strongIdentity':strong,'sellerProductId':c(idf.get('sellerProductId')),'mpn':c(idf.get('mpn')),'gtin':c(idf.get('gtin') or idf.get('ean') or idf.get('upc') or idf.get('isbn')),'model':c(idf.get('model'))})
     for r in rows:
-        score=8.; sig=[]; t=n(r['title']); cond=n(r['condition'])
-        if cond in USED:score+=22;sig.append('used-scarce')
-        if r['role']=='replacement_part':score+=18;sig.append('replacement-part')
+        score=12.;sig=[];t=n(r['title']);cond=n(r['condition']);strong_rarity=False
+        if cond in USED:
+            score+=18;sig.append('used-scarce');strong_rarity=True
+        if r['role']=='replacement_part':
+            score+=12;sig.append('replacement-part')
         add=0
         for term,val in RARE.items():
             if term in t:
-                add=max(add,val)
-                if term in {'discontinued','obsolete','out of production','legacy'} and 'discontinued' not in sig:sig.append('discontinued')
-                if term in {'limited edition','collector','collectible','vintage','classic'} and 'collector' not in sig:sig.append('collector')
+                weight={'rare':15,'hard to find':18,'hard-to-find':18,'discontinued':28,'obsolete':24,'vintage':22,'limited edition':20,'collector':18,'collectible':18,'new old stock':24,'surplus':12,'legacy':12,'classic':8,'out of production':28,'replacement':6,'spare':5,'oem':4}.get(term,val)
+                add=max(add,weight)
+                if term in {'discontinued','obsolete','out of production','legacy'}:
+                    if 'discontinued' not in sig:sig.append('discontinued')
+                    strong_rarity=True
+                if term in {'limited edition','collector','collectible','vintage','classic','new old stock'}:
+                    if 'collector' not in sig:sig.append('collector')
+                    strong_rarity=True
+                if term in {'rare','hard to find','hard-to-find'}:strong_rarity=True
         score+=add
-        if any(x in t for x in SPECIAL):score+=14;sig.append('specialist')
-        if re.search(r'\b(?=[a-z0-9.-]{4,}\b)(?=[a-z0-9.-]*[a-z])(?=[a-z0-9.-]*\d)[a-z0-9.-]+\b',t):score+=9;sig.append('model-specific')
-        tc=len(toks(r['title'])); score+=7 if tc>=9 else 4 if tc>=6 else 0
-        cn=cats[r['category']];score+=18 if cn<=10 else 13 if cn<=50 else 8 if cn<=200 else 4 if cn<=800 else 0
+        if any(x in t for x in SPECIAL):score+=8;sig.append('specialist')
+        if re.search(r'\b(?=[a-z0-9.-]{4,}\b)(?=[a-z0-9.-]*[a-z])(?=[a-z0-9.-]*\d)[a-z0-9.-]+\b',t):score+=8;sig.append('model-specific')
+        tc=len(toks(r['title']));score+=5 if tc>=9 else 3 if tc>=6 else 0
+        cn=cats[r['category']];score+=12 if cn<=10 else 8 if cn<=50 else 5 if cn<=200 else 2 if cn<=800 else 0
         same=ids_count[r['identity']]
-        if r['strongIdentity'] and same==1:score+=16;sig.append('low-seller-coverage')
-        elif r['strongIdentity'] and same==2:score+=9
-        else:score+=4
-        score+=8 if r['exact'] else 0;score+=4 if r['image'] else 0;score+=3 if r['price'] else 0;score+=5 if r['quality']>=80 else 3 if r['quality']>=70 else 0;score-=15 if tc<=2 else 0;score-=8 if r['role']=='accessory' and not set(sig)&{'used-scarce','collector','discontinued','specialist'} else 0
+        if r['strongIdentity'] and same==1:score+=10;sig.append('low-seller-coverage')
+        elif r['strongIdentity'] and same==2:score+=6
+        else:score+=2
+        score+=5 if r['exact'] else 0;score+=3 if r['image'] else 0;score+=1 if r['price'] else 0;score+=4 if r['quality']>=80 else 2 if r['quality']>=70 else 0
+        score-=15 if tc<=2 else 0
+        if r['role']=='accessory' and not set(sig)&{'used-scarce','collector','discontinued','specialist'}:score-=10
+        if not strong_rarity:score=min(score,84)
+        if r['role']=='replacement_part' and not strong_rarity:score=min(score,79)
         r['rareScore']=max(0,min(100,round(score)));r['signals']=list(dict.fromkeys(sig or (['hard-to-find'] if score>=60 else [])));r['search']=n(' '.join([r['title'],r['brand'],r['typeLabel'],r['sourceCategory'],r['sourceSubcategory'],r['mpn'],r['gtin'],r['model'],r['sellerProductId']]))
     if OUT.exists():shutil.rmtree(OUT)
     (OUT/'terms').mkdir(parents=True);(OUT/'products').mkdir(parents=True)
