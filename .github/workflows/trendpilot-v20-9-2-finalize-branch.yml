@@ -5,6 +5,7 @@ on:
     branches:
       - v20-9-all-product-quality-gate
     paths:
+      - scripts/report-v20-9-2-release-contract.py
       - .github/workflows/trendpilot-v20-9-2-finalize-branch.yml
   workflow_dispatch:
 
