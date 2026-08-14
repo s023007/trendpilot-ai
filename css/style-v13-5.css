@@ -14,3 +14,23 @@ body.tp-modal-open{overflow:hidden}
 @media(max-width:640px){.tp-quick-view{padding:8px}.tp-quick-dialog{max-height:92dvh;padding:18px;border-radius:22px}.tp-quick-grid{grid-template-columns:1fr;gap:15px}.tp-quick-media{min-height:210px}.tp-quick-copy h2{margin-right:38px;font-size:1.25rem}.tp-product-detail-hero{padding-bottom:28px}.tp-product-breadcrumb{padding-block:12px}.tp-product-detail-grid{gap:18px}.tp-detail-main-image{min-height:300px;padding:14px;border-radius:20px}.tp-detail-thumbs{grid-template-columns:repeat(5,1fr)}.tp-detail-thumbs button{height:55px}.tp-detail-summary h1{font-size:2rem}.tp-detail-actions{display:grid;grid-template-columns:1fr 1fr}.tp-detail-actions .tp-btn:first-child{grid-column:1/-1}.tp-product-detail-content{padding-block:24px 84px}.tp-decision-panel,.tp-detail-section{padding:18px;border-radius:19px}.tp-offers-table{margin-inline:-2px}.tp-spec-grid>div{grid-template-columns:100px minmax(0,1fr);padding:11px}.tp-video-shell,.tp-video-shell iframe,.tp-video-shell video{min-height:220px}.tp-quick-view-trigger span{display:none}.tp-quick-view-trigger{right:7px;bottom:7px;width:32px;min-height:32px;justify-content:center;padding:0}.tp-product-card h3 a{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}}
 @media(max-width:430px){.tp-detail-summary h1{font-size:1.75rem}.tp-detail-actions{grid-template-columns:1fr}.tp-detail-actions .tp-btn:first-child{grid-column:auto}.tp-detail-main-image{min-height:265px}.tp-detail-thumbs{grid-template-columns:repeat(4,1fr)}.tp-decision-panel h2,.tp-detail-section h2{font-size:1.35rem}}
 .tp-compare-products article>a,.tp-compare-products h2 a{color:inherit;text-decoration:none}.tp-compare-products h2 a:hover{color:var(--accent)}.tp-compare-products article>div{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.tp-watch-image{text-decoration:none}
+
+/* TrendPilot V20.8.5 — compact mobile drawer. Bottom nav owns Home/Search/Deals/Compare. */
+@media(max-width:820px){
+  .tp-links .tp-menu-section-title{display:none!important}
+  .tp-links>a[href="/find/"],
+  .tp-links>a[href="/compare/"],
+  .tp-links>a[href="/deals/"],
+  .tp-links>a[href="/products/"],
+  .tp-links>a[href="/software/"],
+  .tp-links>a[href="/wholesale/"],
+  .tp-links>a.tp-nav-cta{display:none!important}
+  .tp-links>a[href="/price-watch/"],
+  .tp-links>a[href="/rare-used/"],
+  .tp-links>a[href="/tickets/"],
+  .tp-links>a[href="/guides/"],
+  .tp-links>a[href="/sourcing/"]{display:flex!important;align-items:center;min-height:58px;margin:0;padding:12px 0;font-size:1.02rem;font-weight:800;line-height:1.2}
+  .tp-links>a[href="/sourcing/"]{font-size:0}
+  .tp-links>a[href="/sourcing/"]::after{content:"Business & wholesale";font-size:1.02rem;font-weight:800}
+  .tp-links .tp-menu-title{margin-bottom:18px}
+}
