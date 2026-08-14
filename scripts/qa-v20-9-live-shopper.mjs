@@ -5,7 +5,7 @@ const BASE=(process.env.TP_BASE_URL||'https://trendpilotchoice.com').replace(/\/
 const OUT='artifacts/live-shopper';
 await fs.mkdir(OUT,{recursive:true});
 
-const report={version:'20.9.5',mode:'restored-working-finder+detail-truth',base:BASE,queries:[],checks:{},samples:{}};
+const report={version:'20.9.5',mode:'restored-working-finder+product-first-seo-cpc',base:BASE,queries:[],checks:{},samples:{}};
 const fail=(name,msg)=>{report.checks[name]=false;throw new Error(`${name}: ${msg}`)};
 const pass=name=>{report.checks[name]=true};
 
@@ -91,25 +91,54 @@ try{
 
   const redmiURL=`${BASE}/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/`;
   await page.goto(redmiURL,{waitUntil:'domcontentloaded',timeout:90000});
-  await page.waitForSelector('body[data-tp-product-truth="20.9.5"]',{state:'attached',timeout:25000});
+  await page.waitForSelector('body[data-tp-product-truth="20.9.5"][data-tp-product-content="seo-cpc-product-first"]',{state:'attached',timeout:25000});
   await page.waitForSelector('main h1',{state:'visible',timeout:15000});
   const detail=await page.evaluate(()=>{
     const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
     const main=document.querySelector('main');
     const text=clean(main?.innerText||'');
     const h1=clean(main?.querySelector('h1')?.textContent||'');
+    const about=main?.querySelector('.panel.about');
+    const aboutCopy=clean(about?.querySelector('.about-copy')?.textContent||'');
     const visibleConfig=[...main.querySelectorAll('.variants .variant')].filter(el=>getComputedStyle(el).display!=='none').map(el=>clean(el.textContent));
-    const preview=[...main.querySelectorAll('.panel')].find(el=>/PRODUCT PREVIEW/i.test(el.textContent||''));
-    const previewLabels=[...(preview?.querySelectorAll('.spec span')||[])].map(el=>clean(el.textContent));
-    const previewText=clean(preview?.innerText||'');
-    const bottom=document.querySelector('.bottom-nav');
-    const bottomHeight=bottom?bottom.getBoundingClientRect().height:0;
-    return {text,h1,visibleConfig,previewLabels,previewText,bottomHeight};
+    const facts=[...main.querySelectorAll('.technical-panel')].find(el=>/MODEL FACTS/i.test(el.textContent||''));
+    const factLabels=[...(facts?.querySelectorAll('.spec span')||[])].map(el=>clean(el.textContent));
+    const factText=clean(facts?.innerText||'');
+    const seller=main?.querySelector('#seller-offers');
+    const technical=main?.querySelector('.technical-wrap');
+    const bottom=document.querySelector('.bottom');
+    const meta=document.querySelector('meta[name="description"]')?.getAttribute('content')||'';
+    let ldDescription='';
+    try{
+      const scripts=[...document.querySelectorAll('script[type="application/ld+json"]')];
+      for(const s of scripts){const x=JSON.parse(s.textContent||'{}');if(x?.['@type']==='Product'){ldDescription=clean(x.description||'');break;}}
+    }catch{}
+    const order={
+      hero:[...main.children].findIndex(el=>el.matches?.('.hero')),
+      about:[...main.children].findIndex(el=>el.matches?.('.panel.about')),
+      seller:[...main.children].findIndex(el=>el.matches?.('#seller-offers')),
+      technical:[...main.children].findIndex(el=>el.matches?.('.technical-wrap'))
+    };
+    return {text,h1,aboutCopy,visibleConfig,factLabels,factText,bottomHeight:bottom?.getBoundingClientRect().height||0,meta:clean(meta),ldDescription,order,hasSeller:!!seller,hasTechnical:!!technical};
   });
-  report.samples.redmiDetail={title:detail.h1,visibleConfig:detail.visibleConfig.slice(0,12),previewLabels:detail.previewLabels,bottomHeight:detail.bottomHeight};
+  report.samples.redmiDetail={title:detail.h1,description:detail.aboutCopy,meta:detail.meta,visibleConfig:detail.visibleConfig.slice(0,12),factLabels:detail.factLabels,bottomHeight:detail.bottomHeight,order:detail.order};
 
   if(!/redmi note 8/i.test(detail.h1)||/redmi note 8\s+pro/i.test(detail.h1)) fail('detail_identity_redmi_note_8',detail.h1);
   pass('detail_identity_redmi_note_8');
+  if(detail.aboutCopy.length<80) fail('detail_product_description_primary',`description too short or missing: ${detail.aboutCopy}`);
+  pass('detail_product_description_primary');
+  if(detail.order.about<0||detail.order.hero<0||detail.order.about!==detail.order.hero+1) fail('detail_description_immediately_after_hero',JSON.stringify(detail.order));
+  pass('detail_description_immediately_after_hero');
+  if(detail.order.seller<0||detail.order.technical<0||detail.order.technical<=detail.order.seller) fail('detail_technical_after_seller',JSON.stringify(detail.order));
+  pass('detail_technical_after_seller');
+  if(/Compare available seller options/i.test(detail.meta)||detail.meta.length<70) fail('detail_unique_meta_description',detail.meta);
+  pass('detail_unique_meta_description');
+  const metaProbe=detail.aboutCopy.slice(0,45).toLowerCase();
+  if(metaProbe&&!detail.meta.toLowerCase().includes(metaProbe.slice(0,28))) fail('detail_meta_uses_product_description',JSON.stringify({meta:detail.meta,description:detail.aboutCopy}));
+  pass('detail_meta_uses_product_description');
+  if(detail.ldDescription!==detail.aboutCopy) fail('detail_jsonld_uses_product_description',JSON.stringify({jsonld:detail.ldDescription,description:detail.aboutCopy}));
+  pass('detail_jsonld_uses_product_description');
+
   if(/\b6\.53\s*(?:in|inch|inches)\b/i.test(detail.text)) fail('detail_variant_screen_truth','6.53-inch configuration leaked into Redmi Note 8 detail');
   pass('detail_variant_screen_truth');
   if(detail.visibleConfig.some(x=>/^(?:configuration|variant|option)\s*\d*/i.test(x))) fail('detail_no_placeholder_configuration',JSON.stringify(detail.visibleConfig));
@@ -118,11 +147,11 @@ try{
   pass('detail_specified_variant_group');
   if(!/Storage-only records/i.test(detail.text)||!/RAM not specified/i.test(detail.text)) fail('detail_partial_variant_group','storage-only evidence is not clearly separated');
   pass('detail_partial_variant_group');
-  if(detail.previewLabels.some(x=>/^(?:RAM|Storage)$/i.test(x))) fail('detail_variable_specs_not_fixed',JSON.stringify(detail.previewLabels));
+  if(detail.factLabels.some(x=>/^(?:RAM|Storage)$/i.test(x))) fail('detail_variable_specs_not_fixed',JSON.stringify(detail.factLabels));
   pass('detail_variable_specs_not_fixed');
-  if(!detail.previewLabels.some(x=>/^Screen$/i.test(x))||!detail.previewLabels.some(x=>/^Battery$/i.test(x))) fail('detail_model_facts_present',JSON.stringify(detail.previewLabels));
+  if(!detail.factLabels.some(x=>/^Screen$/i.test(x))||!detail.factLabels.some(x=>/^Battery$/i.test(x))) fail('detail_model_facts_present',JSON.stringify(detail.factLabels));
   pass('detail_model_facts_present');
-  if(!/RAM and storage vary by seller record/i.test(detail.previewText)) fail('detail_configuration_note','variable-spec note missing');
+  if(!/RAM and storage vary by seller record/i.test(detail.factText)) fail('detail_configuration_note','variable-spec note missing');
   pass('detail_configuration_note');
   if(/\bactive listings?\b/i.test(detail.text)) fail('detail_generic_route_not_active','generic Alibaba records are still labelled active listings');
   pass('detail_generic_route_not_active');
