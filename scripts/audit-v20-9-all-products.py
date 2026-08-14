@@ -61,12 +61,16 @@ PROBES = [
 ]
 PROBES = [(name, re.compile(pat, re.I)) for name, pat in PROBES]
 
-ACCESSORY = re.compile(
-    r"\b(?:case|cover|holder|stand|mount|strap|lanyard|sleeve|pouch|bag|screen protector|tempered glass|adapter|charger|charging cable|usb cable|cable|cord|dock|ear pads?|ear cushions?|replacement cable|watch band|watch strap|phone strap|phone lanyard|lens cap|protective shell)\b",
+DEVICE = r"(?:phone|smartphone|iphone|galaxy|tablet|ipad|laptop|macbook|thinkpad|smartwatch|smart watch|apple watch|headphones?|headsets?|earbuds?|earphones?|airpods?|camera|printer|projector)"
+ACC = r"(?:case|cover|holder|stand|mount|strap|lanyard|sleeve|screen protector|tempered glass|charger|charging cable|usb cable|dock|ear pads?|ear cushions?|watch band|watch strap|lens cap)"
+STRONG_ACCESSORY = re.compile(
+    rf"\b(?:{DEVICE})\s+(?:{ACC})\b|\b(?:{ACC})\s+(?:for|fits?|compatible\s+with|made\s+for|for\s+use\s+with)\s+(?:[^,;]{{0,32}}\b)?(?:{DEVICE})\b",
     re.I,
 )
-REPLACEMENT = re.compile(
-    r"\b(?:replacement(?:\s+parts?)?|spare\s+parts?|repair\s+parts?|oem\s+part|carbon\s+brush|armature|stator|rotor|gasket|carburetor|replacement\s+filter|replacement\s+battery|screen\s+replacement|display\s+replacement|charging\s+port|flex\s+cable|motherboard|pcb\s+board)\b",
+STRONG_REPLACEMENT = re.compile(
+    r"\b(?:replacement(?:\s+parts?)?|spare\s+parts?|repair\s+parts?|oem\s+part|carbon\s+brush(?:es)?|armature|stator|"
+    r"replacement\s+filter|replacement\s+battery|screen\s+replacement|display\s+replacement|charging\s+port|flex\s+cable|"
+    r"replacement\s+motherboard|replacement\s+pcb|gear\s+assembly\s+replacement|cylinder\s+assy\s+replacement|piston\s+ring\s+replacement|carburetor\s+replacement)\b",
     re.I,
 )
 
@@ -94,7 +98,7 @@ def sample(rows: list[dict], limit: int = 40) -> list[dict]:
         if key in seen:
             continue
         seen.add(key)
-        out.append({k: r.get(k) for k in ("id","t","ty","ro","se","p","cu","x")})
+        out.append({k: r.get(k) for k in ("id","t","ty","ro","fa","se","p","cu","x")})
         if len(out) >= limit:
             break
     return out
@@ -120,15 +124,18 @@ def main() -> None:
         if hit:
             probe_hits[name] = {"count": len(hit), "samples": sample(hit, 12)}
 
-    main_accessory = [r for r in rows if r.get("ro") == "main" and ACCESSORY.search(str(r.get("t") or ""))]
-    main_replacement = [r for r in rows if r.get("ro") == "main" and REPLACEMENT.search(str(r.get("t") or ""))]
-    phone_nonmain = [r for r in rows if r.get("ty") == "phone" and r.get("ro") != "main"]
-    laptop_nonmain = [r for r in rows if r.get("ty") == "laptop" and r.get("ro") != "main"]
-    smartwatch_nonmain = [r for r in rows if r.get("ty") == "smartwatch" and r.get("ro") != "main"]
-    headphones_nonmain = [r for r in rows if r.get("ty") == "headphones" and r.get("ro") != "main"]
+    # Grammar-aware anomaly checks. Words such as "bag", "case", "cover" or "motherboard" alone are products in their own right;
+    # they are not treated as anomalies unless the title explicitly says they are for/compatible with another product or replacement parts.
+    main_accessory = [r for r in rows if r.get("ro") == "main" and STRONG_ACCESSORY.search(str(r.get("t") or ""))]
+    main_replacement = [r for r in rows if r.get("ro") == "main" and STRONG_REPLACEMENT.search(str(r.get("t") or ""))]
+    phone_nonmain = [r for r in rows if r.get("ty") == "phone" and r.get("ro") not in {"main","used"}]
+    tablet_nonmain = [r for r in rows if r.get("ty") == "tablet" and r.get("ro") not in {"main","used"}]
+    laptop_nonmain = [r for r in rows if r.get("ty") == "laptop" and r.get("ro") not in {"main","used"}]
+    smartwatch_nonmain = [r for r in rows if r.get("ty") == "smartwatch" and r.get("ro") not in {"main","used"}]
+    headphones_nonmain = [r for r in rows if r.get("ty") == "headphones" and r.get("ro") not in {"main","used"}]
 
     report = {
-        "version": "20.9-diagnostic-1",
+        "version": "20.9-diagnostic-2",
         "records": len(rows),
         "unclassified": len(un),
         "unclassifiedPct": round(100 * len(un) / max(1, len(rows)), 2),
@@ -139,9 +146,10 @@ def main() -> None:
         "unclassifiedTopBigrams": un_bigrams.most_common(120),
         "unclassifiedProbeHits": probe_hits,
         "roleAnomalies": {
-            "mainWithAccessoryCue": {"count": len(main_accessory), "samples": sample(main_accessory, 50)},
-            "mainWithReplacementCue": {"count": len(main_replacement), "samples": sample(main_replacement, 50)},
+            "mainWithStrongAccessoryGrammar": {"count": len(main_accessory), "samples": sample(main_accessory, 50)},
+            "mainWithStrongReplacementGrammar": {"count": len(main_replacement), "samples": sample(main_replacement, 50)},
             "phoneNonMain": {"count": len(phone_nonmain), "samples": sample(phone_nonmain, 30)},
+            "tabletNonMain": {"count": len(tablet_nonmain), "samples": sample(tablet_nonmain, 30)},
             "laptopNonMain": {"count": len(laptop_nonmain), "samples": sample(laptop_nonmain, 30)},
             "smartwatchNonMain": {"count": len(smartwatch_nonmain), "samples": sample(smartwatch_nonmain, 30)},
             "headphonesNonMain": {"count": len(headphones_nonmain), "samples": sample(headphones_nonmain, 30)},
@@ -154,8 +162,13 @@ def main() -> None:
         "unclassified": len(un),
         "unclassifiedPct": report["unclassifiedPct"],
         "probeFamilies": len(probe_hits),
-        "mainWithAccessoryCue": len(main_accessory),
-        "mainWithReplacementCue": len(main_replacement),
+        "mainWithStrongAccessoryGrammar": len(main_accessory),
+        "mainWithStrongReplacementGrammar": len(main_replacement),
+        "coreNonMain": {
+            "phone":len(phone_nonmain),"tablet":len(tablet_nonmain),"laptop":len(laptop_nonmain),
+            "smartwatch":len(smartwatch_nonmain),"headphones":len(headphones_nonmain)
+        },
+        "remainingTopTokens": un_tokens.most_common(20),
     }, indent=2))
 
 
