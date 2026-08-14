@@ -10,6 +10,7 @@ on:
       - scripts/clean-v20-8-brand-truth.py
       - scripts/quality-gate-v20-9-all-products.py
       - scripts/refine-v20-9-2-residual-unclassified.py
+      - scripts/refine-v20-9-2-final-closeout.py
       - scripts/semantic-closeout-v20-9-4.py
       - scripts/export-v20-9-runtime-data.py
       - scripts/audit-v20-9-all-products.py
@@ -66,6 +67,9 @@ jobs:
       - name: Apply V20.9.2 high-confidence residual pass
         run: python scripts/refine-v20-9-2-residual-unclassified.py
 
+      - name: Apply V20.9.2 final explicit-noun closeout
+        run: python scripts/refine-v20-9-2-final-closeout.py
+
       - name: Apply V20.9.4 semantic closeout
         run: python scripts/semantic-closeout-v20-9-4.py
 
@@ -81,14 +85,14 @@ jobs:
       - name: Cross-family product smoke QA
         run: python scripts/qa-v20-9-product-smoke.py
 
-      - name: Build granular release contract
+      - name: Build read-only granular release contract
         run: python scripts/report-v20-9-2-release-contract.py
 
       - name: Syntax, semantic, runtime and safety QA
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile scripts/build-v20-8-universal-discovery.py scripts/clean-v20-8-universal-output.py scripts/clean-v20-8-brand-truth.py scripts/quality-gate-v20-9-all-products.py scripts/refine-v20-9-2-residual-unclassified.py scripts/semantic-closeout-v20-9-4.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/report-v20-9-2-release-contract.py scripts/finalize-v20-8-9-rare-closeout.py
+          python -m py_compile scripts/build-v20-8-universal-discovery.py scripts/clean-v20-8-universal-output.py scripts/clean-v20-8-brand-truth.py scripts/quality-gate-v20-9-all-products.py scripts/refine-v20-9-2-residual-unclassified.py scripts/refine-v20-9-2-final-closeout.py scripts/semantic-closeout-v20-9-4.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/report-v20-9-2-release-contract.py scripts/finalize-v20-8-9-rare-closeout.py
           node --check js/universal-discovery-v20-9-1.js
           node --check js/finder-shell-v20-9.js
           node --check js/item-detail-v20-9.js
@@ -180,8 +184,9 @@ jobs:
           print(f"- Catalogue records preserved: **{q['records']:,}**")
           print(f"- Unclassified: **{q['unclassifiedBefore']:,} → {q['unclassifiedAfter']:,} ({q['unclassifiedAfterPct']}%)**")
           print(f"- Base type corrections: **{sum(x['count'] for x in q['typeChanges']):,}**")
-          print(f"- Residual + semantic classifications: **{r['classifiedByResidual']:,}**")
-          print(f"- Semantic corrections: **{s['corrected']:,}**")
+          print(f"- Residual classifications: **{r['classifiedByResidual']:,}**")
+          print(f"- Final residual closeout: **{q.get('finalCloseoutClassified',0):,}**")
+          print(f"- Semantic corrections/retypes: **{s['corrected']:,}**")
           print(f"- Targeted semantic violations: **{s['violations']}**")
           print(f"- Base role corrections: **{sum(x['count'] for x in q['roleChanges']):,}**")
           print(f"- Product families: **{q['familyCount']:,}**")
@@ -224,4 +229,13 @@ jobs:
             exit 0
           fi
           git commit -m 'TrendPilot V20.9.4 build final semantic runtime'
-          git push
+          for attempt in 1 2 3; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            echo "Safe push retry $attempt/3"
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 3))
+          done
+          echo 'Unable to push generated runtime without force.'
+          exit 1
