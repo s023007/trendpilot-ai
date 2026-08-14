@@ -18,21 +18,38 @@ concurrency:
 jobs:
   semantic-closeout:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     steps:
       - name: Checkout main
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
-      - name: Correct deployed semantic false positives
+      - name: Rebuild universal source projection
+        run: python scripts/build-v20-8-universal-discovery.py
+
+      - name: Apply established V20.8 truth guards
+        run: |
+          python scripts/clean-v20-8-universal-output.py
+          python scripts/clean-v20-8-brand-truth.py
+
+      - name: Apply V20.9 all-product quality gate
+        run: python scripts/quality-gate-v20-9-all-products.py
+
+      - name: Apply V20.9.2 residual closeout
+        run: python scripts/refine-v20-9-2-residual-unclassified.py
+
+      - name: Apply V20.9.4 semantic closeout
         run: python scripts/semantic-closeout-v20-9-4.py
 
-      - name: Re-export V20.9 runtime
+      - name: Export corrected V20.9 runtime
         run: python scripts/export-v20-9-runtime-data.py
 
-      - name: Re-audit product projection
+      - name: Audit corrected product projection
         run: python scripts/audit-v20-9-all-products.py
+
+      - name: Preserve Rare V20.8.9 closeout
+        run: python scripts/finalize-v20-8-9-rare-closeout.py
 
       - name: Run cross-family smoke QA
         run: python scripts/qa-v20-9-product-smoke.py
@@ -44,19 +61,22 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile scripts/semantic-closeout-v20-9-4.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/report-v20-9-2-release-contract.py
+          python -m py_compile scripts/build-v20-8-universal-discovery.py scripts/clean-v20-8-universal-output.py scripts/clean-v20-8-brand-truth.py scripts/quality-gate-v20-9-all-products.py scripts/refine-v20-9-2-residual-unclassified.py scripts/semantic-closeout-v20-9-4.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/report-v20-9-2-release-contract.py scripts/finalize-v20-8-9-rare-closeout.py
           python - <<'PY'
           import json
           from pathlib import Path
           s=json.loads(Path('data/v20-9/semantic-closeout.json').read_text())
           c=json.loads(Path('data/v20-9/contract-debug.json').read_text())
           q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          d=json.loads(Path('data/v20-9/diagnostic.json').read_text())
           assert s['version']=='20.9.4'
+          assert s['records']==52031
           assert s['violations']==0
           assert c['passed'] is True
           assert q['unclassifiedAfter']<=2500
           assert q.get('semanticCloseoutVersion')=='20.9.4'
           assert q.get('semanticCloseoutViolations')==0
+          assert d['records']==52031
           print('V20.9.4 SEMANTIC CLOSEOUT PASS')
           PY
           if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
@@ -76,7 +96,7 @@ jobs:
           print('# TrendPilot V20.9.4 — Catalogue Semantic Closeout')
           print()
           print(f"- Records preserved: **{s['records']:,}**")
-          print(f"- Semantic corrections: **{s['corrected']:,}**")
+          print(f"- Semantic corrections after V20.9 classification: **{s['corrected']:,}**")
           print(f"- Remaining targeted violations: **{s['violations']}**")
           print(f"- Unclassified remains: **{q['unclassifiedAfter']:,} ({q['unclassifiedAfterPct']}%)**")
           print()
@@ -85,15 +105,15 @@ jobs:
               print(f'- {reason}: **{count:,}**')
           PY
 
-      - name: Commit corrected runtime
+      - name: Commit corrected generated runtime
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'TrendPilot Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add data/v20-8/products data/v20-8/manifest.json data/v20-8/taxonomy-summary.json data/v20-9
+          git add data/v20-8/manifest.json data/v20-8/taxonomy-summary.json data/v20-8/rare-index.json data/v20-9 rare-used/finds sitemap-v20-8.xml robots.txt
           if git diff --cached --quiet; then
-            echo 'No semantic data changes to commit'
+            echo 'No semantic generated changes to commit'
             exit 0
           fi
           git commit -m 'TrendPilot V20.9.4 semantic closeout runtime'
