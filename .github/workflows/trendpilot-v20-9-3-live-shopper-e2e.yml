@@ -1,4 +1,4 @@
-name: TrendPilot V20.9.3 — Live Mobile Shopper E2E
+name: TrendPilot V20.9.4 — Live Mobile Shopper E2E
 
 on:
   push:
@@ -22,7 +22,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: trendpilot-v20-9-3-live-shopper
+  group: trendpilot-v20-9-4-live-shopper
   cancel-in-progress: true
 
 jobs:
@@ -33,19 +33,19 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v5
 
-      - name: Wait for V20.9.1 public finder
+      - name: Wait for V20.9.4 public finder
         shell: bash
         run: |
           set -euo pipefail
           for i in $(seq 1 30); do
-            if curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' | grep -q 'universal-discovery-v20-9-1.js?v=20.9.1'; then
-              echo 'Public V20.9.1 finder is reachable.'
+            if curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' | grep -q 'universal-discovery-v20-9-1.js?v=20.9.4'; then
+              echo 'Public V20.9.4 finder is reachable.'
               exit 0
             fi
             echo "Waiting for public deploy ($i/30)..."
             sleep 10
           done
-          echo 'Public V20.9.1 finder did not become reachable.'
+          echo 'Public V20.9.4 finder did not become reachable.'
           exit 1
 
       - name: Set up Node
@@ -70,7 +70,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -s artifacts/live-shopper/report.json ]; then
-            echo '# TrendPilot V20.9.3 — Live Mobile Shopper E2E' >> "$GITHUB_STEP_SUMMARY"
+            echo '# TrendPilot V20.9.4 — Live Mobile Shopper E2E' >> "$GITHUB_STEP_SUMMARY"
             echo >> "$GITHUB_STEP_SUMMARY"
             echo '**No report produced.** The browser setup or live-site availability failed before the shopper test could run.' >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -78,7 +78,7 @@ jobs:
           node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs=require('fs');
           const r=JSON.parse(fs.readFileSync('artifacts/live-shopper/report.json','utf8'));
-          console.log('# TrendPilot V20.9.3 — Live Mobile Shopper E2E');
+          console.log('# TrendPilot V20.9.4 — Live Mobile Shopper E2E');
           console.log();
           console.log(`- Overall: **${r.passed?'PASS':'FAIL'}**`);
           console.log(`- Public site: **${r.base}**`);
@@ -96,6 +96,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: trendpilot-v20-9-3-live-shopper
+          name: trendpilot-v20-9-4-live-shopper
           path: artifacts/live-shopper
           if-no-files-found: ignore
