@@ -99,9 +99,14 @@ try{
     const text=clean(main?.innerText||'');
     const h1=clean(main?.querySelector('h1')?.textContent||'');
     const visibleConfig=[...main.querySelectorAll('.variants .variant')].filter(el=>getComputedStyle(el).display!=='none').map(el=>clean(el.textContent));
-    return {text,h1,visibleConfig};
+    const preview=[...main.querySelectorAll('.panel')].find(el=>/PRODUCT PREVIEW/i.test(el.textContent||''));
+    const previewLabels=[...(preview?.querySelectorAll('.spec span')||[])].map(el=>clean(el.textContent));
+    const previewText=clean(preview?.innerText||'');
+    const bottom=document.querySelector('.bottom-nav');
+    const bottomHeight=bottom?bottom.getBoundingClientRect().height:0;
+    return {text,h1,visibleConfig,previewLabels,previewText,bottomHeight};
   });
-  report.samples.redmiDetail={title:detail.h1,visibleConfig:detail.visibleConfig.slice(0,10)};
+  report.samples.redmiDetail={title:detail.h1,visibleConfig:detail.visibleConfig.slice(0,12),previewLabels:detail.previewLabels,bottomHeight:detail.bottomHeight};
 
   if(!/redmi note 8/i.test(detail.h1)||/redmi note 8\s+pro/i.test(detail.h1)) fail('detail_identity_redmi_note_8',detail.h1);
   pass('detail_identity_redmi_note_8');
@@ -109,6 +114,16 @@ try{
   pass('detail_variant_screen_truth');
   if(detail.visibleConfig.some(x=>/^(?:configuration|variant|option)\s*\d*/i.test(x))) fail('detail_no_placeholder_configuration',JSON.stringify(detail.visibleConfig));
   pass('detail_no_placeholder_configuration');
+  if(!/RAM \+ storage specified/i.test(detail.text)) fail('detail_specified_variant_group','RAM/storage specified group missing');
+  pass('detail_specified_variant_group');
+  if(!/Storage-only records/i.test(detail.text)||!/RAM not specified/i.test(detail.text)) fail('detail_partial_variant_group','storage-only evidence is not clearly separated');
+  pass('detail_partial_variant_group');
+  if(detail.previewLabels.some(x=>/^(?:RAM|Storage)$/i.test(x))) fail('detail_variable_specs_not_fixed',JSON.stringify(detail.previewLabels));
+  pass('detail_variable_specs_not_fixed');
+  if(!detail.previewLabels.some(x=>/^Screen$/i.test(x))||!detail.previewLabels.some(x=>/^Battery$/i.test(x))) fail('detail_model_facts_present',JSON.stringify(detail.previewLabels));
+  pass('detail_model_facts_present');
+  if(!/RAM and storage vary by seller record/i.test(detail.previewText)) fail('detail_configuration_note','variable-spec note missing');
+  pass('detail_configuration_note');
   if(/\bactive listings?\b/i.test(detail.text)) fail('detail_generic_route_not_active','generic Alibaba records are still labelled active listings');
   pass('detail_generic_route_not_active');
   if(!/catalogue records?/i.test(detail.text)) fail('detail_catalogue_record_label','catalogue-record truth label missing');
@@ -121,6 +136,8 @@ try{
   const h1Size=await page.$eval('main h1',el=>parseFloat(getComputedStyle(el).fontSize));
   if(h1Size>48) fail('detail_mobile_title_size',`mobile h1 is ${h1Size}px`);
   pass('detail_mobile_title_size');
+  if(detail.bottomHeight>105) fail('detail_mobile_nav_compact',`bottom nav is ${detail.bottomHeight}px tall`);
+  pass('detail_mobile_nav_compact');
 
   report.passed=Object.values(report.checks).every(Boolean);
   await fs.writeFile(`${OUT}/report.json`,JSON.stringify(report,null,2));
