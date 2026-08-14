@@ -1,0 +1,160 @@
+name: TrendPilot V20.9.2 — Finalize All Products Release Branch
+
+on:
+  push:
+    branches:
+      - v20-9-all-product-quality-gate
+    paths:
+      - .github/workflows/trendpilot-v20-9-2-finalize-branch.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-v20-9-2:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Rebuild universal source projection
+        run: python scripts/build-v20-8-universal-discovery.py
+
+      - name: Apply established truth guards
+        run: |
+          python scripts/clean-v20-8-universal-output.py
+          python scripts/clean-v20-8-brand-truth.py
+
+      - name: Apply V20.9 base product quality gate
+        run: python scripts/quality-gate-v20-9-all-products.py
+
+      - name: Apply V20.9.2 high-confidence residual pass
+        run: python scripts/refine-v20-9-2-residual-unclassified.py
+
+      - name: Export role-balanced mobile runtime
+        run: python scripts/export-v20-9-runtime-data.py
+
+      - name: Audit final product projection
+        run: python scripts/audit-v20-9-all-products.py
+
+      - name: Preserve Rare V20.8.9 closeout
+        run: python scripts/finalize-v20-8-9-rare-closeout.py
+
+      - name: Cross-family shopper smoke QA
+        run: python scripts/qa-v20-9-product-smoke.py
+
+      - name: V20.9.2 release contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/quality-gate-v20-9-all-products.py scripts/refine-v20-9-2-residual-unclassified.py scripts/export-v20-9-runtime-data.py scripts/audit-v20-9-all-products.py scripts/qa-v20-9-product-smoke.py scripts/finalize-v20-8-9-rare-closeout.py
+          node --check js/universal-discovery-v20-9-1.js
+          node --check js/finder-shell-v20-9.js
+          node --check js/item-detail-v20-9.js
+          node --check js/compare-v20-9.js
+          node --check js/compare-state-v20-9.js
+          grep -q 'universal-discovery-v20-9-1.js?v=20.9.1' find/index.html
+          grep -q 'finder-shell-v20-9.js?v=20.9.0' find/index.html
+          grep -q 'item-detail-v20-9.js?v=20.9.0' item/index.html
+          grep -q 'compare-v20-9.js?v=20.9.0' compare/index.html
+          if grep -q 'finder-v20-7-9.js' find/index.html || grep -q 'buyer-decision-v20-7-11.js' find/index.html || grep -q 'v20-8-8-internal-first-guard.js' find/index.html; then
+            echo 'Legacy finder/card mutator leaked into authoritative finder'
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          r=json.loads(Path('data/v20-9/residual-report.json').read_text())
+          d=json.loads(Path('data/v20-9/diagnostic.json').read_text())
+          rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text())
+          fam=json.loads(Path('data/v20-9/families.json').read_text())
+          roles=json.loads(Path('data/v20-9/family-roles.json').read_text())
+          m=json.loads(Path('data/v20-8/manifest.json').read_text())
+          s=json.loads(Path('data/v20-8/taxonomy-summary.json').read_text())
+          rare=json.loads(Path('data/v20-8/rare-index.json').read_text())
+          assert q['records']==52031
+          assert r['records']==52031
+          assert d['records']==52031
+          assert rt['records']==52031
+          assert q['unclassifiedBefore']==9355
+          assert r['unclassifiedBeforeResidual']==3388
+          assert q['residualPassVersion']=='20.9.2'
+          assert q['residualClassified']==r['classifiedByResidual']
+          assert q['unclassifiedAfter']==r['unclassifiedAfterResidual']==d['unclassified']
+          assert q['unclassifiedAfter']<=2500, q['unclassifiedAfter']
+          assert q['blockedSellerLeaks']==0
+          assert q['immutableCommerceFieldsChanged']==0
+          assert rt['productBuckets']==256
+          assert rt['maxProductBucketBytes']<500000
+          assert rt.get('familyStrategy')=='role-balanced'
+          assert len(fam)>=150 and len(roles)>=150
+          assert m.get('version')=='20.9.0'
+          assert s.get('version')=='20.9.0'
+          assert m.get('truthCleanup',{}).get('residualUnclassifiedPassVersion')=='20.9.2'
+          assert m.get('truthCleanup',{}).get('rareCloseoutVersion')=='20.8.9'
+          assert m.get('rarePublished')==len(rare)
+          assert 60<=len(rare)<=90
+          for k in ('phoneNonMain','tabletNonMain','laptopNonMain','smartwatchNonMain','headphonesNonMain'):
+              assert q['semanticProbes'][k]==0, (k,q['semanticProbes'][k])
+              assert d['roleAnomalies'][k]['count']==0, (k,d['roleAnomalies'][k]['count'])
+          for family,role in (('phone','main'),('phone','accessory'),('phone','replacement_part'),('tablet','main'),('tablet','accessory'),('laptop','main'),('laptop','accessory'),('camera','main'),('camera','accessory'),('tools','main'),('tools','replacement_part'),('automotive','accessory'),('automotive','replacement_part')):
+              assert roles.get(family,{}).get(role), (family,role)
+          print('FINAL V20.9.2 RELEASE CONTRACT PASS')
+          PY
+          if grep -RE 'new MutationObserver\([^)]*document|observe\(document' js/universal-discovery-v20-9-1.js js/finder-shell-v20-9.js js/item-detail-v20-9.js js/compare-v20-9.js js/compare-state-v20-9.js; then
+            echo 'Whole-document MutationObserver is forbidden'
+            exit 1
+          fi
+          if git status --short | grep -E 'data/catalog-v19|data/.*(tpid|tpvid|tpoid|identity)'; then
+            echo 'Unexpected V19 identity/canonical mutation'
+            exit 1
+          fi
+
+      - name: Write final release summary
+        if: always()
+        shell: bash
+        run: |
+          python - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          q=json.loads(Path('data/v20-9/quality-report.json').read_text())
+          r=json.loads(Path('data/v20-9/residual-report.json').read_text())
+          d=json.loads(Path('data/v20-9/diagnostic.json').read_text())
+          rt=json.loads(Path('data/v20-9/runtime-manifest.json').read_text())
+          m=json.loads(Path('data/v20-8/manifest.json').read_text())
+          rare=json.loads(Path('data/v20-8/rare-index.json').read_text())
+          print('# TrendPilot V20.9.2 — Final All Products Release')
+          print()
+          print(f"- Catalogue records preserved: **{q['records']:,}**")
+          print(f"- Unclassified: **{q['unclassifiedBefore']:,} → {q['unclassifiedAfter']:,} ({q['unclassifiedAfterPct']}%)**")
+          print(f"- High-confidence residual classifications: **{r['classifiedByResidual']:,}**")
+          print(f"- Product families after residual pass: **{q['familyCount']:,}**")
+          print(f"- Base type corrections: **{sum(x['count'] for x in q['typeChanges']):,}**")
+          print(f"- Base role corrections: **{sum(x['count'] for x in q['roleChanges']):,}**")
+          print(f"- Mobile buckets: **{rt['productBuckets']}**, largest **{rt['maxProductBucketBytes']:,} bytes**")
+          print(f"- Strong accessory grammar still marked main: **{d['roleAnomalies']['mainWithStrongAccessoryGrammar']['count']:,}**")
+          print(f"- Strong replacement grammar still marked main: **{d['roleAnomalies']['mainWithStrongReplacementGrammar']['count']:,}**")
+          print(f"- Blocked seller leaks: **{q['blockedSellerLeaks']}**")
+          print(f"- Immutable price/link/ID/seller fields changed: **{q['immutableCommerceFieldsChanged']}**")
+          print(f"- Rare Finds: **{len(rare)}**, closeout **{m.get('truthCleanup',{}).get('rareCloseoutVersion')}**")
+          print()
+          print('Ambiguous residual rows remain intentionally Unclassified instead of being forced into unreliable categories.')
+          PY
+
+      - name: Commit final generated product runtime to release branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add data/v20-8/manifest.json data/v20-8/taxonomy-summary.json data/v20-8/rare-index.json data/v20-9 rare-used/finds sitemap-v20-8.xml robots.txt
+          if git diff --cached --quiet; then
+            echo 'Final V20.9.2 runtime already matches the branch'
+            exit 0
+          fi
+          git commit -m 'TrendPilot V20.9.2 materialize final all-product runtime'
+          git push
