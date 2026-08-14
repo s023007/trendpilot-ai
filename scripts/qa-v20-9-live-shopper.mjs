@@ -5,7 +5,7 @@ const BASE=(process.env.TP_BASE_URL||'https://trendpilotchoice.com').replace(/\/
 const OUT='artifacts/live-shopper';
 await fs.mkdir(OUT,{recursive:true});
 
-const report={version:'20.9.3',base:BASE,queries:[],checks:{},samples:{}};
+const report={version:'20.9.4',base:BASE,queries:[],checks:{},samples:{}};
 const fail=(name,msg)=>{report.checks[name]=false;throw new Error(`${name}: ${msg}`)};
 const pass=name=>{report.checks[name]=true};
 
@@ -21,9 +21,9 @@ const page=await context.newPage();
 page.setDefaultTimeout(35000);
 
 async function search(query){
-  const url=`${BASE}/find/?q=${encodeURIComponent(query)}&engine=v2064&universal=1&ui=2091`;
+  const url=`${BASE}/find/?q=${encodeURIComponent(query)}&engine=v2064&universal=1&ui=2094`;
   await page.goto(url,{waitUntil:'domcontentloaded',timeout:90000});
-  await page.waitForFunction(()=>window.__TP_V2091_UNIVERSAL__?.runtimeVersion==='20.9.1');
+  await page.waitForFunction(()=>window.__TP_V2091_UNIVERSAL__?.runtimeVersion==='20.9.4');
   await page.waitForSelector('[data-v209-card]');
   const rows=await page.$$eval('[data-v209-card]',cards=>cards.slice(0,12).map(c=>({
     title:c.querySelector('h3')?.textContent?.trim()||'',
@@ -38,30 +38,42 @@ async function search(query){
   return rows;
 }
 
+function rejectBad(query,rows,re){
+  const bad=rows.filter(r=>re.test(r.title));
+  if(bad.length) fail(`semantic_${query}`,JSON.stringify(bad.slice(0,4)));
+  pass(`semantic_${query}`);
+}
+
 try{
+  const resultSets={};
   const firstTitles=[];
   for(const q of ['phone','laptop','perfume','power bank','lighting']){
-    const rows=await search(q);
-    firstTitles.push(rows[0].title);
+    const rows=await search(q);resultSets[q]=rows;firstTitles.push(rows[0].title);
   }
   if(new Set(firstTitles).size<4) fail('query_changes_results',`first results did not change enough: ${JSON.stringify(firstTitles)}`);
   pass('query_changes_results');
 
+  rejectBad('phone',resultSets.phone,/\b(?:(?:battery|power\s*bank|charging|protective|shockproof|wallet|silicone|leather)\s+case|case\s+(?:for|fits?|compatible\s+with)|screen\s+protector|tempered\s+glass|phone\s+(?:holder|mount)|replacement\s+(?:screen|battery)|motherboard|charging\s+port|flex\s+cable)\b/i);
+  rejectBad('laptop',resultSets.laptop,/\b(?:motherboard|mainboard|replacement\s+battery|battery\s+for|charger\s+for|adapter\s+for|keyboard\s+for|screen\s+for|lcd\s+for|hinge|palmrest|bottom\s+case|top\s+case|cooling\s+fan|heatsink|dc\s+jack|charging\s+port|laptop\s+(?:sleeve|bag|stand|dock)|docking\s+station)\b/i);
+  rejectBad('perfume',resultSets.perfume,/\b(?:vending\s+machine|dispensing\s+machine|empty\s+(?:perfume\s+)?bottle|refillable\s+perfume\s+bottle|perfume\s+atomizer|perfume\s+sprayer|filling\s+machine|packaging\s+machine|bottle\s+cap|display\s+stand)\b/i);
+  rejectBad('power_bank',resultSets['power bank'],/\b(?:battery\s+adapter|adapter\s+converter|converter\s+charger|power\s*bank\s+case|powerbank\s+case|housing|shell|pcb|circuit\s+board|power\s+module|battery\s+holder)\b/i);
+  if(resultSets.lighting.some(r=>r.family!=='lighting')) fail('lighting_family_purity',JSON.stringify(resultSets.lighting.slice(0,6)));
+  pass('lighting_family_purity');
+  rejectBad('lighting',resultSets.lighting,/\b(?:scooter|e-?bike|bicycle|motorcycle|car\b|vehicle|automotive|headlight|tail\s*light|taillight|turn\s+signal|indicator|helmet)\b/i);
+
   const phone=await search('phone');
   if(phone.some(r=>!['main','used'].includes(r.role))) fail('phone_role_purity',JSON.stringify(phone));
   pass('phone_role_purity');
-  const accessoryGrammar=/\b(?:case|cover|holder|mount|strap|lanyard|screen protector|tempered glass|replacement|spare part|charger cable|charging cable)\b/i;
-  if(phone.slice(0,8).some(r=>accessoryGrammar.test(r.title))) fail('phone_title_purity',JSON.stringify(phone.slice(0,8)));
-  pass('phone_title_purity');
 
   const options=await page.$$eval('[data-filter-merchant] option',os=>os.map(o=>({value:o.value,text:o.textContent?.trim()||''})).filter(x=>x.value));
   if(!options.length) fail('seller_filter_available','no seller options');
   const chosen=options[0].value;
   await page.selectOption('[data-filter-merchant]',chosen);
   await page.waitForTimeout(200);
-  const sellerRows=await page.$$eval('[data-v209-card]',cs=>cs.map(c=>c.getAttribute('data-v209-seller')||''));
-  if(!sellerRows.length||sellerRows.some(s=>s!==chosen)) fail('seller_filter_applies',`chosen=${chosen} rows=${JSON.stringify(sellerRows.slice(0,12))}`);
-  pass('seller_filter_applies');
+  const sellerRows=await page.$$eval('[data-v209-card]',cs=>cs.map(c=>({seller:c.getAttribute('data-v209-seller')||'',title:c.querySelector('h3')?.textContent?.trim()||''})));
+  if(!sellerRows.length||sellerRows.some(r=>r.seller!==chosen)) fail('seller_filter_applies',`chosen=${chosen} rows=${JSON.stringify(sellerRows.slice(0,12))}`);
+  if(sellerRows.some(r=>/\b(?:power\s*bank|battery)\s+case\b|\bcase\s+(?:for|compatible\s+with)\b/i.test(r.title))) fail('seller_filtered_phone_purity',JSON.stringify(sellerRows.slice(0,12)));
+  pass('seller_filter_applies');pass('seller_filtered_phone_purity');
   await page.reload({waitUntil:'domcontentloaded'});
   await page.waitForSelector('[data-v209-card]');
   const persisted=await page.inputValue('[data-filter-merchant]');
@@ -77,7 +89,8 @@ try{
   const family=(await page.textContent('[data-tp85-fact-family]'))?.trim()||'';
   const role=(await page.textContent('[data-tp85-fact-role]'))?.trim()||'';
   if(!title||!family||!role) fail('detail_truth_visible',`title=${title} family=${family} role=${role}`);
-  pass('detail_truth_visible');
+  if(/\b(?:power\s*bank|battery)\s+case\b|\bcase\s+(?:for|compatible\s+with)\b/i.test(title)) fail('detail_phone_semantic_purity',title);
+  pass('detail_truth_visible');pass('detail_phone_semantic_purity');
 
   const sellerLink=page.locator('[data-tp85-seller-link]');
   const hidden=await sellerLink.getAttribute('hidden');
@@ -106,7 +119,7 @@ try{
   pass('seller_evidence_label');
 
   await page.click('[data-tp85-compare]');
-  await page.goto(`${BASE}/find/?q=phone&engine=v2064&universal=1&ui=2091`,{waitUntil:'domcontentloaded'});
+  await page.goto(`${BASE}/find/?q=phone&engine=v2064&universal=1&ui=2094`,{waitUntil:'domcontentloaded'});
   await page.waitForSelector('[data-v209-card]');
   await page.selectOption('[data-filter-merchant]','');
   await page.waitForTimeout(150);
