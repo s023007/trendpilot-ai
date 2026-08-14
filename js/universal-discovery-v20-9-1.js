@@ -2,7 +2,7 @@
   "use strict";
 
   const DATA_VERSION = "20.9.0";
-  const RUNTIME_VERSION = "20.9.1";
+  const RUNTIME_VERSION = "20.9.4";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -42,6 +42,7 @@
       ["industrial",/\b(?:industrial|cnc|hydraulic|pneumatic|servo|encoder|solenoid|contactor|plc)\b/i],
       ["home-appliances",/\b(?:vacuum|air fryer|coffee maker|espresso machine|blender|kettle|toaster|rice cooker|humidifier|air purifier|fan\b)\b/i],
       ["air-conditioning",/\b(?:air conditioner|portable ac|mini split|ductless ac|split ac)\b/i],
+      ["lighting",/\b(?:lighting|lights?|lamps?|ceiling light|wall light|desk lamp|floor lamp|table lamp|solar light|string light|fairy light|night light)\b/i],
       ["kitchen",/\b(?:cookware|pan\b|saucepan|wok|skillet|kitchen knife|cutting board|kitchen utensil)\b/i],
       ["furniture",/\b(?:furniture|desk\b|chair\b|sofa|couch|table\b|cabinet|bookshelf|wardrobe|nightstand|bed frame)\b/i],
       ["home",/\b(?:home decor|bedding|blanket|pillow|curtain|organizer|storage box|cleaning brush|night light)\b/i],
@@ -63,6 +64,14 @@
 
   const intent=roleIntent(q), family=familyFor(q);
   const tokens=L(q).replace(/[^a-z0-9.+#/-]+/g," ").split(/\s+/).filter(t=>t&&!STOP.has(t)&&(t.length>=3||(/[a-z]/.test(t)&&/\d/.test(t))));
+  const GENERIC={
+    phone:/^(?:phones?|smartphones?|mobile phones?)$/i,
+    laptop:/^(?:laptops?|notebooks?)$/i,
+    perfume:/^(?:perfumes?|fragrances?|colognes?)$/i,
+    "power-bank":/^(?:power\s*banks?|powerbanks?|portable chargers?)$/i,
+    lighting:/^(?:lighting|lights?|lamps?)$/i
+  };
+  const genericFamily=Boolean(family&&GENERIC[family]?.test(L(q)));
   const fetchJSON=url=>{if(!cache.has(url))cache.set(url,fetch(url,{cache:"force-cache"}).then(r=>r.ok?r.json():null).catch(()=>null));return cache.get(url)};
   const prefix=t=>(t.replace(/[^a-z0-9]/g,"").slice(0,2)||"__").padEnd(2,"_");
   const unique=a=>[...new Set(a)], intersect=(a,b)=>{const s=new Set(b);return a.filter(x=>s.has(x))};
@@ -82,7 +91,7 @@
     let fam=[];
     if(family){const f=await fetchJSON(`/data/v20-9/families.json?v=${DATA_VERSION}`);fam=f?.[family]||[]}
     let ids=text;
-    if(fam.length&&text.length){const strict=intersect(text,fam);ids=strict.length>=8?strict:unique([...strict,...text,...fam])}else if(fam.length)ids=fam;
+    if(fam.length&&text.length){const strict=intersect(text,fam);ids=genericFamily?unique([...strict,...fam]):strict.length>=8?strict:unique([...strict,...text,...fam])}else if(fam.length)ids=fam;
     return unique(ids).slice(0,720);
   }
 
@@ -105,6 +114,19 @@
     if(r.x)n+=10;if(r.im)n+=5;if(r.p)n+=2;return n;
   }
   function roleOK(r){const role=C(r.ro||"main");if(intent==="main")return role==="main"||role==="used";if(intent==="used")return role==="used";return role===intent}
+  function semanticOK(r){
+    if(!genericFamily||intent!=="main")return true;
+    const title=L(r.t),fam=L(r.fa||r.ty);
+    if(fam!==family)return false;
+    const bad={
+      phone:/\b(?:(?:battery|power\s*bank|charging|protective|shockproof|wallet|silicone|leather)\s+case|case\s+(?:for|fits?|compatible\s+with)|screen\s+protector|tempered\s+glass|phone\s+(?:holder|mount)|replacement\s+(?:screen|battery)|motherboard|charging\s+port|flex\s+cable)\b/i,
+      laptop:/\b(?:motherboard|mainboard|replacement\s+battery|battery\s+for|charger\s+for|adapter\s+for|keyboard\s+for|screen\s+for|lcd\s+for|hinge|palmrest|bottom\s+case|top\s+case|cooling\s+fan|heatsink|dc\s+jack|charging\s+port|laptop\s+(?:sleeve|bag|stand|dock)|docking\s+station)\b/i,
+      perfume:/\b(?:vending\s+machine|dispensing\s+machine|empty\s+(?:perfume\s+)?bottle|refillable\s+perfume\s+bottle|perfume\s+atomizer|perfume\s+sprayer|filling\s+machine|packaging\s+machine|bottle\s+cap|display\s+stand)\b/i,
+      "power-bank":/\b(?:battery\s+adapter|adapter\s+converter|converter\s+charger|power\s*bank\s+case|powerbank\s+case|housing|shell|pcb|circuit\s+board|power\s+module|battery\s+holder)\b/i,
+      lighting:/\b(?:scooter|e-?bike|bicycle|motorcycle|car\b|vehicle|automotive|headlight|tail\s*light|taillight|turn\s+signal|indicator|helmet)\b/i
+    };
+    return !(bad[family]?.test(title));
+  }
 
   function compareItems(){try{const x=JSON.parse(localStorage.getItem("tp-v209-compare")||"[]");return Array.isArray(x)?x:[]}catch{return[]}}
   function setCompare(items){try{localStorage.setItem("tp-v209-compare",JSON.stringify(items.slice(0,3)))}catch{};$$('[data-compare-count]').forEach(el=>{el.textContent=String(items.length);el.toggleAttribute("hidden",!items.length)})}
@@ -125,7 +147,7 @@
 
   function navigation(){
     const form=$("[data-v2078-finder-form]"),input=$("[data-tp-finder-input]"),scopeEl=$("[data-tp-finder-scope]");if(input&&q)input.value=q;if(scopeEl&&scope)scopeEl.value=scope;
-    const go=(value,sc="")=>{const x=C(value);if(!x)return;const n=new URLSearchParams({q:x,engine:"v2064",universal:"1",ui:"2091"});if(C(sc))n.set("scope",C(sc));location.assign(`/find/?${n}`)};
+    const go=(value,sc="")=>{const x=C(value);if(!x)return;const n=new URLSearchParams({q:x,engine:"v2064",universal:"1",ui:"2094"});if(C(sc))n.set("scope",C(sc));location.assign(`/find/?${n}`)};
     form?.addEventListener("submit",e=>{e.preventDefault();go(input?.value,scopeEl?.value)});
     $$('[data-search-suggestion]').forEach(b=>b.addEventListener("click",()=>go(b.dataset.searchSuggestion,b.dataset.searchScope||scopeEl?.value||"")));
     const nav=$("[data-tp-nav]"),open=$("[data-tp-menu-button]"),close=$("[data-tp-menu-close]"),back=$("[data-tp-nav-backdrop]");if(nav&&open){const set=v=>{nav.classList.toggle("is-open",v);back?.classList.toggle("is-open",v);d.body.classList.toggle("tp-menu-open",v);open.setAttribute("aria-expanded",String(v))};open.addEventListener("click",()=>set(!nav.classList.contains("is-open")));close?.addEventListener("click",()=>set(false));back?.addEventListener("click",()=>set(false));d.addEventListener("keydown",e=>{if(e.key==="Escape")set(false)})}
@@ -138,7 +160,7 @@
   async function boot(){
     navigation();buildBudget();setCompare(compareItems());if(!q)return;
     const grid=$("[data-v2078-product-grid]");if(!grid)return;grid.innerHTML='<div class="tp78-empty"><h3>Searching the full catalogue…</h3><p>Checking product family, role, identifiers and seller evidence.</p></div>';
-    const ids=await candidates();let found=await loadRows(ids);found=found.filter(r=>!BLOCK.has(L(r.se))&&roleOK(r)).map(r=>({...r,_score:score(r)})).filter(r=>r._score>-10).sort((a,b)=>b._score-a._score);
+    const ids=await candidates();let found=await loadRows(ids);found=found.filter(r=>!BLOCK.has(L(r.se))&&roleOK(r)&&semanticOK(r)).map(r=>({...r,_score:score(r)})).filter(r=>r._score>-10).sort((a,b)=>b._score-a._score);
     if(!found.length){await logDemand();grid.innerHTML='<div class="tp80-no-result"><h2>We could not verify this product yet.</h2><p>Try a model, MPN, SKU, part number or a more specific phrase. TrendPilot recorded the search for future catalogue updates.</p><a href="/rare-used/">Explore Rare Finds</a></div>';const c=$("[data-v2078-results-count]");if(c)c.textContent="0 matching";return}
     state.all=found.slice(0,240);const head=$("[data-v2078-results-title]");if(head)head.textContent=`Results for “${q}”`;const sub=$("[data-v2078-results-sub]");if(sub)sub.textContent=intent==="main"?"Main and used/refurbished products are shown; accessories and replacement parts stay out unless you ask for them.":`Showing ${roleName(intent).toLowerCase()} results matched to the requested product family.`;sellerFilter();filter();
   }
