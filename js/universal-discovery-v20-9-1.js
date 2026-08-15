@@ -2,7 +2,7 @@
   "use strict";
 
   const DATA_VERSION = "20.9.0";
-  const RUNTIME_VERSION = "21.3.2";
+  const RUNTIME_VERSION = "21.3.3";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -114,9 +114,10 @@
     if(r.x)n+=10;if(r.im)n+=5;if(r.p)n+=2;return n;
   }
   function roleOK(r){const role=C(r.ro||"main");if(intent==="main")return role==="main"||role==="used";if(intent==="used")return role==="used";return role===intent}
-  const MACBOOK_BAD=/\b(?:sleeve|case|cover|bag|handbag|briefcase|skin|shell|stand|dock|docking|charger|adapter|cable|keyboard cover|screen protector|protective film|replacement|battery for|compatible with macbook|for macbook)\b/i;
+  const explicitMacBookQuery=family==="laptop"&&/\bmacbook\b/i.test(L(q));
+  const MACBOOK_BAD=/(?:\b(?:sleeve|case|cover|bag|handbag|briefcase|skin|shell|stand|dock|docking|charger|adapter|cable|mouse|touch\s*mouse|lcd|display|digitizer|screen|assembly|ssd|solid\s+state\s+drive|hard\s+disk|hard\s+drive|nvme|drive\s+card|tool\s+kit|screwdriver|repair\s+tool|replacement|battery|keyboard|trackpad|hinge|motherboard|mainboard|palmrest|heatsink|cooling\s+fan|fan|bezel|flex\s+cable|webcam|camera\s+module|speaker|touchpad|logic\s+board)\b)|(?:\bfor\s+(?:(?:laptop|notebook)\s+)?(?:apple\s+)?macbook\b)|(?:\bcompatible\s+with\s+(?:apple\s+)?macbook\b)/i;
   function semanticOK(r){
-    const explicitMacBook=family==="laptop"&&/\bmacbook\b/i.test(L(q));
+    const explicitMacBook=explicitMacBookQuery;
     if((!genericFamily&&!explicitMacBook)||intent!=="main")return true;
     const title=L(r.t),fam=L(r.fa||r.ty);
     if(explicitMacBook){if(!/\bmacbook\b/i.test(title))return false;if(MACBOOK_BAD.test(title))return false;}
@@ -164,7 +165,7 @@
     navigation();buildBudget();setCompare(compareItems());if(!q)return;
     const grid=$("[data-v2078-product-grid]");if(!grid)return;grid.innerHTML='<div class="tp78-empty"><h3>Searching the full catalogue…</h3><p>Checking product family, role, identifiers and seller evidence.</p></div>';
     const ids=await candidates();let found=await loadRows(ids);found=found.filter(r=>!BLOCK.has(L(r.se))&&roleOK(r)&&semanticOK(r)).map(r=>({...r,_score:score(r)})).filter(r=>r._score>-10).sort((a,b)=>b._score-a._score);
-    if(!found.length){await logDemand();grid.innerHTML='<div class="tp80-no-result"><h2>We could not verify this product yet.</h2><p>Try a model, MPN, SKU, part number or a more specific phrase. TrendPilot recorded the search for future catalogue updates.</p><a href="/rare-used/">Explore Rare Finds</a></div>';const c=$("[data-v2078-results-count]");if(c)c.textContent="0 matching";return}
+    if(!found.length){await logDemand();grid.innerHTML=explicitMacBookQuery?'<div class="tp80-no-result"><h2>No verified main MacBook is in the current catalogue.</h2><p>MacBook-compatible accessories, screens, storage drives and repair tools were excluded rather than shown as MacBook computers.</p><a href="/find/?q=laptop&scope=computers&engine=v2064">Browse verified laptops</a></div>':'<div class="tp80-no-result"><h2>We could not verify this product yet.</h2><p>Try a model, MPN, SKU, part number or a more specific phrase. TrendPilot recorded the search for future catalogue updates.</p><a href="/rare-used/">Explore Rare Finds</a></div>';const c=$("[data-v2078-results-count]");if(c)c.textContent="0 matching";return}
     state.all=found.slice(0,240);const head=$("[data-v2078-results-title]");if(head)head.textContent=`Results for “${q}”`;const sub=$("[data-v2078-results-sub]");if(sub)sub.textContent=intent==="main"?"Main and used/refurbished products are shown; accessories and replacement parts stay out unless you ask for them.":`Showing ${roleName(intent).toLowerCase()} results matched to the requested product family.`;sellerFilter();filter();
   }
 
