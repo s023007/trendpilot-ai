@@ -1,9 +1,10 @@
 {
   "version": 2,
   "website_name": "TrendPilot AI",
-  "website_url_contains": "trendpilot-ai",
+  "website_url_contains": "trendpilotchoice.com",
   "fetch_all_joined_programs": true,
   "max_coupons": 5000,
+  "public_blocklist": ["Joom", "Temu", "FilamentPRO"],
   "programs": {
     "AliExpress WW": {
       "merchant_key": "aliexpress_ww",
@@ -14,11 +15,6 @@
       "merchant_key": "alibaba_ww",
       "category": "marketplace",
       "aliases": ["Alibaba WW"]
-    },
-    "Joom Many GEOs": {
-      "merchant_key": "joom_many_geos",
-      "category": "marketplace",
-      "aliases": ["Joom Many GEOs"]
     },
     "Jetpac WW": {
       "merchant_key": "jetpac_ww",
@@ -64,11 +60,6 @@
       "merchant_key": "ticombo_many_geos",
       "category": "tickets",
       "aliases": ["Ticombo - Global Event Tickets Many GEOs", "Ticombo Global Event Tickets Many GEOs"]
-    },
-    "FilamentPRO EU CPS": {
-      "merchant_key": "filamentpro_eu_cps",
-      "category": "3d-printing",
-      "aliases": ["FilamentPRO EU CPS"]
     }
   }
 }
