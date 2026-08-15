@@ -13,7 +13,7 @@
     "raw_records": 132,
     "token_expires_in_seconds": 604800
   },
-  "active_coupons": 124,
+  "active_coupons": 121,
   "with_codes": 124,
   "automatic_deals": 0,
   "coupons_by_merchant": {
@@ -37,5 +37,11 @@
   },
   "rejected_records": {
     "not_started": 8
-  }
+  },
+  "public_blocklist": [
+    "Joom",
+    "Temu",
+    "FilamentPRO"
+  ],
+  "policy_sanitized": true
 }

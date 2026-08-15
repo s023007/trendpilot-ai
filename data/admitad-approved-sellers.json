@@ -1,17 +1,9 @@
 {
-  "version": "1.0",
+  "version": "21.12.0",
   "generated_at": "2026-08-15T18:46:33.641900+00:00",
   "website_id": 2980568,
-  "source": "Admitad API active programs for trendpilotchoice.com",
+  "source": "Admitad API active programs for trendpilotchoice.com after TrendPilot public blocklist",
   "sellers": [
-    {
-      "id": 40315,
-      "name": "",
-      "network": "Admitad",
-      "approved": true,
-      "allow_deeplink": true,
-      "has_product_feed": false
-    },
     {
       "id": 20881,
       "name": "Alibaba WW",
@@ -23,14 +15,6 @@
     {
       "id": 6115,
       "name": "AliExpress WW",
-      "network": "Admitad",
-      "approved": true,
-      "allow_deeplink": true,
-      "has_product_feed": true
-    },
-    {
-      "id": 182710,
-      "name": "FilamentPRO EU CPS",
       "network": "Admitad",
       "approved": true,
       "allow_deeplink": true,
@@ -108,5 +92,10 @@
       "allow_deeplink": false,
       "has_product_feed": false
     }
+  ],
+  "public_blocklist": [
+    "Joom",
+    "Temu",
+    "FilamentPRO"
   ]
 }
