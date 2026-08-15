@@ -1,4 +1,4 @@
-/* TrendPilot V21.2.1 — final cross-page presentation hardening.
+/* TrendPilot V21.2.2 — final cross-page presentation hardening.
    Presentation only: no search, catalogue, identity, seller or affiliate logic changes. */
 
 /* Opaque drawer: no page text should bleed through the menu. */
@@ -30,10 +30,24 @@ body[data-v20-public="true"] .tp-links{
 .tp-product-grid strong{color:#0f172a!important}
 .tp-product-grid .tp78-meta,.tp-product-grid .tp78-description,.tp-product-grid .tp80-universal-meta,
 .tp-product-grid .tp80-route-note,.tp-product-grid small,.tp-product-grid p{color:#526174!important}
-.tp-product-grid .tp78-brand{color:#3158d4!important}
+.tp-product-grid .tp78-brand{color:#0f766e!important}
 .tp-product-grid .tp78-source{background:#e8edf4!important;color:#445166!important}
 .tp-product-grid .tp78-media{background:#f1f4f7!important}
 .tp-product-grid .tp78-media img,.tp-product-grid img{background:#fff!important}
+/* Restored finder cards have a two-item top row: brand on left, seller on right. */
+.tp-product-grid .tp78-card .tp78-top>*:first-child{color:#0f766e!important;opacity:1!important}
+.tp-product-grid .tp78-card .tp78-top>*:last-child{color:#526174!important;opacity:1!important}
+/* Legacy action controls were inheriting near-white ink from the dark theme. */
+.tp-product-grid .tp78-card .tp78-icon,
+.tp-product-grid .tp78-card .tp78-actions button,
+.tp-product-grid .tp78-card button[aria-label],
+.tp-product-grid .tp78-card a[aria-label]:not(.tp78-view){
+  background:#fff!important;color:#334155!important;border-color:#d1d9e4!important;opacity:1!important;
+}
+.tp-product-grid .tp78-card .tp78-icon svg,
+.tp-product-grid .tp78-card .tp78-actions svg,
+.tp-product-grid .tp78-card button[aria-label] svg,
+.tp-product-grid .tp78-card a[aria-label] svg{color:#334155!important;stroke:currentColor!important;opacity:1!important}
 
 /* Strong, non-translucent active state across mobile navigation variants. */
 .tp-bottom-nav a[aria-current="page"],.tp-bottom-nav a.active,.tp-bottom-nav a.is-active,
@@ -59,6 +73,10 @@ body.tp80-rare-hub .tp80-card-price{color:#f8fafc!important}
 body.tp80-rare-hub .tp80-brand{color:#aebdff!important}
 body.tp80-rare-hub .tp80-rare-meta,body.tp80-rare-hub .tp80-universal-meta,
 body.tp80-rare-hub .tp80-route-note{color:#d0d9e7!important}
+body.tp80-rare-hub .tp80-rare-card h2{
+  margin:6px 0 10px!important;font-size:18px!important;line-height:1.22!important;letter-spacing:-.015em!important;
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:5!important;overflow:hidden!important;
+}
 
 /* Tickets: white result/search surfaces always use dark copy. */
 body[data-tp-page="tickets"] .tp-ticket-v141-search-card,
