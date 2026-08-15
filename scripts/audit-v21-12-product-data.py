@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 import json,re
-from collections import Counter,defaultdict
+from collections import Counter
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -15,12 +15,10 @@ checks={};failures=[];warnings=[]
 def ck(n,ok,d=''):
     checks[n]=bool(ok)
     if not ok:failures.append({'name':n,'detail':str(d)})
-
 def seller(row):return str(row.get('se') or row.get('seller') or '').strip()
 def title(row):return str(row.get('t') or row.get('title') or '').strip()
-files=sorted(SRC.glob('*.json'))
-ck('product_shards_exist',len(files)>0,len(files))
-seen={};dupes=[];mismatch=[];blocked=[];negative=[];empty_title=[];empty_seller=[];roles=Counter();families=Counter();sellers=Counter();total=0;phone_main=0;phone_bad=0;apparel_main=0;apparel_good=0;apparel_bad=0;exact=0;exact_missing_url=0
+files=sorted(SRC.glob('*.json'));ck('product_shards_exist',len(files)>0,len(files))
+seen={};dupes=[];mismatch=[];blocked=[];negative=[];empty_title=[];empty_seller=[];roles=Counter();families=Counter();sellers=Counter();total=0;phone_main=0;phone_bad=0;phone_bad_samples=[];apparel_main=0;apparel_good=0;apparel_bad=0;apparel_bad_samples=[];exact=0;exact_missing_url=0
 for p in files:
     try:data=json.loads(p.read_text(encoding='utf-8'))
     except Exception as e:failures.append({'name':'invalid_json','detail':f'{p.name}: {e}'});continue
@@ -45,26 +43,21 @@ for p in files:
             if not str(row.get('u') or row.get('url') or '').strip():exact_missing_url+=1
         if fa=='phone' and ro in {'','main'}:
             phone_main+=1
-            if PHONE_BAD.search(t):phone_bad+=1
+            if PHONE_BAD.search(t):
+                phone_bad+=1
+                if len(phone_bad_samples)<40:phone_bad_samples.append({'id':key,'seller':s,'title':t})
         if fa in {'apparel','shoes','footwear'} and ro in {'','main'}:
             apparel_main+=1
             if SHOE_GOOD.search(t):apparel_good+=1
-            if SHOE_BAD.search(t):apparel_bad+=1
+            if SHOE_BAD.search(t):
+                apparel_bad+=1
+                if len(apparel_bad_samples)<30:apparel_bad_samples.append({'id':key,'seller':s,'title':t})
 
-ck('product_ids_unique',not dupes,dupes[:20])
-ck('product_id_matches_key',not mismatch,mismatch[:20])
-ck('public_product_shards_no_blocked_sellers',not blocked,blocked[:20])
-ck('public_product_prices_nonnegative',not negative,negative[:20])
-ck('public_products_have_titles',len(empty_title)==0,len(empty_title))
-ck('public_products_have_sellers',len(empty_seller)==0,len(empty_seller))
-ck('exact_records_have_destination',exact_missing_url==0,{'exact':exact,'missing_url':exact_missing_url})
-phone_ratio=(phone_bad/phone_main) if phone_main else 0
-apparel_bad_ratio=(apparel_bad/apparel_main) if apparel_main else 0
-if phone_ratio>0.05:warnings.append({'name':'phone_main_accessory_grammar','detail':{'main':phone_main,'bad':phone_bad,'ratio':phone_ratio}})
-if apparel_bad_ratio>0.10:warnings.append({'name':'apparel_family_non_footwear_noise','detail':{'main':apparel_main,'footwear_terms':apparel_good,'automotive_noise':apparel_bad,'ratio':apparel_bad_ratio}})
-report={'version':'21.12.0','total_records':total,'shards':len(files),'checks':checks,'failures':failures,'warnings':warnings,'blocked_count':len(blocked),'duplicate_count':len(dupes),'roles':roles,'families':families,'sellers':sellers,'phone_main':phone_main,'phone_bad_grammar':phone_bad,'apparel_main':apparel_main,'apparel_footwear_terms':apparel_good,'apparel_automotive_noise':apparel_bad,'exact_records':exact,'passed':not failures and all(checks.values())}
-# JSON-convert Counters
-for k in ['roles','families','sellers']:report[k]=dict(report[k])
+ck('product_ids_unique',not dupes,dupes[:20]);ck('product_id_matches_key',not mismatch,mismatch[:20]);ck('public_product_shards_no_blocked_sellers',not blocked,blocked[:20]);ck('public_product_prices_nonnegative',not negative,negative[:20]);ck('public_products_have_titles',len(empty_title)==0,len(empty_title));ck('public_products_have_sellers',len(empty_seller)==0,len(empty_seller));ck('exact_records_have_destination',exact_missing_url==0,{'exact':exact,'missing_url':exact_missing_url})
+phone_ratio=(phone_bad/phone_main) if phone_main else 0;apparel_bad_ratio=(apparel_bad/apparel_main) if apparel_main else 0
+if phone_ratio>0.05:warnings.append({'name':'phone_main_accessory_grammar','detail':{'main':phone_main,'bad':phone_bad,'ratio':phone_ratio,'samples':phone_bad_samples}})
+if apparel_bad_ratio>0.10:warnings.append({'name':'apparel_family_non_footwear_noise','detail':{'main':apparel_main,'footwear_terms':apparel_good,'automotive_noise':apparel_bad,'ratio':apparel_bad_ratio,'samples':apparel_bad_samples}})
+report={'version':'21.12.1','total_records':total,'shards':len(files),'checks':checks,'failures':failures,'warnings':warnings,'blocked_count':len(blocked),'duplicate_count':len(dupes),'roles':dict(roles),'families':dict(families),'sellers':dict(sellers),'phone_main':phone_main,'phone_bad_grammar':phone_bad,'phone_bad_samples':phone_bad_samples,'apparel_main':apparel_main,'apparel_footwear_terms':apparel_good,'apparel_automotive_noise':apparel_bad,'apparel_bad_samples':apparel_bad_samples,'exact_records':exact,'passed':not failures and all(checks.values())}
 (OUT/'report.json').write_text(json.dumps(report,indent=2,ensure_ascii=False),encoding='utf-8')
 print(json.dumps({k:report[k] for k in ['passed','total_records','shards','blocked_count','duplicate_count','phone_main','phone_bad_grammar','apparel_main','apparel_footwear_terms','apparel_automotive_noise','exact_records','failures','warnings']},indent=2,ensure_ascii=False))
 raise SystemExit(0 if report['passed'] else 1)
