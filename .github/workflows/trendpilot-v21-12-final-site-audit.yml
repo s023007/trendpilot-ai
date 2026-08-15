@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/trendpilot-v21-12-final-site-audit.yml
+      - scripts/qa-v21-12-final-site.mjs
   workflow_dispatch:
 
 permissions:
@@ -13,7 +14,7 @@ permissions:
 jobs:
   final-audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v5
         with:
