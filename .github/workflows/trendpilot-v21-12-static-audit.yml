@@ -1,0 +1,51 @@
+name: TrendPilot V21.12 — Static Public Surface Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-12-static-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run static page and policy audit
+        run: python scripts/audit-v21-12-static.py
+      - name: Check active JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            js/smart-suggestions-v20-7-7.js \
+            js/query-normalizer-v21-3.js \
+            js/rare-finds-v20-8.js \
+            js/rare-find-detail-v20-8-7.js \
+            js/ticket-decision-v14.js \
+            js/ticket-detail-v14.js \
+            js/wholesale-v14.js \
+            js/compare-v20-9.js \
+            js/item-detail-v20-9.js \
+            js/smart-search-v14.js \
+            netlify/functions/products-v20-suggest.mjs; do
+              node --check "$f"
+          done
+      - name: Upload static audit
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-12-static-audit
+          path: artifacts/v21-12-static
+          if-no-files-found: ignore
