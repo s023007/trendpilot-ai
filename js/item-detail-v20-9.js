@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const V="20.9.0",UI="21.5.0",d=document,$=s=>d.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  const V="20.9.0",UI="21.5.1",d=document,$=s=>d.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   const p=new URLSearchParams(location.search),id=C(p.get("id")).toLowerCase(),q=C(p.get("q"));
   const money=r=>`${r.cu==="USD"?"US$":C(r.cu||"USD")+" "}${Number(r.p).toLocaleString(undefined,{maximumFractionDigits:2})}`;
   const rarity=s=>{s=Number(s||0);if(s>=90)return`Exceptional find`;if(s>=80)return`Very rare`;if(s>=65)return`Hard to find`;if(s>=58)return`Specialist find`;return""};
@@ -25,7 +25,7 @@
   function sellerSearchLabel(r,title){
     const seller=C(r.se||"seller");
     const core=title.replace(/…$/,'').split(/\s+/).slice(0,7).join(' ');
-    return r.x?`View product on ${seller} ↗`:`Search ${seller} for ${core} ↗`;
+    return r.x?`View product on ${seller} ↗`:`Open ${seller} and search for ${core} ↗`;
   }
 
   function summary(r,title){
@@ -110,7 +110,7 @@
       const ext=safeExternal(r.u),seller=$("[data-tp85-seller-link]");
       if(ext){seller.href=ext;seller.textContent=sellerSearchLabel(r,title.replace(/…$/,''))}else seller.setAttribute("hidden","");
       const sim=$("[data-tp85-similar]");sim.href=`/find/?q=${encodeURIComponent(q||title||"")}&universal=1&engine=v2064`;
-      $("[data-tp85-exit-note]").textContent=r.x?`This button opens the seller's product page. Confirm price, stock and delivery before payment.`:`The seller link may open a search or marketplace page. Match the product name or model before buying.`;
+      $("[data-tp85-exit-note]").textContent=r.x?`This button opens the seller's product page. Confirm price, stock and delivery before payment.`:`This button opens the seller or marketplace. Use the product name above to find the matching listing, then confirm price, stock and delivery.`;
       bindCompare(r);
       $("[data-tp85-loading]").setAttribute("hidden","");$("[data-tp85-detail]").removeAttribute("hidden");
       d.documentElement.dataset.tpItemUi=UI;
