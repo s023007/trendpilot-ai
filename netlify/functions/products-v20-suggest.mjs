@@ -1,12 +1,24 @@
 const VERSION='20.3.3';
-const BUILD='21.5.0';
+const BUILD='21.12.0';
 let cache={at:0,value:null};
 const TTL=10*60*1000;
 const clean=v=>String(v??'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
 const norm=v=>clean(v).normalize('NFKC').toLowerCase().replace(/[’'`]/g,'').replace(/[^\p{L}\p{N}+#.-]+/gu,' ').replace(/\s+/g,' ').trim();
-const blocked=new Set(['temu','joom','filamentpro','filamentpro eu cps']);
+const blocked=new Set(['temu','joom','filamentpro','filamentpro eu cps','filamentpro-eu-cps']);
 const ACCESSORY_RE=/\b(?:case|cases|cover|covers|charger|chargers|charging|cable|cables|screen protector|protector|protectors|mount|holder|stand|strap|adapter|dock|replacement|replacement part|battery replacement|accessor(?:y|ies))\b/i;
 const DIRTY_MAIN_RE=/\b(?:case|cases|cover|covers|charger|chargers|charging cable|screen protector|protector|mount|holder|strap|replacement part|accessor(?:y|ies))\b/i;
+const SAFE_INTENTS=[
+  ['phone','phone'],['smartphone','phone'],['tablet','tablet'],['laptop','laptop'],
+  ['headphones','headphones'],['earbuds','headphones'],['speaker','speaker'],['smartwatch','smartwatch'],
+  ['camera','camera'],['printer','printer'],['projector','projector'],['television','television'],
+  ['perfume','perfume'],['fragrance','perfume'],['makeup','beauty'],['skincare','beauty'],
+  ['power bank','power-bank'],['air conditioner','air-conditioning'],['air fryer','home-appliances'],
+  ['cookware','kitchen'],['lighting','lighting'],['furniture','furniture'],['tools','tools'],['drill','tools'],
+  ['3d printer','3d-printing'],['3d filament','3d-printing'],['dog food','pets'],['pet supplies','pets'],
+  ['car accessories','automotive'],['shoes','apparel'],['sneakers','apparel'],['boots','apparel'],
+  ['clothing','apparel'],['bags','bags'],['fitness equipment','sports'],['baby products','baby'],
+  ['toys','toys'],['office supplies','office'],['medical equipment','medical']
+].map(([value,type])=>({value,type}));
 function json(body,status=200){return new Response(JSON.stringify(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'public, max-age=0, s-maxage=60, stale-while-revalidate=300','x-content-type-options':'nosniff'}})}
 async function fetchJson(url,timeoutMs=12000){const c=new AbortController();const t=setTimeout(()=>c.abort(),timeoutMs);try{const r=await fetch(url,{headers:{accept:'application/json'},signal:c.signal});if(!r.ok)throw new Error(`HTTP ${r.status}`);return await r.json()}finally{clearTimeout(t)}}
 function words(q){return norm(q).split(/\s+/).filter(Boolean)}
@@ -14,8 +26,6 @@ function escapeRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function matchScore(value,q,quality=0,kind='product',sellerCount=0){
   const v=norm(value),n=norm(q),parts=words(q);
   if(!v||!n)return -1;
-  // A one-character query is intentionally strict: the visible suggestion itself must start with that character.
-  // This prevents a query such as "b" from returning "Amazfit Bip" merely because a later word contains b.
   if(n.length===1&&!v.startsWith(n))return -1;
   if(!parts.every(p=>v.includes(p)))return -1;
   let s=Math.min(1600,Number(quality||0));
@@ -40,7 +50,8 @@ function publicRow(row,kind){
 function topRows(data,q,seller,limit){
   const n=norm(q),sellerNorm=norm(seller),accessoryIntent=ACCESSORY_RE.test(n),pool=[];
   if(!accessoryIntent){
-    for(const r of data.intents||[]){
+    const intents=[...SAFE_INTENTS,...(data.intents||[])];
+    for(const r of intents){
       const score=matchScore(r.value,q,0,'intent',0);
       if(score>=0)pool.push({...publicRow(r,'intent'),_score:score});
     }
