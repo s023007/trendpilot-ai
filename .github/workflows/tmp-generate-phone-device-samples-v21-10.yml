@@ -1,0 +1,100 @@
+name: Temporary Strict Phone Sample Generator
+
+on:
+  push:
+    branches: [fix/phone-purity-v21-10]
+    paths:
+      - '.github/workflows/tmp-generate-phone-device-samples-v21-10.yml'
+permissions:
+  contents: write
+jobs:
+  generate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Generate strict phone device samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          import json,glob,re
+          from collections import defaultdict
+
+          BAD=re.compile(r'\b(?:power\s*bank|portable\s+charger|wireless\s+charger|wall\s+charger|car\s+charger|fast\s+charger|charger\s+cable|charging\s+(?:cable|station|adapter)|data\s+cable|usb(?:-c)?\s+(?:cable|adapter|hub)|micro\s*sd|memory\s+card|sd\s+card|flash\s+drive|card\s+reader|ssd\s+enclosure|ssd\b|enclosure|dongle|tripod|gimbal|stabilizer|selfie\s+(?:stick|light|mirror)|fill\s+light|phone\s+light|projector|wireless\s+speaker|bluetooth\s+speaker|speaker\s+dust|receiver\s+speaker|earpiece\s+speaker|headphones?|headset|earphones?|earbuds?|lavalier\s+microphone|wireless\s+microphone|phone\s+(?:case|cover|accessories|accessory|chain|charm|lanyard|strap|pouch|holder|mount|stand|bracket|grip|decoration|dust\s+plug)|screen\s+protector|lens\s+protector|tempered\s+glass|protective\s+(?:film|case|cover)|back\s+housing|back\s+cover|housing\b|screen\s+replacement|sim\s+card\s+tray|repair\b|screwdriver|tool\s+kit|power\s+supply|solar\s+panel|hand\s+generator|radiator|cooling|cleaning\s+(?:kit|tool)|business\s+card|printer\b|photo\s+paper|smartphone\s+toy|phone\s+toy|game\s+controller|camera\s+lens|lens\s+clip|phone\s+camera\b)\b',re.I)
+          COMPAT=re.compile(r'\b(?:for|compatible\s+with|suitable\s+for)\s+(?:apple\s+)?(?:iphone|samsung\s+galaxy|galaxy|xiaomi|redmi|poco|oneplus|huawei|honor|oppo|vivo|realme|motorola|moto|nokia|pixel)\b',re.I)
+          DEVICE=re.compile(r'\b(?:smart\s*phone|mobile\s+phone|cell(?:ular)?\s+phone|feature\s+phone|unlocked\s+phone|rugged\s+(?:smart\s*)?phone|android\s+(?:smart\s*)?phone)\b',re.I)
+          MODEL=re.compile(r'\b(?:iphone\s*(?:x(?:r|s|max)?|se|\d{1,2})|galaxy\s+(?:s|a|m|f|z|note)\s*\d|pixel\s+\d|redmi\s+(?:note\s+)?\d|poco\s+[a-z]\d|oneplus\s+\d|fossibot\s+[fs]\d|oukitel\s+(?:c|wp)\d|blackview\s+(?:bv|a)\d|ulefone\s+armor|doogee\s+(?:s|v|n)\d|fuffi\s+\w+|foxxd\s+\w+)\b',re.I)
+          SALE=re.compile(r'\b(?:unlocked|refurbished|renewed|used|original|global\s+version|without\s+contract)\b',re.I)
+          SPECS=[
+            re.compile(r'\bandroid\s*\d{1,2}\b',re.I),
+            re.compile(r'\b(?:4g|5g)(?:\s+network|\s+dual\s+sim|\s+smartphone|\s+phone|\s+lte)?\b',re.I),
+            re.compile(r'\bdual\s+(?:sim|card)\b',re.I),
+            re.compile(r'\b\d{1,2}\s*gb\s*(?:ram|\+|/)|\b\d{2,4}\s*gb\s*(?:rom|storage)\b',re.I),
+            re.compile(r'\b\d(?:\.\d{1,3})?\s*(?:inch|inches|\")\b',re.I),
+            re.compile(r'\b\d{3,5}\s*mah\b',re.I),
+            re.compile(r'\b\d{1,3}\s*mp\b',re.I),
+            re.compile(r'\b(?:snapdragon|dimensity|helio|unisoc|kirin|octa[- ]?core)\b',re.I),
+          ]
+          BLOCK={'temu','joom','filamentpro','filamentpro eu cps','filamentpro-eu-cps'}
+
+          def is_phone(r):
+            t=str(r.get('t') or '')
+            low=t.lower()
+            if not t: return False
+            if BAD.search(t): return False
+            if re.search(r'\b(?:tablet|ipad|smart\s*watch|watch\s+band|projector|camera\s+only)\b',t,re.I): return False
+            compat=bool(COMPAT.search(t))
+            device=bool(DEVICE.search(t))
+            model=bool(MODEL.search(t))
+            sale=bool(SALE.search(t))
+            specs=sum(bool(p.search(t)) for p in SPECS)
+            if compat and not sale and specs<3: return False
+            if device:
+              return True
+            if model and (sale or specs>=2):
+              return True
+            if re.search(r'\bphone\b',t,re.I) and specs>=3:
+              return True
+            return False
+
+          by=defaultdict(list)
+          total=0
+          for path in glob.glob('data/v20-9/products/*.json'):
+            with open(path,encoding='utf-8') as f: bucket=json.load(f)
+            for r in bucket.values():
+              seller=str(r.get('se') or '').strip()
+              if not seller or seller.lower() in BLOCK: continue
+              if str(r.get('fa') or r.get('ty') or '').lower()!='phone': continue
+              if str(r.get('ro') or 'main') not in ('main','used'): continue
+              total+=1
+              if not is_phone(r): continue
+              rank=(1 if r.get('x') else 0,1 if r.get('im') else 0,1 if r.get('p') else 0,float(r.get('r') or 0))
+              by[seller].append((rank,str(r.get('id') or ''),str(r.get('t') or '')))
+
+          out={'version':'21.10.0','family':'phone','sellers':{}}
+          for seller,vals in sorted(by.items()):
+            vals=sorted(vals,key=lambda x:x[0],reverse=True)
+            ids=[]
+            for _,pid,title in vals:
+              if pid and pid not in ids: ids.append(pid)
+              if len(ids)>=16: break
+            if ids: out['sellers'][seller]=ids
+            print('\n',seller,'accepted',len(vals),'samples',len(ids))
+            for _,pid,title in vals[:12]: print(pid,'|',title)
+          print('\nTOTAL PHONE-FAMILY MAIN/USED',total)
+          print('STRICT SELLERS',sorted(out['sellers']))
+          print('STRICT SAMPLE COUNTS',{k:len(v) for k,v in out['sellers'].items()})
+          assert 'Alibaba' in out['sellers']
+          assert 'AliExpress' in out['sellers']
+          assert 'Geekbuying' in out['sellers']
+          assert 'TikTok Shop US' in out['sellers']
+          assert 'Sunsky-online WW' not in out['sellers']
+          assert 'Govee Many GEOs' not in out['sellers']
+          with open('data/v20-9/phone-device-samples.json','w',encoding='utf-8') as f:
+            json.dump(out,f,separators=(',',':'),ensure_ascii=False)
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/v20-9/phone-device-samples.json
+          git commit -m 'Add strict genuine-phone seller samples'
+          git push origin HEAD:fix/phone-purity-v21-10
