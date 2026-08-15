@@ -1,6 +1,6 @@
 (() => {
   'use strict';
-  const VERSION='21.4.0';
+  const VERSION='21.4.1';
   const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
   const exact=new Map([
     ['Universal product discovery & comparison','Search the catalogue'],
@@ -27,29 +27,31 @@
     s=s.replace(/\bcatalogue records?\b/gi,'seller options');
     s=s.replace(/\bexact product destination not verified\b/gi,'check the exact product before buying');
     s=s.replace(/These are seller options\. The available route is a broader marketplace\/search destination, so TrendPilot does not call them active exact listings\.?/i,'We found this product with these sellers, but the link may open a search page. Check that the exact product is shown before buying.');
+    s=s.replace(/The available route is a broader marketplace\/search destination, so TrendPilot does not call them active exact listings\.?/i,'The link may open a seller search page. Check that the exact product is shown before buying.');
     s=s.replace(/TrendPilot shows distinct RAM\/storage choices and removes configuration rows that conflict with stable model-level facts such as screen size or battery capacity\.?/i,'TrendPilot keeps the RAM and storage choices that match this product and hides conflicting options.');
     return s;
   }
-  function shouldTouch(el){
-    if(!el||el.nodeType!==1)return false;
-    if(el.matches('script,style,noscript,code,pre,textarea,input,select,option'))return false;
-    if(el.children.length)return false;
-    const t=clean(el.textContent);
-    return /(?:Variant check:|Seller evidence:|verified phone products|master products|catalogue records?|exact product destination not verified|feed item|live-only price|source data|broader marketplace\/seller page|Universal product discovery|Product role checked|long-tail discovery|scored by evidence|View exact supplier listing|Visit exact product)/i.test(t);
+  function relevant(t){return /(?:Variant check:|Seller evidence:|verified phone products|master products|catalogue records?|exact product destination not verified|feed item|live-only price|source data|broader marketplace\/(?:seller page|search destination)|Universal product discovery|Product role checked|long-tail discovery|scored by evidence|View exact supplier listing|Visit exact product)/i.test(t);}
+  function transformNode(node){
+    const parent=node.parentElement;
+    if(!parent||parent.closest('script,style,noscript,code,pre,textarea,select,option'))return;
+    const raw=String(node.nodeValue??'');
+    if(!relevant(raw))return;
+    const lead=(raw.match(/^\s*/)||[''])[0],trail=(raw.match(/\s*$/)||[''])[0];
+    const before=clean(raw),after=simpleText(before);
+    if(after&&after!==before)node.nodeValue=lead+after+trail;
   }
   function sweep(root=document){
-    const nodes=root.querySelectorAll?root.querySelectorAll('main *, footer *, [data-tp-filter-panel] *, [data-v2078-product-grid] *'):[];
-    for(const el of nodes){
-      if(!shouldTouch(el))continue;
-      const before=clean(el.textContent),after=simpleText(before);
-      if(after&&after!==before)el.textContent=after;
-    }
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
+    const nodes=[];let n;
+    while((n=walker.nextNode()))nodes.push(n);
+    for(const node of nodes)transformNode(node);
     document.documentElement.dataset.tpShopperLanguage=VERSION;
   }
   let timer=0;
-  const schedule=()=>{clearTimeout(timer);timer=setTimeout(()=>sweep(),40);};
+  const schedule=()=>{clearTimeout(timer);timer=setTimeout(()=>sweep(document.body||document),40);};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',schedule,{once:true});else schedule();
-  const root=document.querySelector('main')||document.body;
+  const root=document.documentElement;
   if(root){
     const mo=new MutationObserver(schedule);
     mo.observe(root,{subtree:true,childList:true,characterData:true});
