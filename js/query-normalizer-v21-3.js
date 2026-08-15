@@ -47,7 +47,7 @@
 
   const BAD = {
     phone: /\b(?:case|cover|protector|lensprotector|tempered glass|holder|mount|stand|tripod|selfie light|phone light|ring light|charger|charging cable|usb cable|adapter|power\s*bank|replacement|repair|screwdriver|tool\s*kit|ammeter|voltmeter|multimeter|tester|enclosure|ssd|nvme|hard\s*drive|dock|hub|strap|lanyard|wallet|gimbal|keyboard|gamepad|controller)\b/i,
-    laptop: /\b(?:bag|backpack|toploader|briefcase|sleeve|case|cover|skin|stand|dock|docking|charger|adapter|cable|battery|replacement|keyboard|screen|display|lcd|hinge|palmrest|heatsink|cooling fan|dc jack|motherboard|mainboard|graphics card|external graphics|gpu|ssd|nvme|hard drive|enclosure|storage drive|mouse|webcam|camera module|speaker|touchpad|trackpad|tool kit|screwdriver|repair kit)\b/i,
+    laptop: /\b(?:accessor(?:y|ies)|bag|backpack|toploader|briefcase|sleeve|case|cover|skin|stand|dock|docking|charger|charging|adapter|cable|battery|replacement|keyboard|screen|display|lcd|hinge|palmrest|heatsink|cooling fan|dc jack|motherboard|mainboard|graphics card|graphic card|external graphics|gpu|ssd|nvme|hard drive|enclosure|storage drive|mouse|webcam|camera module|speaker|touchpad|trackpad|tool|toolkit|screwdriver|repair|programmer|programming socket|socket clip|inverter|converter|power supply|power module|step-down|step down|tray|breakfast|serving|tv table|laptop desk|bed table|table stand)\b/i,
     headphones: /\b(?:case|cover|ear pads?|ear cushions?|replacement|cable|stand|hanger|holder|adapter|charger|protective)\b/i,
     smartwatch: /\b(?:band|strap|case|cover|protector|tempered glass|charger|charging cable|stand|holder|replacement)\b/i,
     perfume: /\b(?:empty bottle|refillable|atomizer|sprayer|vending machine|dispensing machine|filling machine|packaging machine|bottle cap|display stand)\b/i,
@@ -121,5 +121,5 @@
   else hideInternalMeta();
   new MutationObserver(hideInternalMeta).observe(document.documentElement, {subtree:true, childList:true});
 
-  window.__TP_QUERY_NORMALIZER__ = {version: "21.6.0", original: raw, corrected, family, strictPurity: Boolean(family && !explicitAccessory)};
+  window.__TP_QUERY_NORMALIZER__ = {version: "21.6.1", original: raw, corrected, family, strictPurity: Boolean(family && !explicitAccessory)};
 })();
