@@ -25,17 +25,17 @@ jobs:
         run: |
           set -euo pipefail
           for i in $(seq 1 45); do
-            home=0; find=0; rare=0; wholesale=0; missing=0
+            home=0; find=0; rare=0; wholesale=0; notfound=0
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/' -o /tmp/home.html && grep -q 'smart-suggestions-v20-7-7.js?v=21.12.0' /tmp/home.html && home=1 || true
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/find.html && grep -q 'query-normalizer-v21-3.js?v=21.12.0' /tmp/find.html && find=1 || true
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/rare-used/' -o /tmp/rare.html && grep -q 'rare-finds-v20-8.js?v=21.12.0' /tmp/rare.html && rare=1 || true
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/wholesale/' -o /tmp/ws.html && grep -q 'wholesale-v14.js?v=21.12.0' /tmp/ws.html && wholesale=1 || true
-            curl -fsSL --max-time 20 'https://trendpilotchoice.com/__trendpilot_final_audit_missing_page__' -o /tmp/missing.html && grep -q 'That page is no longer here' /tmp/missing.html && missing=1 || true
-            if [ "$home" = 1 ] && [ "$find" = 1 ] && [ "$rare" = 1 ] && [ "$wholesale" = 1 ] && [ "$missing" = 1 ]; then
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/404.html' -o /tmp/notfound.html && grep -q 'That page is no longer here' /tmp/notfound.html && notfound=1 || true
+            if [ "$home" = 1 ] && [ "$find" = 1 ] && [ "$rare" = 1 ] && [ "$wholesale" = 1 ] && [ "$notfound" = 1 ]; then
               echo 'V21.12 deployment markers are live.'
               exit 0
             fi
-            echo "Waiting ($i/45): home=$home find=$find rare=$rare wholesale=$wholesale missing=$missing"
+            echo "Waiting ($i/45): home=$home find=$find rare=$rare wholesale=$wholesale 404=$notfound"
             sleep 10
           done
           echo 'V21.12 public deployment markers did not become ready.'
