@@ -1,0 +1,155 @@
+name: TrendPilot V21.12 — Final All-Pages Release Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-12-release-gate.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v21-12-final-release-gate
+  cancel-in-progress: true
+
+jobs:
+  final-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Stage one-time gate for self-removal
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/trendpilot-v21-12-release-gate.yml
+
+      - name: Wait for current public deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            home=0; find=0; rare=0; trust=0; wholesale=0
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/' -o /tmp/home.html && grep -q 'smart-suggestions-v20-7-7.js?v=21.12.0' /tmp/home.html && home=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/find.html && grep -q 'query-normalizer-v21-3.js?v=21.12.0' /tmp/find.html && find=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/rare-used/' -o /tmp/rare.html && grep -q 'rare-finds-v20-8.js?v=21.12.0' /tmp/rare.html && rare=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/about.html' -o /tmp/about.html && grep -q 'data-tp-page="trust"' /tmp/about.html && trust=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/wholesale/' -o /tmp/ws.html && grep -q 'wholesale-v14.js?v=21.12.0' /tmp/ws.html && wholesale=1 || true
+            if [ "$home" = 1 ] && [ "$find" = 1 ] && [ "$rare" = 1 ] && [ "$trust" = 1 ] && [ "$wholesale" = 1 ]; then
+              echo 'Current V21.12 public deployment is reachable.'
+              exit 0
+            fi
+            echo "Waiting ($i/60): home=$home find=$find rare=$rare trust=$trust wholesale=$wholesale"
+            sleep 10
+          done
+          echo 'Current public deployment did not become ready in time.'
+          exit 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate Netlify routing and deployment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s netlify.toml
+          grep -q 'functions = "netlify/functions"' netlify.toml
+          grep -q 'from = "/product/:slug"' netlify.toml
+          grep -q 'to = "/.netlify/functions/product-preview-v20-9-6-mobile-polish?slug=:slug"' netlify.toml
+          grep -q 'from = "/r/:key"' netlify.toml
+          grep -q 'from = "/go/:key"' netlify.toml
+          echo 'Netlify routing contract validated.'
+
+      - name: Run static public-surface audit
+        run: python scripts/audit-v21-12-static.py
+
+      - name: Run public product-data and identity audit
+        run: python scripts/audit-v21-12-product-data.py
+
+      - name: Run workflow conflict audit after staged gate removal
+        run: python scripts/audit-v21-12-workflows.py
+
+      - name: Check active JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in \
+            js/smart-suggestions-v20-7-7.js \
+            js/query-normalizer-v21-3.js \
+            js/universal-discovery-v20-9-1.js \
+            js/rare-finds-v20-8.js \
+            js/rare-find-detail-v20-8-7.js \
+            js/ticket-decision-v14.js \
+            js/ticket-detail-v14.js \
+            js/wholesale-v14.js \
+            js/compare-v20-9.js \
+            js/item-detail-v20-9.js \
+            js/smart-search-v14.js \
+            netlify/functions/products-v20-suggest.mjs; do
+              node --check "$f"
+          done
+
+      - name: Install Chromium QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run final search quality matrix
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-search-matrix.mjs
+
+      - name: Run comprehensive shopper browser audit
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-final-site.mjs
+
+      - name: Run trust and policy page browser audit
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-trust-pages.mjs
+
+      - name: Finalize all checklist ticks
+        run: python scripts/finalize-v21-12-checklist.py
+
+      - name: Commit final sign-off and remove this one-time gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Final Audit Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add FINAL-SITE-AUDIT-V21-12.md
+          git add -u .github/workflows/trendpilot-v21-12-release-gate.yml
+          git diff --cached --check
+          git commit -m 'TrendPilot V21.12 final site audit complete — all checklist items passed'
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Upload final release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-12-final-release-evidence
+          path: |
+            artifacts/v21-12
+            artifacts/v21-12-static
+            artifacts/v21-12-product-data
+            artifacts/v21-12-search-matrix
+            artifacts/v21-12-final
+            artifacts/v21-12-trust
+            FINAL-SITE-AUDIT-V21-12.md
+          if-no-files-found: ignore
