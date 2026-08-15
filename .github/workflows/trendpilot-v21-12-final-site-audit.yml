@@ -1,0 +1,84 @@
+name: TrendPilot V21.12 — Final Site Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-12-final-site-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Wait for V21.12 public deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 45); do
+            home=0; find=0; rare=0; wholesale=0; missing=0
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/' -o /tmp/home.html && grep -q 'smart-suggestions-v20-7-7.js?v=21.12.0' /tmp/home.html && home=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/find.html && grep -q 'query-normalizer-v21-3.js?v=21.12.0' /tmp/find.html && find=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/rare-used/' -o /tmp/rare.html && grep -q 'rare-finds-v20-8.js?v=21.12.0' /tmp/rare.html && rare=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/wholesale/' -o /tmp/ws.html && grep -q 'wholesale-v14.js?v=21.12.0' /tmp/ws.html && wholesale=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/__trendpilot_final_audit_missing_page__' -o /tmp/missing.html && grep -q 'That page is no longer here' /tmp/missing.html && missing=1 || true
+            if [ "$home" = 1 ] && [ "$find" = 1 ] && [ "$rare" = 1 ] && [ "$wholesale" = 1 ] && [ "$missing" = 1 ]; then
+              echo 'V21.12 deployment markers are live.'
+              exit 0
+            fi
+            echo "Waiting ($i/45): home=$home find=$find rare=$rare wholesale=$wholesale missing=$missing"
+            sleep 10
+          done
+          echo 'V21.12 public deployment markers did not become ready.'
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Chromium QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run comprehensive V21.12 shopper QA
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-final-site.mjs
+
+      - name: Upload final audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-12-final-site-audit
+          path: artifacts/v21-12-final
+          if-no-files-found: ignore
+
+      - name: Audit summary
+        if: always()
+        shell: bash
+        run: |
+          echo '# TrendPilot V21.12 — Final Site Audit' >> "$GITHUB_STEP_SUMMARY"
+          if [ -s artifacts/v21-12-final/report.json ]; then
+            node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('artifacts/v21-12-final/report.json','utf8'));
+          console.log(`- Overall: **${r.passed?'PASS':'FAIL'}**`);
+          console.log(`- Checks: **${Object.keys(r.checks||{}).length}**`);
+          console.log(`- Failures: **${(r.failures||[]).length}**`);
+          for(const f of (r.failures||[])) console.log(`- ❌ ${f.name}: ${f.detail}`);
+          for(const [k,v] of Object.entries(r.checks||{})) if(v) console.log(`- ✅ ${k}`);
+          NODE
+          else
+            echo '- Final audit report was not produced.' >> "$GITHUB_STEP_SUMMARY"
+          fi
