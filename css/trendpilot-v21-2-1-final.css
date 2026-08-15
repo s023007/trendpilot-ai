@@ -115,3 +115,22 @@ body[data-tp-page="trust"] .tp-trust-links a{display:inline-flex;min-height:44px
   body[data-tp-page="trust"] .tp-content-hero{padding:34px 0 18px!important}
   body[data-tp-page="trust"] .tp-trust-page{margin:0 14px 78px;padding:22px 18px;border-radius:22px}
 }
+
+
+/* V21.12 ticket-detail + trust-form closeout */
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-detail,
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-empty{background:#f8fafc!important;background-image:none!important;color:#0f172a!important}
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-detail h1,
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-detail h2,
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-detail b,
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-detail strong{color:#0f172a!important;opacity:1!important}
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-detail p,
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-detail small{color:#526174!important;opacity:1!important}
+body[data-tp-page="ticket-detail"] .tp-ticket-v141-actions a.primary{color:#fff!important}
+body[data-tp-page="trust"] .tp-trust-page input,
+body[data-tp-page="trust"] .tp-trust-page select,
+body[data-tp-page="trust"] .tp-trust-page textarea{box-sizing:border-box;width:100%;margin-top:6px;padding:12px 14px;border:1px solid #cbd5e1;border-radius:12px;background:#fff;color:#0f172a;font:inherit;line-height:1.4}
+body[data-tp-page="trust"] .tp-trust-page textarea{min-height:150px;resize:vertical}
+body[data-tp-page="trust"] .tp-trust-page input:focus,
+body[data-tp-page="trust"] .tp-trust-page select:focus,
+body[data-tp-page="trust"] .tp-trust-page textarea:focus{outline:3px solid rgba(59,130,246,.22);border-color:#3b82f6}
