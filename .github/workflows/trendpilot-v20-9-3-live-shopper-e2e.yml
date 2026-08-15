@@ -1,4 +1,4 @@
-name: TrendPilot V20.9.5 — Restored Finder + Product Truth Mobile E2E
+name: TrendPilot V20.9.6 — Compact Product Mobile UI + Truth E2E
 
 on:
   push:
@@ -6,9 +6,11 @@ on:
     paths:
       - scripts/qa-v20-9-live-shopper.mjs
       - scripts/qa-v20-9-5-compare-seller.mjs
+      - scripts/qa-v20-9-6-mobile-product-ui.mjs
       - .github/workflows/trendpilot-v20-9-3-live-shopper-e2e.yml
       - netlify.toml
       - netlify/functions/product-preview-v20-9-5.cjs
+      - netlify/functions/product-preview-v20-9-6.cjs
       - data/v20-9/**
       - find/index.html
       - product/index.html
@@ -31,7 +33,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: trendpilot-v20-9-5-live-shopper
+  group: trendpilot-v20-9-6-live-shopper
   cancel-in-progress: true
 
 jobs:
@@ -42,7 +44,7 @@ jobs:
       - name: Checkout main
         uses: actions/checkout@v5
 
-      - name: Wait for restored finder, split product truth and V20.9.4 semantic data
+      - name: Wait for restored finder, compact product UI and V20.9.4 semantic data
         shell: bash
         run: |
           set -euo pipefail
@@ -58,6 +60,7 @@ jobs:
             fi
             if curl -fsSL --max-time 20 "$PRODUCT_URL" -o /tmp/tp-product.html; then
               if grep -q 'data-tp-product-truth="20.9.5"' /tmp/tp-product.html \
+                && grep -q 'data-tp-product-ui="20.9.6"' /tmp/tp-product.html \
                 && grep -q 'RAM + storage specified' /tmp/tp-product.html \
                 && grep -q 'Storage-only records' /tmp/tp-product.html \
                 && grep -q 'RAM and storage vary by seller record' /tmp/tp-product.html; then
@@ -70,7 +73,7 @@ jobs:
               fi
             fi
             if [ "$finder_ok" = 1 ] && [ "$product_ok" = 1 ] && [ "$semantic_ok" = 1 ]; then
-              echo 'Restored finder, split V20.9.5 product truth and V20.9.4 quality data are live.'
+              echo 'Restored finder, compact V20.9.6 product UI, V20.9.5 truth and V20.9.4 quality data are live.'
               exit 0
             fi
             echo "Waiting for public deploy ($i/36): finder=$finder_ok product=$product_ok semantic=$semantic_ok"
@@ -96,6 +99,11 @@ jobs:
           TP_BASE_URL: https://trendpilotchoice.com
         run: node scripts/qa-v20-9-live-shopper.mjs
 
+      - name: Run Android compact product UI journey
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v20-9-6-mobile-product-ui.mjs
+
       - name: Run Android compare and seller/CPC journey
         env:
           TP_BASE_URL: https://trendpilotchoice.com
@@ -106,7 +114,7 @@ jobs:
         shell: bash
         run: |
           if [ ! -s artifacts/live-shopper/report.json ]; then
-            echo '# TrendPilot V20.9.5 — Restored Finder + Product Truth Mobile E2E' >> "$GITHUB_STEP_SUMMARY"
+            echo '# TrendPilot V20.9.6 — Compact Product Mobile UI + Truth E2E' >> "$GITHUB_STEP_SUMMARY"
             echo >> "$GITHUB_STEP_SUMMARY"
             echo '**No report produced.** Browser setup or public deployment failed before the shopper test could run.' >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -114,7 +122,7 @@ jobs:
           node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs=require('fs');
           const r=JSON.parse(fs.readFileSync('artifacts/live-shopper/report.json','utf8'));
-          console.log('# TrendPilot V20.9.5 — Restored Finder + Product Truth Mobile E2E');
+          console.log('# TrendPilot V20.9.6 — Compact Product Mobile UI + Truth E2E');
           console.log();
           console.log(`- Product/Finder journey: **${r.passed?'PASS':'FAIL'}**`);
           console.log(`- Public site: **${r.base}**`);
@@ -128,10 +136,15 @@ jobs:
           console.log('## Product/Finder checks');
           for(const [k,v] of Object.entries(r.checks||{})) console.log(`- ${v?'✅':'❌'} ${k}`);
           if(r.error){console.log();console.log('## Product/Finder failure');console.log('```');console.log(r.error);console.log('```');}
+          if(fs.existsSync('artifacts/live-shopper/product-ui-v20-9-6.json')){
+            const u=JSON.parse(fs.readFileSync('artifacts/live-shopper/product-ui-v20-9-6.json','utf8'));
+            console.log();console.log(`## Compact product UI: **${u.passed?'PASS':'FAIL'}**`);
+            for(const [k,v] of Object.entries(u.checks||{})) console.log(`- ${v?'✅':'❌'} ${k}`);
+            if(u.error){console.log();console.log('### Product UI failure');console.log('```');console.log(u.error);console.log('```');}
+          }
           if(fs.existsSync('artifacts/live-shopper/compare-seller-report.json')){
             const c=JSON.parse(fs.readFileSync('artifacts/live-shopper/compare-seller-report.json','utf8'));
-            console.log();
-            console.log(`## Compare + Seller/CPC: **${c.passed?'PASS':'FAIL'}**`);
+            console.log();console.log(`## Compare + Seller/CPC: **${c.passed?'PASS':'FAIL'}**`);
             for(const [k,v] of Object.entries(c.checks||{})) console.log(`- ${v?'✅':'❌'} ${k}`);
             if(c.error){console.log();console.log('### Compare/Seller failure');console.log('```');console.log(c.error);console.log('```');}
           }
@@ -141,6 +154,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: trendpilot-v20-9-5-restored-finder-product-truth
+          name: trendpilot-v20-9-6-compact-product-ui-truth
           path: artifacts/live-shopper
           if-no-files-found: ignore
