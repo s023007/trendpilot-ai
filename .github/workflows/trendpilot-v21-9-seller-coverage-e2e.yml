@@ -1,0 +1,113 @@
+name: TrendPilot V21.9 Seller Coverage E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trendpilot-v21-9-seller-coverage-e2e.yml'
+      - 'find/index.html'
+      - 'js/universal-discovery-v20-9-1.js'
+      - 'data/v20-9/seller-family-samples.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: trendpilot-seller-coverage-live
+  cancel-in-progress: true
+
+jobs:
+  seller-coverage:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      TP_BASE_URL: https://trendpilotchoice.com
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Static seller coverage contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/universal-discovery-v20-9-1.js
+          python <<'PY'
+          import json
+          from pathlib import Path
+          finder=Path('find/index.html').read_text(encoding='utf-8')
+          runtime=Path('js/universal-discovery-v20-9-1.js').read_text(encoding='utf-8')
+          data=json.loads(Path('data/v20-9/seller-family-samples.json').read_text(encoding='utf-8'))
+          phone=data['families']['phone']
+          required={'Alibaba','AliExpress','Geekbuying','TikTok Shop US','Sunsky-online WW'}
+          assert required.issubset(phone), (required,set(phone))
+          assert 'universal-discovery-v20-9-1.js?v=21.9.0' in finder
+          assert 'RUNTIME_VERSION = "21.9.0"' in runtime
+          for token in ('sellerFamilySamples','loadRepresentativeSellers','ensureSellerLoaded','firstPageRows'):
+              assert token in runtime, token
+          print('Static seller coverage PASS:', sorted(phone))
+          PY
+
+      - name: Wait for production deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 36); do
+            finder=$(curl -fsSL "${TP_BASE_URL}/find/" || true)
+            samples=$(curl -fsSL "${TP_BASE_URL}/data/v20-9/seller-family-samples.json?v=20.9.0" || true)
+            if printf '%s' "$finder" | grep -q 'universal-discovery-v20-9-1.js?v=21.9.0' \
+              && printf '%s' "$samples" | grep -q 'AliExpress' \
+              && printf '%s' "$samples" | grep -q 'TikTok Shop US'; then
+              echo 'Seller coverage runtime is live'; exit 0
+            fi
+            echo "waiting for production $i/36"; sleep 10
+          done
+          exit 1
+
+      - name: Install Playwright
+        shell: bash
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Phone seller coverage on mobile
+        shell: bash
+        run: |
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          const BASE=process.env.TP_BASE_URL;
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.5,isMobile:true,hasTouch:true});
+            const page=await ctx.newPage();
+            page.setDefaultTimeout(50000);
+            await page.goto(`${BASE}/find/?q=phone&engine=v2064&universal=1`,{waitUntil:'domcontentloaded'});
+            await page.waitForFunction(()=>{
+              const values=[...document.querySelectorAll('[data-filter-merchant] option')].map(o=>o.value);
+              return values.includes('AliExpress') && values.includes('TikTok Shop US') && document.querySelectorAll('[data-v209-card]').length>=5;
+            });
+            const result=await page.evaluate(()=>({
+              sellers:[...document.querySelectorAll('[data-filter-merchant] option')].map(o=>o.value).filter(Boolean),
+              cards:[...document.querySelectorAll('[data-v209-card]')].map(x=>x.getAttribute('data-v209-seller'))
+            }));
+            const required=['Alibaba','AliExpress','Geekbuying','TikTok Shop US','Sunsky-online WW'];
+            const missing=required.filter(x=>!result.sellers.includes(x));
+            if(missing.length)throw new Error(`Missing seller options: ${missing.join(', ')}`);
+            for(const seller of ['AliExpress','TikTok Shop US']){
+              if(!result.cards.includes(seller))throw new Error(`${seller} missing from All sellers first page`);
+            }
+            const select=page.locator('[data-filter-merchant]');
+            await select.selectOption('AliExpress');
+            await page.waitForFunction(()=>{
+              const cards=[...document.querySelectorAll('[data-v209-card]')];
+              return cards.length>0 && cards.every(x=>x.getAttribute('data-v209-seller')==='AliExpress');
+            });
+            const aliCount=await page.locator('[data-v209-card]').count();
+            if(aliCount<1)throw new Error('AliExpress filter has no phone products');
+            await select.selectOption('');
+            await page.waitForFunction(()=>new Set([...document.querySelectorAll('[data-v209-card]')].map(x=>x.getAttribute('data-v209-seller'))).size>=3);
+            console.log(JSON.stringify({...result,aliExpressFilteredCount:aliCount},null,2));
+            await browser.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
