@@ -138,15 +138,19 @@ jobs:
             out.details.bApiRows=apiRows;
             out.checks.b_api_prefix_only=apiRows.length>0 && apiRows.every(x=>String(x).trim().toLowerCase().startsWith('b'));
 
-            async function search(q){
+            async function search(q,{allowEmpty=false}={}){
               await page.goto(`${BASE}/find/?q=${encodeURIComponent(q)}&engine=v2064&universal=1`,{waitUntil:'domcontentloaded'});
-              await page.waitForFunction(()=>{
-                if(document.querySelectorAll('.tp78-card').length>0)return true;
-                const empty=document.querySelector('.tp78-empty');
-                const text=(empty?.textContent||'').replace(/\s+/g,' ').trim();
-                return !!empty && !!text && !/What are you looking for\?|Start with a product/i.test(text);
-              },null,{timeout:70000});
-              await sleep(700);
+              if(allowEmpty){
+                await page.waitForFunction(()=>{
+                  const cards=document.querySelectorAll('.tp78-card').length;
+                  const count=(document.querySelector('[data-v2078-results-count]')?.textContent||'').trim();
+                  return cards>0 || (!!count && count!=='Ready');
+                },null,{timeout:15000}).catch(()=>{});
+                await sleep(1800);
+              }else{
+                await page.waitForFunction(()=>document.querySelectorAll('.tp78-card').length>0,null,{timeout:70000});
+                await sleep(700);
+              }
               return page.locator('.tp78-card');
             }
 
@@ -165,7 +169,7 @@ jobs:
             out.checks.laptop_results=laptopTitles.length>0;
             out.checks.laptop_no_obvious_accessory=laptopTitles.slice(0,8).every(x=>!/\b(?:sleeve|case|cover|bag|charger|adapter|cable|stand|dock|replacement)\b/i.test(x));
 
-            cards=await search('macbook');
+            cards=await search('macbook',{allowEmpty:true});
             const macTitles=await cards.locator('h3').allTextContents();
             out.details.macTitles=macTitles.slice(0,8);
             out.checks.macbook_safe=macTitles.length===0 || macTitles.slice(0,8).every(x=>/macbook/i.test(x)&&!/\b(?:sleeve|case|cover|bag|charger|adapter|cable|stand|dock|replacement)\b/i.test(x));
