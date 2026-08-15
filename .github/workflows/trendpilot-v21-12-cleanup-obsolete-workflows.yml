@@ -29,12 +29,14 @@ jobs:
           from pathlib import Path
           import re
           wf=Path('.github/workflows')
+          allowed={'trendpilot-v21-12-cleanup-obsolete-workflows.yml','trendpilot-v21-12-final-site-audit.yml','trendpilot-v21-12-workflow-audit.yml'}
           bad=[]
           for p in wf.glob('*.yml'):
+              if p.name in allowed: continue
               s=p.read_text(encoding='utf-8',errors='replace')
               auto=bool(re.search(r'(?m)^\s{0,4}(?:push|schedule|workflow_run|pull_request)\s*:',s))
               writer='contents: write' in s or bool(re.search(r'\bgit\s+push\b',s))
-              if auto and writer and re.search(r'trendpilot-v(?:20|21-(?:1|2|3|10)|21-calm|21-public|13-8-[789])',p.name,re.I):
+              if auto and writer and re.search(r'(?:trendpilot-v20|trendpilot-v21-(?:1|2|3|10)|trendpilot-v21-calm|trendpilot-v21-public|install-trendpilot-v13-8-[789])',p.name,re.I):
                   bad.append(p.name)
           if bad:
               raise SystemExit('Obsolete automatic writers remain: '+', '.join(sorted(bad)))
