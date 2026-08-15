@@ -1,0 +1,103 @@
+name: TrendPilot V21.1 Final Mobile Pass
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-1-final-mobile-pass.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  final-pass:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Fix residual finder card text contrast
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('css/trendpilot-graphite-navy-v21-1.css')
+          s=p.read_text(encoding='utf-8')
+          marker='TP_V211_FINAL_PRODUCT_TEXT_CONTRAST'
+          block='\n\n/* '+marker+' */\nbody[data-tp-page="finder"] .tp-product-grid .tp78-card .tp78-meta,body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp78-description,body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp80-universal-meta,body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp80-route-note,body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp80-price-proof,body[data-tp-page="finder"] .tp-product-grid .tp78-card small,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp78-meta,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp78-description,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp80-universal-meta,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp80-route-note,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp80-price-proof,body[data-v20-public="true"] .tp-product-grid .tp78-card small{color:#64748b!important}\nbody[data-tp-page="finder"] .tp-product-grid .tp78-card .tp80-price-proof.verified,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp80-price-proof.verified{color:#087f6f!important}\nbody[data-tp-page="finder"] .tp-product-grid .tp78-card .tp78-top,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp78-top{color:#475569!important}\n'
+          if marker not in s:
+              p.write_text(s+block,encoding='utf-8')
+              print('Final contrast rules appended')
+          else:
+              print('Final contrast rules already present')
+          PY
+
+      - name: Commit CSS closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add css/trendpilot-graphite-navy-v21-1.css
+          if ! git diff --cached --quiet; then
+            git commit -m 'TrendPilot V21.1 finalize finder product-card readability'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Wait for public closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/css/trendpilot-graphite-navy-v21-1.css?v=21.1.0' -o /tmp/v211.css || true
+            if grep -q 'TP_V211_FINAL_PRODUCT_TEXT_CONTRAST' /tmp/v211.css 2>/dev/null; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        shell: bash
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Final Android visual QA
+        shell: bash
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: |
+          mkdir -p artifacts/v21-1-final-pass
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const rgb=s=>{const m=String(s).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);return m?m.slice(1,4).map(Number):null};
+          const lum=a=>a.map(x=>{x/=255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4)}).reduce((s,x,i)=>s+x*[.2126,.7152,.0722][i],0);
+          const cr=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
+          (async()=>{
+            const b=await chromium.launch({headless:true});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.75,isMobile:true,hasTouch:true});const p=await c.newPage();const r={checks:{},samples:{}};
+            await p.goto(process.env.TP_BASE_URL+'/',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForTimeout(1000);
+            const home=await p.evaluate(()=>{const g=getComputedStyle,h=document.querySelector('.tp-header'),brand=document.querySelector('.tp-brand span'),ey=document.querySelector('.v207-eyebrow'),head=document.querySelector('.v207-section-head'),nav=document.querySelector('.tp-bottom-nav');return{header:g(h).backgroundColor,brand:g(brand).color,ey:g(ey).backgroundColor,headDisplay:g(head).display,headWidth:head.getBoundingClientRect().width,nav:g(nav).backgroundColor,navHeight:nav.getBoundingClientRect().height}});r.samples.home=home;r.checks.header_dark=!/255, 255, 255/.test(home.header);r.checks.brand_visible=lum(rgb(home.brand))>.65;r.checks.badge_dark=!/255, 255, 255/.test(home.ey);r.checks.headings_stack=home.headDisplay==='block'&&home.headWidth>330;r.checks.nav_compact_dark=home.navHeight<78&&!/255, 255, 255/.test(home.nav);await p.screenshot({path:'artifacts/v21-1-final-pass/home-top.png',fullPage:false});
+            const cats=p.locator('.v207-category-grid').first();if(await cats.count()){await cats.scrollIntoViewIfNeeded();await p.waitForTimeout(250);await p.screenshot({path:'artifacts/v21-1-final-pass/home-categories.png',fullPage:false});}
+            const hp=p.locator('[data-tp-home-products]').first();if(await hp.count()){await hp.scrollIntoViewIfNeeded();await p.waitForTimeout(400);await p.screenshot({path:'artifacts/v21-1-final-pass/home-products.png',fullPage:false});}
+            await p.goto(process.env.TP_BASE_URL+'/find/',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForSelector('.tp78-empty',{timeout:30000});const empty=await p.evaluate(()=>{const e=document.querySelector('.tp78-empty'),h=e.querySelector('h3');return{image:getComputedStyle(e).backgroundImage,title:getComputedStyle(h).color}});r.samples.empty=empty;r.checks.empty_readable=/gradient/.test(empty.image)&&lum(rgb(empty.title))>.65;
+            await p.goto(process.env.TP_BASE_URL+'/find/?q=phone&engine=v2064',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForSelector('.tp78-card',{timeout:60000});const card=await p.evaluate(()=>{const c=document.querySelector('.tp78-card'),t=c.querySelector('h3 a,h3'),m=c.querySelector('.tp78-meta'),d=c.querySelector('.tp78-description');return{image:getComputedStyle(c).backgroundImage,title:getComputedStyle(t).color,meta:m?getComputedStyle(m).color:null,desc:d?getComputedStyle(d).color:null,text:t.textContent.trim()}});r.samples.card=card;const t=rgb(card.title),m=rgb(card.meta||card.desc);r.checks.card_light=/gradient/.test(card.image);r.checks.title_contrast=t&&cr(t,[248,250,252])>=4.5;r.checks.meta_contrast=m&&cr(m,[248,250,252])>=4.5&&lum(m)<.35;await p.locator('.tp78-card').first().scrollIntoViewIfNeeded();await p.waitForTimeout(250);await p.screenshot({path:'artifacts/v21-1-final-pass/finder-card.png',fullPage:false});
+            const product='/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/';await p.goto(process.env.TP_BASE_URL+product,{waitUntil:'domcontentloaded',timeout:90000});await p.waitForTimeout(800);const pd=await p.evaluate(()=>{const text=document.body.innerText;return{style:[...document.styleSheets].some(x=>String(x.href||'').includes('trendpilot-graphite-navy-v21-1.css')),description:text.includes('About this product')&&text.includes('Xiaomi Redmi Note 8 is a smartphone'),seller:!!document.querySelector('#seller-offers'),image:getComputedStyle(document.querySelector('.hero-media')).backgroundColor}});r.samples.product=pd;r.checks.product_theme=pd.style;r.checks.product_description=pd.description;r.checks.product_seller=pd.seller;r.checks.product_image_light=/246, 248, 251|248, 250, 252|255, 255, 255/.test(pd.image);await p.screenshot({path:'artifacts/v21-1-final-pass/product.png',fullPage:false});
+            r.passed=Object.values(r.checks).every(Boolean);fs.writeFileSync('artifacts/v21-1-final-pass/report.json',JSON.stringify(r,null,2));console.log(JSON.stringify(r,null,2));await b.close();if(!r.passed)process.exit(1);
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - name: Upload final screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-1-final-mobile-pass
+          path: artifacts/v21-1-final-pass
+          if-no-files-found: ignore
