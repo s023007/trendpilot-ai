@@ -21,7 +21,7 @@ function stableFacts(body){
   const screenRaw=get("Screen"),batteryRaw=get("Battery");
   const screen=Number((screenRaw.match(/(\d+(?:\.\d+)?)\s*(?:in|inch|inches|\")/i)||[])[1]||0);
   const battery=Number((batteryRaw.match(/(\d{3,5})\s*mAh/i)||[])[1]||0);
-  return {screen,battery};
+  return {screen,battery,screenRaw,batteryRaw};
 }
 function parseVariant(label,counts,stable){
   const t=clean(decode(label));
@@ -128,6 +128,73 @@ function heroTruth(body,variantCount){
       return `<section class="hero"><div class="hero-media">${media}</div><div class="hero-copy">${copy}<p>${label} from ${sellers} seller${Number(sellers)===1?"":"s"}${cfg}${hasExact?"":" · exact product destination not verified"}</p></div></section>`;
     });
 }
+function productKind(title){
+  const t=lower(title);
+  if(/\b(?:smartphone|phone|iphone|galaxy|redmi|pixel)\b/.test(t))return "phone";
+  if(/\b(?:laptop|notebook|chromebook|thinkpad|macbook)\b/.test(t))return "laptop";
+  if(/\b(?:tablet|ipad)\b/.test(t))return "tablet";
+  if(/\b(?:smartwatch|smart watch|apple watch|galaxy watch)\b/.test(t))return "smartwatch";
+  if(/\b(?:headphones?|earbuds?|earphones?|headset)\b/.test(t))return "headphones";
+  if(/\b(?:perfume|fragrance|eau de parfum|eau de toilette|cologne)\b/.test(t))return "perfume";
+  if(/\bpower\s*bank\b/.test(t))return "power_bank";
+  if(/\b(?:lamp|lighting|light fixture|led light)\b/.test(t))return "lighting";
+  if(/\b(?:air fryer|airfryer)\b/.test(t))return "air_fryer";
+  if(/\b(?:camera|dslr|mirrorless)\b/.test(t))return "camera";
+  if(/\b(?:cookware|pan|pot|casserole|skillet)\b/.test(t))return "cookware";
+  if(/\b(?:filament|pla|petg|abs filament)\b/.test(t))return "3d_filament";
+  return "product";
+}
+function productPurpose(kind){
+  return {
+    phone:"a smartphone for calls, messaging, apps, photography and everyday connected use",
+    laptop:"a portable computer for web use, productivity and compatible applications",
+    tablet:"a tablet for portable apps, media, browsing and touch-based use",
+    smartwatch:"a wearable smart device for wrist-based notifications and compatible connected features",
+    headphones:"a personal audio product for listening to compatible audio sources",
+    perfume:"a fragrance product intended for personal scent use",
+    power_bank:"a portable battery product intended to recharge compatible devices away from a wall outlet",
+    lighting:"a lighting product intended to provide illumination for the use described by the seller",
+    air_fryer:"a countertop cooking appliance intended for hot-air cooking",
+    camera:"an imaging product intended for capturing photos or video according to its listed configuration",
+    cookware:"a cookware product intended for food preparation with compatible cooking methods",
+    "3d_filament":"a 3D-printing filament product intended for compatible filament-based printers",
+    product:"a product represented in TrendPilot's catalogue"
+  }[kind];
+}
+function generatedDescription(body){
+  const title=stripTags((body.match(/<main>[\s\S]*?<h1>([\s\S]*?)<\/h1>/i)||[])[1]||"");
+  if(!title)return "";
+  const kind=productKind(title);
+  const facts=stableFacts(body);
+  const camera=(title.match(/\b\d{1,3}\s*MP\b/i)||[])[0]||"";
+  const featureBits=[];
+  if(camera)featureBits.push(`${camera.replace(/\s+/g,"")} camera detail stated in the catalogue title`);
+  if(facts.screenRaw)featureBits.push(`${facts.screenRaw} screen`);
+  if(facts.batteryRaw)featureBits.push(`${facts.batteryRaw} battery`);
+  const first=`${title} is ${productPurpose(kind)}.`;
+  const second=featureBits.length?` Available model evidence on this page includes ${featureBits.join(" and ")}.`:"";
+  const variable=/\b(?:phone|laptop|tablet|smartwatch)\b/.test(kind)
+    ? " RAM, storage and other seller-specific configurations are kept separate so they are not mistaken for fixed model facts."
+    : " Seller-specific options are shown separately where the catalogue provides them.";
+  return clean(`${first}${second}${variable}`);
+}
+function ensureProductDescription(body){
+  const aboutRe=/<section class="panel about">[\s\S]*?<\/section>/i;
+  const about=body.match(aboutRe)?.[0]||"";
+  const current=stripTags((about.match(/<p class="about-copy">([\s\S]*?)<\/p>/i)||[])[1]||"");
+  if(current)return body;
+  const summary=generatedDescription(body);
+  if(!summary)return body;
+  const note="Confirm the exact seller record, configuration, compatibility, current price, stock and delivery details before buying.";
+  if(about){
+    const replaced=about.replace(/<h2>[^<]*<\/h2>/i,m=>`${m}<p class="about-copy">${esc(summary)}</p>`)
+      .replace(/<\/section>$/i,/<p class="buyer-note">/i.test(about)?"</section>":`<p class="buyer-note"><strong>Before you buy:</strong> ${esc(note)}</p></section>`);
+    return body.replace(about,replaced);
+  }
+  const section=`<section class="panel about"><div class="eyebrow">ABOUT THIS PRODUCT</div><h2>What this product is</h2><p class="about-copy">${esc(summary)}</p><p class="buyer-note"><strong>Before you buy:</strong> ${esc(note)}</p></section>`;
+  const heroRe=/<section class="hero">[\s\S]*?<\/section>/i;
+  return body.replace(heroRe,m=>`${m}${section}`);
+}
 function promoteProductDescription(body){
   const aboutRe=/<section class="panel about">[\s\S]*?<\/section>/i;
   const match=body.match(aboutRe);
@@ -189,6 +256,7 @@ function transform(body){
   body=cleanVariableSpecs(body,cleaned);
   body=cleanSellerCards(body);
   body=heroTruth(body,cleaned.count);
+  body=ensureProductDescription(body);
   body=promoteProductDescription(body);
   body=demoteTechnicalSections(body);
   body=upgradeSeoDescription(body);
