@@ -1,0 +1,82 @@
+/* TrendPilot V21.2.1 — final cross-page presentation hardening.
+   Presentation only: no search, catalogue, identity, seller or affiliate logic changes. */
+
+/* Opaque drawer: no page text should bleed through the menu. */
+.tp-links,
+body[data-tp-page] .tp-links,
+body[data-v20-public="true"] .tp-links{
+  background:#0d1628!important;
+  color:#f8fafc!important;
+  opacity:1!important;
+}
+.tp-links .tp-menu-title,.tp-links a{color:#f8fafc!important}
+.tp-links>a[href="/sourcing/"]{font-size:1rem!important}
+.tp-links>a[href="/sourcing/"]::after{content:none!important;display:none!important}
+.tp-links .tp-menu-close{background:#233148!important;color:#fff!important;border-color:#52617a!important}
+
+/* Shopping cards: one unambiguous light surface + dark text. */
+.tp-product-grid>.tp78-card,
+.tp-product-grid>.tp-product-card,
+.tp-product-grid>[data-tp-product-card],
+.tp-product-grid>:not(.tp-empty):not(.tp78-empty):not(.tp78-loading){
+  background:#f8fafc!important;
+  background-image:none!important;
+  color:#0f172a!important;
+}
+.tp-product-grid>.tp78-card h2,.tp-product-grid>.tp78-card h3,.tp-product-grid>.tp78-card h3 a,
+.tp-product-grid>.tp-product-card h2,.tp-product-grid>.tp-product-card h3,.tp-product-grid>.tp-product-card h3 a,
+.tp-product-grid>[data-tp-product-card] h2,.tp-product-grid>[data-tp-product-card] h3,.tp-product-grid>[data-tp-product-card] h3 a,
+.tp-product-grid .tp78-price,.tp-product-grid .price,.tp-product-grid [data-price],
+.tp-product-grid strong{color:#0f172a!important}
+.tp-product-grid .tp78-meta,.tp-product-grid .tp78-description,.tp-product-grid .tp80-universal-meta,
+.tp-product-grid .tp80-route-note,.tp-product-grid small,.tp-product-grid p{color:#526174!important}
+.tp-product-grid .tp78-brand{color:#3158d4!important}
+.tp-product-grid .tp78-source{background:#e8edf4!important;color:#445166!important}
+.tp-product-grid .tp78-media{background:#f1f4f7!important}
+.tp-product-grid .tp78-media img,.tp-product-grid img{background:#fff!important}
+
+/* Strong, non-translucent active state across mobile navigation variants. */
+.tp-bottom-nav a[aria-current="page"],.tp-bottom-nav a.active,.tp-bottom-nav a.is-active,
+body[data-tp-page="home"] .tp-bottom-nav a[href="/"],
+body[data-tp-page="finder"] .tp-bottom-nav a[href="/find/"],
+body[data-tp-page="deals"] .tp-bottom-nav a[href="/deals/"],
+body.tp90-compare-page .tp-bottom-nav a[href="/compare/"],
+.tp-mobile-tabs a.is-active,.tp80-bottom a.active{
+  background:#26376e!important;
+  color:#fff!important;
+}
+.tp-bottom-nav a[aria-current="page"] *, .tp-bottom-nav a.active *, .tp-bottom-nav a.is-active *,
+body[data-tp-page="home"] .tp-bottom-nav a[href="/"] *,
+body[data-tp-page="finder"] .tp-bottom-nav a[href="/find/"] *,
+body[data-tp-page="deals"] .tp-bottom-nav a[href="/deals/"] *,
+body.tp90-compare-page .tp-bottom-nav a[href="/compare/"] *,
+.tp-mobile-tabs a.is-active *, .tp80-bottom a.active *{color:#fff!important}
+
+/* Rare Finds: explicit readable dark-card contract. */
+body.tp80-rare-hub .tp80-rare-card{background:#1d2b43!important;background-image:none!important;color:#f8fafc!important}
+body.tp80-rare-hub .tp80-rare-card h2,body.tp80-rare-hub .tp80-rare-card h2 a,
+body.tp80-rare-hub .tp80-card-price{color:#f8fafc!important}
+body.tp80-rare-hub .tp80-brand{color:#aebdff!important}
+body.tp80-rare-hub .tp80-rare-meta,body.tp80-rare-hub .tp80-universal-meta,
+body.tp80-rare-hub .tp80-route-note{color:#d0d9e7!important}
+
+/* Tickets: white result/search surfaces always use dark copy. */
+body[data-tp-page="tickets"] .tp-ticket-v141-search-card,
+body[data-tp-page="tickets"] .tp-ticket-v141-card,
+body[data-tp-page="tickets"] .tp-ticket-v141-empty{
+  background:#f8fafc!important;background-image:none!important;color:#0f172a!important;
+}
+body[data-tp-page="tickets"] .tp-ticket-v141-card h3,body[data-tp-page="tickets"] .tp-ticket-v141-empty b{color:#0f172a!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-card p,body[data-tp-page="tickets"] .tp-ticket-v141-summary,
+body[data-tp-page="tickets"] .tp-ticket-v141-empty span{color:#526174!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-form input,
+body[data-tp-page="tickets"] .tp-ticket-v141-form select,
+body[data-tp-page="tickets"] .tp-ticket-v141-chips button{background:#fff!important;color:#172033!important}
+
+@media(max-width:780px){
+  .tp-links{background:#0d1628!important}
+  .tp-links>a[href="/sourcing/"]{font-size:1rem!important}
+  .tp-links>a[href="/sourcing/"]::after{content:none!important}
+  .tp-bottom-nav,.tp-mobile-tabs,.tp80-bottom{min-height:0!important;padding:4px!important}
+  .tp-bottom-nav a,.tp-mobile-tabs a,.tp80-bottom a{min-height:46px!important}
+}
