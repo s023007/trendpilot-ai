@@ -57,13 +57,13 @@ jobs:
           assert 'smart-suggestions-v20-7-7.js?v=21.5.0' in home
           assert 'smart-suggestions-v20-7-7.js?v=21.5.0' in f
           assert 'shopper-language-v21-4.js?v=21.5.0' in f
-          assert 'item-detail-v20-9.js?v=21.5.0' in i
+          assert 'item-detail-v20-9.js?v=21.5.1' in i
           assert 'TrendPilot first, seller second' not in i
 
-          # One-character autocomplete is strict at both the browser and API layers.
-          assert "if(v.length===1)return fullPrefix" in suggest
+          # One-character autocomplete is strict at both browser and API layers.
+          assert "if(v.startsWith(n))return 0" in suggest
+          assert "if(n.length===1)return 99" in suggest
           assert "if(n.length===1&&!v.startsWith(n))return -1" in api
-          assert "includes_allowed_only_after_one_character" in suggest
 
           # Internal/debug language and opaque IDs must not leak into shopper details.
           detail=Path('js/item-detail-v20-9.js').read_text(encoding='utf-8')
@@ -71,12 +71,12 @@ jobs:
           assert 'exact-product destination' not in detail
           assert 'Product family' not in i
           assert 'Main product' not in i
-          assert 'pureHex' in detail and 'uuid' in detail
+          assert '[a-f0-9]{12,40}' in detail
+          assert 'tp(?:id|vid|oid)' in detail
 
-          # Finder cards are polished for shoppers and the old self-mutating CI pattern is gone.
+          # Finder cards are polished for shoppers and CI never writes back to main.
           assert "document.querySelectorAll('.tp80-universal-meta').forEach(el=>el.hidden=true)" in language
           assert 'git push origin HEAD:main' not in wf
-          assert "git commit -m 'TrendPilot V21.3 use one search engine" not in wf
           print('Static shopper contract PASS')
           PY
           node --check js/query-normalizer-v21-3.js
@@ -97,7 +97,7 @@ jobs:
             if printf '%s' "$home" | grep -q 'smart-suggestions-v20-7-7.js?v=21.5.0' \
               && printf '%s' "$finder" | grep -q 'smart-suggestions-v20-7-7.js?v=21.5.0' \
               && printf '%s' "$finder" | grep -q 'shopper-language-v21-4.js?v=21.5.0' \
-              && printf '%s' "$item" | grep -q 'item-detail-v20-9.js?v=21.5.0'; then
+              && printf '%s' "$item" | grep -q 'item-detail-v20-9.js?v=21.5.1'; then
               echo 'Final shopper UI is live'; exit 0
             fi
             echo "waiting for production $i/30"; sleep 10
