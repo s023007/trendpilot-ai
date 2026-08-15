@@ -1,0 +1,197 @@
+name: TrendPilot V21.3 Search Stability + Detail E2E
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trendpilot-v21-3-search-stability.yml'
+      - 'js/query-normalizer-v21-3.js'
+      - 'js/universal-discovery-v20-9-1.js'
+      - 'js/item-detail-v20-9.js'
+      - 'find/index.html'
+      - 'item/index.html'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  search-stability:
+    runs-on: ubuntu-24.04
+    env:
+      TP_BASE_URL: https://trendpilotchoice.com
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 3
+
+      - name: Make V20.9.4 the only results renderer
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          import re
+
+          p=Path('find/index.html')
+          s=p.read_text(encoding='utf-8')
+          remove=[
+            'v20-8-8-internal-first-guard.js',
+            'seller-diversity-v20-7-10.js',
+            'finder-v20-7-9.js',
+            'buyer-decision-v20-7-11.js',
+            'universal-discovery-v20-8.js',
+            'finder-restored-semantic-guard-v20-9-4.js',
+            'query-normalizer-v21-3.js',
+            'universal-discovery-v20-9-1.js',
+          ]
+          for name in remove:
+            s=re.sub(r'<script\b[^>]*src=["\'][^"\']*'+re.escape(name)+r'[^"\']*["\'][^>]*>\s*</script>', '', s, flags=re.I)
+          injection=(
+            '<script src="/js/query-normalizer-v21-3.js?v=21.3.0"></script>'
+            '<script defer src="/js/universal-discovery-v20-9-1.js?v=21.3.0"></script>'
+          )
+          s=s.replace('</body>', injection+'</body>', 1)
+          p.write_text(s,encoding='utf-8')
+
+          # Bust the item-detail runtime too so a stale V20.8 result/detail mismatch cannot survive in browser cache.
+          ip=Path('item/index.html')
+          x=ip.read_text(encoding='utf-8')
+          x=re.sub(r'/js/item-detail-v20-9\.js\?v=[^"\']+', '/js/item-detail-v20-9.js?v=21.3.0', x)
+          ip.write_text(x,encoding='utf-8')
+
+          # Static safety contract: only one script is allowed to own the result grid.
+          assert 'finder-v20-7-9.js' not in s
+          assert 'universal-discovery-v20-8.js' not in s
+          assert 'finder-restored-semantic-guard-v20-9-4.js' not in s
+          assert s.count('universal-discovery-v20-9-1.js') == 1
+          assert s.count('query-normalizer-v21-3.js') == 1
+          print('V21.3 single-engine finder contract PASS')
+          PY
+
+      - name: Commit single-engine cutover
+        shell: bash
+        run: |
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add find/index.html item/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'TrendPilot V21.3 use one search engine and align detail runtime'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Install Playwright
+        shell: bash
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Wait for V21.3 deployment
+        shell: bash
+        run: |
+          for i in $(seq 1 36); do
+            page=$(curl -fsSL "${TP_BASE_URL}/find/" || true)
+            if printf '%s' "$page" | grep -q 'query-normalizer-v21-3.js?v=21.3.0' \
+              && printf '%s' "$page" | grep -q 'universal-discovery-v20-9-1.js?v=21.3.0' \
+              && ! printf '%s' "$page" | grep -q 'universal-discovery-v20-8.js'; then
+              echo 'V21.3 finder is live'; exit 0
+            fi
+            echo "waiting $i/36"; sleep 10
+          done
+          exit 1
+
+      - name: Verify book repeat, MacBook typo and View details
+        shell: bash
+        run: |
+          mkdir -p artifacts/v21-3
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          const fs=require('fs');
+          const BASE=process.env.TP_BASE_URL;
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.75,isMobile:true,hasTouch:true});
+            const page=await ctx.newPage();
+            page.setDefaultTimeout(70000);
+            const out={version:'21.3.0',checks:{},bookRuns:[],macbook:null,makbook:null,detail:null};
+
+            async function openSearch(query,label){
+              await page.goto(`${BASE}/find/?q=${encodeURIComponent(query)}&engine=v2064&universal=1`,{waitUntil:'domcontentloaded',timeout:90000});
+              await page.waitForFunction(()=>{
+                const cards=document.querySelectorAll('.tp78-card').length;
+                const no=document.querySelector('.tp80-no-result,.tp78-empty');
+                return cards>0 || !!no;
+              },null,{timeout:70000});
+              await sleep(900); // detect late legacy overwrite/race
+              const data=await page.evaluate(()=>({
+                cards:[...document.querySelectorAll('.tp78-card')].map(c=>({
+                  title:(c.querySelector('h3')?.textContent||'').trim(),
+                  href:c.querySelector('a.internal-detail')?.getAttribute('href')||'',
+                  family:c.getAttribute('data-v209-family')||''
+                })),
+                title:document.querySelector('[data-v2078-results-title]')?.textContent?.trim()||'',
+                count:document.querySelector('[data-v2078-results-count]')?.textContent?.trim()||'',
+                runtime:window.__TP_V2091_UNIVERSAL__||null,
+                normalizer:window.__TP_QUERY_NORMALIZER__||null,
+                scripts:[...document.scripts].map(s=>s.src).filter(Boolean)
+              }));
+              await page.screenshot({path:`artifacts/v21-3/${label}.png`,fullPage:false});
+              return data;
+            }
+
+            for(let i=1;i<=3;i++){
+              const b=await openSearch('book',`book-${i}`);
+              out.bookRuns.push({count:b.cards.length,first:b.cards[0]?.title||'',href:b.cards[0]?.href||''});
+              out.checks[`book_run_${i}`]=b.cards.length>0 && b.cards.some(x=>/book/i.test(x.title));
+              out.checks[`single_engine_${i}`]=b.runtime?.runtimeVersion==='20.9.4'
+                && b.scripts.filter(x=>/universal-discovery-v20-9-1\.js/.test(x)).length===1
+                && !b.scripts.some(x=>/universal-discovery-v20-8\.js|finder-v20-7-9\.js|finder-restored-semantic-guard-v20-9-4\.js/.test(x));
+            }
+
+            const mac=await openSearch('macbook','macbook');
+            out.macbook={count:mac.cards.length,first:mac.cards[0]?.title||'',families:[...new Set(mac.cards.map(x=>x.family).filter(Boolean))].slice(0,8)};
+            out.checks.macbook_results=mac.cards.length>0;
+            out.checks.macbook_laptop_family=mac.cards.some(x=>x.family==='laptop');
+
+            const typo=await openSearch('makbook','makbook');
+            out.makbook={count:typo.cards.length,first:typo.cards[0]?.title||'',normalizer:typo.normalizer,url:page.url()};
+            out.checks.makbook_corrected=/q=macbook/i.test(page.url()) && typo.normalizer?.corrected?.toLowerCase()==='macbook';
+            out.checks.makbook_results=typo.cards.length>0;
+
+            const b=await openSearch('book','book-detail-source');
+            const first=page.locator('a.internal-detail').first();
+            const href=await first.getAttribute('href');
+            out.checks.book_detail_href=/^\/item\/\?id=[a-f0-9]{14}/i.test(href||'');
+            await first.click();
+            await page.waitForURL(/\/item\/\?id=/,{timeout:30000});
+            await page.waitForFunction(()=>{
+              const d=document.querySelector('[data-tp85-detail]');
+              const e=document.querySelector('[data-tp85-error]');
+              return (d&&!d.hasAttribute('hidden')) || (e&&!e.hasAttribute('hidden'));
+            },null,{timeout:70000});
+            const detail=await page.evaluate(()=>({
+              title:document.querySelector('[data-tp85-title]')?.textContent?.trim()||'',
+              visible:!!document.querySelector('[data-tp85-detail]:not([hidden])'),
+              error:!!document.querySelector('[data-tp85-error]:not([hidden])'),
+              seller:document.querySelector('[data-tp85-fact-seller]')?.textContent?.trim()||''
+            }));
+            out.detail={href,url:page.url(),...detail};
+            out.checks.book_detail_visible=detail.visible&&!detail.error&&detail.title.length>2;
+            await page.screenshot({path:'artifacts/v21-3/book-detail.png',fullPage:false});
+
+            out.passed=Object.values(out.checks).every(Boolean);
+            fs.writeFileSync('artifacts/v21-3/report.json',JSON.stringify(out,null,2));
+            console.log(JSON.stringify(out,null,2));
+            await browser.close();
+            if(!out.passed) process.exit(1);
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trendpilot-v21-3-search-stability
+          path: artifacts/v21-3
