@@ -1,14 +1,22 @@
 (() => {
   'use strict';
-  const VERSION='21.5.0',d=document;
+  const VERSION='21.12.0',d=document;
   const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
   const lower=v=>clean(v).toLowerCase();
   const esc=v=>clean(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const selector='input[data-tp-finder-input], .tp-search input[type="search"][name="q"]';
   const fallbackIntents=[
-    ['phone','Phones'],['laptop','Laptops'],['headphones','Headphones & earbuds'],['perfume','Perfume'],
-    ['power bank','Portable chargers'],['smartwatch','Smart watches'],['dog food','Pet food'],
-    ['air conditioner','Air conditioners'],['3d filament','3D printing'],['tools','Tools']
+    ['phone','Phones'],['smartphone','Phones'],['tablet','Tablets'],['laptop','Laptops'],
+    ['headphones','Audio'],['earbuds','Audio'],['speaker','Audio'],['smartwatch','Wearables'],
+    ['camera','Cameras'],['printer','Printers'],['projector','Projectors'],['television','TVs'],
+    ['perfume','Beauty & fragrance'],['fragrance','Beauty & fragrance'],['makeup','Beauty'],['skincare','Beauty'],
+    ['power bank','Portable chargers'],['air conditioner','Home appliances'],['air fryer','Home & kitchen'],
+    ['cookware','Home & kitchen'],['lighting','Home'],['furniture','Home'],
+    ['tools','Tools'],['drill','Tools'],['3d printer','3D printing'],['3d filament','3D printing'],
+    ['dog food','Pet supplies'],['pet supplies','Pet supplies'],['car accessories','Automotive'],
+    ['shoes','Fashion & footwear'],['sneakers','Fashion & footwear'],['boots','Fashion & footwear'],
+    ['clothing','Fashion'],['bags','Fashion'],['fitness equipment','Sports & fitness'],
+    ['baby products','Baby'],['toys','Toys'],['office supplies','Office']
   ];
   let panel=null,input=null,seq=0,gesture=null,timer=null,controller=null;
 
@@ -27,7 +35,7 @@
     .map(([value,meta])=>({value,meta,kind:'intent',_tier:tier(value,q),_src:1}))
     .filter(r=>r._tier<99)
     .sort((a,b)=>a._tier-b._tier||a.value.length-b.value.length)
-    .slice(0,5);
+    .slice(0,7);
 
   function host(el){const h=el.closest('.tp-search-input')||el.parentElement;h?.classList.add('tp-amazon-search-host');return h;}
   function ensure(el){const h=host(el);let p=h?.querySelector(':scope > .tp-v20-suggest[data-v20-suggest]');if(!p){p=d.createElement('div');p.className='tp-v20-suggest';p.dataset.v20Suggest='';p.hidden=true;p.innerHTML='<div class="tp-amazon-list" role="listbox" aria-label="Search suggestions"></div>';h?.appendChild(p);}return p;}
@@ -47,12 +55,13 @@
   }
 
   async function load(q){
+    const exact={value:clean(q),meta:'Search exactly what you typed',kind:'query',_tier:-1,_src:-1};
     let remote=[];
     try{remote=await remoteRows(q);}catch(e){if(e?.name!=='AbortError')console.warn('[TrendPilot autocomplete]',e);}
     const rankedRemote=remote
       .map(row=>({...row,_tier:tier(row?.value,q),_src:0}))
       .filter(row=>row._tier<99);
-    const combined=[...rankedRemote,...localRows(q)]
+    const combined=[exact,...rankedRemote,...localRows(q)]
       .sort((a,b)=>a._tier-b._tier||a._src-b._src||clean(a.value).length-clean(b.value).length||lower(a.value).localeCompare(lower(b.value)));
     const out=[],seen=new Set();
     for(const row of combined){
@@ -72,8 +81,8 @@
     panel.querySelector('.tp-amazon-list').innerHTML=rows.map((row,i)=>`<button type="button" class="tp-amazon-row" role="option" data-i="${i}"><span class="tp-amazon-search-icon" aria-hidden="true">⌕</span><span class="tp-amazon-copy"><b>${esc(row.value)}</b>${row.meta?`<small>${esc(row.meta)}</small>`:''}</span><span class="tp-amazon-arrow" aria-hidden="true">›</span></button>`).join('');
     panel.hidden=!rows.length;
   }
-  function schedule(el){clearTimeout(timer);timer=setTimeout(()=>render(el),140);}
-  function searchUrl(value){const p=new URLSearchParams();p.set('q',clean(value));p.set('engine','v2064');p.set('ui','2077');const scope=clean(d.querySelector('[data-tp-finder-scope], [data-tp-search-scope]')?.value||'');if(scope)p.set('scope',scope);return `/find/?${p.toString()}`;}
+  function schedule(el){clearTimeout(timer);timer=setTimeout(()=>render(el),120);}
+  function searchUrl(value){const p=new URLSearchParams();p.set('q',clean(value));p.set('engine','v2064');p.set('ui','2112');const scope=clean(d.querySelector('[data-tp-finder-scope], [data-tp-search-scope]')?.value||'');if(scope)p.set('scope',scope);return `/find/?${p.toString()}`;}
   function choose(row){if(!input||!row)return;const value=clean(row.value);if(!value)return;input.value=value;close();location.assign(searchUrl(value));}
   d.addEventListener('input',e=>{if(e.target.matches(selector))schedule(e.target);});
   d.addEventListener('focusin',e=>{if(e.target.matches(selector)&&clean(e.target.value).length>=1)schedule(e.target);});
@@ -81,7 +90,7 @@
   d.addEventListener('pointermove',e=>{if(!gesture||gesture.id!==e.pointerId)return;if(Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>8)gesture.moved=true;},{passive:true});
   d.addEventListener('pointerup',e=>{if(!gesture||gesture.id!==e.pointerId)return;const g=gesture;gesture=null;if(g.moved)return;const row=e.target.closest('.tp-amazon-row');if(!row||row!==g.row||!panel)return;choose((panel._rows||[])[Number(row.dataset.i)]);});
   d.addEventListener('click',e=>{const row=e.target.closest('.tp-amazon-row');if(!row||!panel||!input)return;e.preventDefault();e.stopImmediatePropagation();choose((panel._rows||[])[Number(row.dataset.i)]);},true);
-  d.addEventListener('keydown',e=>{if(e.key==='Escape'){close();return;}if(e.key==='Enter'&&panel&&!panel.hidden&&input===e.target){const first=(panel._rows||[])[0];if(first){e.preventDefault();choose(first);}}});
+  d.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
   d.addEventListener('pointercancel',()=>gesture=null);
   window.__TP_V2077_SUGGEST__={version:VERSION,searchUrl,tier};
 })();
