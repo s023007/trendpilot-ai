@@ -1,0 +1,88 @@
+name: TrendPilot V21 Palette Lab
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-palette-lab.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  palette-lab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        shell: bash
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Render four mobile palette candidates
+        shell: bash
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: |
+          mkdir -p artifacts/v21-palette-lab
+          node <<'NODE'
+          const fs=require('fs');
+          const {chromium}=require('playwright');
+          const palettes={
+            midnight:{bg:'#0e1726',bg2:'#13213a',panel:'#182843',panel2:'#213452',card:'#f8fafc',ink:'#101828',muted:'#667085',light:'#f7f9fd',lightMuted:'#c4cede',accent:'#5ed8ce',blue:'#4f6df5'},
+            graphite:{bg:'#15181e',bg2:'#1d222b',panel:'#232a35',panel2:'#2a3442',card:'#f7f7f8',ink:'#15171b',muted:'#666b75',light:'#f7f8fa',lightMuted:'#c7cbd2',accent:'#64d9c8',blue:'#6077e8'},
+            steel:{bg:'#152033',bg2:'#1b2941',panel:'#22334e',panel2:'#29405d',card:'#f8fafc',ink:'#111827',muted:'#64748b',light:'#f8fafc',lightMuted:'#cbd5e1',accent:'#67d7ce',blue:'#5270e8'},
+            teal_navy:{bg:'#0f1d25',bg2:'#142b34',panel:'#19343e',panel2:'#20424d',card:'#f7faf9',ink:'#122023',muted:'#617177',light:'#f6fbfa',lightMuted:'#c3d3d0',accent:'#5dd7c6',blue:'#536de3'}
+          };
+          const product='/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/';
+          function css(p){return `
+            :root{--lab-bg:${p.bg};--lab-bg2:${p.bg2};--lab-panel:${p.panel};--lab-panel2:${p.panel2};--lab-card:${p.card};--lab-ink:${p.ink};--lab-muted:${p.muted};--lab-light:${p.light};--lab-light-muted:${p.lightMuted};--lab-accent:${p.accent};--lab-blue:${p.blue}}
+            html,body{background:linear-gradient(155deg,var(--lab-bg),var(--lab-bg2)) fixed!important;color:var(--lab-light)!important}
+            .tp-header,body[data-tp-product-ui] header{background:rgba(10,18,31,.96)!important;color:var(--lab-light)!important;border-bottom:1px solid rgba(255,255,255,.12)!important}
+            .tp-header .tp-brand span,.tp-header .tp-brand a,.tp-header a,.tp-header button{color:var(--lab-light)!important}.tp-brand em{color:var(--lab-accent)!important}.tp-menu-button{background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.16)!important}.tp-menu-button span{background:var(--lab-light)!important}
+            .v207-home-hero,.v207-shop-hero,.tp-content-hero,.tp90-hero{background:linear-gradient(145deg,var(--lab-bg2),var(--lab-panel) 60%,var(--lab-panel2))!important;color:var(--lab-light)!important;border-color:rgba(255,255,255,.11)!important}
+            .v207-section,.v207-section.white,.v207-section.soft,.v207-section.dark,.v207-results-wrap{background:transparent!important;color:var(--lab-light)!important}
+            main h1,main h2,main h3,.v207-section-head h2{color:var(--lab-light)!important}.v207-section-head p,main>section>div>p,.v207-lead{color:var(--lab-light-muted)!important}
+            .v207-eyebrow{background:rgba(255,255,255,.06)!important;color:var(--lab-accent)!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important}
+            .v207-category-card,.v207-benefit,.tp-filter-panel,.tp78-empty,.tp78-loading{background:linear-gradient(155deg,var(--lab-panel),var(--lab-panel2))!important;color:var(--lab-light)!important;border:1px solid rgba(255,255,255,.12)!important;box-shadow:none!important}
+            .v207-category-card span,.v207-benefit span,.tp78-empty p{color:var(--lab-light-muted)!important}
+            .tp-search{background:rgba(17,28,48,.9)!important;border:1px solid rgba(255,255,255,.15)!important}.tp-search-scope,.tp-search-input,.tp-search select,.tp-search input{background:rgba(255,255,255,.045)!important;color:var(--lab-light)!important;border-color:rgba(255,255,255,.14)!important}.tp-search input::placeholder{color:#aeb9ca!important}.tp-search-submit{background:linear-gradient(120deg,var(--lab-blue),#665cf0)!important;color:white!important}
+            .tp-product-grid>.tp78-card,.tp-product-grid>.tp-product-card,.tp-product-grid>[data-tp-product-card],.tp-product-grid>:not(.tp-empty):not(.tp78-empty):not(.tp78-loading){background:var(--lab-card)!important;color:var(--lab-ink)!important;border:1px solid rgba(15,23,42,.1)!important;box-shadow:0 12px 28px rgba(3,8,20,.18)!important}
+            .tp78-card h3,.tp78-card h3 a,.tp78-card .tp78-price,.tp-product-grid h3,.tp-product-grid h3 a,.tp-product-grid strong,.tp-product-grid .price{color:var(--lab-ink)!important}.tp78-meta,.tp78-description,.tp-product-grid p,.tp-product-grid small{color:var(--lab-muted)!important}.tp78-brand{color:#365edb!important}.tp78-source{background:#eef2f7!important;color:#475467!important}.tp78-media,.tp-product-grid img{background:#f3f5f7!important}
+            .tp78-empty,.tp78-loading{color:var(--lab-light)!important}.tp78-empty h3{color:var(--lab-light)!important}.tp78-empty p{color:var(--lab-light-muted)!important}
+            body[data-tp-product-ui] .about-card,body[data-tp-product-ui] .price-card,body[data-tp-product-ui] #seller-offers,body[data-tp-product-ui] .technical-disclosure{background:linear-gradient(155deg,var(--lab-panel),var(--lab-panel2))!important;color:var(--lab-light)!important;border-color:rgba(255,255,255,.13)!important}
+            .tp-bottom-nav{background:rgba(13,22,38,.96)!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:0 14px 34px rgba(2,8,23,.28)!important}.tp-bottom-nav a{color:#c5cede!important}.tp-bottom-nav a[aria-current='page'],.tp-bottom-nav a.active{background:rgba(79,109,245,.18)!important;color:#9fb2ff!important}
+            .tp-footer{background:#0b1220!important;color:var(--lab-light)!important}.tp-footer p,.tp-footer a{color:var(--lab-light-muted)!important}
+            @media(max-width:650px){.v207-section-head{display:block!important}.v207-section-head>div{width:100%!important}.v207-section-head h2{font-size:32px!important;line-height:1.08!important;margin:10px 0 0!important;max-width:none!important}.v207-section-head p{margin:10px 0 0!important;max-width:none!important;font-size:16px!important;line-height:1.55!important}.v207-eyebrow{display:inline-flex!important;max-width:100%!important;width:auto!important;padding:7px 11px!important;border-radius:999px!important;font-size:12px!important;line-height:1.2!important}.tp-bottom-nav{left:14px!important;right:14px!important;bottom:10px!important}.v207-category-grid{gap:12px!important}}
+          `}
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.75,isMobile:true,hasTouch:true});
+            const report={};
+            for(const [name,pal] of Object.entries(palettes)){
+              report[name]={};
+              const page=await c.newPage();
+              await page.goto(process.env.TP_BASE_URL+'/',{waitUntil:'domcontentloaded',timeout:90000}); await page.addStyleTag({content:css(pal)}); await page.waitForTimeout(700);
+              await page.screenshot({path:`artifacts/v21-palette-lab/${name}-home-top.png`,fullPage:false});
+              const popular=page.locator('[data-tp-home-products]').first(); if(await popular.count()){await popular.scrollIntoViewIfNeeded();await page.waitForTimeout(500);await page.screenshot({path:`artifacts/v21-palette-lab/${name}-home-products.png`,fullPage:false});}
+              await page.goto(process.env.TP_BASE_URL+'/find/?q=phone&engine=v2064',{waitUntil:'domcontentloaded',timeout:90000}); await page.addStyleTag({content:css(pal)}); await page.waitForSelector('.tp78-card',{timeout:60000}); await page.waitForTimeout(500); await page.screenshot({path:`artifacts/v21-palette-lab/${name}-finder.png`,fullPage:false});
+              await page.goto(process.env.TP_BASE_URL+product,{waitUntil:'domcontentloaded',timeout:90000}); await page.addStyleTag({content:css(pal)}); await page.waitForTimeout(600); await page.screenshot({path:`artifacts/v21-palette-lab/${name}-product.png`,fullPage:false});
+              report[name].colors=pal; await page.close();
+            }
+            fs.writeFileSync('artifacts/v21-palette-lab/report.json',JSON.stringify(report,null,2));
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Upload palette lab
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-palette-lab
+          path: artifacts/v21-palette-lab
