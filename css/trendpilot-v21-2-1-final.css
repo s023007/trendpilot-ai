@@ -34,16 +34,12 @@ body[data-v20-public="true"] .tp-links{
 .tp-product-grid .tp78-source{background:#e8edf4!important;color:#445166!important}
 .tp-product-grid .tp78-media{background:#f1f4f7!important}
 .tp-product-grid .tp78-media img,.tp-product-grid img{background:#fff!important}
-/* Restored finder cards have a two-item top row: brand on left, seller on right. */
 .tp-product-grid .tp78-card .tp78-top>*:first-child{color:#0f766e!important;opacity:1!important}
 .tp-product-grid .tp78-card .tp78-top>*:last-child{color:#526174!important;opacity:1!important}
-/* Legacy action controls were inheriting near-white ink from the dark theme. */
 .tp-product-grid .tp78-card .tp78-icon,
 .tp-product-grid .tp78-card .tp78-actions button,
 .tp-product-grid .tp78-card button[aria-label],
-.tp-product-grid .tp78-card a[aria-label]:not(.tp78-view){
-  background:#fff!important;color:#334155!important;border-color:#d1d9e4!important;opacity:1!important;
-}
+.tp-product-grid .tp78-card a[aria-label]:not(.tp78-view){background:#fff!important;color:#334155!important;border-color:#d1d9e4!important;opacity:1!important}
 .tp-product-grid .tp78-card .tp78-icon svg,
 .tp-product-grid .tp78-card .tp78-actions svg,
 .tp-product-grid .tp78-card button[aria-label] svg,
@@ -55,10 +51,7 @@ body[data-tp-page="home"] .tp-bottom-nav a[href="/"],
 body[data-tp-page="finder"] .tp-bottom-nav a[href="/find/"],
 body[data-tp-page="deals"] .tp-bottom-nav a[href="/deals/"],
 body.tp90-compare-page .tp-bottom-nav a[href="/compare/"],
-.tp-mobile-tabs a.is-active,.tp80-bottom a.active{
-  background:#26376e!important;
-  color:#fff!important;
-}
+.tp-mobile-tabs a.is-active,.tp80-bottom a.active{background:#26376e!important;color:#fff!important}
 .tp-bottom-nav a[aria-current="page"] *, .tp-bottom-nav a.active *, .tp-bottom-nav a.is-active *,
 body[data-tp-page="home"] .tp-bottom-nav a[href="/"] *,
 body[data-tp-page="finder"] .tp-bottom-nav a[href="/find/"] *,
@@ -68,52 +61,20 @@ body.tp90-compare-page .tp-bottom-nav a[href="/compare/"] *,
 
 /* Rare Finds listing: readable titles plus a plain-language explanation. */
 body.tp80-rare-hub .tp80-rare-card{background:#1d2b43!important;background-image:none!important;color:#f8fafc!important}
-body.tp80-rare-hub .tp80-rare-card h2,body.tp80-rare-hub .tp80-rare-card h2 a,
-body.tp80-rare-hub .tp80-card-price{color:#f8fafc!important}
+body.tp80-rare-hub .tp80-rare-card h2,body.tp80-rare-hub .tp80-rare-card h2 a,body.tp80-rare-hub .tp80-card-price{color:#f8fafc!important}
 body.tp80-rare-hub .tp80-brand{color:#aebdff!important}
-body.tp80-rare-hub .tp80-rare-meta,body.tp80-rare-hub .tp80-universal-meta,
-body.tp80-rare-hub .tp80-route-note{color:#d0d9e7!important}
-body.tp80-rare-hub .tp80-rare-card h2{
-  margin:6px 0 8px!important;font-size:17px!important;line-height:1.22!important;letter-spacing:-.015em!important;
-  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:4!important;overflow:hidden!important;
-}
+body.tp80-rare-hub .tp80-rare-meta,body.tp80-rare-hub .tp80-universal-meta,body.tp80-rare-hub .tp80-route-note{color:#d0d9e7!important}
+body.tp80-rare-hub .tp80-rare-card h2{margin:6px 0 8px!important;font-size:17px!important;line-height:1.22!important;letter-spacing:-.015em!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:4!important;overflow:hidden!important}
 body.tp80-rare-hub .tp80-rare-card-copy{min-width:0!important}
-body.tp80-rare-hub .tp80-rare-summary{
-  margin:0 0 10px!important;color:#dbe4f0!important;font-size:14px!important;line-height:1.48!important;
-  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;overflow:hidden!important;
-}
+body.tp80-rare-hub .tp80-rare-summary{margin:0 0 10px!important;color:#dbe4f0!important;font-size:14px!important;line-height:1.48!important;display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;overflow:hidden!important}
 
 /* Rare Find detail: the content panel is light, so every important field must use dark readable ink. */
-body.tp80-rare-detail .tp80-detail-hero,
-body.tp80-rare-detail .tp80-info{
-  background:#f8fafc!important;
-  background-image:none!important;
-  color:#0f172a!important;
-}
-body.tp80-rare-detail .tp80-detail-copy,
-body.tp80-rare-detail .tp80-detail-copy h1,
-body.tp80-rare-detail .tp80-detail-copy h2,
-body.tp80-rare-detail .tp80-detail-copy p,
-body.tp80-rare-detail .tp80-detail-copy span,
-body.tp80-rare-detail .tp80-facts span,
-body.tp80-rare-detail .tp80-facts b,
-body.tp80-rare-detail .tp80-info h1,
-body.tp80-rare-detail .tp80-info h2,
-body.tp80-rare-detail .tp80-info h3{
-  color:#0f172a!important;
-  opacity:1!important;
-  text-shadow:none!important;
-}
-body.tp80-rare-detail .tp80-detail-copy h1{
-  font-size:clamp(1.55rem,6vw,2.6rem)!important;
-  line-height:1.16!important;
-  letter-spacing:-.02em!important;
-}
+body.tp80-rare-detail .tp80-detail-hero,body.tp80-rare-detail .tp80-info{background:#f8fafc!important;background-image:none!important;color:#0f172a!important}
+body.tp80-rare-detail .tp80-detail-copy,body.tp80-rare-detail .tp80-detail-copy h1,body.tp80-rare-detail .tp80-detail-copy h2,body.tp80-rare-detail .tp80-detail-copy p,body.tp80-rare-detail .tp80-detail-copy span,body.tp80-rare-detail .tp80-facts span,body.tp80-rare-detail .tp80-facts b,body.tp80-rare-detail .tp80-info h1,body.tp80-rare-detail .tp80-info h2,body.tp80-rare-detail .tp80-info h3{color:#0f172a!important;opacity:1!important;text-shadow:none!important}
+body.tp80-rare-detail .tp80-detail-copy h1{font-size:clamp(1.55rem,6vw,2.6rem)!important;line-height:1.16!important;letter-spacing:-.02em!important}
 body.tp80-rare-detail .tp80-brand{color:#475569!important;opacity:1!important}
 body.tp80-rare-detail .tp80-price{color:#0f172a!important;opacity:1!important}
-body.tp80-rare-detail .tp80-note,
-body.tp80-rare-detail .tp80-info p,
-body.tp80-rare-detail .tp80-detail-summary{color:#526174!important;opacity:1!important}
+body.tp80-rare-detail .tp80-note,body.tp80-rare-detail .tp80-info p,body.tp80-rare-detail .tp80-detail-summary{color:#526174!important;opacity:1!important}
 body.tp80-rare-detail .tp80-detail-summary{font-size:16px!important;line-height:1.55!important;margin:10px 0 14px!important}
 body.tp80-rare-detail .tp80-price-proof.verified{background:#def7ec!important;color:#047857!important}
 body.tp80-rare-detail .tp80-price-proof.feed{background:#e8edf4!important;color:#334155!important}
@@ -121,22 +82,28 @@ body.tp80-rare-detail .tp80-price-proof.check{background:#fff4d6!important;color
 body.tp80-rare-detail .tp80-signals span{background:#e8f5f1!important;color:#0f766e!important}
 body.tp80-rare-detail .tp80-facts span{background:#f1f5f9!important;border-color:#dbe3ec!important}
 body.tp80-rare-detail .tp80-seller-exit{color:#fff!important;opacity:1!important}
-body.tp80-rare-detail .tp80-detail-media{background:#fff!important}
-body.tp80-rare-detail .tp80-detail-media img{background:#fff!important}
+body.tp80-rare-detail .tp80-detail-media,body.tp80-rare-detail .tp80-detail-media img{background:#fff!important}
 body.tp80-rare-detail .tp80-plain-explain h3{margin:18px 0 6px!important;font-size:1rem!important}
 
 /* Tickets: white result/search surfaces always use dark copy. */
-body[data-tp-page="tickets"] .tp-ticket-v141-search-card,
-body[data-tp-page="tickets"] .tp-ticket-v141-card,
-body[data-tp-page="tickets"] .tp-ticket-v141-empty{
-  background:#f8fafc!important;background-image:none!important;color:#0f172a!important;
-}
+body[data-tp-page="tickets"] .tp-ticket-v141-search-card,body[data-tp-page="tickets"] .tp-ticket-v141-card,body[data-tp-page="tickets"] .tp-ticket-v141-empty{background:#f8fafc!important;background-image:none!important;color:#0f172a!important}
 body[data-tp-page="tickets"] .tp-ticket-v141-card h3,body[data-tp-page="tickets"] .tp-ticket-v141-empty b{color:#0f172a!important}
-body[data-tp-page="tickets"] .tp-ticket-v141-card p,body[data-tp-page="tickets"] .tp-ticket-v141-summary,
-body[data-tp-page="tickets"] .tp-ticket-v141-empty span{color:#526174!important}
-body[data-tp-page="tickets"] .tp-ticket-v141-form input,
-body[data-tp-page="tickets"] .tp-ticket-v141-form select,
-body[data-tp-page="tickets"] .tp-ticket-v141-chips button{background:#fff!important;color:#172033!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-card p,body[data-tp-page="tickets"] .tp-ticket-v141-summary,body[data-tp-page="tickets"] .tp-ticket-v141-empty span{color:#526174!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-form input,body[data-tp-page="tickets"] .tp-ticket-v141-form select,body[data-tp-page="tickets"] .tp-ticket-v141-chips button{background:#fff!important;color:#172033!important}
+
+/* Trust and policy pages: one current V21 surface, no legacy duplicate headers/footers. */
+body[data-tp-page="trust"] .tp-content-hero{padding:48px 0 26px!important}
+body[data-tp-page="trust"] .tp-content-hero h1{max-width:780px!important;margin:8px 0 10px!important;font-size:clamp(2rem,7vw,3.35rem)!important;line-height:1.04!important;color:#f8fafc!important}
+body[data-tp-page="trust"] .tp-content-hero p{max-width:760px!important;color:#cbd5e1!important;font-size:1.03rem!important;line-height:1.65!important}
+body[data-tp-page="trust"] .tp-trust-page{max-width:860px;margin:0 auto 90px;padding:32px;border-radius:28px;background:#f8fafc;color:#0f172a;box-shadow:0 18px 45px rgba(2,8,23,.18)}
+body[data-tp-page="trust"] .tp-trust-page h2{margin:28px 0 8px;color:#0f172a;font-size:1.3rem;line-height:1.25}
+body[data-tp-page="trust"] .tp-trust-page h2:first-child{margin-top:0}
+body[data-tp-page="trust"] .tp-trust-page h3{margin:20px 0 6px;color:#172033;font-size:1.05rem}
+body[data-tp-page="trust"] .tp-trust-page p,body[data-tp-page="trust"] .tp-trust-page li{color:#475569;line-height:1.72}
+body[data-tp-page="trust"] .tp-trust-page a{color:#1d4ed8;text-decoration:underline;text-underline-offset:3px}
+body[data-tp-page="trust"] .tp-trust-note{margin:22px 0;padding:18px 20px;border-radius:18px;background:#eef2ff;color:#27324a!important;border:1px solid #dbe4ff}
+body[data-tp-page="trust"] .tp-trust-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+body[data-tp-page="trust"] .tp-trust-links a{display:inline-flex;min-height:44px;align-items:center;padding:10px 14px;border-radius:12px;background:#e8edf4;color:#172033;text-decoration:none;font-weight:800}
 
 @media(max-width:780px){
   .tp-links{background:#0d1628!important}
@@ -145,4 +112,6 @@ body[data-tp-page="tickets"] .tp-ticket-v141-chips button{background:#fff!import
   .tp-bottom-nav,.tp-mobile-tabs,.tp80-bottom{min-height:0!important;padding:4px!important}
   .tp-bottom-nav a,.tp-mobile-tabs a,.tp80-bottom a{min-height:46px!important}
   body.tp80-rare-hub .tp80-rare-summary{font-size:13.5px!important;-webkit-line-clamp:3!important}
+  body[data-tp-page="trust"] .tp-content-hero{padding:34px 0 18px!important}
+  body[data-tp-page="trust"] .tp-trust-page{margin:0 14px 78px;padding:22px 18px;border-radius:22px}
 }
