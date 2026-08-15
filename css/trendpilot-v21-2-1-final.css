@@ -66,7 +66,7 @@ body[data-tp-page="deals"] .tp-bottom-nav a[href="/deals/"] *,
 body.tp90-compare-page .tp-bottom-nav a[href="/compare/"] *,
 .tp-mobile-tabs a.is-active *, .tp80-bottom a.active *{color:#fff!important}
 
-/* Rare Finds: explicit readable dark-card contract. */
+/* Rare Finds listing: explicit readable dark-card contract. */
 body.tp80-rare-hub .tp80-rare-card{background:#1d2b43!important;background-image:none!important;color:#f8fafc!important}
 body.tp80-rare-hub .tp80-rare-card h2,body.tp80-rare-hub .tp80-rare-card h2 a,
 body.tp80-rare-hub .tp80-card-price{color:#f8fafc!important}
@@ -77,6 +77,44 @@ body.tp80-rare-hub .tp80-rare-card h2{
   margin:6px 0 10px!important;font-size:18px!important;line-height:1.22!important;letter-spacing:-.015em!important;
   display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:5!important;overflow:hidden!important;
 }
+
+/* Rare Find detail: the content panel is light, so every important field must use dark readable ink. */
+body.tp80-rare-detail .tp80-detail-hero,
+body.tp80-rare-detail .tp80-info{
+  background:#f8fafc!important;
+  background-image:none!important;
+  color:#0f172a!important;
+}
+body.tp80-rare-detail .tp80-detail-copy,
+body.tp80-rare-detail .tp80-detail-copy h1,
+body.tp80-rare-detail .tp80-detail-copy h2,
+body.tp80-rare-detail .tp80-detail-copy p,
+body.tp80-rare-detail .tp80-detail-copy span,
+body.tp80-rare-detail .tp80-facts span,
+body.tp80-rare-detail .tp80-facts b,
+body.tp80-rare-detail .tp80-info h1,
+body.tp80-rare-detail .tp80-info h2{
+  color:#0f172a!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+body.tp80-rare-detail .tp80-detail-copy h1{
+  font-size:clamp(1.55rem,6vw,2.6rem)!important;
+  line-height:1.16!important;
+  letter-spacing:-.02em!important;
+}
+body.tp80-rare-detail .tp80-brand{color:#475569!important;opacity:1!important}
+body.tp80-rare-detail .tp80-price{color:#0f172a!important;opacity:1!important}
+body.tp80-rare-detail .tp80-note,
+body.tp80-rare-detail .tp80-info p{color:#526174!important;opacity:1!important}
+body.tp80-rare-detail .tp80-price-proof.verified{background:#def7ec!important;color:#047857!important}
+body.tp80-rare-detail .tp80-price-proof.feed{background:#e8edf4!important;color:#334155!important}
+body.tp80-rare-detail .tp80-price-proof.check{background:#fff4d6!important;color:#8a5a00!important}
+body.tp80-rare-detail .tp80-signals span{background:#e8f5f1!important;color:#0f766e!important}
+body.tp80-rare-detail .tp80-facts span{background:#f1f5f9!important;border-color:#dbe3ec!important}
+body.tp80-rare-detail .tp80-seller-exit{color:#fff!important;opacity:1!important}
+body.tp80-rare-detail .tp80-detail-media{background:#fff!important}
+body.tp80-rare-detail .tp80-detail-media img{background:#fff!important}
 
 /* Tickets: white result/search surfaces always use dark copy. */
 body[data-tp-page="tickets"] .tp-ticket-v141-search-card,
