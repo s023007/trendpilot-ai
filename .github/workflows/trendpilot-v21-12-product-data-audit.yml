@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/trendpilot-v21-12-product-data-audit.yml
+      - scripts/audit-v21-12-product-data.py
   workflow_dispatch:
 
 permissions:
@@ -19,7 +20,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-      - name: Audit public product identity and seller data
+      - name: Audit public product identity and seller data with taxonomy samples
         run: python scripts/audit-v21-12-product-data.py
       - name: Upload product data audit
         if: always()
