@@ -41,7 +41,8 @@ jobs:
             unzip -q "$PACKAGE" -d "$TEMP_DIR"
             mkdir -p automation config
             cp "$TEMP_DIR/automation/admitad_coupon_api.py" automation/admitad_coupon_api.py
-            cp "$TEMP_DIR/config/coupon-api.json" config/coupon-api.json
+            # Do not overwrite the repository policy configuration from an old package.
+            if [ ! -s config/coupon-api.json ]; then cp "$TEMP_DIR/config/coupon-api.json" config/coupon-api.json; fi
             rm -rf "$TEMP_DIR"
           fi
 
@@ -66,12 +67,47 @@ jobs:
           ADMITAD_WEBSITE_NAME: TrendPilot AI
         run: python automation/admitad_coupon_api.py
 
+      - name: Enforce TrendPilot public seller policy on coupons
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+
+          blocked=re.compile(r"\b(?:joom|temu|filamentpro)\b",re.I)
+          coupons_path=Path("data/coupons.json")
+          report_path=Path("data/coupon-report.json")
+          js_path=Path("js/coupons-data.js")
+          data=json.loads(coupons_path.read_text(encoding="utf-8"))
+          rows=data.get("coupons",[])
+          kept=[];removed=[]
+          for row in rows:
+              name=str(row.get("merchant_name") or row.get("merchant_key") or "")
+              if blocked.search(name): removed.append(name); continue
+              kept.append(row)
+          data["coupons"]=kept
+          data["count"]=len(kept)
+          data["with_codes"]=sum(bool(x.get("code")) for x in kept)
+          data["automatic_deals"]=len(kept)-data["with_codes"]
+          data["public_blocklist"]=["Joom","Temu","FilamentPRO"]
+          coupons_path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          report=json.loads(report_path.read_text(encoding="utf-8"))
+          report["policy_removed_coupons"]=len(removed)
+          report["public_blocklist"]=["Joom","Temu","FilamentPRO"]
+          report["active_coupons"]=len(kept)
+          report_path.write_text(json.dumps(report,ensure_ascii=False,indent=2)+"\n",encoding="utf-8")
+          js_path.write_text("window.TREND_PILOT_COUPONS = "+json.dumps(data,ensure_ascii=False,separators=(",",":"))+";\n",encoding="utf-8")
+          print("Policy-safe active coupons:",len(kept))
+          print("Blocked coupons removed:",len(removed))
+          PY
+
       - name: Validate generated coupon data
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json
+          import json,re
           from pathlib import Path
 
           coupons_path = Path("data/coupons.json")
@@ -87,14 +123,17 @@ jobs:
               raise SystemExit("Unexpected coupon data version.")
           if report.get("api", {}).get("raw_records", 0) < 0:
               raise SystemExit("Invalid API report.")
+          names=" ".join(str(x.get("merchant_name") or "") for x in coupons.get("coupons",[]))
+          if re.search(r"\b(?:joom|temu|filamentpro)\b",names,re.I):
+              raise SystemExit("Blocked seller coupon leaked into public coupon output.")
 
           print("Ad space:", report.get("ad_space", {}).get("name"))
           print("Raw records:", report.get("api", {}).get("raw_records", 0))
-          print("Active coupons:", coupons.get("count", 0))
+          print("Policy-safe active coupons:", coupons.get("count", 0))
           print("Coupons with codes:", coupons.get("with_codes", 0))
           PY
 
-      - name: Commit coupon engine and outputs
+      - name: Commit coupon engine and policy-safe outputs
         shell: bash
         run: |
           set -euo pipefail
@@ -115,5 +154,5 @@ jobs:
             exit 0
           fi
 
-          git commit -m "feat: update coupons from Admitad API"
+          git commit -m "feat: update policy-safe coupons from Admitad API"
           git push origin HEAD:main
