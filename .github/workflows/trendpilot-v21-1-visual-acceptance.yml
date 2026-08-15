@@ -1,0 +1,51 @@
+name: TrendPilot V21.1 Visual Acceptance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-1-visual-acceptance.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        shell: bash
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Verify final public mobile presentation
+        shell: bash
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: |
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          const rgb=s=>{const m=String(s).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);return m?m.slice(1,4).map(Number):null};
+          const alpha=s=>{const m=String(s).match(/rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\)/);return m?Number(m[1]):1};
+          const lum=a=>a.map(x=>{x/=255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4)}).reduce((s,x,i)=>s+x*[.2126,.7152,.0722][i],0);
+          const cr=(a,b)=>(Math.max(lum(a),lum(b))+.05)/(Math.min(lum(a),lum(b))+.05);
+          (async()=>{
+            const b=await chromium.launch({headless:true});const c=await b.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.75,isMobile:true,hasTouch:true});const p=await c.newPage();const checks={};
+            await p.goto(process.env.TP_BASE_URL+'/',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForTimeout(900);
+            const h=await p.evaluate(()=>{const g=getComputedStyle,header=document.querySelector('.tp-header'),brand=document.querySelector('.tp-brand span'),badge=document.querySelector('.v207-eyebrow'),head=document.querySelector('.v207-section-head'),nav=document.querySelector('.tp-bottom-nav');return{header:g(header).backgroundColor,brand:g(brand).color,badge:g(badge).backgroundColor,headDisplay:g(head).display,headWidth:head.getBoundingClientRect().width,nav:g(nav).backgroundColor,navHeight:nav.getBoundingClientRect().height}});
+            checks.header_dark=lum(rgb(h.header))<.08;checks.brand_visible=lum(rgb(h.brand))>.65;checks.badge_subtle=alpha(h.badge)<.2;checks.mobile_headings=h.headDisplay==='block'&&h.headWidth>330;checks.bottom_nav=h.navHeight<78&&lum(rgb(h.nav))<.1;
+            await p.goto(process.env.TP_BASE_URL+'/find/',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForSelector('.tp78-empty',{timeout:30000});const e=await p.evaluate(()=>{const x=document.querySelector('.tp78-empty'),t=x.querySelector('h3');return{bg:getComputedStyle(x).backgroundImage,title:getComputedStyle(t).color}});checks.empty_state=/gradient/.test(e.bg)&&lum(rgb(e.title))>.65;
+            await p.goto(process.env.TP_BASE_URL+'/find/?q=phone&engine=v2064',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForSelector('.tp78-card',{timeout:60000});const card=await p.evaluate(()=>{const x=document.querySelector('.tp78-card'),t=x.querySelector('h3 a,h3'),m=x.querySelector('.tp78-meta'),d=x.querySelector('.tp78-description');return{bg:getComputedStyle(x).backgroundImage,title:getComputedStyle(t).color,meta:getComputedStyle(m||d).color}});checks.card_light=/gradient/.test(card.bg);checks.title_contrast=cr(rgb(card.title),[248,250,252])>=4.5;checks.meta_contrast=cr(rgb(card.meta),[248,250,252])>=4.5;
+            const product='/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/';await p.goto(process.env.TP_BASE_URL+product,{waitUntil:'domcontentloaded',timeout:90000});await p.waitForTimeout(700);const pd=await p.evaluate(()=>{const text=document.body.innerText;return{theme:[...document.styleSheets].some(x=>String(x.href||'').includes('trendpilot-graphite-navy-v21-1.css')),description:text.includes('About this product')&&text.includes('Xiaomi Redmi Note 8 is a smartphone'),seller:!!document.querySelector('#seller-offers'),image:getComputedStyle(document.querySelector('.hero-media')).backgroundColor}});checks.product_theme=pd.theme;checks.product_description=pd.description;checks.product_seller=pd.seller;checks.product_image=lum(rgb(pd.image))>.85;
+            console.log(JSON.stringify({version:'21.1',checks,passed:Object.values(checks).every(Boolean)},null,2));await b.close();if(!Object.values(checks).every(Boolean))process.exit(1);
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
