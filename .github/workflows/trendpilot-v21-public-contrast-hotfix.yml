@@ -1,4 +1,4 @@
-name: TrendPilot V21 — Public Dark Surface Hotfix
+name: TrendPilot V21 Public Dark Surface Hotfix
 
 on:
   push:
@@ -25,71 +25,24 @@ jobs:
           ref: main
           fetch-depth: 1
 
-      - name: Apply high-specificity dark header and product cards
+      - name: Apply high specificity dark surfaces
         shell: bash
+        env:
+          TP_CSS_B64: "Ci8qIFRQX1YyMV9QVUJMSUNfREFSS19TVVJGQUNFX0hPVEZJWCAqLwpib2R5LnYyMDctcHVibGljIC50cC1oZWFkZXJ7CiAgYmFja2dyb3VuZDpyZ2JhKDEwLDE4LDM5LC45MikhaW1wb3J0YW50OwogIGNvbG9yOiNmN2Y5ZmQhaW1wb3J0YW50OwogIGJvcmRlci1ib3R0b206MXB4IHNvbGlkIHJnYmEoMjE5LDIzMiwyNTUsLjE0KSFpbXBvcnRhbnQ7CiAgYm94LXNoYWRvdzpub25lIWltcG9ydGFudDsKICBiYWNrZHJvcC1maWx0ZXI6Ymx1cigxOHB4KSBzYXR1cmF0ZSgxMjUlKSFpbXBvcnRhbnQ7Cn0KYm9keS52MjA3LXB1YmxpYyAudHAtYnJhbmQsYm9keS52MjA3LXB1YmxpYyAudHAtYnJhbmQgc3Bhbntjb2xvcjojZjdmOWZkIWltcG9ydGFudH0KYm9keS52MjA3LXB1YmxpYyAudHAtYnJhbmQgZW17Y29sb3I6IzYzZGRkMCFpbXBvcnRhbnR9CmJvZHkudjIwNy1wdWJsaWMgLnRwLW1lbnUtYnV0dG9ue2JhY2tncm91bmQ6cmdiYSgyNTUsMjU1LDI1NSwuMDU1KSFpbXBvcnRhbnQ7Ym9yZGVyLWNvbG9yOnJnYmEoMjE5LDIzMiwyNTUsLjIpIWltcG9ydGFudDtib3gtc2hhZG93Om5vbmUhaW1wb3J0YW50fQpib2R5LnYyMDctcHVibGljIC50cC1tZW51LWJ1dHRvbiBzcGFue2JhY2tncm91bmQ6I2Y3ZjlmZCFpbXBvcnRhbnR9CmJvZHkudjIwNy1wdWJsaWMgLnRwLWxpbmtze2JhY2tncm91bmQ6cmdiYSgxMywyMiw0OCwuOTgpIWltcG9ydGFudDtjb2xvcjojZjdmOWZkIWltcG9ydGFudH0KYm9keS52MjA3LXB1YmxpYyAudHAtbGlua3MgYXtjb2xvcjojZjdmOWZkIWltcG9ydGFudH0KCmJvZHkudjIwNy1wdWJsaWMgLnRwNzgtY2FyZCwKYm9keS52MjA3LXB1YmxpYyAudHAtcHJvZHVjdC1ncmlkPjpub3QoLnRwLWVtcHR5KSwKYm9keS52MjA3LXB1YmxpYyAudHAtcHJvZHVjdC1jYXJkLApib2R5LnYyMDctcHVibGljIC50cC1vZmZlci1jYXJkLApib2R5LnYyMDctcHVibGljIFtkYXRhLXRwLXByb2R1Y3QtY2FyZF0sCmJvZHkudjIwNy1wdWJsaWMgW2RhdGEtdjIwNy1jYXJkPSIxIl17CiAgYmFja2dyb3VuZDpsaW5lYXItZ3JhZGllbnQoMTU1ZGVnLHJnYmEoMjgsNDQsNzcsLjk4KSxyZ2JhKDE5LDMyLDU4LC45OSkpIWltcG9ydGFudDsKICBjb2xvcjojZjdmOWZkIWltcG9ydGFudDsKICBib3JkZXItY29sb3I6cmdiYSgyMTksMjMyLDI1NSwuMTQpIWltcG9ydGFudDsKICBib3gtc2hhZG93OjAgMTRweCAzNnB4IHJnYmEoMiw4LDIzLC4yKSFpbXBvcnRhbnQ7Cn0KYm9keS52MjA3LXB1YmxpYyAudHA3OC1jYXJkIGgzLApib2R5LnYyMDctcHVibGljIC50cDc4LWNhcmQgaDMgYSwKYm9keS52MjA3LXB1YmxpYyBbZGF0YS12MjA3LWNhcmQ9IjEiXSBoMiwKYm9keS52MjA3LXB1YmxpYyBbZGF0YS12MjA3LWNhcmQ9IjEiXSBoMywKYm9keS52MjA3LXB1YmxpYyBbZGF0YS12MjA3LWNhcmQ9IjEiXSAucHJvZHVjdC10aXRsZSwKYm9keS52MjA3LXB1YmxpYyBbZGF0YS12MjA3LWNhcmQ9IjEiXSBbZGF0YS1wcm9kdWN0LXRpdGxlXSwKYm9keS52MjA3LXB1YmxpYyBbZGF0YS12MjA3LWNhcmQ9IjEiXSBzdHJvbmcsCmJvZHkudjIwNy1wdWJsaWMgW2RhdGEtdjIwNy1jYXJkPSIxIl0gLnByaWNlLApib2R5LnYyMDctcHVibGljIFtkYXRhLXYyMDctY2FyZD0iMSJdIFtkYXRhLXByaWNlXXtjb2xvcjojZjdmOWZkIWltcG9ydGFudH0KYm9keS52MjA3LXB1YmxpYyAudHA3OC1tZXRhLApib2R5LnYyMDctcHVibGljIC50cDc4LWRlc2NyaXB0aW9uLApib2R5LnYyMDctcHVibGljIFtkYXRhLXYyMDctY2FyZD0iMSJdIHAsCmJvZHkudjIwNy1wdWJsaWMgW2RhdGEtdjIwNy1jYXJkPSIxIl0gc21hbGx7Y29sb3I6I2MxY2NlMCFpbXBvcnRhbnR9CmJvZHkudjIwNy1wdWJsaWMgLnRwNzgtYnJhbmR7Y29sb3I6IzYzZGRkMCFpbXBvcnRhbnR9CmJvZHkudjIwNy1wdWJsaWMgLnRwNzgtc291cmNle2JhY2tncm91bmQ6cmdiYSgyNTUsMjU1LDI1NSwuMDgpIWltcG9ydGFudDtjb2xvcjojZDdkZmVkIWltcG9ydGFudH0KYm9keS52MjA3LXB1YmxpYyAudHA3OC1tZWRpYSwKYm9keS52MjA3LXB1YmxpYyBbZGF0YS12MjA3LWNhcmQ9IjEiXSBpbWd7YmFja2dyb3VuZDojZjdmOWZjIWltcG9ydGFudH0KYm9keS52MjA3LXB1YmxpYyAudjIwNy1leHBsYWlue2JhY2tncm91bmQ6cmdiYSgyNTUsMjU1LDI1NSwuMDU1KSFpbXBvcnRhbnQ7Y29sb3I6I2MxY2NlMCFpbXBvcnRhbnQ7Ym9yZGVyLWNvbG9yOnJnYmEoMjE5LDIzMiwyNTUsLjEpIWltcG9ydGFudH0KYm9keS52MjA3LXB1YmxpYyAudjIwNy1yb2xlLW5vdGV7YmFja2dyb3VuZDpyZ2JhKDk5LDIyMSwyMDgsLjEyKSFpbXBvcnRhbnQ7Y29sb3I6IzljZjRlOCFpbXBvcnRhbnR9CmJvZHkudjIwNy1wdWJsaWMgLnRwNzgtaWNvbntiYWNrZ3JvdW5kOnJnYmEoMjU1LDI1NSwyNTUsLjA2NSkhaW1wb3J0YW50O2NvbG9yOiNlZWYzZmIhaW1wb3J0YW50O2JvcmRlci1jb2xvcjpyZ2JhKDIxOSwyMzIsMjU1LC4xNCkhaW1wb3J0YW50fQpib2R5LnYyMDctcHVibGljIC50cDc4LWxpdmV7YmFja2dyb3VuZDpyZ2JhKDI1NSwxOTksOTIsLjEyKSFpbXBvcnRhbnQ7Y29sb3I6I2ZmZGM5OCFpbXBvcnRhbnR9CmJvZHkudjIwNy1wdWJsaWMgLnRwLWxvYWQtbW9yZSxib2R5LnYyMDctcHVibGljIC50cDc4LWxvYWQtbW9yZXtiYWNrZ3JvdW5kOnJnYmEoMjU1LDI1NSwyNTUsLjA1NSkhaW1wb3J0YW50O2NvbG9yOiNkY2U1ZmYhaW1wb3J0YW50O2JvcmRlci1jb2xvcjpyZ2JhKDIxOSwyMzIsMjU1LC4xNikhaW1wb3J0YW50fQo="
         run: |
           set -euo pipefail
-          python <<'PY'
+          python - <<'PY'
           from pathlib import Path
+          import os,base64
           p=Path('css/v20-7-shopper-experience.css')
           s=p.read_text(encoding='utf-8')
           marker='/* TP_V21_PUBLIC_DARK_SURFACE_HOTFIX */'
           if marker not in s:
-            s += r'''
-
-/* TP_V21_PUBLIC_DARK_SURFACE_HOTFIX */
-body.v207-public .tp-header{
-  background:rgba(10,18,39,.92)!important;
-  color:#f7f9fd!important;
-  border-bottom:1px solid rgba(219,232,255,.14)!important;
-  box-shadow:none!important;
-  backdrop-filter:blur(18px) saturate(125%)!important;
-}
-body.v207-public .tp-brand,body.v207-public .tp-brand span{color:#f7f9fd!important}
-body.v207-public .tp-brand em{color:#63ddd0!important}
-body.v207-public .tp-menu-button{background:rgba(255,255,255,.055)!important;border-color:rgba(219,232,255,.2)!important;box-shadow:none!important}
-body.v207-public .tp-menu-button span{background:#f7f9fd!important}
-body.v207-public .tp-links{background:rgba(13,22,48,.98)!important;color:#f7f9fd!important}
-body.v207-public .tp-links a{color:#f7f9fd!important}
-
-body.v207-public .tp78-card,
-body.v207-public .tp-product-grid>:not(.tp-empty),
-body.v207-public .tp-product-card,
-body.v207-public .tp-offer-card,
-body.v207-public [data-tp-product-card],
-body.v207-public [data-v207-card="1"]{
-  background:linear-gradient(155deg,rgba(28,44,77,.98),rgba(19,32,58,.99))!important;
-  color:#f7f9fd!important;
-  border-color:rgba(219,232,255,.14)!important;
-  box-shadow:0 14px 36px rgba(2,8,23,.2)!important;
-}
-body.v207-public .tp78-card h3,
-body.v207-public .tp78-card h3 a,
-body.v207-public [data-v207-card="1"] h2,
-body.v207-public [data-v207-card="1"] h3,
-body.v207-public [data-v207-card="1"] .product-title,
-body.v207-public [data-v207-card="1"] [data-product-title],
-body.v207-public [data-v207-card="1"] strong,
-body.v207-public [data-v207-card="1"] .price,
-body.v207-public [data-v207-card="1"] [data-price]{color:#f7f9fd!important}
-body.v207-public .tp78-meta,
-body.v207-public .tp78-description,
-body.v207-public [data-v207-card="1"] p,
-body.v207-public [data-v207-card="1"] small{color:#c1cce0!important}
-body.v207-public .tp78-brand{color:#63ddd0!important}
-body.v207-public .tp78-source{background:rgba(255,255,255,.08)!important;color:#d7dfed!important}
-body.v207-public .tp78-media,
-body.v207-public [data-v207-card="1"] img{background:#f7f9fc!important}
-body.v207-public .v207-explain{background:rgba(255,255,255,.055)!important;color:#c1cce0!important;border-color:rgba(219,232,255,.1)!important}
-body.v207-public .v207-role-note{background:rgba(99,221,208,.12)!important;color:#9cf4e8!important}
-body.v207-public .tp78-icon{background:rgba(255,255,255,.065)!important;color:#eef3fb!important;border-color:rgba(219,232,255,.14)!important}
-body.v207-public .tp78-live{background:rgba(255,199,92,.12)!important;color:#ffdc98!important}
-body.v207-public .tp-load-more,body.v207-public .tp78-load-more{background:rgba(255,255,255,.055)!important;color:#dce5ff!important;border-color:rgba(219,232,255,.16)!important}
-'''
-            p.write_text(s,encoding='utf-8')
-            print('Appended V21 public dark-surface override')
+              s += base64.b64decode(os.environ['TP_CSS_B64']).decode('utf-8')
+              p.write_text(s,encoding='utf-8')
+              print('Appended V21 public dark-surface override')
           else:
-            print('V21 public dark-surface override already present')
+              print('Override already present')
           PY
 
       - name: Commit presentation hotfix
@@ -150,13 +103,13 @@ body.v207-public .tp-load-more,body.v207-public .tp78-load-more{background:rgba(
               const card=document.querySelector('.tp78-card');
               const title=card?.querySelector('h3 a,h3');
               const media=card?.querySelector('.tp78-media');
-              return {header:getComputedStyle(h).backgroundColor,card:getComputedStyle(card).backgroundImage,cardColor:getComputedStyle(card).color,title:getComputedStyle(title).color,media:getComputedStyle(media).backgroundColor};
+              return {header:getComputedStyle(h).backgroundColor,card:getComputedStyle(card).backgroundImage,title:getComputedStyle(title).color,media:getComputedStyle(media).backgroundColor};
             });
             console.log(JSON.stringify(x,null,2));
-            if(/255, 255, 255/.test(x.header))throw new Error('Header is still white');
-            if(!/gradient/i.test(x.card))throw new Error('Product card is not dark gradient');
-            if(!/247, 249, 253|255, 255, 255/.test(x.title))throw new Error('Product title is not light');
-            if(!/247, 249, 252|255, 255, 255/.test(x.media))throw new Error('Product image area is not light');
+            if(/255, 255, 255/.test(x.header)) throw new Error('Header is still white');
+            if(!/gradient/i.test(x.card)) throw new Error('Product card is not dark gradient');
+            if(!/247, 249, 253|255, 255, 255/.test(x.title)) throw new Error('Product title is not light');
+            if(!/247, 249, 252|255, 255, 255/.test(x.media)) throw new Error('Product image area is not light');
             await b.close();
           })().catch(e=>{console.error(e);process.exit(1)});
           NODE
