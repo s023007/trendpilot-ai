@@ -1,0 +1,171 @@
+name: TrendPilot V21.12 — Final All-Pages Release Gate V3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-12-release-gate-v3.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v21-12-final-release-gate
+  cancel-in-progress: true
+
+jobs:
+  final-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout current main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Stage one-time workflows for removal and ensure final CSS source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/apply-v21-12-detail-contrast.py
+          rm -f .github/workflows/trendpilot-v21-12-release-gate.yml
+          rm -f .github/workflows/trendpilot-v21-12-release-gate-v2.yml
+          rm -f .github/workflows/trendpilot-v21-12-release-gate-v3.yml
+          rm -f .github/workflows/trendpilot-v21-12-detail-contrast-closeout.yml
+
+      - name: Wait for current public deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            home=0; find=0; rare=0; trust=0; wholesale=0; css=0
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/' -o /tmp/home.html && grep -q 'smart-suggestions-v20-7-7.js?v=21.12.0' /tmp/home.html && home=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/find.html && grep -q 'query-normalizer-v21-3.js?v=21.12.0' /tmp/find.html && find=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/rare-used/' -o /tmp/rare.html && grep -q 'rare-finds-v20-8.js?v=21.12.0' /tmp/rare.html && rare=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/about.html' -o /tmp/about.html && grep -q 'data-tp-page="trust"' /tmp/about.html && trust=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/wholesale/' -o /tmp/ws.html && grep -q 'wholesale-v14.js?v=21.12.0' /tmp/ws.html && wholesale=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/css/trendpilot-v21-2-1-final.css?v=21.12.0' -o /tmp/final.css && grep -q 'ticket-detail + trust-form closeout' /tmp/final.css && css=1 || true
+            if [ "$home" = 1 ] && [ "$find" = 1 ] && [ "$rare" = 1 ] && [ "$trust" = 1 ] && [ "$wholesale" = 1 ] && [ "$css" = 1 ]; then
+              echo 'Current V21.12 public deployment is reachable.'
+              exit 0
+            fi
+            echo "Waiting ($i/60): home=$home find=$find rare=$rare trust=$trust wholesale=$wholesale css=$css"
+            sleep 10
+          done
+          echo 'Current public deployment did not become ready in time.'
+          exit 1
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate Netlify routing and deployment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s netlify.toml
+          grep -q 'functions = "netlify/functions"' netlify.toml
+          grep -q 'from = "/product/:slug"' netlify.toml
+          grep -q 'to = "/.netlify/functions/product-preview-v20-9-6-mobile-polish?slug=:slug"' netlify.toml
+          grep -q 'from = "/r/:key"' netlify.toml
+          grep -q 'from = "/go/:key"' netlify.toml
+
+      - name: Run static public-surface audit
+        run: python scripts/audit-v21-12-static.py
+      - name: Run public product-data and identity audit
+        run: python scripts/audit-v21-12-product-data.py
+      - name: Run workflow conflict audit after staged gate removal
+        run: python scripts/audit-v21-12-workflows.py
+
+      - name: Check active JavaScript syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          for f in js/smart-suggestions-v20-7-7.js js/query-normalizer-v21-3.js js/universal-discovery-v20-9-1.js js/rare-finds-v20-8.js js/rare-find-detail-v20-8-7.js js/ticket-decision-v14.js js/ticket-detail-v14.js js/wholesale-v14.js js/compare-v20-9.js js/item-detail-v20-9.js js/smart-search-v14.js netlify/functions/products-v20-suggest.mjs; do node --check "$f"; done
+
+      - name: Install Chromium QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run final search quality matrix
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-search-matrix.mjs
+      - name: Run comprehensive shopper browser audit
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-final-site.mjs
+      - name: Run trust and policy page browser audit
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-trust-pages.mjs
+      - name: Run direct ticket-detail readability audit
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-ticket-detail.mjs
+      - name: Run end-to-end shopper journeys
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-12-shopper-journeys.mjs
+
+      - name: Complete every checklist tick only after all gates passed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re
+          from datetime import datetime,timezone
+          from pathlib import Path
+          def load(p): return json.loads(Path(p).read_text(encoding='utf-8'))
+          static=load('artifacts/v21-12-static/report.json');product=load('artifacts/v21-12-product-data/report.json');workflow=load('artifacts/v21-12/workflow-audit.json');search=load('artifacts/v21-12-search-matrix/report.json');site=load('artifacts/v21-12-final/report.json');trust=load('artifacts/v21-12-trust/report.json');ticket=load('artifacts/v21-12-ticket-detail/report.json');journeys=load('artifacts/v21-12-journeys/report.json')
+          for name,r in {'static':static,'product':product,'search':search,'site':site,'trust':trust,'ticket':ticket,'journeys':journeys}.items():
+              if r.get('passed') is not True: raise SystemExit(f'{name} report did not pass')
+          if int(workflow.get('automatic_writers',999))!=2: raise SystemExit(f"expected 2 automatic writers, got {workflow.get('automatic_writers')}")
+          if int(workflow.get('legacy_installers',999))!=0: raise SystemExit('legacy workflow installers remain')
+          manual=[r.get('path') for r in workflow.get('rows',[]) if not r.get('auto') and (r.get('contents_write') or r.get('git_push'))]
+          if manual: raise SystemExit('manual repository writers remain: '+', '.join(manual))
+          p=Path('FINAL-SITE-AUDIT-V21-12.md');text=p.read_text(encoding='utf-8')
+          for n in range(26): text=re.sub(rf'(?m)^- \[ \] ({n:02d}\.)',rf'- [x] \1',text)
+          text=re.sub(r'\n## Final release evidence\n.*\Z','',text,flags=re.S)
+          now=datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace('+00:00','Z')
+          block=f'''\n\n## Final release evidence\n\nGenerated only after all release gates passed on **{now}**.\n\n- ✅ Static/public-surface audit: **{len(static.get('checks',{}))} checks**, **0 failures**.\n- ✅ Comprehensive shopper browser audit: **{len(site.get('checks',{}))} checks**, **0 failures**.\n- ✅ Search quality matrix: **{len(search.get('cases',[]))} query families**, **0 failures**.\n- ✅ Trust/policy browser audit: **{len(trust.get('checks',{}))} checks**, **0 failures**.\n- ✅ Direct ticket-detail readability audit: **{len(ticket.get('checks',{}))} checks**, **0 failures**.\n- ✅ End-to-end shopper journeys: **{len(journeys.get('checks',{}))} checks**, **0 failures**.\n- ✅ Public product-data audit: **{product.get('total_records',0):,} product records**, **{product.get('shards',0)} shards**, **{product.get('blocked_count',0)} blocked-seller leaks**, **{product.get('duplicate_count',0)} duplicate IDs**.\n- ✅ Workflow conflict audit: **{workflow.get('total',0)} workflows**, **{workflow.get('automatic_writers',0)} automatic repository writers**, **0 manual repository writers**, **{workflow.get('legacy_installers',0)} legacy installers**.\n- ✅ Only the current Admitad seller sync and Admitad coupon sync retain automatic repository-write permission.\n- ✅ Ticket live inventory remains intentionally empty unless a real live source exists; the public UI sends visitors to the provider instead of inventing price, seat or availability data.\n'''
+          p.write_text(text.rstrip()+block+'\n',encoding='utf-8')
+          PY
+
+      - name: Commit final sign-off and remove one-time gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Final Audit Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add FINAL-SITE-AUDIT-V21-12.md css/trendpilot-v21-2-1-final.css
+          git add -u .github/workflows/trendpilot-v21-12-release-gate.yml .github/workflows/trendpilot-v21-12-release-gate-v2.yml .github/workflows/trendpilot-v21-12-release-gate-v3.yml .github/workflows/trendpilot-v21-12-detail-contrast-closeout.yml 2>/dev/null || true
+          git diff --cached --check
+          git commit -m 'TrendPilot V21.12 final site audit complete — all checklist items passed'
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Upload final release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-12-final-release-evidence
+          path: |
+            artifacts/v21-12
+            artifacts/v21-12-static
+            artifacts/v21-12-product-data
+            artifacts/v21-12-search-matrix
+            artifacts/v21-12-final
+            artifacts/v21-12-trust
+            artifacts/v21-12-ticket-detail
+            artifacts/v21-12-journeys
+            FINAL-SITE-AUDIT-V21-12.md
+          if-no-files-found: ignore
