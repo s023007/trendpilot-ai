@@ -66,7 +66,7 @@ body[data-tp-page="deals"] .tp-bottom-nav a[href="/deals/"] *,
 body.tp90-compare-page .tp-bottom-nav a[href="/compare/"] *,
 .tp-mobile-tabs a.is-active *, .tp80-bottom a.active *{color:#fff!important}
 
-/* Rare Finds listing: explicit readable dark-card contract. */
+/* Rare Finds listing: readable titles plus a plain-language explanation. */
 body.tp80-rare-hub .tp80-rare-card{background:#1d2b43!important;background-image:none!important;color:#f8fafc!important}
 body.tp80-rare-hub .tp80-rare-card h2,body.tp80-rare-hub .tp80-rare-card h2 a,
 body.tp80-rare-hub .tp80-card-price{color:#f8fafc!important}
@@ -74,8 +74,13 @@ body.tp80-rare-hub .tp80-brand{color:#aebdff!important}
 body.tp80-rare-hub .tp80-rare-meta,body.tp80-rare-hub .tp80-universal-meta,
 body.tp80-rare-hub .tp80-route-note{color:#d0d9e7!important}
 body.tp80-rare-hub .tp80-rare-card h2{
-  margin:6px 0 10px!important;font-size:18px!important;line-height:1.22!important;letter-spacing:-.015em!important;
-  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:5!important;overflow:hidden!important;
+  margin:6px 0 8px!important;font-size:17px!important;line-height:1.22!important;letter-spacing:-.015em!important;
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:4!important;overflow:hidden!important;
+}
+body.tp80-rare-hub .tp80-rare-card-copy{min-width:0!important}
+body.tp80-rare-hub .tp80-rare-summary{
+  margin:0 0 10px!important;color:#dbe4f0!important;font-size:14px!important;line-height:1.48!important;
+  display:-webkit-box!important;-webkit-box-orient:vertical!important;-webkit-line-clamp:3!important;overflow:hidden!important;
 }
 
 /* Rare Find detail: the content panel is light, so every important field must use dark readable ink. */
@@ -93,7 +98,8 @@ body.tp80-rare-detail .tp80-detail-copy span,
 body.tp80-rare-detail .tp80-facts span,
 body.tp80-rare-detail .tp80-facts b,
 body.tp80-rare-detail .tp80-info h1,
-body.tp80-rare-detail .tp80-info h2{
+body.tp80-rare-detail .tp80-info h2,
+body.tp80-rare-detail .tp80-info h3{
   color:#0f172a!important;
   opacity:1!important;
   text-shadow:none!important;
@@ -106,7 +112,9 @@ body.tp80-rare-detail .tp80-detail-copy h1{
 body.tp80-rare-detail .tp80-brand{color:#475569!important;opacity:1!important}
 body.tp80-rare-detail .tp80-price{color:#0f172a!important;opacity:1!important}
 body.tp80-rare-detail .tp80-note,
-body.tp80-rare-detail .tp80-info p{color:#526174!important;opacity:1!important}
+body.tp80-rare-detail .tp80-info p,
+body.tp80-rare-detail .tp80-detail-summary{color:#526174!important;opacity:1!important}
+body.tp80-rare-detail .tp80-detail-summary{font-size:16px!important;line-height:1.55!important;margin:10px 0 14px!important}
 body.tp80-rare-detail .tp80-price-proof.verified{background:#def7ec!important;color:#047857!important}
 body.tp80-rare-detail .tp80-price-proof.feed{background:#e8edf4!important;color:#334155!important}
 body.tp80-rare-detail .tp80-price-proof.check{background:#fff4d6!important;color:#8a5a00!important}
@@ -115,6 +123,7 @@ body.tp80-rare-detail .tp80-facts span{background:#f1f5f9!important;border-color
 body.tp80-rare-detail .tp80-seller-exit{color:#fff!important;opacity:1!important}
 body.tp80-rare-detail .tp80-detail-media{background:#fff!important}
 body.tp80-rare-detail .tp80-detail-media img{background:#fff!important}
+body.tp80-rare-detail .tp80-plain-explain h3{margin:18px 0 6px!important;font-size:1rem!important}
 
 /* Tickets: white result/search surfaces always use dark copy. */
 body[data-tp-page="tickets"] .tp-ticket-v141-search-card,
@@ -135,4 +144,5 @@ body[data-tp-page="tickets"] .tp-ticket-v141-chips button{background:#fff!import
   .tp-links>a[href="/sourcing/"]::after{content:none!important}
   .tp-bottom-nav,.tp-mobile-tabs,.tp80-bottom{min-height:0!important;padding:4px!important}
   .tp-bottom-nav a,.tp-mobile-tabs a,.tp80-bottom a{min-height:46px!important}
+  body.tp80-rare-hub .tp80-rare-summary{font-size:13.5px!important;-webkit-line-clamp:3!important}
 }
