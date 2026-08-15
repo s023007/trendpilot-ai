@@ -1,5 +1,5 @@
 const VERSION='20.3.3';
-const BUILD='21.4.0';
+const BUILD='21.5.0';
 let cache={at:0,value:null};
 const TTL=10*60*1000;
 const clean=v=>String(v??'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
@@ -13,13 +13,17 @@ function words(q){return norm(q).split(/\s+/).filter(Boolean)}
 function escapeRe(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}
 function matchScore(value,q,quality=0,kind='product',sellerCount=0){
   const v=norm(value),n=norm(q),parts=words(q);
-  if(!v||!n||!parts.every(p=>v.includes(p)))return -1;
+  if(!v||!n)return -1;
+  // A one-character query is intentionally strict: the visible suggestion itself must start with that character.
+  // This prevents a query such as "b" from returning "Amazfit Bip" merely because a later word contains b.
+  if(n.length===1&&!v.startsWith(n))return -1;
+  if(!parts.every(p=>v.includes(p)))return -1;
   let s=Math.min(1600,Number(quality||0));
   const wordStart=new RegExp(`(?:^|\\s)${escapeRe(n)}`).test(v);
   if(v===n)s+=9000;
   else if(v.startsWith(n))s+=6500;
   else if(wordStart)s+=4800;
-  else s+=n.length===1?900:1800;
+  else s+=1800;
   if(kind==='model')s+=2800+Math.min(900,Number(sellerCount||0)*120);
   else if(kind==='intent')s+=900;
   else if(kind==='related')s+=400;
