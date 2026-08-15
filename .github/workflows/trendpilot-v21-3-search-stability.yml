@@ -56,7 +56,7 @@ jobs:
           assert 'smart-suggestions-v20-7-7.js?v=21.5.0' in home
           assert 'smart-suggestions-v20-7-7.js?v=21.5.0' in f
           assert 'shopper-language-v21-4.js?v=21.5.0' in f
-          assert 'item-detail-v20-9.js?v=21.5.1' in i
+          assert 'item-detail-v20-9.js?v=21.8.0' in i
           assert 'TrendPilot first, seller second' not in i
 
           # One-character autocomplete is strict at both browser and API layers.
@@ -72,6 +72,15 @@ jobs:
           assert 'Main product' not in i
           assert '[a-f0-9]{12,40}' in detail
           assert 'tp(?:id|vid|oid)' in detail
+
+          # Seller handoff must distinguish direct listings from marketplace searches.
+          assert 'data-tp85-seller-fallback' in i
+          assert 'Search Alibaba for' in detail
+          assert 'Check this item on TikTok' in detail
+          assert 'www.alibaba.com/trade/search?SearchText=' in detail
+          assert 'www.tiktok.com/search?q=' in detail
+          assert 'sellerSearchUrl' in detail
+          assert 'seller.includes("lenovo")&&value>0&&value<=5' in detail
 
           assert "document.querySelectorAll('.tp80-universal-meta').forEach(el=>el.hidden=true)" in language
           print('Static shopper contract PASS')
@@ -94,7 +103,7 @@ jobs:
             if printf '%s' "$home" | grep -q 'smart-suggestions-v20-7-7.js?v=21.5.0' \
               && printf '%s' "$finder" | grep -q 'smart-suggestions-v20-7-7.js?v=21.5.0' \
               && printf '%s' "$finder" | grep -q 'shopper-language-v21-4.js?v=21.5.0' \
-              && printf '%s' "$item" | grep -q 'item-detail-v20-9.js?v=21.5.1'; then
+              && printf '%s' "$item" | grep -q 'item-detail-v20-9.js?v=21.8.0'; then
               echo 'Final shopper UI is live'; exit 0
             fi
             echo "waiting for production $i/30"; sleep 10
@@ -214,6 +223,39 @@ jobs:
             } else {
               out.checks.detail_visible=false;out.checks.detail_plain_language=false;out.checks.detail_no_internal_hash=false;
             }
+
+            async function itemHandoff(id){
+              await page.goto(`${BASE}/item/?id=${id}`,{waitUntil:'domcontentloaded'});
+              await page.waitForFunction(()=>!!document.querySelector('[data-tp85-detail]:not([hidden])'),null,{timeout:30000});
+              return page.evaluate(()=>{
+                const primary=document.querySelector('[data-tp85-seller-link]');
+                const fallback=document.querySelector('[data-tp85-seller-fallback]');
+                return {
+                  primaryText:(primary?.textContent||'').trim(),
+                  primaryHref:primary?.href||'',
+                  fallbackText:(fallback?.textContent||'').trim(),
+                  fallbackHref:fallback&&!fallback.hidden?fallback.href:'',
+                  price:(document.querySelector('[data-tp85-price]')?.textContent||'').trim(),
+                  note:(document.querySelector('[data-tp85-exit-note]')?.textContent||'').trim()
+                };
+              });
+            }
+
+            const ali=await itemHandoff('00dc0b1f3f3495');
+            out.details.alibabaHandoff=ali;
+            out.checks.alibaba_search_primary=/^https:\/\/www\.alibaba\.com\/trade\/search\?/i.test(ali.primaryHref)&&/Search Alibaba/i.test(ali.primaryText)&&ali.fallbackHref.length>0;
+
+            const tiktok=await itemHandoff('008bea7aecb03d');
+            out.details.tiktokHandoff=tiktok;
+            out.checks.tiktok_listing_with_fallback=/TikTok/i.test(tiktok.primaryText)&&/click-|jdoqocy|tkqlhce|dpbolvw|anrdoezrs/i.test(tiktok.primaryHref)&&/^https:\/\/www\.tiktok\.com\/search\?/i.test(tiktok.fallbackHref);
+
+            const aliExpress=await itemHandoff('0021296ece7343');
+            out.details.aliExpressHandoff=aliExpress;
+            out.checks.exact_listing_kept=/View product on AliExpress/i.test(aliExpress.primaryText)&&aliExpress.primaryHref.length>0&&!aliExpress.fallbackHref;
+
+            const lenovo=await itemHandoff('00d8166b644e66');
+            out.details.lenovoHandoff=lenovo;
+            out.checks.suspicious_lenovo_price_hidden=/Check current price/i.test(lenovo.price);
 
             out.passed=Object.values(out.checks).every(Boolean);
             fs.writeFileSync('artifacts/final-live-qa/report.json',JSON.stringify(out,null,2));
