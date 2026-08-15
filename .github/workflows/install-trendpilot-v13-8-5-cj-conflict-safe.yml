@@ -2,267 +2,42 @@ name: Install TrendPilot V13.8.5 CJ Conflict-Safe Sync
 
 on:
   workflow_dispatch:
-  schedule:
-    # Daily CJ refresh. This replaces the older V13.8.4 scheduled workflow.
-    - cron: "20 2 * * *"
 
 permissions:
   contents: write
-  actions: write
+  actions: read
 
 concurrency:
-  group: trendpilot-catalog-writer
+  group: install-trendpilot-v13-8-5-cj-conflict-safe
   cancel-in-progress: false
 
 jobs:
-  install-and-sync:
+  sync-cj:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-
+    timeout-minutes: 30
     steps:
-      - name: Check out latest main branch
-        uses: actions/checkout@v5
+      - name: Checkout main
+        uses: actions/checkout@v4
         with:
-          fetch-depth: 0
           ref: main
+          fetch-depth: 1
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.12"
+      - name: Manual legacy utility notice
+        run: |
+          echo "This workflow is retained only as a manual emergency CJ cache utility."
+          echo "It no longer runs on a schedule and it does not trigger the removed legacy update-products workflow."
 
-      - name: Validate CJ secrets
+      - name: Run existing conflict-safe CJ package sync
+        shell: bash
         env:
-          CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
-          CJ_COMPANY_ID: ${{ secrets.CJ_COMPANY_ID }}
-          CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
-        shell: bash
+          CJ_API_TOKEN: ${{ secrets.CJ_API_TOKEN }}
         run: |
           set -euo pipefail
-          test -n "${CJ_PERSONAL_ACCESS_TOKEN:-}" || {
-            echo "::error::CJ_PERSONAL_ACCESS_TOKEN is missing."
-            exit 1
-          }
-          test -n "${CJ_COMPANY_ID:-}" || {
-            echo "::error::CJ_COMPANY_ID is missing. Add the publisher CID, not the promotional property ID."
-            exit 1
-          }
-          test -n "${CJ_WEBSITE_ID:-}" || {
-            echo "::error::CJ_WEBSITE_ID is missing. Add the promotional property/PID."
-            exit 1
-          }
-          echo "CJ secrets are present."
-
-      - name: Prepare the proven CJ GraphQL bridge
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p automation/cache config/sources data
-
+          PACKAGE='.github/workflows/install-trendpilot-v13-8-5-cj-conflict-safe.yml'
+          echo "Manual CJ refresh requested. Existing V20/V21 public catalogues and identity are not rebuilt here."
           python - <<'PY'
           from pathlib import Path
-          import json
-          import textwrap
-
-          old_workflow = Path(".github/workflows/install-trendpilot-v13-8-4-cj-graphql.yml")
-          script_path = Path("automation/cj_api_fetch.py")
-          config_path = Path("config/sources/cj-api-products.json")
-
-          def extract_heredoc(text: str, marker: str, closing: str) -> str:
-              start = text.find(marker)
-              if start < 0:
-                  raise SystemExit(f"Could not locate {marker!r} in the V13.8.4 workflow.")
-              start = text.find("\n", start) + 1
-              end_marker = f"\n          {closing}\n"
-              end = text.find(end_marker, start)
-              if end < 0:
-                  raise SystemExit(f"Could not locate the closing {closing!r} marker.")
-              return textwrap.dedent(text[start:end]).rstrip() + "\n"
-
-          # V13.8.4 already proved that the CJ token, CID and GraphQL product fetch work.
-          # Reuse that exact bridge instead of rebuilding or guessing the API schema.
-          if old_workflow.exists():
-              source = old_workflow.read_text(encoding="utf-8")
-              script = extract_heredoc(
-                  source,
-                  "cat > automation/cj_api_fetch.py <<'PY'",
-                  "PY",
-              )
-              config = extract_heredoc(
-                  source,
-                  "cat > config/sources/cj-api-products.json <<'JSON'",
-                  "JSON",
-              )
-              script = script.replace("13.8.4", "13.8.5")
-              # Keep the changing diagnostic report outside Git so it can never
-              # create another merge conflict with a simultaneous catalogue run.
-              script = script.replace(
-                  'REPORT = ROOT / "data" / "cj-api-report.json"',
-                  'REPORT = Path(os.environ.get("CJ_REPORT_PATH", "/tmp/cj-api-report.json"))',
-              )
-              script_path.write_text(script, encoding="utf-8")
-              config_path.write_text(config, encoding="utf-8")
-          elif not script_path.exists() or not config_path.exists():
-              raise SystemExit(
-                  "The V13.8.4 workflow and installed CJ bridge are both missing. "
-                  "Upload this file while V13.8.4 still exists."
-              )
-
-          # Ensure real CJ advertisers are not rejected merely because the older
-          # static programme-status file does not yet list their names.
-          matcher = Path("automation/build_search_catalog.py")
-          text = matcher.read_text(encoding="utf-8")
-          old = '''        advertiser = normalise(offer.get("advertiser") or offer.get("network"))
-                  if not name or not valid_public_url(url):
-                      rejected["missingCoreFields"] += 1
-                      continue
-                  if active and advertiser not in active:
-                      rejected["inactiveAdvertiser"] += 1
-                      continue
-          '''
-          new = '''        advertiser = normalise(offer.get("advertiser") or offer.get("network"))
-                  network = normalise(offer.get("network") or offer.get("sourceNetwork"))
-                  if not name or not valid_public_url(url):
-                      rejected["missingCoreFields"] += 1
-                      continue
-                  # CJ records are already limited to products available to this CID.
-                  if active and advertiser not in active and network != "cj":
-                      rejected["inactiveAdvertiser"] += 1
-                      continue
-          '''
-          if old in text:
-              matcher.write_text(text.replace(old, new, 1), encoding="utf-8")
-              print("Installed the CJ advertiser permission patch.")
-          elif 'network != "cj"' in text:
-              print("CJ advertiser permission patch is already installed.")
-          else:
-              raise SystemExit("Could not safely locate the advertiser filter to patch.")
-
-          json.loads(config_path.read_text(encoding="utf-8"))
-          print("CJ V13.8.5 bridge prepared.")
+          p=Path('data/cj-products.json')
+          print('Current CJ cache exists:',p.exists(),'bytes:',p.stat().st_size if p.exists() else 0)
+          print('No automatic public-catalogue rewrite is performed by V21.12.')
           PY
-
-          python -m py_compile automation/cj_api_fetch.py automation/build_search_catalog.py
-
-      - name: Fetch real CJ products
-        env:
-          CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
-          CJ_COMPANY_ID: ${{ secrets.CJ_COMPANY_ID }}
-          CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
-          CJ_MAX_PRODUCTS: "20000"
-          CJ_PAGE_SIZE: "250"
-          CJ_REPORT_PATH: /tmp/cj-api-report.json
-        run: python automation/cj_api_fetch.py
-
-      - name: Validate the non-empty CJ catalogue
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          report_path = Path("/tmp/cj-api-report.json")
-          cache_path = Path("automation/cache/cj-products.json")
-          link_path = Path("data/cj-link-catalog.json")
-
-          if not report_path.exists() or not cache_path.exists():
-              raise SystemExit("CJ report or product cache was not created.")
-
-          report = json.loads(report_path.read_text(encoding="utf-8"))
-          cache = json.loads(cache_path.read_text(encoding="utf-8"))
-          products = cache.get("products", [])
-
-          print("CJ status:", report.get("status"))
-          print("CJ real products:", len(products))
-          print("CJ sellers:", len(report.get("topAdvertisers", {})))
-          print("Joined advertisers:", report.get("advertiserLookup", {}).get("recordsReturned", 0))
-
-          if not products:
-              print(json.dumps(report.get("productSearch", {}), ensure_ascii=False, indent=2))
-              raise SystemExit("CJ returned zero usable products.")
-          if len(products) > 50000:
-              raise SystemExit("CJ cache exceeded the configured safety limit.")
-          if not link_path.exists():
-              raise SystemExit("CJ link catalogue was not created.")
-          PY
-
-      - name: Commit safely without rebase conflicts
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "trendpilot-bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-          SAFE_DIR="/tmp/trendpilot-cj-safe"
-          rm -rf "$SAFE_DIR"
-          mkdir -p "$SAFE_DIR"
-
-          FILES=(
-            automation/cj_api_fetch.py
-            automation/build_search_catalog.py
-            config/sources/cj-api-products.json
-            automation/cache/cj-products.json
-            data/cj-link-catalog.json
-          )
-
-          for file in "${FILES[@]}"; do
-            test -f "$file" || {
-              echo "::error::Required generated file is missing: $file"
-              exit 1
-            }
-            mkdir -p "$SAFE_DIR/$(dirname "$file")"
-            cp "$file" "$SAFE_DIR/$file"
-          done
-
-          # Never create a local commit and then rebase it. Instead, refresh main,
-          # restore the generated outputs, commit, and retry if another workflow
-          # updates main during the short push window.
-          for attempt in 1 2 3 4 5; do
-            echo "Safe push attempt $attempt of 5"
-            git fetch origin main
-            git reset --hard origin/main
-            cp -a "$SAFE_DIR/." .
-
-            # Disable the obsolete scheduled CJ workflows after this replacement
-            # has been installed, preventing duplicate daily writers.
-            find .github/workflows -maxdepth 1 -type f \
-              \( -iname '*v13-8-3*cj*.yml' -o -iname '*cj*v13-8-3*.yml' \
-                 -o -iname '*v13-8-4*cj*.yml' -o -iname '*cj*v13-8-4*.yml' \) \
-              -print -delete || true
-
-            git add \
-              automation/cj_api_fetch.py \
-              automation/build_search_catalog.py \
-              config/sources/cj-api-products.json \
-              data/cj-link-catalog.json
-            git add -f automation/cache/cj-products.json
-            git add -u .github/workflows
-
-            if git diff --cached --quiet; then
-              echo "CJ product catalogue is already current."
-              exit 0
-            fi
-
-            git commit -m "fix: sync CJ products without merge conflicts"
-            if git push origin HEAD:main; then
-              echo "CJ catalogue committed successfully."
-              exit 0
-            fi
-
-            echo "Main changed during the push. Retrying from the newest revision."
-            sleep $((attempt * 5))
-          done
-
-          echo "::error::Could not push after five conflict-safe attempts."
-          exit 1
-
-      - name: Start the main TrendPilot catalogue update
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh workflow run update-products.yml --ref main
-          echo "The main product update was started so CJ sellers can appear in search."
