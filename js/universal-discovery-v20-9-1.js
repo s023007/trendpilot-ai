@@ -2,7 +2,7 @@
   "use strict";
 
   const DATA_VERSION = "20.9.0";
-  const RUNTIME_VERSION = "20.9.4";
+  const RUNTIME_VERSION = "21.3.2";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -72,7 +72,7 @@
     lighting:/^(?:lighting|lights?|lamps?)$/i
   };
   const genericFamily=Boolean(family&&GENERIC[family]?.test(L(q)));
-  const fetchJSON=url=>{if(!cache.has(url))cache.set(url,fetch(url,{cache:"force-cache"}).then(r=>r.ok?r.json():null).catch(()=>null));return cache.get(url)};
+  const fetchJSON=url=>{if(!cache.has(url))cache.set(url,(async()=>{let last=null;for(let i=0;i<3;i++){try{const r=await fetch(url,{cache:i?"reload":"no-store"});if(r.ok)return await r.json();last=r.status}catch(e){last=e}await new Promise(res=>setTimeout(res,120*(i+1)))}console.warn("TrendPilot data fetch failed",url,last);return null})());return cache.get(url)};
   const prefix=t=>(t.replace(/[^a-z0-9]/g,"").slice(0,2)||"__").padEnd(2,"_");
   const unique=a=>[...new Set(a)], intersect=(a,b)=>{const s=new Set(b);return a.filter(x=>s.has(x))};
 
@@ -114,9 +114,12 @@
     if(r.x)n+=10;if(r.im)n+=5;if(r.p)n+=2;return n;
   }
   function roleOK(r){const role=C(r.ro||"main");if(intent==="main")return role==="main"||role==="used";if(intent==="used")return role==="used";return role===intent}
+  const MACBOOK_BAD=/\b(?:sleeve|case|cover|bag|handbag|briefcase|skin|shell|stand|dock|docking|charger|adapter|cable|keyboard cover|screen protector|protective film|replacement|battery for|compatible with macbook|for macbook)\b/i;
   function semanticOK(r){
-    if(!genericFamily||intent!=="main")return true;
+    const explicitMacBook=family==="laptop"&&/\bmacbook\b/i.test(L(q));
+    if((!genericFamily&&!explicitMacBook)||intent!=="main")return true;
     const title=L(r.t),fam=L(r.fa||r.ty);
+    if(explicitMacBook){if(!/\bmacbook\b/i.test(title))return false;if(MACBOOK_BAD.test(title))return false;}
     if(fam!==family)return false;
     const bad={
       phone:/\b(?:(?:battery|power\s*bank|charging|protective|shockproof|wallet|silicone|leather)\s+case|case\s+(?:for|fits?|compatible\s+with)|screen\s+protector|tempered\s+glass|phone\s+(?:holder|mount)|replacement\s+(?:screen|battery)|motherboard|charging\s+port|flex\s+cable)\b/i,
