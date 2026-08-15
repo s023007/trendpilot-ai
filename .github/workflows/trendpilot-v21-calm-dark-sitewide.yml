@@ -7,6 +7,7 @@ on:
       - .github/workflows/trendpilot-v21-calm-dark-sitewide.yml
       - css/trendpilot-calm-dark-v21.css
       - scripts/qa-v21-calm-dark-sitewide.mjs
+      - scripts/qa-v21-11-tickets-rare.mjs
       - index.html
       - find/index.html
       - compare/index.html
@@ -15,6 +16,10 @@ on:
       - products/index.html
       - price-watch/index.html
       - tickets/index.html
+      - ticket/index.html
+      - js/ticket-decision-v14.js
+      - js/ticket-detail-v14.js
+      - js/rare-finds-v20-8.js
       - guides/index.html
       - wholesale/index.html
       - sourcing/index.html
@@ -126,17 +131,19 @@ jobs:
           set -euo pipefail
           PRODUCT_URL='https://trendpilotchoice.com/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/'
           for i in $(seq 1 42); do
-            css=0; home=0; finder=0; product=0; rare=0
+            css=0; home=0; finder=0; product=0; rare=0; tickets=0; detail=0
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/css/trendpilot-calm-dark-v21.css?v=21.0.0' -o /tmp/theme.css && grep -q -- '--tp21-bg:#0d1630' /tmp/theme.css && css=1 || true
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/' -o /tmp/home.html && grep -q 'trendpilot-calm-dark-v21.css?v=21.0.0' /tmp/home.html && home=1 || true
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/find.html && grep -q 'trendpilot-calm-dark-v21.css?v=21.0.0' /tmp/find.html && finder=1 || true
             curl -fsSL --max-time 20 "$PRODUCT_URL" -o /tmp/product.html && grep -q 'trendpilot-calm-dark-v21.css?v=21.0.0' /tmp/product.html && product=1 || true
-            curl -fsSL --max-time 20 'https://trendpilotchoice.com/rare-used/' -o /tmp/rare.html && grep -q 'trendpilot-calm-dark-v21.css?v=21.0.0' /tmp/rare.html && rare=1 || true
-            if [ "$css" = 1 ] && [ "$home" = 1 ] && [ "$finder" = 1 ] && [ "$product" = 1 ] && [ "$rare" = 1 ]; then
-              echo 'V21 Calm Dark is live on core public pages.'
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/rare-used/' -o /tmp/rare.html && grep -q 'rare-finds-v20-8.js?v=21.11.0' /tmp/rare.html && rare=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/tickets/' -o /tmp/tickets.html && grep -q 'ticket-decision-v14.js?v=21.11.1' /tmp/tickets.html && tickets=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/ticket/' -o /tmp/ticket.html && grep -q 'ticket-detail-v14.js?v=21.11.1' /tmp/ticket.html && detail=1 || true
+            if [ "$css" = 1 ] && [ "$home" = 1 ] && [ "$finder" = 1 ] && [ "$product" = 1 ] && [ "$rare" = 1 ] && [ "$tickets" = 1 ] && [ "$detail" = 1 ]; then
+              echo 'V21.11.1 shopper hotfix is live on core public pages.'
               exit 0
             fi
-            echo "Waiting for V21 deploy ($i/42): css=$css home=$home finder=$finder product=$product rare=$rare"
+            echo "Waiting for V21 deploy ($i/42): css=$css home=$home finder=$finder product=$product rare=$rare tickets=$tickets detail=$detail"
             sleep 10
           done
           echo 'V21 public deployment did not become fully reachable in time.'
@@ -153,6 +160,11 @@ jobs:
           set -euo pipefail
           npm install --no-save --ignore-scripts playwright@1.55.0
           npx playwright install --with-deps chromium
+
+      - name: Run V21.11 Tickets and Rare Finds Android QA
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-11-tickets-rare.mjs
 
       - name: Run V21 site-wide Android visual QA
         env:
@@ -173,6 +185,16 @@ jobs:
         shell: bash
         run: |
           echo '# TrendPilot V21 — Calm Dark Sitewide' >> "$GITHUB_STEP_SUMMARY"
+          if [ -s artifacts/v21-calm-dark/tickets-rare-report.json ]; then
+            node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('artifacts/v21-calm-dark/tickets-rare-report.json','utf8'));
+          console.log(`- Tickets + Rare Finds QA: **${r.passed?'PASS':'FAIL'}**`);
+          for(const [k,v] of Object.entries(r.checks||{})) console.log(`- ${v?'✅':'❌'} ${k}`);
+          if(r.error){console.log();console.log('```');console.log(r.error);console.log('```');}
+          NODE
+          else
+            echo '- Tickets + Rare Finds QA report was not produced.' >> "$GITHUB_STEP_SUMMARY"
+          fi
           if [ -s artifacts/v21-calm-dark/report.json ]; then
             node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs=require('fs');const r=JSON.parse(fs.readFileSync('artifacts/v21-calm-dark/report.json','utf8'));
