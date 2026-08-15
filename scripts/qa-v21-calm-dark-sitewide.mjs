@@ -4,9 +4,15 @@ import fs from 'node:fs/promises';
 const BASE=(process.env.TP_BASE_URL||'https://trendpilotchoice.com').replace(/\/$/,'');
 const OUT='artifacts/v21-calm-dark';
 await fs.mkdir(OUT,{recursive:true});
-const report={version:'21.0.0',base:BASE,pages:{},checks:{},passed:false};
+const report={version:'21.11.1',base:BASE,pages:{},checks:{},passed:false};
 const pass=n=>report.checks[n]=true;
 const fail=(n,m)=>{report.checks[n]=false;throw new Error(`${n}: ${m}`)};
+const isLightRgb=value=>{
+  const m=String(value||'').match(/rgba?\((\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if(!m)return false;
+  const [r,g,b]=m.slice(1,4).map(Number);
+  return r>=235&&g>=235&&b>=235;
+};
 const browser=await chromium.launch({headless:true});
 const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.75,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36'});
 const page=await context.newPage();
@@ -35,7 +41,7 @@ async function inspect(name,path,waitFor='main'){
   pass(`${name}_theme_loaded`);
   if(!/gradient/i.test(snap.bodyBackgroundImage))fail(`${name}_dark_gradient`,`background=${snap.bodyBackgroundImage}`);
   pass(`${name}_dark_gradient`);
-  if(!/rgb\(247, 249, 253\)|rgb\(255, 255, 255\)|rgb\(247, 249, 252\)/.test(snap.bodyColor))fail(`${name}_light_text`,`body color=${snap.bodyColor}`);
+  if(!isLightRgb(snap.bodyColor))fail(`${name}_light_text`,`body color=${snap.bodyColor}`);
   pass(`${name}_light_text`);
   return snap;
 }
@@ -73,11 +79,50 @@ try{
   report.pages.rare.result=rare;
   if(!/gradient/i.test(rare.heroBg))fail('rare_identity_preserved',rare.heroBg);pass('rare_identity_preserved');
 
+  await inspect('rareSearch','/rare-used/?q=phone','.tp80-rare-grid');
+  await page.waitForFunction(()=>!String(document.querySelector('[data-rare-stats]')?.textContent||'').includes('Loading'),{timeout:20000});
+  const rareSearch=await page.evaluate(()=>({
+    pathname:location.pathname,
+    query:document.querySelector('[data-rare-query]')?.value||'',
+    stats:(document.querySelector('[data-rare-stats]')?.textContent||'').trim(),
+    cards:document.querySelectorAll('.tp80-rare-card').length,
+    hasFallback:!!document.querySelector('.tp80-no-result a[href^="/find/"]')
+  }));
+  report.pages.rareSearch.result=rareSearch;
+  if(!/^\/rare-used\/?$/.test(rareSearch.pathname))fail('rare_search_stays_local',rareSearch.pathname);pass('rare_search_stays_local');
+  if(rareSearch.query.toLowerCase()!=='phone')fail('rare_search_query_preserved',rareSearch.query);pass('rare_search_query_preserved');
+
+  await inspect('tickets','/tickets/','[data-ticket-v141-results]');
+  await page.waitForFunction(()=>document.querySelectorAll('.tp-ticket-v141-card').length>0,{timeout:20000});
+  const tickets=await page.evaluate(()=>{
+    const cards=[...document.querySelectorAll('.tp-ticket-v141-card')];
+    const body=(document.querySelector('main')?.innerText||'').replace(/\s+/g,' ').trim();
+    return {
+      cards:cards.length,
+      directSellerLinks:cards.filter(c=>c.querySelector('a.primary[target="_blank"]')).length,
+      descriptions:cards.filter(c=>c.querySelector('.tp-ticket-v141-description')).length,
+      badDetailCards:cards.filter(c=>c.querySelector('a[href^="/ticket/?id="]')&&!c.querySelector('.tp-ticket-v141-facts')).length,
+      hasQuickView:/\bQuick view\b/i.test(body),
+      hasCheckWithSeller:/\bCheck with seller\b/i.test(body)
+    };
+  });
+  report.pages.tickets.result=tickets;
+  if(tickets.cards<1)fail('tickets_results_present','no ticket cards');pass('tickets_results_present');
+  if(tickets.directSellerLinks<1)fail('tickets_direct_seller_cta','no direct seller CTA');pass('tickets_direct_seller_cta');
+  if(tickets.descriptions<1)fail('tickets_descriptions_present','ticket cards have no useful descriptions');pass('tickets_descriptions_present');
+  if(tickets.badDetailCards>0)fail('tickets_no_empty_detail_links',`${tickets.badDetailCards} cards link to empty details`);pass('tickets_no_empty_detail_links');
+  if(tickets.hasQuickView)fail('tickets_no_quick_view','legacy Quick view is still visible');pass('tickets_no_quick_view');
+  if(tickets.hasCheckWithSeller)fail('tickets_no_placeholder_price','legacy Check with seller copy is still visible');pass('tickets_no_placeholder_price');
+
   report.passed=Object.values(report.checks).every(Boolean);
   await page.goto(`${BASE}/`,{waitUntil:'domcontentloaded'});
   await page.screenshot({path:`${OUT}/home-mobile.png`,fullPage:true});
   await page.goto(`${BASE}/find/?q=phone&engine=v2064`,{waitUntil:'domcontentloaded'});await page.waitForSelector('.tp78-card');
   await page.screenshot({path:`${OUT}/finder-mobile.png`,fullPage:true});
+  await page.goto(`${BASE}/rare-used/?q=phone`,{waitUntil:'domcontentloaded'});await page.waitForSelector('.tp80-rare-grid');
+  await page.screenshot({path:`${OUT}/rare-mobile.png`,fullPage:true});
+  await page.goto(`${BASE}/tickets/`,{waitUntil:'domcontentloaded'});await page.waitForSelector('.tp-ticket-v141-card');
+  await page.screenshot({path:`${OUT}/tickets-mobile.png`,fullPage:true});
   await page.goto(`${BASE}${productPath}`,{waitUntil:'domcontentloaded'});await page.waitForSelector('.panel.about');
   await page.screenshot({path:`${OUT}/product-mobile.png`,fullPage:true});
   await fs.writeFile(`${OUT}/report.json`,JSON.stringify(report,null,2));
