@@ -2,7 +2,7 @@
   "use strict";
 
   const DATA_VERSION = "20.9.0";
-  const RUNTIME_VERSION = "21.7.0";
+  const RUNTIME_VERSION = "21.9.0";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -15,7 +15,7 @@
   const BLOCK = new Set(["temu","joom","filamentpro","filamentpro eu cps","filamentpro-eu-cps"]);
   const STOP = new Set(["the","and","for","with","from","this","that","your","our","new","best","buy","original","official","product","products","item","items","of","to","in","on","by","a","an"]);
   const cache = new Map();
-  const state = {all:[],filtered:[],page:24,min:0,max:0,exactOnly:false,seller:"",sort:"smart",filterBound:false};
+  const state = {all:[],filtered:[],page:24,min:0,max:0,exactOnly:false,seller:"",sort:"smart",filterBound:false,sellerSamples:{},sellerUniverse:[]};
   const loader = {groups:[],cursor:0,seen:new Set(),busy:false,done:false,painted:false};
 
   function roleIntent(value) {
@@ -98,6 +98,20 @@
   const unique=a=>[...new Set(a)];
   const intersect=(a,b)=>{const s=new Set(b);return a.filter(x=>s.has(x))};
 
+  async function sellerFamilySamples(){
+    if(!genericFamily||!family)return{};
+    const data=await fetchJSON(`/data/v20-9/seller-family-samples.json?v=${DATA_VERSION}`);
+    const fm=data?.families?.[family]||{};
+    state.sellerSamples=fm;
+    state.sellerUniverse=Object.keys(fm).filter(s=>!BLOCK.has(L(s))).sort((a,b)=>a.localeCompare(b));
+    return fm;
+  }
+  function balancedSampleIds(samples,perSeller=4){
+    const sellers=Object.keys(samples||{}).filter(s=>!BLOCK.has(L(s))).sort((a,b)=>a.localeCompare(b)),out=[];
+    for(let i=0;i<perSeller;i++)for(const seller of sellers){const id=(samples[seller]||[])[i];if(id)out.push(id)}
+    return unique(out);
+  }
+
   async function idsFor(t){
     const shard=await fetchJSON(`/data/v20-9/terms/${prefix(t)}.json?v=${DATA_VERSION}`);
     if(!shard)return[];
@@ -114,8 +128,8 @@
     return[];
   }
 
-  async function candidates(){
-    const groups=[];
+  async function candidates(samples={}){
+    const seed=balancedSampleIds(samples,4),groups=[];
     for(const t of tokens.slice(0,7)){
       const ids=await idsFor(t);
       if(ids.length)groups.push(ids);
@@ -130,12 +144,12 @@
       }
       if(!text.length)text=unique(groups.flat()).slice(0,420);
     }
-    if(text.length)return unique(text).slice(0,600);
+    if(text.length)return unique([...seed,...text]).slice(0,600);
     if(family){
       const f=await fetchJSON(`/data/v20-9/families.json?v=${DATA_VERSION}`);
-      return unique(f?.[family]||[]).slice(0,420);
+      return unique([...seed,...(f?.[family]||[])]).slice(0,600);
     }
-    return[];
+    return seed;
   }
 
   const roleName=r=>({main:"Main product",accessory:"Accessory",replacement_part:"Replacement part",used:"Used / refurbished"}[C(r)]||C(r||"Product").replaceAll("_"," "));
@@ -164,9 +178,9 @@
   }
 
   function prepareLoader(ids){
-    const by={};
-    for(const id of ids){const pre=id.slice(0,2);(by[pre]??=[]).push(id)}
-    loader.groups=Object.entries(by).sort((a,b)=>b[1].length-a[1].length);
+    const by={},order=[];
+    for(const id of ids){const pre=id.slice(0,2);if(!by[pre]){by[pre]=[];order.push(pre)}by[pre].push(id)}
+    loader.groups=order.map(pre=>[pre,by[pre]]);
     loader.cursor=0;loader.done=!loader.groups.length;loader.seen.clear();
   }
 
@@ -204,6 +218,27 @@
     return state.all.length;
   }
 
+  async function loadIds(ids){
+    const pending=unique(ids||[]).filter(id=>id&&!loader.seen.has(id));if(!pending.length)return 0;
+    const by={};for(const id of pending){const pre=id.slice(0,2);(by[pre]??=[]).push(id)}
+    const blocks=await Promise.all(Object.entries(by).map(async([pre,list])=>[list,await fetchJSON(`/data/v20-9/products/${pre}.json?v=${DATA_VERSION}`)||{}]));
+    let added=0;
+    for(const[list,bucket]of blocks)for(const id of list){loader.seen.add(id);const r=bucket[id];if(!r||!acceptRow(r)||state.all.some(x=>x.id===id))continue;state.all.push(r);added++;}
+    if(added)state.all.sort((a,b)=>b._score-a._score);
+    return added;
+  }
+  async function loadRepresentativeSellers(samples){
+    const ids=[];for(const seller of state.sellerUniverse){const id=(samples[seller]||[])[0];if(id)ids.push(id)}
+    await loadIds(ids);
+    state.sellerUniverse=state.sellerUniverse.filter(s=>state.all.some(r=>C(r.se)===s));
+  }
+  async function ensureSellerLoaded(seller){
+    const ids=state.sellerSamples[seller]||[];if(!ids.length)return;
+    const have=state.all.filter(r=>C(r.se)===seller).length;
+    if(have>=Math.min(6,ids.length))return;
+    await loadIds(ids);
+  }
+
   function compareItems(){try{const x=JSON.parse(localStorage.getItem("tp-v209-compare")||"[]");return Array.isArray(x)?x:[]}catch{return[]}}
   function setCompare(items){try{localStorage.setItem("tp-v209-compare",JSON.stringify(items.slice(0,3)))}catch{};$$('[data-compare-count]').forEach(el=>{el.textContent=String(items.length);el.toggleAttribute("hidden",!items.length)})}
   function addCompare(r,b){const items=compareItems();if(items.some(x=>(typeof x==="string"?x:x.id)===r.id)){location.href="/compare/";return}const first=items[0],ff=typeof first==="object"?C(first.fa):"";if(ff&&C(r.fa)&&ff!==C(r.fa)){b.textContent="Choose the same family";setTimeout(()=>b.textContent="Compare",1400);return}if(items.length>=3){b.textContent="Comparison is full";setTimeout(()=>b.textContent="Compare",1400);return}items.push({id:r.id,fa:C(r.fa),t:C(r.t),ty:C(r.ty)});setCompare(items);b.textContent="Added ✓"}
@@ -223,7 +258,7 @@
 
   function refreshSellerFilter(){
     const sel=$("[data-filter-merchant]");if(!sel)return;
-    const sellers=unique(state.all.map(r=>C(r.se)).filter(Boolean)).sort((a,b)=>a.localeCompare(b));
+    const sellers=unique([...state.sellerUniverse,...state.all.map(r=>C(r.se)).filter(Boolean)]).sort((a,b)=>a.localeCompare(b));
     const current=state.seller||sel.value||"";
     sel.innerHTML='<option value="">All sellers</option>'+sellers.map(s=>`<option value="${E(s)}">${E(s)}</option>`).join("");
     if(current&&sellers.includes(current)){sel.value=current;state.seller=current}else if(current){state.seller=""}
@@ -231,7 +266,7 @@
       state.filterBound=true;
       const key=`tp-v209-seller:${L(q)}`;let saved="";try{saved=sessionStorage.getItem(key)||""}catch{}
       if(saved&&sellers.includes(saved)){sel.value=saved;state.seller=saved}
-      sel.addEventListener("change",()=>{state.seller=sel.value;try{sessionStorage.setItem(key,state.seller)}catch{}filter()});
+      sel.addEventListener("change",async()=>{state.seller=sel.value;try{sessionStorage.setItem(key,state.seller)}catch{}if(state.seller){sel.disabled=true;try{await ensureSellerLoaded(state.seller)}finally{sel.disabled=false}}filter()});
       const sort=$("[data-filter-sort]");if(sort){state.sort=sort.value||"smart";sort.addEventListener("change",()=>{state.sort=sort.value||"smart";filter()})}
     }
   }
@@ -242,9 +277,17 @@
     draw();
   }
 
+  function firstPageRows(rows){
+    if(state.seller||!genericFamily||!state.sellerUniverse.length)return rows.slice(0,state.page);
+    const picked=[],used=new Set();
+    for(const seller of state.sellerUniverse){const r=rows.find(x=>C(x.se)===seller&&!used.has(x.id));if(r){picked.push(r);used.add(r.id)}}
+    for(const r of rows){if(picked.length>=state.page)break;if(!used.has(r.id)){picked.push(r);used.add(r.id)}}
+    return picked.slice(0,state.page);
+  }
+
   function draw(){
     const grid=$("[data-v2078-product-grid]");if(!grid)return;
-    const shown=state.filtered.slice(0,state.page);
+    const shown=firstPageRows(state.filtered);
     grid.innerHTML=shown.length?shown.map(card).join(""):`<div class="tp80-no-result"><h2>No products match these filters.</h2><p>Try All sellers, remove the budget filter, or search a more specific model or product code.</p></div>`;
     const count=$("[data-v2078-results-count]");if(count)count.textContent=`${state.filtered.length}${loader.done?"":"+"} matching`;
     const status=$("[data-v209-budget-status]");if(status)status.textContent=[`${state.filtered.length} loaded`,state.exactOnly?"exact-product prices only":"all price evidence"].join(" · ");
@@ -294,7 +337,9 @@
     navigation();buildBudget();setCompare(compareItems());if(!q)return;
     const grid=$("[data-v2078-product-grid]");if(!grid)return;
     grid.innerHTML='<div class="tp78-empty"><h3>Finding the best matches…</h3><p>Loading the most relevant products first.</p></div>';
-    const ids=await candidates();prepareLoader(ids);
+    const samples=await sellerFamilySamples();
+    const ids=await candidates(samples);prepareLoader(ids);
+    if(genericFamily&&Object.keys(samples).length)await loadRepresentativeSellers(samples);
     if(!ids.length){await logDemand();grid.innerHTML='<div class="tp80-no-result"><h2>We could not verify this product yet.</h2><p>Try a model, MPN, SKU, part number or a more specific phrase.</p><a href="/rare-used/">Explore Rare Finds</a></div>';const c=$("[data-v2078-results-count]");if(c)c.textContent="0 matching";return}
     const desired=genericFamily?12:6;
     await loadUntil(desired,{maxRounds:genericFamily?5:6,batchSize:6});
