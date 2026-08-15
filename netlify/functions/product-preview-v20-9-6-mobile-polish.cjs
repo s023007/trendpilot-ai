@@ -3,7 +3,8 @@ const previous = require("./product-preview-v20-9-6.cjs");
 function polish(body){
   if(!body || !/<html/i.test(body)) return body;
   if(!/trendpilot-calm-dark-v21\.css/i.test(body)) body=body.replace(/<\/head>/i,'<link rel="stylesheet" href="/css/trendpilot-calm-dark-v21.css?v=21.0.0"></head>');
-  body=body.replace(/<meta name="theme-color" content="[^"]*">/i,'<meta name="theme-color" content="#0d1630">');
+  if(!/trendpilot-graphite-navy-v21-1\.css/i.test(body)) body=body.replace(/<\/head>/i,'<link rel="stylesheet" href="/css/trendpilot-graphite-navy-v21-1.css?v=21.1.0"></head>');
+  body=body.replace(/<meta name="theme-color" content="[^"]*">/i,'<meta name="theme-color" content="#121721">');
 
   const css = `
 /* V20.9.6 mobile polish: presentation only; product/search/seller truth is unchanged. */
