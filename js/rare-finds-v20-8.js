@@ -10,7 +10,7 @@
     .replace(/^\s*\/+/,"")
     .replace(/\s+/g," ").trim();
   const money=r=>`${r.currency==="USD"?"US$":E((r.currency||"")+" ")}${Number(r.price).toLocaleString(undefined,{maximumFractionDigits:2})}`;
-  const internalDest=r=>r.seoUrl||`/rare-used/view/?id=${encodeURIComponent(r.id||"")}`;
+  const internalDest=r=>`/rare-used/view/?id=${encodeURIComponent(r.id||"")}`;
   function rarity(score){score=Number(score||0);if(score>=90)return`Exceptional find`;if(score>=80)return`Very rare`;if(score>=65)return`Hard to find`;return`Specialist find`}
   function priceInfo(r){if(!r.price)return{label:"Check current price"};return{label:money(r)}}
   const friendlySignal=s=>({"used-scarce":"Used & scarce","replacement-part":"Replacement part","collector":"Collector item","discontinued":"Discontinued","specialist":"Specialist"}[String(s)]||"");
