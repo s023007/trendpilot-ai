@@ -50,7 +50,7 @@
 [functions]
   included_files = ["netlify/functions/_product-data/*.json"]
 
-# TP_PRODUCT_PREVIEW_RUNTIME_V20_9_5_START
+# TP_PRODUCT_PREVIEW_RUNTIME_V20_9_6_START
 [[redirects]]
   from = "/product"
   to = "/find/?engine=v2064"
@@ -58,7 +58,7 @@
 
 [[redirects]]
   from = "/product/*"
-  to = "/.netlify/functions/product-preview-v20-9-5?slug=:splat"
+  to = "/.netlify/functions/product-preview-v20-9-6?slug=:splat"
   status = 200
   force = true
 
@@ -68,10 +68,13 @@
   to = "/404.html"
   status = 404
   force = true
-# TP_PRODUCT_PREVIEW_RUNTIME_V20_9_5_END
+# TP_PRODUCT_PREVIEW_RUNTIME_V20_9_6_END
 
 [functions."product-preview-v20-6-8-3"]
   included_files = ["data/shopper-v20-6/runtime-v20-6-8-3.json"]
 
 [functions."product-preview-v20-9-5"]
+  included_files = ["data/shopper-v20-6/runtime-v20-6-8-3.json"]
+
+[functions."product-preview-v20-9-6"]
   included_files = ["data/shopper-v20-6/runtime-v20-6-8-3.json"]
