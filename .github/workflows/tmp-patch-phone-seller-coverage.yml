@@ -1,0 +1,108 @@
+name: Temporary Phone Seller Coverage Patcher
+
+on:
+  push:
+    branches: [fix/phone-seller-coverage-20260815]
+    paths:
+      - '.github/workflows/tmp-patch-phone-seller-coverage.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+      - name: Patch seller-balanced product discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          p=Path('js/universal-discovery-v20-9-1.js')
+          s=p.read_text(encoding='utf-8')
+
+          def rep(old,new):
+              global s
+              if old not in s:
+                  raise SystemExit('missing patch target: '+old[:120])
+              s=s.replace(old,new,1)
+
+          rep('const RUNTIME_VERSION = "21.7.0";','const RUNTIME_VERSION = "21.9.0";')
+          rep('const state = {all:[],filtered:[],page:24,min:0,max:0,exactOnly:false,seller:"",sort:"smart",filterBound:false};',
+              'const state = {all:[],filtered:[],page:24,min:0,max:0,exactOnly:false,seller:"",sort:"smart",filterBound:false,sellerSamples:{},sellerUniverse:[]};')
+
+          old='''  const unique=a=>[...new Set(a)];\n  const intersect=(a,b)=>{const s=new Set(b);return a.filter(x=>s.has(x))};\n'''
+          new='''  const unique=a=>[...new Set(a)];\n  const intersect=(a,b)=>{const s=new Set(b);return a.filter(x=>s.has(x))};\n\n  async function sellerFamilySamples(){\n    if(!genericFamily||!family)return{};\n    const data=await fetchJSON(`/data/v20-9/seller-family-samples.json?v=${DATA_VERSION}`);\n    const fm=data?.families?.[family]||{};\n    state.sellerSamples=fm;\n    state.sellerUniverse=Object.keys(fm).filter(s=>!BLOCK.has(L(s))).sort((a,b)=>a.localeCompare(b));\n    return fm;\n  }\n  function balancedSampleIds(samples,perSeller=4){\n    const sellers=Object.keys(samples||{}).filter(s=>!BLOCK.has(L(s))).sort((a,b)=>a.localeCompare(b)),out=[];\n    for(let i=0;i<perSeller;i++)for(const seller of sellers){const id=(samples[seller]||[])[i];if(id)out.push(id)}\n    return unique(out);\n  }\n'''
+          rep(old,new)
+
+          old='''  async function candidates(){\n    const groups=[];\n    for(const t of tokens.slice(0,7)){\n      const ids=await idsFor(t);\n      if(ids.length)groups.push(ids);\n    }\n    let text=[];\n    if(groups.length){\n      groups.sort((a,b)=>a.length-b.length);\n      text=groups[0].slice();\n      for(const g of groups.slice(1)){\n        const z=intersect(text,g);\n        if(z.length)text=z;\n      }\n      if(!text.length)text=unique(groups.flat()).slice(0,420);\n    }\n    if(text.length)return unique(text).slice(0,600);\n    if(family){\n      const f=await fetchJSON(`/data/v20-9/families.json?v=${DATA_VERSION}`);\n      return unique(f?.[family]||[]).slice(0,420);\n    }\n    return[];\n  }\n'''
+          new='''  async function candidates(samples={}){\n    const seed=balancedSampleIds(samples,4),groups=[];\n    for(const t of tokens.slice(0,7)){\n      const ids=await idsFor(t);\n      if(ids.length)groups.push(ids);\n    }\n    let text=[];\n    if(groups.length){\n      groups.sort((a,b)=>a.length-b.length);\n      text=groups[0].slice();\n      for(const g of groups.slice(1)){\n        const z=intersect(text,g);\n        if(z.length)text=z;\n      }\n      if(!text.length)text=unique(groups.flat()).slice(0,420);\n    }\n    if(text.length)return unique([...seed,...text]).slice(0,600);\n    if(family){\n      const f=await fetchJSON(`/data/v20-9/families.json?v=${DATA_VERSION}`);\n      return unique([...seed,...(f?.[family]||[])]).slice(0,600);\n    }\n    return seed;\n  }\n'''
+          rep(old,new)
+
+          old='''  function prepareLoader(ids){\n    const by={};\n    for(const id of ids){const pre=id.slice(0,2);(by[pre]??=[]).push(id)}\n    loader.groups=Object.entries(by).sort((a,b)=>b[1].length-a[1].length);\n    loader.cursor=0;loader.done=!loader.groups.length;loader.seen.clear();\n  }\n'''
+          new='''  function prepareLoader(ids){\n    const by={},order=[];\n    for(const id of ids){const pre=id.slice(0,2);if(!by[pre]){by[pre]=[];order.push(pre)}by[pre].push(id)}\n    loader.groups=order.map(pre=>[pre,by[pre]]);\n    loader.cursor=0;loader.done=!loader.groups.length;loader.seen.clear();\n  }\n'''
+          rep(old,new)
+
+          old='''  async function loadUntil(target,{maxRounds=5,batchSize=6}={}){\n    let rounds=0;\n    while(state.all.length<target&&!loader.done&&rounds<maxRounds){\n      await fetchNextBatch(batchSize);rounds++;\n    }\n    return state.all.length;\n  }\n'''
+          new='''  async function loadUntil(target,{maxRounds=5,batchSize=6}={}){\n    let rounds=0;\n    while(state.all.length<target&&!loader.done&&rounds<maxRounds){\n      await fetchNextBatch(batchSize);rounds++;\n    }\n    return state.all.length;\n  }\n\n  async function loadIds(ids){\n    const pending=unique(ids||[]).filter(id=>id&&!loader.seen.has(id));if(!pending.length)return 0;\n    const by={};for(const id of pending){const pre=id.slice(0,2);(by[pre]??=[]).push(id)}\n    const blocks=await Promise.all(Object.entries(by).map(async([pre,list])=>[list,await fetchJSON(`/data/v20-9/products/${pre}.json?v=${DATA_VERSION}`)||{}]));\n    let added=0;\n    for(const[list,bucket]of blocks)for(const id of list){\n      loader.seen.add(id);const r=bucket[id];\n      if(!r||!acceptRow(r)||state.all.some(x=>x.id===id))continue;\n      state.all.push(r);added++;\n    }\n    if(added)state.all.sort((a,b)=>b._score-a._score);\n    return added;\n  }\n  async function loadRepresentativeSellers(samples){\n    const ids=[];for(const seller of state.sellerUniverse){const id=(samples[seller]||[])[0];if(id)ids.push(id)}\n    await loadIds(ids);\n    state.sellerUniverse=state.sellerUniverse.filter(s=>state.all.some(r=>C(r.se)===s));\n  }\n  async function ensureSellerLoaded(seller){\n    const ids=state.sellerSamples[seller]||[];if(!ids.length)return;\n    const have=state.all.filter(r=>C(r.se)===seller).length;\n    if(have>=Math.min(6,ids.length))return;\n    await loadIds(ids);\n  }\n'''
+          rep(old,new)
+
+          rep('const sellers=unique(state.all.map(r=>C(r.se)).filter(Boolean)).sort((a,b)=>a.localeCompare(b));',
+              'const sellers=unique([...state.sellerUniverse,...state.all.map(r=>C(r.se)).filter(Boolean)]).sort((a,b)=>a.localeCompare(b));')
+          rep('sel.addEventListener("change",()=>{state.seller=sel.value;try{sessionStorage.setItem(key,state.seller)}catch{}filter()});',
+              'sel.addEventListener("change",async()=>{state.seller=sel.value;try{sessionStorage.setItem(key,state.seller)}catch{}if(state.seller){sel.disabled=true;try{await ensureSellerLoaded(state.seller)}finally{sel.disabled=false}}filter()});')
+
+          old='''  function draw(){\n    const grid=$("[data-v2078-product-grid]");if(!grid)return;\n    const shown=state.filtered.slice(0,state.page);\n'''
+          new='''  function firstPageRows(rows){\n    if(state.seller||!genericFamily||!state.sellerUniverse.length)return rows.slice(0,state.page);\n    const picked=[],used=new Set();\n    for(const seller of state.sellerUniverse){const r=rows.find(x=>C(x.se)===seller&&!used.has(x.id));if(r){picked.push(r);used.add(r.id)}}\n    for(const r of rows){if(picked.length>=state.page)break;if(!used.has(r.id)){picked.push(r);used.add(r.id)}}\n    return picked.slice(0,state.page);\n  }\n\n  function draw(){\n    const grid=$("[data-v2078-product-grid]");if(!grid)return;\n    const shown=firstPageRows(state.filtered);\n'''
+          rep(old,new)
+
+          old='''    const ids=await candidates();prepareLoader(ids);\n    if(!ids.length){'''
+          new='''    const samples=await sellerFamilySamples();\n    const ids=await candidates(samples);prepareLoader(ids);\n    if(genericFamily&&Object.keys(samples).length)await loadRepresentativeSellers(samples);\n    if(!ids.length){'''
+          rep(old,new)
+
+          p.write_text(s,encoding='utf-8')
+
+          f=Path('find/index.html')
+          h=f.read_text(encoding='utf-8')
+          old='/js/universal-discovery-v20-9-1.js?v=21.3.3'
+          if old not in h: raise SystemExit('finder runtime version target missing')
+          h=h.replace(old,'/js/universal-discovery-v20-9-1.js?v=21.9.0',1)
+          f.write_text(h,encoding='utf-8')
+
+          w=Path('.github/workflows/trendpilot-v21-3-search-stability.yml')
+          y=w.read_text(encoding='utf-8')
+          y=y.replace("      - 'js/universal-discovery-v20-9-1.js'\n", "      - 'js/universal-discovery-v20-9-1.js'\n      - 'data/v20-9/seller-family-samples.json'\n")
+          marker="          assert f.count('universal-discovery-v20-9-1.js') == 1\n"
+          if marker not in y: raise SystemExit('workflow static marker missing')
+          y=y.replace(marker,marker+"          assert 'universal-discovery-v20-9-1.js?v=21.9.0' in f\n          assert Path('data/v20-9/seller-family-samples.json').exists()\n",1)
+          old="            out.checks.seller_filter_present=sellerValues.length>0;\n            if(sellerValues.length){\n              await seller.selectOption(sellerValues[0]);"
+          new="            out.checks.seller_filter_present=sellerValues.length>0;\n            const requiredPhoneSellers=['Alibaba','AliExpress','Geekbuying','TikTok Shop US','Sunsky-online WW'];\n            out.checks.phone_seller_coverage=requiredPhoneSellers.every(x=>sellerValues.includes(x));\n            const allSellerCards=await page.locator('[data-v209-card]').evaluateAll(xs=>xs.map(x=>x.getAttribute('data-v209-seller')));\n            out.details.allSellerCards=allSellerCards;\n            out.checks.all_sellers_include_aliexpress=allSellerCards.includes('AliExpress');\n            out.checks.all_sellers_include_tiktok=allSellerCards.includes('TikTok Shop US');\n            if(sellerValues.length){\n              await seller.selectOption(sellerValues.includes('AliExpress')?'AliExpress':sellerValues[0]);"
+          if old not in y: raise SystemExit('workflow seller test marker missing')
+          y=y.replace(old,new,1)
+          w.write_text(y,encoding='utf-8')
+          PY
+
+          node --check js/universal-discovery-v20-9-1.js
+          python <<'PY'
+          import json
+          from pathlib import Path
+          idx=json.loads(Path('data/v20-9/seller-family-samples.json').read_text())
+          phone=idx['families']['phone']
+          required={'Alibaba','AliExpress','Geekbuying','TikTok Shop US','Sunsky-online WW'}
+          assert required.issubset(phone), (required,set(phone))
+          s=Path('js/universal-discovery-v20-9-1.js').read_text()
+          assert 'sellerFamilySamples' in s and 'loadRepresentativeSellers' in s and 'firstPageRows' in s
+          assert 'RUNTIME_VERSION = "21.9.0"' in s
+          print('Phone seller coverage patch PASS', sorted(phone))
+          PY
+
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add js/universal-discovery-v20-9-1.js find/index.html .github/workflows/trendpilot-v21-3-search-stability.yml
+          git commit -m 'Restore full seller coverage for generic product search'
+          git push origin HEAD:fix/phone-seller-coverage-20260815
