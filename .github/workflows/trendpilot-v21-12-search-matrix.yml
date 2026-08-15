@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/trendpilot-v21-12-search-matrix.yml
+      - scripts/qa-v21-12-search-matrix.mjs
   workflow_dispatch:
 
 permissions:
@@ -13,7 +14,7 @@ permissions:
 jobs:
   search-matrix:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v5
         with:
