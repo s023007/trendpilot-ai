@@ -1,0 +1,164 @@
+import { chromium } from 'playwright';
+import fs from 'node:fs/promises';
+
+const BASE=(process.env.TP_BASE_URL||'https://trendpilotchoice.com').replace(/\/$/,'');
+const OUT='artifacts/v21-12-final';
+await fs.mkdir(OUT,{recursive:true});
+const report={version:'21.12.0',base:BASE,started:new Date().toISOString(),checks:{},failures:[],warnings:[],pages:{},network:[],passed:false};
+const check=(name,ok,detail='')=>{report.checks[name]=Boolean(ok);if(!ok)report.failures.push({name,detail:String(detail||'')});return Boolean(ok)};
+const warn=(name,detail='')=>report.warnings.push({name,detail:String(detail||'')});
+const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
+const blocked=/\b(?:Temu|Joom|FilamentPRO)\b/i;
+const accessory=/\b(?:case|cover|protector|tempered glass|holder|mount|stand|tripod|strap|lanyard|charger|charging cable|usb cable|replacement|repair|spare part|screen|digitizer|battery for|tool kit)\b/i;
+const footwear=/\b(?:shoe|shoes|sneaker|sneakers|boot|boots|sandal|sandals|slipper|slippers|loafer|loafers|heel|heels)\b/i;
+
+const browser=await chromium.launch({headless:true});
+const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.75,isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/151.0.0.0 Mobile Safari/537.36'});
+const page=await context.newPage();
+page.setDefaultTimeout(30000);
+page.on('pageerror',e=>report.network.push({kind:'pageerror',url:page.url(),message:String(e)}));
+page.on('requestfailed',r=>{const u=r.url();if(u.startsWith(BASE))report.network.push({kind:'requestfailed',url:u,message:r.failure()?.errorText||''})});
+page.on('response',r=>{const u=r.url();if(u.startsWith(BASE)&&r.status()>=400&&!/\.(?:png|jpe?g|webp|gif|svg)(?:\?|$)/i.test(u))report.network.push({kind:'http',url:u,status:r.status()})});
+
+async function goto(path,name){
+  const t=Date.now();
+  try{await page.goto(`${BASE}${path}`,{waitUntil:'domcontentloaded',timeout:90000});await page.waitForSelector('body');}
+  catch(e){check(`${name}_loads`,false,String(e));return false}
+  const ms=Date.now()-t;report.pages[name]={path:locationSafe(path),ms,url:page.url()};check(`${name}_loads`,true,`${ms}ms`);if(ms>20000)warn(`${name}_slow_load`,`${ms}ms`);return true;
+}
+const locationSafe=p=>String(p);
+async function noOverflow(name){const x=await page.evaluate(()=>({w:document.documentElement.scrollWidth,v:document.documentElement.clientWidth}));check(`${name}_no_horizontal_overflow`,x.w<=x.v+3,JSON.stringify(x));}
+async function screenshot(name){try{await page.screenshot({path:`${OUT}/${name}.png`,fullPage:true})}catch{}}
+async function waitCards(sel,timeout=30000){try{await page.waitForFunction(s=>document.querySelectorAll(s).length>0,sel,{timeout});return true}catch{return false}}
+async function textOf(sel){return clean(await page.locator(sel).first().textContent().catch(()=>''));}
+async function contrast(sel){return await page.locator(sel).first().evaluate(el=>{const parse=s=>{const m=String(s).match(/rgba?\((\d+)\D+(\d+)\D+(\d+)/);return m?m.slice(1,4).map(Number):null};const lum=rgb=>{if(!rgb)return null;const a=rgb.map(v=>{v/=255;return v<=.03928?v/12.92:((v+.055)/1.055)**2.4});return .2126*a[0]+.7152*a[1]+.0722*a[2]};let bg=null,n=el;while(n&&!bg){const c=parse(getComputedStyle(n).backgroundColor);if(c&&c.some(v=>v<250)){bg=c;break}n=n.parentElement}const fg=parse(getComputedStyle(el).color),L1=lum(fg),L2=lum(bg||[255,255,255]);if(L1==null||L2==null)return 0;return (Math.max(L1,L2)+.05)/(Math.min(L1,L2)+.05)}).catch(()=>0)}
+
+try{
+  // 01 Home
+  if(await goto('/','home')){
+    check('home_brand',await page.locator('.tp-brand').count()>0);
+    check('home_search',await page.locator('input[data-tp-finder-input]').count()>0);
+    const catCount=await page.locator('.tp-category-card').count();check('home_categories',catCount>=8,`count=${catCount}`);
+    check('home_no_blocked_seller_copy',!blocked.test(await page.locator('body').innerText()));
+    const menu=page.locator('[data-tp-menu-button]').first();if(await menu.count()){await menu.click();await page.waitForTimeout(150);check('home_mobile_menu_opens',await page.locator('[data-tp-nav]').first().isVisible());await page.locator('[data-tp-menu-close]').first().click().catch(()=>{});}
+    const input=page.locator('input[data-tp-finder-input]').first();await input.fill('shoes');await page.waitForTimeout(900);
+    const firstSuggestion=clean(await page.locator('.tp-v20-suggest .tp-amazon-row b').first().textContent().catch(()=>''));
+    check('autocomplete_preserves_exact_typed_query',firstSuggestion.toLowerCase()==='shoes',`first=${firstSuggestion}`);
+    await input.press('Enter');await page.waitForURL(u=>u.pathname.startsWith('/find/'),{timeout:30000}).catch(()=>{});
+    const u=new URL(page.url());check('enter_search_preserves_shoes',u.pathname.startsWith('/find/')&&u.searchParams.get('q')==='shoes',u.href);
+  }
+
+  // 02-03 Search / Find
+  if(page.url().includes('/find/')){
+    await page.waitForTimeout(1200);
+    const qv=await page.locator('[data-tp-finder-input]').inputValue().catch(()=>'');check('finder_keeps_query_in_box',qv.toLowerCase()==='shoes',qv);
+    const hasShoes=await waitCards('.tp78-card',35000);check('shoes_returns_results',hasShoes);
+    if(hasShoes){
+      const titles=(await page.locator('.tp78-card h3').allTextContents()).slice(0,12).map(clean);const good=titles.filter(t=>footwear.test(t)&&!accessory.test(t));
+      check('shoes_result_purity',good.length>=Math.max(1,Math.ceil(titles.length*.65)),JSON.stringify({titles,good:good.length}));
+      check('search_results_no_blocked_sellers',!blocked.test((await page.locator('.tp78-card').allTextContents()).join(' ')));
+    }
+    const sellerOptions=await page.locator('[data-filter-merchant] option').allTextContents().catch(()=>[]);check('seller_filter_no_blocked_sellers',!blocked.test(sellerOptions.join(' ')),sellerOptions.join(' | '));
+    const fInput=page.locator('[data-tp-finder-input]');await fInput.fill('sho');await page.waitForTimeout(800);const suggestions=(await page.locator('.tp-v20-suggest .tp-amazon-row b').allTextContents()).map(clean);check('shoe_prefix_suggestion',suggestions.some(x=>x.toLowerCase()==='shoes'),suggestions.join(' | '));
+  }
+  await goto('/find/?q=phone&engine=v2064','finderPhone');
+  const phoneCards=await waitCards('.tp78-card',35000);check('phone_returns_results',phoneCards);
+  let compareIds=[];
+  if(phoneCards){
+    const titles=(await page.locator('.tp78-card h3').allTextContents()).slice(0,12).map(clean);const bad=titles.filter(t=>accessory.test(t));check('phone_result_purity',bad.length===0,JSON.stringify({titles,bad}));
+    const links=await page.locator('.tp78-card a[href*="/item/?id="]').evaluateAll(as=>as.map(a=>a.getAttribute('href'))).catch(()=>[]);
+    compareIds=[...new Set(links.map(h=>{try{return new URL(h,location.origin).searchParams.get('id')}catch{return null}}).filter(Boolean))].slice(0,2);
+  }
+  await noOverflow('finder_phone');await screenshot('finder-phone-mobile');
+
+  // 04 Product detail
+  if(compareIds[0]){
+    await goto(`/item/?id=${encodeURIComponent(compareIds[0])}&q=phone`,'item');
+    try{await page.waitForSelector('[data-tp85-detail]:not([hidden])',{timeout:30000})}catch{}
+    const itemVisible=await page.locator('[data-tp85-detail]:not([hidden])').count()>0;check('item_detail_visible',itemVisible);
+    if(itemVisible){
+      const summary=await textOf('[data-tp85-summary]');check('item_has_plain_summary',summary.length>=80,summary);
+      check('item_has_seller',Boolean(await textOf('[data-tp85-fact-seller]')));
+      check('item_hides_internal_ids',!/\bTP(?:ID|VID|OID)\b/i.test(await page.locator('main').innerText()));
+      const href=await page.locator('[data-tp85-seller-link]').getAttribute('href').catch(()=>'');check('item_has_safe_seller_exit',Boolean(href&&href!=='#'),href||'');
+      const ratio=await contrast('[data-tp85-title]');check('item_title_contrast',ratio>=4,`ratio=${ratio}`);
+    }
+    await noOverflow('item');await screenshot('item-mobile');
+  } else warn('item_not_tested','No product id recovered from finder cards');
+
+  // 08 Compare
+  if(compareIds.length){
+    await page.goto(`${BASE}/compare/`,{waitUntil:'domcontentloaded'});await page.evaluate(ids=>localStorage.setItem('tp-v209-compare',JSON.stringify(ids)),compareIds);await page.reload({waitUntil:'domcontentloaded'});await page.waitForTimeout(1600);
+    const comps=await page.locator('.tp90-product').count();check('compare_renders_saved_products',comps>=1,`count=${comps}`);check('compare_no_blocked_sellers',!blocked.test(await page.locator('main').innerText()));await noOverflow('compare');await screenshot('compare-mobile');
+  }
+
+  // 09 Deals
+  if(await goto('/deals/','deals')){
+    await page.waitForTimeout(2500);const body=await page.locator('main').innerText();check('deals_no_blocked_sellers',!blocked.test(body),body.match(blocked)?.[0]||'');
+    check('deals_has_product_or_empty_state',await page.locator('[data-tp-deal-products]').count()>0);
+    check('deals_has_coupon_area',await page.locator('[data-tp-coupon-grid]').count()>0);await noOverflow('deals');
+  }
+
+  // 06-07 Rare Finds
+  if(await goto('/rare-used/','rare')){
+    const rareCards=await waitCards('.tp80-rare-card',30000);check('rare_has_cards',rareCards);
+    if(rareCards){
+      const cards=await page.locator('.tp80-rare-card').count(),summaries=await page.locator('.tp80-rare-card .tp80-rare-summary').count();check('rare_cards_have_plain_descriptions',summaries===cards,`cards=${cards}, summaries=${summaries}`);
+      const href=await page.locator('.tp80-rare-card .tp80-primary').first().getAttribute('href');check('rare_view_details_uses_maintained_view',String(href).startsWith('/rare-used/view/?id='),href||'');
+      await page.goto(`${BASE}${href}`,{waitUntil:'domcontentloaded'});await page.waitForSelector('.tp80-detail-summary',{timeout:30000});
+      const s=await textOf('.tp80-detail-summary');check('rare_detail_has_plain_summary',s.length>=80,s);check('rare_detail_explains_product',/What is this product\?/i.test(await page.locator('main').innerText()));check('rare_detail_explains_rarity',/Why it is in Rare Finds/i.test(await page.locator('main').innerText()));
+      const ratio=await contrast('.tp80-detail-copy h1');check('rare_detail_title_contrast',ratio>=4,`ratio=${ratio}`);await screenshot('rare-detail-mobile');
+    }
+    await goto('/rare-used/?q=phone','rarePhone');await page.waitForTimeout(1200);check('rare_search_stays_in_rare',new URL(page.url()).pathname.startsWith('/rare-used/'),page.url());check('rare_search_preserves_query',(await page.locator('[data-rare-query]').inputValue().catch(()=>''))==='phone');
+    const seo=await page.evaluate(async()=>{try{const r=await fetch('/data/v20-8/rare-index.json?v=20.8.9');const j=await r.json();return j.find(x=>x.seoUrl)?.seoUrl||''}catch{return''}});
+    if(seo){await goto(seo,'rareSeo');const css=await page.evaluate(()=>[...document.styleSheets].some(s=>String(s.href||'').includes('trendpilot-v21-2-1-final.css?v=21.12.0')));check('rare_static_seo_current_theme',css);check('rare_static_seo_plain_explanation',/What is this product\?/i.test(await page.locator('main').innerText()));}
+    await noOverflow('rare');
+  }
+
+  // 10-11 Tickets
+  if(await goto('/tickets/','tickets')){
+    const tcards=await waitCards('.tp-ticket-v141-card',30000);check('tickets_have_cards',tcards);
+    if(tcards){const text=await page.locator('main').innerText();check('tickets_no_legacy_quick_view',!(/\bQuick view\b/i.test(text)));check('tickets_no_placeholder_price',!(/\bCheck with seller\b/i.test(text)));const direct=await page.locator('.tp-ticket-v141-card a.primary[target="_blank"]').count();check('tickets_direct_seller_cta',direct>0,`count=${direct}`);const bad=await page.locator('.tp-ticket-v141-card').evaluateAll(cards=>cards.filter(c=>c.querySelector('a[href^="/ticket/?id="]')&&!c.querySelector('.tp-ticket-v141-facts')).length);check('tickets_no_empty_detail_links',bad===0,`count=${bad}`)}
+    await noOverflow('tickets');await screenshot('tickets-mobile');
+  }
+
+  // 12 Saved products
+  if(await goto('/price-watch/','saved')){
+    await page.waitForTimeout(1200);const text=await page.locator('main').innerText();check('saved_explains_local_storage',/stored on this device/i.test(text));check('saved_does_not_claim_live_monitoring',!(/we monitor|automatic price alert|tracking prices now/i.test(text)));
+  }
+
+  // 13 Products tool
+  if(await goto('/products/','products')){
+    const form=page.locator('[data-tp-tool-form]').first();check('products_tool_form_exists',await form.count()>0);if(await form.count()){await form.locator('input[name="q"]').fill('projector');await form.locator('button[type="submit"]').click();await page.waitForTimeout(700);check('products_tool_submit_routes_to_search',new URL(page.url()).pathname.startsWith('/find/'),page.url());}
+  }
+
+  // 14 Guides
+  if(await goto('/guides/','guides')){const n=await page.locator('.tp-guide-card').count();check('guides_have_useful_cards',n>=6,`count=${n}`);check('guides_no_placeholder_copy',!(/lorem ipsum|coming soon/i.test(await page.locator('main').innerText())));}
+
+  // 15 Sourcing / Wholesale / Software
+  if(await goto('/sourcing/','sourcing')){
+    const f=page.locator('[data-tp-tool-form]').first();if(await f.count()){await f.locator('input[name="q"]').fill('custom power bank');await f.locator('button[type="submit"]').click();await page.waitForTimeout(700);const path=new URL(page.url()).pathname;check('sourcing_tool_submit_routes_to_results',path.startsWith('/wholesale/')||path.startsWith('/find/'),page.url());}else check('sourcing_tool_form_exists',false);
+  }
+  await goto('/wholesale/','wholesale');const wcards=await waitCards('.tp-wholesale-card',30000);check('wholesale_has_results',wcards);if(wcards){const text=await page.locator('main').innerText();check('wholesale_no_blocked_sellers',!blocked.test(text));check('wholesale_no_false_exact_cta',!(/Open listing/i.test(text)),text.slice(0,400));}
+  if(await goto('/software/','software')){
+    const f=page.locator('[data-tp-tool-form]').first();check('software_tool_form_exists',await f.count()>0);if(await f.count()){await f.locator('input[name="q"]').fill('PDF editor');await f.locator('button[type="submit"]').click();await page.waitForTimeout(700);check('software_tool_submit_has_effect',!new URL(page.url()).pathname.startsWith('/software/')||new URL(page.url()).search.length>0,page.url());}
+  }
+
+  // 16-18 Navigation, visual/mobile
+  await goto('/','homeNav');const internal=await page.locator('a[href^="/"]').evaluateAll(as=>[...new Set(as.map(a=>a.getAttribute('href')).filter(Boolean))].slice(0,24));let badLinks=[];for(const href of internal){try{const r=await context.request.get(`${BASE}${href}`,{timeout:20000,failOnStatusCode:false});if(r.status()>=400)badLinks.push([href,r.status()])}catch(e){badLinks.push([href,'ERR'])}}check('core_internal_links_resolve',badLinks.length===0,JSON.stringify(badLinks));await noOverflow('home_nav');
+
+  // 22 404
+  await goto('/__trendpilot_final_audit_missing_page__','notFound');const nf=await page.locator('body').innerText();check('404_clear_recovery',/Page not found|page is no longer here/i.test(nf));check('404_single_header',(await page.locator('header').count())===1,`headers=${await page.locator('header').count()}`);check('404_single_footer',(await page.locator('footer').count())===1,`footers=${await page.locator('footer').count()}`);check('404_no_old_domain',!(await page.content()).includes('trendpilot-ai.netlify.app'));
+
+  // 17 desktop spot check
+  const dc=await browser.newContext({viewport:{width:1365,height:900}}),dp=await dc.newPage();for(const [name,path] of [['home','/'],['find','/find/?q=phone&engine=v2064'],['rare','/rare-used/'],['tickets','/tickets/']]){try{await dp.goto(`${BASE}${path}`,{waitUntil:'domcontentloaded',timeout:90000});await dp.waitForTimeout(700);const ov=await dp.evaluate(()=>document.documentElement.scrollWidth<=document.documentElement.clientWidth+3);check(`desktop_${name}_no_horizontal_overflow`,ov)}catch(e){check(`desktop_${name}_loads`,false,String(e))}}await dc.close();
+
+  // 23 same-origin runtime health
+  const badRuntime=report.network.filter(x=>x.kind==='pageerror'||x.kind==='requestfailed'||(x.kind==='http'&&Number(x.status)>=500));check('runtime_no_critical_browser_network_errors',badRuntime.length===0,JSON.stringify(badRuntime.slice(0,20)));
+
+}catch(e){report.failures.push({name:'qa_unhandled_error',detail:String(e?.stack||e)});}
+report.finished=new Date().toISOString();report.passed=report.failures.length===0&&Object.values(report.checks).every(Boolean);
+await fs.writeFile(`${OUT}/report.json`,JSON.stringify(report,null,2));
+console.log(JSON.stringify({passed:report.passed,failures:report.failures,warnings:report.warnings,checks:Object.keys(report.checks).length},null,2));
+await browser.close();
+if(!report.passed)process.exit(1);
