@@ -1,6 +1,6 @@
 {
   "version": "0.8.0",
-  "generatedAt": "2026-08-14T04:45:56+00:00",
+  "generatedAt": "2026-08-15T03:37:34+00:00",
   "publicationMode": "manual-review",
   "sources": [
     {
@@ -33,7 +33,7 @@
       "type": "rss",
       "label": "Google Trends — Oman",
       "status": "processed",
-      "signals": 10
+      "signals": 8
     },
     {
       "id": "google-sa",
@@ -89,7 +89,7 @@
       "type": "stackexchange",
       "label": "Stack Overflow — hot questions",
       "status": "processed",
-      "signals": 7
+      "signals": 3
     },
     {
       "id": "youtube-tech-us",
@@ -109,20 +109,20 @@
     }
   ],
   "counters": {
-    "rawSignals": 197,
-    "blockedSignals": 3,
-    "nonCommercialSignals": 184,
-    "softwareCommercialSignals": 10,
+    "rawSignals": 191,
+    "blockedSignals": 7,
+    "nonCommercialSignals": 177,
+    "softwareCommercialSignals": 7,
     "ambiguousSignals": 0,
     "lowScoreSignals": 0,
     "insufficientEvidence": 0,
-    "unmonetisableSignals": 10,
-    "noConfirmedAffiliateRoute": 10,
+    "unmonetisableSignals": 7,
+    "noConfirmedAffiliateRoute": 7,
     "projectOnlyWithoutAffiliateRoute": 0,
     "purgedStaleCandidates": 0,
     "reviewCandidates": 3,
-    "readyForApproval": 1,
-    "publishedApprovedTrends": 1,
+    "readyForApproval": 2,
+    "publishedApprovedTrends": 3,
     "approvalHeldForEvidence": 0
   },
   "note": "New trends are held for review. Sensitive, ambiguous and weakly evidenced signals are blocked before publication."
