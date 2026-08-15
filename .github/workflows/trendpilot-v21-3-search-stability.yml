@@ -73,7 +73,6 @@ jobs:
           assert '[a-f0-9]{12,40}' in detail
           assert 'tp(?:id|vid|oid)' in detail
 
-          # Finder cards stay polished for shoppers.
           assert "document.querySelectorAll('.tp80-universal-meta').forEach(el=>el.hidden=true)" in language
           print('Static shopper contract PASS')
           PY
@@ -127,7 +126,7 @@ jobs:
             await page.goto(`${BASE}/find/`,{waitUntil:'domcontentloaded'});
             const input=page.locator('[data-tp-finder-input]');
             await input.fill('B');
-            await page.waitForTimeout(1200);
+            await page.waitForFunction(()=>document.querySelectorAll('.tp-amazon-row').length>0,null,{timeout:15000}).catch(()=>{});
             const suggestions=await page.locator('.tp-amazon-row b').allTextContents();
             out.details.bSuggestions=suggestions;
             out.checks.b_prefix_only=suggestions.length>0 && suggestions.every(x=>x.trim().toLowerCase().startsWith('b'));
@@ -141,8 +140,13 @@ jobs:
 
             async function search(q){
               await page.goto(`${BASE}/find/?q=${encodeURIComponent(q)}&engine=v2064&universal=1`,{waitUntil:'domcontentloaded'});
-              await page.waitForFunction(()=>document.querySelectorAll('.tp78-card').length>0 || !!document.querySelector('.tp80-no-result,.tp78-empty'),null,{timeout:70000});
-              await sleep(900);
+              await page.waitForFunction(()=>{
+                if(document.querySelectorAll('.tp78-card').length>0)return true;
+                const empty=document.querySelector('.tp78-empty');
+                const text=(empty?.textContent||'').replace(/\s+/g,' ').trim();
+                return !!empty && !!text && !/What are you looking for\?|Start with a product/i.test(text);
+              },null,{timeout:70000});
+              await sleep(700);
               return page.locator('.tp78-card');
             }
 
@@ -173,11 +177,11 @@ jobs:
             out.checks.seller_filter_present=sellerValues.length>0;
             if(sellerValues.length){
               await seller.selectOption(sellerValues[0]);
-              await page.waitForTimeout(250);
+              await page.waitForTimeout(700);
               const filtered=await page.locator('[data-v209-card]').evaluateAll(xs=>xs.map(x=>x.getAttribute('data-v209-seller')));
               out.checks.seller_filter_applies=filtered.length>0 && filtered.every(x=>x===sellerValues[0]);
               await seller.selectOption('');
-              await page.waitForTimeout(250);
+              await page.waitForTimeout(700);
               const allCount=await page.locator('[data-v209-card]').count();
               out.checks.all_sellers_restores=allCount>=filtered.length;
             } else {
