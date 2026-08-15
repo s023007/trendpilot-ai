@@ -2,7 +2,7 @@
   "use strict";
 
   const DATA_VERSION = "20.9.0";
-  const RUNTIME_VERSION = "21.9.0";
+  const RUNTIME_VERSION = "21.10.1";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -100,8 +100,14 @@
 
   async function sellerFamilySamples(){
     if(!genericFamily||!family)return{};
-    const data=await fetchJSON(`/data/v20-9/seller-family-samples.json?v=${DATA_VERSION}`);
-    const fm=data?.families?.[family]||{};
+    let fm={};
+    if(family==="phone"){
+      const data=await fetchJSON(`/data/v20-9/phone-device-samples.json?v=21.10.1`);
+      fm=data?.sellers||{};
+    }else{
+      const data=await fetchJSON(`/data/v20-9/seller-family-samples.json?v=${DATA_VERSION}`);
+      fm=data?.families?.[family]||{};
+    }
     state.sellerSamples=fm;
     state.sellerUniverse=Object.keys(fm).filter(s=>!BLOCK.has(L(s))).sort((a,b)=>a.localeCompare(b));
     return fm;
@@ -129,6 +135,9 @@
   }
 
   async function candidates(samples={}){
+    if(genericFamily&&family==="phone"&&Object.keys(samples).length){
+      return unique(Object.values(samples).flat()).slice(0,600);
+    }
     const seed=balancedSampleIds(samples,4),groups=[];
     for(const t of tokens.slice(0,7)){
       const ids=await idsFor(t);
