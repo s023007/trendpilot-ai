@@ -1,0 +1,162 @@
+name: TrendPilot V21 — Public Dark Surface Hotfix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-public-contrast-hotfix.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v21-public-dark-surface-hotfix
+  cancel-in-progress: true
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Apply high-specificity dark header and product cards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+          p=Path('css/v20-7-shopper-experience.css')
+          s=p.read_text(encoding='utf-8')
+          marker='/* TP_V21_PUBLIC_DARK_SURFACE_HOTFIX */'
+          if marker not in s:
+            s += r'''
+
+/* TP_V21_PUBLIC_DARK_SURFACE_HOTFIX */
+body.v207-public .tp-header{
+  background:rgba(10,18,39,.92)!important;
+  color:#f7f9fd!important;
+  border-bottom:1px solid rgba(219,232,255,.14)!important;
+  box-shadow:none!important;
+  backdrop-filter:blur(18px) saturate(125%)!important;
+}
+body.v207-public .tp-brand,body.v207-public .tp-brand span{color:#f7f9fd!important}
+body.v207-public .tp-brand em{color:#63ddd0!important}
+body.v207-public .tp-menu-button{background:rgba(255,255,255,.055)!important;border-color:rgba(219,232,255,.2)!important;box-shadow:none!important}
+body.v207-public .tp-menu-button span{background:#f7f9fd!important}
+body.v207-public .tp-links{background:rgba(13,22,48,.98)!important;color:#f7f9fd!important}
+body.v207-public .tp-links a{color:#f7f9fd!important}
+
+body.v207-public .tp78-card,
+body.v207-public .tp-product-grid>:not(.tp-empty),
+body.v207-public .tp-product-card,
+body.v207-public .tp-offer-card,
+body.v207-public [data-tp-product-card],
+body.v207-public [data-v207-card="1"]{
+  background:linear-gradient(155deg,rgba(28,44,77,.98),rgba(19,32,58,.99))!important;
+  color:#f7f9fd!important;
+  border-color:rgba(219,232,255,.14)!important;
+  box-shadow:0 14px 36px rgba(2,8,23,.2)!important;
+}
+body.v207-public .tp78-card h3,
+body.v207-public .tp78-card h3 a,
+body.v207-public [data-v207-card="1"] h2,
+body.v207-public [data-v207-card="1"] h3,
+body.v207-public [data-v207-card="1"] .product-title,
+body.v207-public [data-v207-card="1"] [data-product-title],
+body.v207-public [data-v207-card="1"] strong,
+body.v207-public [data-v207-card="1"] .price,
+body.v207-public [data-v207-card="1"] [data-price]{color:#f7f9fd!important}
+body.v207-public .tp78-meta,
+body.v207-public .tp78-description,
+body.v207-public [data-v207-card="1"] p,
+body.v207-public [data-v207-card="1"] small{color:#c1cce0!important}
+body.v207-public .tp78-brand{color:#63ddd0!important}
+body.v207-public .tp78-source{background:rgba(255,255,255,.08)!important;color:#d7dfed!important}
+body.v207-public .tp78-media,
+body.v207-public [data-v207-card="1"] img{background:#f7f9fc!important}
+body.v207-public .v207-explain{background:rgba(255,255,255,.055)!important;color:#c1cce0!important;border-color:rgba(219,232,255,.1)!important}
+body.v207-public .v207-role-note{background:rgba(99,221,208,.12)!important;color:#9cf4e8!important}
+body.v207-public .tp78-icon{background:rgba(255,255,255,.065)!important;color:#eef3fb!important;border-color:rgba(219,232,255,.14)!important}
+body.v207-public .tp78-live{background:rgba(255,199,92,.12)!important;color:#ffdc98!important}
+body.v207-public .tp-load-more,body.v207-public .tp78-load-more{background:rgba(255,255,255,.055)!important;color:#dce5ff!important;border-color:rgba(219,232,255,.16)!important}
+'''
+            p.write_text(s,encoding='utf-8')
+            print('Appended V21 public dark-surface override')
+          else:
+            print('V21 public dark-surface override already present')
+          PY
+
+      - name: Commit presentation hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add css/v20-7-shopper-experience.css
+          if git diff --cached --quiet; then
+            echo 'No hotfix changes to commit.'
+          else
+            git commit -m 'TrendPilot V21 darken public header and product cards'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Wait for hotfix deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 36); do
+            if curl -fsSL --max-time 20 'https://trendpilotchoice.com/css/v20-7-shopper-experience.css?v=20.9.0' | grep -q 'TP_V21_PUBLIC_DARK_SURFACE_HOTFIX'; then
+              echo 'V21 public dark-surface hotfix is live.'
+              exit 0
+            fi
+            echo "Waiting for hotfix deploy ($i/36)"
+            sleep 10
+          done
+          exit 1
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Chromium
+        shell: bash
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Verify dark header and readable dark cards on Android
+        shell: bash
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: |
+          node <<'NODE'
+          const {chromium}=require('playwright');
+          (async()=>{
+            const b=await chromium.launch({headless:true});
+            const c=await b.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2.75});
+            const p=await c.newPage();
+            await p.goto(process.env.TP_BASE_URL+'/find/?q=phone&engine=v2064',{waitUntil:'domcontentloaded',timeout:90000});
+            await p.waitForSelector('.tp78-card');
+            const x=await p.evaluate(()=>{
+              const h=document.querySelector('.tp-header');
+              const card=document.querySelector('.tp78-card');
+              const title=card?.querySelector('h3 a,h3');
+              const media=card?.querySelector('.tp78-media');
+              return {header:getComputedStyle(h).backgroundColor,card:getComputedStyle(card).backgroundImage,cardColor:getComputedStyle(card).color,title:getComputedStyle(title).color,media:getComputedStyle(media).backgroundColor};
+            });
+            console.log(JSON.stringify(x,null,2));
+            if(/255, 255, 255/.test(x.header))throw new Error('Header is still white');
+            if(!/gradient/i.test(x.card))throw new Error('Product card is not dark gradient');
+            if(!/247, 249, 253|255, 255, 255/.test(x.title))throw new Error('Product title is not light');
+            if(!/247, 249, 252|255, 255, 255/.test(x.media))throw new Error('Product image area is not light');
+            await b.close();
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
