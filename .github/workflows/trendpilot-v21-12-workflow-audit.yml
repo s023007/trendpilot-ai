@@ -19,7 +19,7 @@ jobs:
         with:
           ref: main
           fetch-depth: 1
-      - name: Audit workflow triggers and writers
+      - name: Audit final workflow triggers and writers after pruning
         run: python scripts/audit-v21-12-workflows.py
       - name: Upload workflow audit
         uses: actions/upload-artifact@v4
