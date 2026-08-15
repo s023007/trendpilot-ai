@@ -1,0 +1,81 @@
+name: TrendPilot V21.1 Mobile Visual Verify
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-1-mobile-verify.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Confirm V21.1 is publicly served
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCT='https://trendpilotchoice.com/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/'
+          for i in $(seq 1 24); do
+            css=0; home=0; finder=0; product=0
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/css/trendpilot-graphite-navy-v21-1.css?v=21.1.0' -o /tmp/v211.css || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/' -o /tmp/v211-home.html || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/v211-find.html || true
+            curl -fsSL --max-time 20 "$PRODUCT" -o /tmp/v211-product.html || true
+            grep -q -- '--tp211-bg:#121721' /tmp/v211.css 2>/dev/null && css=1 || true
+            grep -q 'trendpilot-graphite-navy-v21-1.css?v=21.1.0' /tmp/v211-home.html 2>/dev/null && home=1 || true
+            grep -q 'trendpilot-graphite-navy-v21-1.css?v=21.1.0' /tmp/v211-find.html 2>/dev/null && finder=1 || true
+            grep -q 'trendpilot-graphite-navy-v21-1.css?v=21.1.0' /tmp/v211-product.html 2>/dev/null && product=1 || true
+            echo "V21.1 public check $i/24: css=$css home=$home finder=$finder product=$product"
+            if [ "$css" = 1 ] && [ "$home" = 1 ] && [ "$finder" = 1 ] && [ "$product" = 1 ]; then exit 0; fi
+            sleep 5
+          done
+          exit 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Chromium
+        shell: bash
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Run Android visual and contrast checks
+        shell: bash
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: |
+          mkdir -p artifacts/v21-1-verify
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');
+          const parse=s=>{const m=String(s).match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);return m?m.slice(1,4).map(Number):null};
+          const L=a=>a.map(x=>{x/=255;return x<=.04045?x/12.92:Math.pow((x+.055)/1.055,2.4)}).reduce((s,x,i)=>s+x*[.2126,.7152,.0722][i],0);
+          const CR=(a,b)=>(Math.max(L(a),L(b))+.05)/(Math.min(L(a),L(b))+.05);
+          (async()=>{
+            const browser=await chromium.launch({headless:true});
+            const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.75,isMobile:true,hasTouch:true});
+            const p=await ctx.newPage();const r={checks:{},samples:{}};
+            await p.goto(process.env.TP_BASE_URL+'/',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForTimeout(1200);
+            const home=await p.evaluate(()=>{const s=x=>x?getComputedStyle(x):null;const header=document.querySelector('.tp-header'),head=document.querySelector('.v207-section-head'),nav=document.querySelector('.tp-bottom-nav'),grid=document.querySelector('[data-tp-home-products]'),card=grid?.querySelector(':scope>*:not(.tp-empty)'),title=card?.querySelector('h2,h3,h3 a,a');return{style:[...document.styleSheets].some(x=>String(x.href||'').includes('trendpilot-graphite-navy-v21-1.css')),header:s(header)?.backgroundColor,headDisplay:s(head)?.display,headWidth:head?.getBoundingClientRect().width||0,nav:s(nav)?.backgroundColor,navHeight:nav?.getBoundingClientRect().height||0,cardBg:s(card)?.backgroundColor,cardImage:s(card)?.backgroundImage,title:s(title)?.color,titleText:title?.textContent?.trim()||''}});
+            r.samples.home=home;r.checks.v211_home=home.style;r.checks.header_dark=!/255, 255, 255/.test(home.header||'');r.checks.mobile_heading_stacked=home.headDisplay==='block'&&home.headWidth>330;r.checks.bottom_nav_compact=home.navHeight>0&&home.navHeight<78;
+            await p.locator('[data-tp-home-products]').scrollIntoViewIfNeeded();await p.waitForTimeout(400);await p.screenshot({path:'artifacts/v21-1-verify/home-products.png',fullPage:false});
+            await p.goto(process.env.TP_BASE_URL+'/find/',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForSelector('.tp78-empty',{timeout:30000});const empty=await p.evaluate(()=>{const e=document.querySelector('.tp78-empty'),h=e.querySelector('h3');return{bg:getComputedStyle(e).backgroundColor,image:getComputedStyle(e).backgroundImage,title:getComputedStyle(h).color}});r.samples.empty=empty;r.checks.empty_dark=!/255, 255, 255/.test(empty.bg)||/gradient/.test(empty.image);
+            await p.goto(process.env.TP_BASE_URL+'/find/?q=phone&engine=v2064',{waitUntil:'domcontentloaded',timeout:90000});await p.waitForSelector('.tp78-card',{timeout:60000});const card=await p.evaluate(()=>{const c=document.querySelector('.tp78-card'),t=c.querySelector('h3 a,h3'),m=c.querySelector('.tp78-meta,.tp78-description');return{bg:getComputedStyle(c).backgroundColor,image:getComputedStyle(c).backgroundImage,title:getComputedStyle(t).color,muted:m?getComputedStyle(m).color:null,text:t.textContent.trim()}});r.samples.finder=card;const tc=parse(card.title);r.checks.finder_card_light=/gradient/.test(card.image)||/24[0-9], 24[0-9], 24[0-9]/.test(card.bg);r.checks.finder_title_dark=tc&&L(tc)<.12;r.checks.finder_title_contrast=tc&&CR(tc,[248,250,252])>=4.5;await p.screenshot({path:'artifacts/v21-1-verify/finder.png',fullPage:false});
+            const product='/product/hot-sale-original-global-official-version-xiaomi-redmi-note-8-48mp-quad-ai-back---d0f4e3ec74717f/';await p.goto(process.env.TP_BASE_URL+product,{waitUntil:'domcontentloaded',timeout:90000});await p.waitForTimeout(900);const pd=await p.evaluate(()=>({style:[...document.styleSheets].some(x=>String(x.href||'').includes('trendpilot-graphite-navy-v21-1.css')),about:document.querySelector('.about-card')?.innerText||'',seller:!!document.querySelector('#seller-offers'),image:getComputedStyle(document.querySelector('.hero-media')).backgroundColor}));r.samples.product=pd;r.checks.v211_product=pd.style;r.checks.product_description=pd.about.length>80;r.checks.product_seller=pd.seller;await p.screenshot({path:'artifacts/v21-1-verify/product.png',fullPage:false});
+            r.passed=Object.values(r.checks).every(Boolean);fs.writeFileSync('artifacts/v21-1-verify/report.json',JSON.stringify(r,null,2));console.log(JSON.stringify(r,null,2));await browser.close();if(!r.passed)process.exit(1);
+          })().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-1-mobile-verify
+          path: artifacts/v21-1-verify
+          if-no-files-found: ignore
