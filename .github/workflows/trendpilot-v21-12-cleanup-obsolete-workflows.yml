@@ -1,0 +1,59 @@
+name: TrendPilot V21.12 — Cleanup Obsolete Workflows
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-12-cleanup-obsolete-workflows.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Remove obsolete automatic writers and QA workflows
+        run: python scripts/cleanup-v21-12-obsolete-workflows.py
+      - name: Validate retained automatic workflow policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          wf=Path('.github/workflows')
+          bad=[]
+          for p in wf.glob('*.yml'):
+              s=p.read_text(encoding='utf-8',errors='replace')
+              auto=bool(re.search(r'(?m)^\s{0,4}(?:push|schedule|workflow_run|pull_request)\s*:',s))
+              writer='contents: write' in s or bool(re.search(r'\bgit\s+push\b',s))
+              if auto and writer and re.search(r'trendpilot-v(?:20|21-(?:1|2|3|10)|21-calm|21-public|13-8-[789])',p.name,re.I):
+                  bad.append(p.name)
+          if bad:
+              raise SystemExit('Obsolete automatic writers remain: '+', '.join(sorted(bad)))
+          cj=(wf/'install-trendpilot-v13-8-5-cj-conflict-safe.yml').read_text(encoding='utf-8')
+          if re.search(r'(?m)^\s+schedule\s*:',cj) or 'gh workflow run update-products.yml' in cj:
+              raise SystemExit('CJ V13.8.5 was not reduced to manual-only mode.')
+          print('Legacy automatic writer cleanup validated.')
+          PY
+      - name: Commit cleanup
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -u .github/workflows
+          if git diff --cached --quiet; then
+            echo 'No obsolete workflow changes remain.'
+          else
+            git commit -m 'TrendPilot V21.12 remove obsolete automatic workflow writers'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
