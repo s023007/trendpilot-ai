@@ -1,0 +1,28 @@
+name: TrendPilot V21.12 — Workflow Conflict Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-12-workflow-audit.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Audit workflow triggers and writers
+        run: python scripts/audit-v21-12-workflows.py
+      - name: Upload workflow audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-12-workflow-audit
+          path: artifacts/v21-12/workflow-audit.json
