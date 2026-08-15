@@ -216,3 +216,86 @@ body[data-tp-product-ui] .hero-media{background:#f6f8fb!important}
 body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp78-meta,body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp78-description,body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp80-universal-meta,body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp80-route-note,body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp80-price-proof,body[data-tp-page="finder"] .tp-product-grid .tp78-card small,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp78-meta,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp78-description,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp80-universal-meta,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp80-route-note,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp80-price-proof,body[data-v20-public="true"] .tp-product-grid .tp78-card small{color:#64748b!important}
 body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp80-price-proof.verified,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp80-price-proof.verified{color:#087f6f!important}
 body[data-tp-page="finder"] .tp-product-grid .tp78-card .tp78-top,body[data-v20-public="true"] .tp-product-grid .tp78-card .tp78-top{color:#475569!important}
+
+
+/* TP_V212_UI_CLEANUP — global contrast + simplified mobile navigation */
+.tp-links .tp-menu-close{
+  width:44px!important;height:44px!important;display:grid!important;place-items:center!important;
+  border:1px solid rgba(226,232,240,.18)!important;border-radius:14px!important;
+  background:#1f2a3a!important;color:#f8fafc!important;font-size:1.35rem!important;
+  box-shadow:none!important;opacity:1!important;
+}
+.tp-links .tp-menu-title{color:#f8fafc!important}
+.tp-links a{color:#eef2f7!important}
+
+/* Rare Finds: dark cards must use light text, never legacy black text. */
+body.tp80-rare-hub .tp80-rare-card{background:linear-gradient(155deg,#1f2d45,#1a2740)!important;color:#f8fafc!important;border-color:rgba(226,232,240,.15)!important}
+body.tp80-rare-hub .tp80-rare-card h2,
+body.tp80-rare-hub .tp80-rare-card h2 a{color:#f8fafc!important}
+body.tp80-rare-hub .tp80-brand{color:#a9bbff!important}
+body.tp80-rare-hub .tp80-card-price{color:#f8fafc!important}
+body.tp80-rare-hub .tp80-rare-meta,
+body.tp80-rare-hub .tp80-universal-meta,
+body.tp80-rare-hub .tp80-route-note{color:#cbd5e1!important}
+body.tp80-rare-hub .tp80-signals span{background:#eefbf7!important;color:#0f766e!important}
+body.tp80-rare-hub .tp80-price-proof.verified{background:#eafaf4!important;color:#08765a!important}
+body.tp80-rare-hub .tp80-price-proof.feed{background:#fff3d8!important;color:#805400!important}
+body.tp80-rare-hub .tp80-rare-stats{color:#aebbd1!important}
+body.tp80-rare-hub .tp80-bottom{background:rgba(13,20,34,.97)!important;border-color:rgba(226,232,240,.16)!important;box-shadow:0 12px 30px rgba(2,8,23,.32)!important}
+body.tp80-rare-hub .tp80-bottom a{color:#cbd5e1!important}
+body.tp80-rare-hub .tp80-bottom a.active{background:rgba(79,109,245,.22)!important;color:#f8fafc!important}
+
+/* Tickets: white shopping/result surfaces always use dark readable text. */
+body[data-tp-page="tickets"] .tp-ticket-v141-trust div{background:#243147!important;border-color:rgba(226,232,240,.16)!important;color:#f8fafc!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-trust b{color:#f8fafc!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-trust span{color:#cbd5e1!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-search-card,
+body[data-tp-page="tickets"] .tp-ticket-v141-card,
+body[data-tp-page="tickets"] .tp-ticket-v141-empty{background:#f8fafc!important;color:#0f172a!important;border-color:#d8dee8!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-card h3,
+body[data-tp-page="tickets"] .tp-ticket-v141-empty b{color:#0f172a!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-card p,
+body[data-tp-page="tickets"] .tp-ticket-v141-summary,
+body[data-tp-page="tickets"] .tp-ticket-v141-empty span{color:#475569!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-card-head strong{color:#08765a!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-card-head span{background:#e9efff!important;color:#3158d4!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-facts div{background:#eef2f6!important;color:#0f172a!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-facts small{color:#64748b!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-facts b{color:#0f172a!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-form input,
+body[data-tp-page="tickets"] .tp-ticket-v141-form select{background:#fff!important;color:#0f172a!important;border-color:#cbd5e1!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-form input::placeholder{color:#6b7280!important;opacity:1!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-chips button{background:#fff!important;color:#1f2937!important;border-color:#cbd5e1!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-section-title h2{color:#f8fafc!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-section-title span{color:#63ddd0!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-actions a,
+body[data-tp-page="tickets"] .tp-ticket-v141-actions button{background:#fff!important;color:#1f2937!important;border-color:#cbd5e1!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-actions .primary{background:#3158e8!important;color:#fff!important;border-color:#3158e8!important}
+body[data-tp-page="tickets"] .tp-ticket-v141-nearest{background:#fff3d8!important;color:#674d12!important}
+
+/* Every mobile bottom navigation uses the same dark shell and visible active item. */
+.tp-mobile-tabs{background:rgba(13,20,34,.97)!important;border:1px solid rgba(226,232,240,.16)!important;box-shadow:0 12px 30px rgba(2,8,23,.32)!important}
+.tp-mobile-tabs a{color:#cbd5e1!important}
+.tp-mobile-tabs a.is-active{background:rgba(79,109,245,.22)!important;color:#f8fafc!important}
+.tp-bottom-nav a.is-active,
+body[data-tp-page="deals"] .tp-bottom-nav a[href="/deals/"],
+body[data-tp-page="home"] .tp-bottom-nav a[href="/"]{background:rgba(79,109,245,.22)!important;color:#f8fafc!important}
+.tp-bottom-nav a.is-active b,.tp-bottom-nav a.is-active span,
+body[data-tp-page="deals"] .tp-bottom-nav a[href="/deals/"] b,
+body[data-tp-page="deals"] .tp-bottom-nav a[href="/deals/"] span{color:#f8fafc!important}
+
+@media(max-width:780px){
+  /* The simplified menu approved in V20.8.6: discovery shortcuts only. */
+  .tp-links .tp-menu-section-title,
+  .tp-links .tp-nav-cta,
+  .tp-links a[href="/find/"],
+  .tp-links a[href="/compare/"],
+  .tp-links a[href="/deals/"],
+  .tp-links a[href="/products/"],
+  .tp-links a[href="/software/"],
+  .tp-links a[href="/wholesale/"]{display:none!important}
+  .tp-links{padding-bottom:28px!important}
+  .tp-links>a{font-size:1rem!important;line-height:1.3!important}
+  .tp80-bottom{padding:5px!important;bottom:8px!important}
+  .tp80-bottom a{padding:9px 7px!important;font-size:12px!important}
+}
