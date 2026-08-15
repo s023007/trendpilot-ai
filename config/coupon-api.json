@@ -1,65 +1,22 @@
 {
   "version": 2,
+  "website_id": 2980568,
   "website_name": "TrendPilot AI",
   "website_url_contains": "trendpilotchoice.com",
   "fetch_all_joined_programs": true,
   "max_coupons": 5000,
   "public_blocklist": ["Joom", "Temu", "FilamentPRO"],
   "programs": {
-    "AliExpress WW": {
-      "merchant_key": "aliexpress_ww",
-      "category": "marketplace",
-      "aliases": ["Aliexpress WW", "AliExpress WW"]
-    },
-    "Alibaba WW": {
-      "merchant_key": "alibaba_ww",
-      "category": "marketplace",
-      "aliases": ["Alibaba WW"]
-    },
-    "Jetpac WW": {
-      "merchant_key": "jetpac_ww",
-      "category": "esim",
-      "aliases": ["Jetpac WW"]
-    },
-    "Sunsky-online WW": {
-      "merchant_key": "sunsky_online_ww",
-      "category": "electronics",
-      "aliases": ["Sunsky-online WW", "Sunsky Online WW"]
-    },
-    "Geekbuying WW": {
-      "merchant_key": "geekbuying_ww",
-      "category": "electronics",
-      "aliases": ["Geekbuying WW"]
-    },
-    "Lenovo Many GEOs": {
-      "merchant_key": "lenovo_many_geos",
-      "category": "computers",
-      "aliases": ["Lenovo Many GEOs"]
-    },
-    "Harfington Many GEOs": {
-      "merchant_key": "harfington_many_geos",
-      "category": "tools",
-      "aliases": ["Harfington Many GEOs"]
-    },
-    "Glasseslit WW": {
-      "merchant_key": "glasseslit_ww",
-      "category": "eyewear",
-      "aliases": ["Glasseslit WW"]
-    },
-    "Wondershare WW": {
-      "merchant_key": "wondershare_ww",
-      "category": "software",
-      "aliases": ["Wondershare WW"]
-    },
-    "Govee Many GEOs": {
-      "merchant_key": "govee_many_geos",
-      "category": "smart-home",
-      "aliases": ["Govee Many GEOs"]
-    },
-    "Ticombo - Global Event Tickets Many GEOs": {
-      "merchant_key": "ticombo_many_geos",
-      "category": "tickets",
-      "aliases": ["Ticombo - Global Event Tickets Many GEOs", "Ticombo Global Event Tickets Many GEOs"]
-    }
+    "AliExpress WW": {"merchant_key": "aliexpress_ww", "category": "marketplace", "aliases": ["Aliexpress WW", "AliExpress WW"]},
+    "Alibaba WW": {"merchant_key": "alibaba_ww", "category": "marketplace", "aliases": ["Alibaba WW"]},
+    "Jetpac WW": {"merchant_key": "jetpac_ww", "category": "esim", "aliases": ["Jetpac WW"]},
+    "Sunsky-online WW": {"merchant_key": "sunsky_online_ww", "category": "electronics", "aliases": ["Sunsky-online WW", "Sunsky Online WW"]},
+    "Geekbuying WW": {"merchant_key": "geekbuying_ww", "category": "electronics", "aliases": ["Geekbuying WW"]},
+    "Lenovo Many GEOs": {"merchant_key": "lenovo_many_geos", "category": "computers", "aliases": ["Lenovo Many GEOs"]},
+    "Harfington Many GEOs": {"merchant_key": "harfington_many_geos", "category": "tools", "aliases": ["Harfington Many GEOs"]},
+    "Glasseslit WW": {"merchant_key": "glasseslit_ww", "category": "eyewear", "aliases": ["Glasseslit WW"]},
+    "Wondershare WW": {"merchant_key": "wondershare_ww", "category": "software", "aliases": ["Wondershare WW"]},
+    "Govee Many GEOs": {"merchant_key": "govee_many_geos", "category": "smart-home", "aliases": ["Govee Many GEOs"]},
+    "Ticombo - Global Event Tickets Many GEOs": {"merchant_key": "ticombo_many_geos", "category": "tickets", "aliases": ["Ticombo - Global Event Tickets Many GEOs", "Ticombo Global Event Tickets Many GEOs"]}
   }
 }
