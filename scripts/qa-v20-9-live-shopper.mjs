@@ -105,7 +105,7 @@ try{
     const factLabels=[...(facts?.querySelectorAll('.spec span')||[])].map(el=>clean(el.textContent));
     const factText=clean(facts?.innerText||'');
     const seller=main?.querySelector('#seller-offers');
-    const technical=main?.querySelector('.technical-wrap');
+    const technical=main?.querySelector('.technical-disclosure, .technical-wrap');
     const bottom=document.querySelector('.bottom');
     const meta=document.querySelector('meta[name="description"]')?.getAttribute('content')||'';
     let ldDescription='';
@@ -117,7 +117,7 @@ try{
       hero:[...main.children].findIndex(el=>el.matches?.('.hero')),
       about:[...main.children].findIndex(el=>el.matches?.('.panel.about')),
       seller:[...main.children].findIndex(el=>el.matches?.('#seller-offers')),
-      technical:[...main.children].findIndex(el=>el.matches?.('.technical-wrap'))
+      technical:[...main.children].findIndex(el=>el.matches?.('.technical-disclosure, .technical-wrap'))
     };
     return {text,h1,aboutCopy,visibleConfig,factLabels,factText,bottomHeight:bottom?.getBoundingClientRect().height||0,meta:clean(meta),ldDescription,order,hasSeller:!!seller,hasTechnical:!!technical};
   });
