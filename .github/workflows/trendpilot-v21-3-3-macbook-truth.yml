@@ -1,0 +1,107 @@
+name: TrendPilot V21.3.3 MacBook Truth + Stable Detail
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trendpilot-v21-3-3-macbook-truth.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  macbook-truth:
+    runs-on: ubuntu-24.04
+    env:
+      TP_BASE_URL: https://trendpilotchoice.com
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 3
+
+      - name: Exclude MacBook parts and accessories from main-device search
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          p=Path('js/universal-discovery-v20-9-1.js')
+          s=p.read_text(encoding='utf-8')
+          s=s.replace('const RUNTIME_VERSION = "21.3.2";','const RUNTIME_VERSION = "21.3.3";',1)
+
+          old='  const MACBOOK_BAD=/\\b(?:sleeve|case|cover|bag|handbag|briefcase|skin|shell|stand|dock|docking|charger|adapter|cable|keyboard cover|screen protector|protective film|replacement|battery for|compatible with macbook|for macbook)\\b/i;\n  function semanticOK(r){\n    const explicitMacBook=family==="laptop"&&/\\bmacbook\\b/i.test(L(q));'
+          new='  const explicitMacBookQuery=family==="laptop"&&/\\bmacbook\\b/i.test(L(q));\n  const MACBOOK_BAD=/(?:\\b(?:sleeve|case|cover|bag|handbag|briefcase|skin|shell|stand|dock|docking|charger|adapter|cable|mouse|touch\\s*mouse|lcd|display|digitizer|screen|assembly|ssd|solid\\s+state\\s+drive|hard\\s+disk|hard\\s+drive|nvme|drive\\s+card|tool\\s+kit|screwdriver|repair\\s+tool|replacement|battery|keyboard|trackpad|hinge|motherboard|mainboard|palmrest|heatsink|cooling\\s+fan|fan|bezel|flex\\s+cable|webcam|camera\\s+module|speaker|touchpad|logic\\s+board)\\b)|(?:\\bfor\\s+(?:(?:laptop|notebook)\\s+)?(?:apple\\s+)?macbook\\b)|(?:\\bcompatible\\s+with\\s+(?:apple\\s+)?macbook\\b)/i;\n  function semanticOK(r){\n    const explicitMacBook=explicitMacBookQuery;'
+          if old not in s: raise SystemExit('MacBook source contract changed')
+          s=s.replace(old,new,1)
+
+          old_no="    if(!found.length){await logDemand();grid.innerHTML='<div class=\"tp80-no-result\"><h2>We could not verify this product yet.</h2><p>Try a model, MPN, SKU, part number or a more specific phrase. TrendPilot recorded the search for future catalogue updates.</p><a href=\"/rare-used/\">Explore Rare Finds</a></div>';const c=$(\"[data-v2078-results-count]\");if(c)c.textContent=\"0 matching\";return}"
+          new_no="    if(!found.length){await logDemand();grid.innerHTML=explicitMacBookQuery?'<div class=\"tp80-no-result\"><h2>No verified main MacBook is in the current catalogue.</h2><p>MacBook-compatible accessories, screens, storage drives and repair tools were excluded rather than shown as MacBook computers.</p><a href=\"/find/?q=laptop&scope=computers&engine=v2064\">Browse verified laptops</a></div>':'<div class=\"tp80-no-result\"><h2>We could not verify this product yet.</h2><p>Try a model, MPN, SKU, part number or a more specific phrase. TrendPilot recorded the search for future catalogue updates.</p><a href=\"/rare-used/\">Explore Rare Finds</a></div>';const c=$(\"[data-v2078-results-count]\");if(c)c.textContent=\"0 matching\";return}"
+          if old_no not in s: raise SystemExit('no-result source contract changed')
+          s=s.replace(old_no,new_no,1)
+          p.write_text(s,encoding='utf-8')
+          assert 'RUNTIME_VERSION = "21.3.3"' in s
+          assert 'touch\\s*mouse' in s and 'solid\\s+state\\s+drive' in s and 'repair\\s+tool' in s
+          assert 'No verified main MacBook is in the current catalogue.' in s
+          print('V21.3.3 MacBook truth patch PASS')
+          PY
+
+      - name: Cache-bust finder runtime
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          p=Path('find/index.html');s=p.read_text(encoding='utf-8')
+          s=s.replace('/js/universal-discovery-v20-9-1.js?v=21.3.2','/js/universal-discovery-v20-9-1.js?v=21.3.3')
+          p.write_text(s,encoding='utf-8')
+          assert 'universal-discovery-v20-9-1.js?v=21.3.3' in s
+          PY
+
+      - name: Commit V21.3.3
+        shell: bash
+        run: |
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add js/universal-discovery-v20-9-1.js find/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'TrendPilot V21.3.3 preserve MacBook main-product truth'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Install Playwright
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Wait for V21.3.3 live
+        shell: bash
+        run: |
+          for i in $(seq 1 36); do
+            h=$(curl -fsSL "${TP_BASE_URL}/find/" || true)
+            j=$(curl -fsSL "${TP_BASE_URL}/js/universal-discovery-v20-9-1.js?v=21.3.3" || true)
+            if printf '%s' "$h" | grep -q 'universal-discovery-v20-9-1.js?v=21.3.3' && printf '%s' "$j" | grep -q 'RUNTIME_VERSION = "21.3.3"'; then echo 'V21.3.3 live';exit 0;fi
+            echo "waiting $i/36";sleep 10
+          done
+          exit 1
+
+      - name: Verify book repeat, honest MacBook empty state, typo and detail
+        shell: bash
+        run: |
+          mkdir -p artifacts/v21-3-3
+          node <<'NODE'
+          const {chromium}=require('playwright');const fs=require('fs');const BASE=process.env.TP_BASE_URL;
+          (async()=>{const browser=await chromium.launch({headless:true});const ctx=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:2.75,isMobile:true,hasTouch:true});const p=await ctx.newPage();p.setDefaultTimeout(90000);const out={version:'21.3.3',checks:{},book:[],macbook:null,makbook:null,detail:null};
+          async function search(q,label){await p.goto(`${BASE}/find/?q=${encodeURIComponent(q)}&engine=v2064&universal=1`,{waitUntil:'domcontentloaded',timeout:90000});await p.waitForFunction(()=>{const c=(document.querySelector('[data-v2078-results-count]')?.textContent||'').trim();return c&&c!=='Ready'&&!/searching/i.test(c)},null,{timeout:90000});await p.waitForTimeout(300);const d=await p.evaluate(()=>({count:(document.querySelector('[data-v2078-results-count]')?.textContent||'').trim(),runtime:window.__TP_V2091_UNIVERSAL__||null,normalizer:window.__TP_QUERY_NORMALIZER__||null,cards:[...document.querySelectorAll('.tp78-card')].map(c=>({title:(c.querySelector('h3')?.textContent||'').trim(),href:c.querySelector('a.internal-detail')?.getAttribute('href')||''})),emptyTitle:(document.querySelector('.tp80-no-result h2')?.textContent||'').trim(),emptyCopy:(document.querySelector('.tp80-no-result p')?.textContent||'').trim()}));await p.screenshot({path:`artifacts/v21-3-3/${label}.png`});return d}
+          for(let i=1;i<=3;i++){const b=await search('book',`book-${i}`);out.book.push({count:b.count,cards:b.cards.length,first:b.cards[0]?.title||''});out.checks[`book_${i}`]=b.count==='76 matching'&&b.cards.length===24&&b.cards.some(x=>/book/i.test(x.title));out.checks[`runtime_${i}`]=b.runtime?.runtimeVersion==='21.3.3'}
+          const m=await search('macbook','macbook');out.macbook={count:m.count,cards:m.cards.length,title:m.emptyTitle,copy:m.emptyCopy};out.checks.macbook_truth=m.count==='0 matching'&&m.cards.length===0&&/No verified main MacBook/i.test(m.emptyTitle)&&/accessories, screens, storage drives and repair tools/i.test(m.emptyCopy);
+          const t=await search('makbook','makbook');out.makbook={count:t.count,cards:t.cards.length,title:t.emptyTitle,normalizer:t.normalizer,url:p.url()};out.checks.makbook_corrected=t.normalizer?.corrected?.toLowerCase()==='macbook'&&/q=macbook/i.test(p.url());out.checks.makbook_truth=t.count==='0 matching'&&t.cards.length===0&&/No verified main MacBook/i.test(t.emptyTitle);
+          const b=await search('book','book-detail-source');const a=p.locator('a.internal-detail').first();const href=await a.getAttribute('href');await a.click();await p.waitForURL(/\/item\/\?id=/,{timeout:30000});await p.waitForFunction(()=>!!document.querySelector('[data-tp85-detail]:not([hidden])')||!!document.querySelector('[data-tp85-error]:not([hidden])'),null,{timeout:90000});out.detail=await p.evaluate(()=>({title:(document.querySelector('[data-tp85-title]')?.textContent||'').trim(),visible:!!document.querySelector('[data-tp85-detail]:not([hidden])'),error:!!document.querySelector('[data-tp85-error]:not([hidden])'),seller:(document.querySelector('[data-tp85-fact-seller]')?.textContent||'').trim(),url:location.href}));out.detail.href=href;out.checks.detail=out.detail.visible&&!out.detail.error&&out.detail.title.length>2&&out.detail.seller==='AliExpress';await p.screenshot({path:'artifacts/v21-3-3/book-detail.png'});
+          out.passed=Object.values(out.checks).every(Boolean);fs.writeFileSync('artifacts/v21-3-3/report.json',JSON.stringify(out,null,2));console.log(JSON.stringify(out,null,2));await browser.close();if(!out.passed)process.exit(1)})().catch(e=>{console.error(e);process.exit(1)});
+          NODE
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: trendpilot-v21-3-3-search-truth
+          path: artifacts/v21-3-3
