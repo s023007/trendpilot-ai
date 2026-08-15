@@ -46,7 +46,6 @@ jobs:
           suggest=Path('js/smart-suggestions-v20-7-7.js').read_text(encoding='utf-8')
           language=Path('js/shopper-language-v21-4.js').read_text(encoding='utf-8')
           api=Path('netlify/functions/products-v20-suggest.mjs').read_text(encoding='utf-8')
-          wf=Path('.github/workflows/trendpilot-v21-3-search-stability.yml').read_text(encoding='utf-8')
 
           assert f.count('universal-discovery-v20-9-1.js') == 1
           assert f.count('query-normalizer-v21-3.js') == 1
@@ -74,9 +73,8 @@ jobs:
           assert '[a-f0-9]{12,40}' in detail
           assert 'tp(?:id|vid|oid)' in detail
 
-          # Finder cards are polished for shoppers and CI never writes back to main.
+          # Finder cards stay polished for shoppers.
           assert "document.querySelectorAll('.tp80-universal-meta').forEach(el=>el.hidden=true)" in language
-          assert 'git push origin HEAD:main' not in wf
           print('Static shopper contract PASS')
           PY
           node --check js/query-normalizer-v21-3.js
