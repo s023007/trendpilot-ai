@@ -29,12 +29,13 @@ jobs:
           workflow=Path('.github/workflows/trendpilot-v21-3-search-stability.yml').read_text(encoding='utf-8')
           assert 'item-detail-v20-9.js?v=21.8.0' in i
           assert 'data-tp85-seller-fallback' in i
-          assert 'UI="21.8.0"' in detail
+          assert 'UI="21.8.1"' in detail
           assert 'Search Alibaba for' in detail
           assert 'Check this item on TikTok' in detail
           assert 'www.alibaba.com/trade/search?SearchText=' in detail
           assert 'www.tiktok.com/search?q=' in detail
           assert 'seller.includes("lenovo")&&value>0&&value<=5' in detail
+          assert 'ip\\d{2}' in detail
           assert 'item-detail-v20-9.js?v=21.8.0' in workflow
           assert "node --check js/item-detail-v20-9.js" in workflow
           print('Seller handoff static QA PASS')
