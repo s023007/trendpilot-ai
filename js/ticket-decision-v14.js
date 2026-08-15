@@ -7,8 +7,8 @@
 
   async function load(){
     const [a,b]=await Promise.allSettled([
-      fetch(`/data/ticket-discovery-v14-1.json?v=21.11.0`,{cache:"force-cache"}).then(r=>r.ok?r.json():{}),
-      fetch(`/data/ticket-inventory.json?v=21.11.0`,{cache:"force-cache"}).then(r=>r.ok?r.json():{})
+      fetch(`/data/ticket-discovery-v14-1.json?v=21.11.1`,{cache:"force-cache"}).then(r=>r.ok?r.json():{}),
+      fetch(`/data/ticket-inventory.json?v=21.11.1`,{cache:"force-cache"}).then(r=>r.ok?r.json():{})
     ]);
     const routes=a.status==="fulfilled"?(a.value.routes||[]):[];
     const live=b.status==="fulfilled"?(b.value.listings||[]):[];
@@ -19,11 +19,15 @@
   const typeName=x=>({sports:"Sports",concerts:"Concert",theatre:"Theatre",travel:"Travel & attraction"}[low(x.type)]||"Tickets");
   function money(x){const n=Number(x?.price);if(!Number.isFinite(n)||n<=0)return"";try{return new Intl.NumberFormat(undefined,{style:"currency",currency:x.currency||"USD"}).format(n)}catch{return`${x.currency||""} ${n.toFixed(2)}`.trim()}}
   function usableVenue(x){const v=clean(x.venue);if(!v||/\.com$/i.test(v)||low(v)===low(x.provider))return"";return v}
-  function matches(x,q){if(!q)return true;const terms=low(q).split(/\s+/).filter(Boolean);const blob=low(`${title(x)} ${x.provider||""} ${x.city||""} ${usableVenue(x)} ${(x.aliases||[]).join(" ")} ${x.destination||""}`);return terms.every(t=>blob.includes(t))}
+  function matches(x,q){if(!q)return true;const terms=low(q).split(/\s+/).filter(Boolean);const blob=low(`${title(x)} ${x.description||""} ${x.provider||""} ${x.city||""} ${usableVenue(x)} ${(x.aliases||[]).join(" ")} ${x.destination||""}`);return terms.every(t=>blob.includes(t))}
   const typeMatch=x=>type==="all"||low(x.type)===type;
   function dedupe(list){const seen=new Set();return list.filter(x=>{const k=low(`${title(x)}|${x.provider}`);if(!k||seen.has(k))return false;seen.add(k);return true})}
   function facts(x){const data=[["Date",clean(x.date)],["Venue",usableVenue(x)],["City",clean(x.city)],["Price",money(x)]].filter(([,v])=>v);return data.length?`<div class="tp-ticket-v141-facts">${data.map(([k,v])=>`<div><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join("")}</div>`:""}
-  function card(x){const provider=clean(x.provider)||"Ticket seller",hasDetail=Boolean(x._live||clean(x.date)||usableVenue(x)||money(x));return `<article class="tp-ticket-v141-card"><div class="tp-ticket-v141-card-head"><span>${esc(typeName(x))}</span><strong>${esc(provider)}</strong></div><h3>${esc(title(x))}</h3>${facts(x)}<div class="tp-ticket-v141-actions">${hasDetail?`<a href="/ticket/?id=${encodeURIComponent(x.id)}">View details</a>`:""}<a class="primary" href="${esc(x.url)}" target="_blank" rel="nofollow sponsored noopener">Check tickets at ${esc(provider)} ↗</a></div></article>`}
+  function hasUsefulDetail(x){return Boolean(clean(x.date)||usableVenue(x)||clean(x.city)||clean(x.section)||clean(x.row)||money(x))}
+  function card(x){
+    const provider=clean(x.provider)||"Ticket seller",detailFacts=facts(x),description=clean(x.description),hasDetail=hasUsefulDetail(x);
+    return `<article class="tp-ticket-v141-card${x._live?" is-inventory":""}"><div class="tp-ticket-v141-card-head"><span>${esc(typeName(x))}</span><strong>${esc(provider)}</strong></div><h3>${esc(title(x))}</h3>${description?`<p class="tp-ticket-v141-description">${esc(description)}</p>`:""}${detailFacts}<div class="tp-ticket-v141-actions">${hasDetail?`<a href="/ticket/?id=${encodeURIComponent(x.id)}">View details</a>`:""}<a class="primary" href="${esc(x.url)}" target="_blank" rel="nofollow sponsored noopener">Check tickets at ${esc(provider)} ↗</a></div></article>`
+  }
 
   function render(){
     const host=$("[data-ticket-v141-results]");if(!host)return;
