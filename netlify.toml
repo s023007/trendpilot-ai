@@ -58,7 +58,7 @@
 
 [[redirects]]
   from = "/product/*"
-  to = "/.netlify/functions/product-preview-v20-9-6?slug=:splat"
+  to = "/.netlify/functions/product-preview-v20-9-6-mobile-polish?slug=:splat"
   status = 200
   force = true
 
@@ -77,4 +77,7 @@
   included_files = ["data/shopper-v20-6/runtime-v20-6-8-3.json"]
 
 [functions."product-preview-v20-9-6"]
+  included_files = ["data/shopper-v20-6/runtime-v20-6-8-3.json"]
+
+[functions."product-preview-v20-9-6-mobile-polish"]
   included_files = ["data/shopper-v20-6/runtime-v20-6-8-3.json"]
