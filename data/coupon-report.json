@@ -1,38 +1,36 @@
 {
   "version": 2,
-  "generated_at": "2026-08-15T03:09:50Z",
+  "generated_at": "2026-08-15T23:07:11Z",
   "source": "Admitad Publisher API",
   "ad_space": {
-    "id": 2969220,
-    "name": "TrendPilot AI",
+    "id": 2980568,
+    "name": "TrendPilot Choice",
     "status": "active",
-    "site_url": "https://s023007.github.io/trendpilot-ai/"
+    "site_url": "https://trendpilotchoice.com"
   },
   "api": {
     "pages_fetched": 1,
-    "raw_records": 132,
+    "raw_records": 124,
     "token_expires_in_seconds": 604800
   },
-  "active_coupons": 121,
-  "with_codes": 124,
+  "active_coupons": 116,
+  "with_codes": 116,
   "automatic_deals": 0,
   "coupons_by_merchant": {
     "alibaba_ww": 2,
     "aliexpress_ww": 26,
     "geekbuying_ww": 26,
-    "glasseslit_ww": 6,
-    "global_yo_ww": 2,
+    "giftmio_lifetime_many_geos": 1,
     "harfington_many_geos": 25,
-    "joom_many_geos": 3,
     "lenovo_many_geos": 12,
-    "sunsky_online_ww": 22
+    "sunsky_online_ww": 22,
+    "turbovpn_ww": 2
   },
   "coupons_by_category": {
     "computers": 12,
     "electronics": 48,
-    "eyewear": 6,
-    "marketplace": 31,
-    "other": 2,
+    "marketplace": 28,
+    "other": 3,
     "tools": 25
   },
   "rejected_records": {
@@ -42,6 +40,5 @@
     "Joom",
     "Temu",
     "FilamentPRO"
-  ],
-  "policy_sanitized": true
+  ]
 }
