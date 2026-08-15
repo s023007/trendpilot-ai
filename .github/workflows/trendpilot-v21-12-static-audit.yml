@@ -5,6 +5,15 @@ on:
     branches: [main]
     paths:
       - .github/workflows/trendpilot-v21-12-static-audit.yml
+      - scripts/audit-v21-12-static.py
+      - about.html
+      - editorial-methodology.html
+      - how-we-test.html
+      - affiliate-disclosure.html
+      - privacy.html
+      - terms.html
+      - contact.html
+      - corrections.html
   workflow_dispatch:
 
 permissions:
