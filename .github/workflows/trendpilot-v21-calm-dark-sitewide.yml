@@ -89,18 +89,6 @@ jobs:
               fn.write_text(s,encoding='utf-8')
               changed.append(str(fn))
 
-          qa=Path('.github/workflows/trendpilot-v20-9-3-live-shopper-e2e.yml')
-          if qa.exists():
-            s=qa.read_text(encoding='utf-8')
-            old=s
-            marker='      - css/trendpilot-calm-dark-v21.css\n'
-            anchor='      - css/compare-v20-9.css\n'
-            if marker not in s and anchor in s:
-              s=s.replace(anchor,anchor+marker,1)
-            if s!=old:
-              qa.write_text(s,encoding='utf-8')
-              changed.append(str(qa))
-
           print('Theme patched:', ', '.join(changed) if changed else 'already current')
           PY
 
@@ -123,7 +111,7 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add index.html find/index.html compare/index.html deals/index.html rare-used/index.html \
             products/index.html price-watch/index.html tickets/index.html guides/index.html wholesale/index.html sourcing/index.html software/index.html \
-            netlify/functions/product-preview-v20-9-6-mobile-polish.cjs .github/workflows/trendpilot-v20-9-3-live-shopper-e2e.yml 2>/dev/null || true
+            netlify/functions/product-preview-v20-9-6-mobile-polish.cjs 2>/dev/null || true
           if git diff --cached --quiet; then
             echo 'Calm Dark wiring already committed.'
           else
