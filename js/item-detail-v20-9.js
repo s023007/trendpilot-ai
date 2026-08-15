@@ -1,6 +1,6 @@
 (() => {
   "use strict";
-  const V="20.9.0",UI="21.8.0",d=document,$=s=>d.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+  const V="20.9.0",UI="21.8.1",d=document,$=s=>d.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim(),E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
   const p=new URLSearchParams(location.search),id=C(p.get("id")).toLowerCase(),q=C(p.get("q"));
   const rarity=s=>{s=Number(s||0);if(s>=90)return`Exceptional find`;if(s>=80)return`Very rare`;if(s>=65)return`Hard to find`;if(s>=58)return`Specialist find`;return""};
   const safeExternal=u=>{try{const x=new URL(C(u),location.origin);return /^https?:$/.test(x.protocol)?x.href:""}catch{return""}};
@@ -27,7 +27,8 @@
     s=C(s.replace(/[|【】\[\]]+/g,' '));
     const words=s.split(/\s+/).filter(Boolean);
     const unit=/^\d+(?:\.\d+)?(?:gb|tb|mb|mah|w|kw|v|a|hz|khz|mhz|inch|inches|mm|cm|mp|p)$/i;
-    const modelAt=words.findIndex(w=>/[a-z]/i.test(w)&&/\d/.test(w)&&w.length<=20&&!unit.test(w));
+    const tech=/^(?:ip\d{2}|[345]g|wifi\d*|wi-fi\d*|bt\d*(?:\.\d+)?|bluetooth\d*(?:\.\d+)?|usb\d*(?:\.\d+)?|android\d*(?:\.\d+)?|ios\d*(?:\.\d+)?)$/i;
+    const modelAt=words.findIndex(w=>/[a-z]/i.test(w)&&/\d/.test(w)&&w.length<=20&&!unit.test(w)&&!tech.test(w));
     const brand=C(r.b);
     if(modelAt>=0){
       let start=Math.max(0,modelAt-2),end=Math.min(words.length,modelAt+3);
@@ -35,8 +36,8 @@
       const modelPhrase=C(words.slice(start,end).join(' '));
       if(modelPhrase.length>=4)return modelPhrase;
     }
-    const first=C(words.slice(0,10).join(' '));
-    return first||shopperTitle(rawTitle).replace(/…$/,'')||"product";
+    const branded=brand?C(`${brand} ${words.slice(0,8).join(' ')}`):C(words.slice(0,10).join(' '));
+    return branded||shopperTitle(rawTitle).replace(/…$/,'')||"product";
   }
 
   function sellerSearchUrl(seller,phrase){
