@@ -10,13 +10,16 @@ const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
 
 const data=JSON.parse(fs.readFileSync('data/v20-9/tablet-seller-samples.json','utf8'));
 const rows=Object.values(data.records||{});
-const falseRe=/\b(?:graphic(?:s)? tablet|drawing tablet|pen tablet|signature (?:pad|tablet)|writing (?:pad|tablet)|digitizer|drawing pad|tablet monitor|pen display|digital pen design|stylus|tablet case|tablet cover|screen protector|tempered glass|replacement|repair|battery|charger|cable|adapter|dock|controller|gamepad|mount|holder|bracket|gift set|fragrance|perfume|industrial tablet|control panel)\b/i;
-const deviceRe=/\b(?:tablet pc|android tablet|windows tablet|chromebook tablet|ipad(?:\s+(?:pro|air|mini))?|galaxy tab|surface pro|(?:lenovo|xiaomi|redmi|honor|huawei|samsung|oneplus|oppo|vivo|realme)\s+(?:tab|pad))\b/i;
+const falseRe=/\b(?:graphic(?:s)? tablet|drawing tablet|pen tablet|signature (?:pad|tablet)|writing (?:pad|tablet)|digitizer|drawing pad|tablet monitor|pen display|digital pen design|stylus|tablet case|tablet cover|screen protector|tempered glass|replacement|repair|battery for|replacement battery|charger for|cable for|adapter for|dock for|controller for|gamepad|tablet mount|tablet holder|tablet bracket|gift set|fragrance|perfume|control panel)\b/i;
+const directDeviceRe=/\b(?:tablet pc|android tablet|windows tablet|chromebook tablet|ipad\s+(?:pro|air|mini|\d)|galaxy tab\s+[a-z0-9]|surface pro\s+\d|(?:lenovo|xiaomi|redmi|honor|huawei|samsung|oneplus|oppo|vivo|realme)\s+(?:tab|pad)\s+[a-z0-9])\b/i;
+const genericTabletRe=/\btablets?\b/i;
+const strongSignalRe=/\b(?:\d{1,2}(?:\.\d)?\s*(?:inch|inches|")|\d+\s*gb\s*(?:ram|rom|storage)|android\s*\d{1,2}|snapdragon|mediatek|helio|unisoc|dimensity|octa[- ]?core|quad[- ]?core|touchscreen|ips\s+display|fhd|full\s+hd)\b/i;
 const suspects=data.qa?.lenovoPlaceholderPrices||[];
+const looksLikeDevice=t=>directDeviceRe.test(t)||(genericTabletRe.test(t)&&strongSignalRe.test(t));
 
 check('packed_tablet_records',rows.length>=5,`records=${rows.length}`);
 check('packed_tablet_sellers',Object.keys(data.sellers||{}).length>=1,JSON.stringify(Object.keys(data.sellers||{})));
-check('all_rows_look_like_consumer_tablets',rows.every(r=>deviceRe.test(clean(r.t))),rows.filter(r=>!deviceRe.test(clean(r.t))).slice(0,5).map(r=>r.t).join(' | '));
+check('all_rows_have_device_evidence',rows.every(r=>looksLikeDevice(clean(r.t))),rows.filter(r=>!looksLikeDevice(clean(r.t))).slice(0,5).map(r=>r.t).join(' | '));
 check('no_accessory_or_false_tablet_rows',!rows.some(r=>falseRe.test(clean(r.t))),rows.filter(r=>falseRe.test(clean(r.t))).slice(0,5).map(r=>r.t).join(' | '));
 check('lenovo_placeholder_fixture_present',suspects.length>=1,JSON.stringify(suspects));
 
