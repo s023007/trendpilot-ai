@@ -6,9 +6,20 @@ PRODUCTS=ROOT/'data/v20-9/products'
 OUT=ROOT/'data/v20-9/tablet-seller-samples.json'
 BLOCKED={'temu','joom','filamentpro eu cps','filamentpro'}
 
-CONSUMER=re.compile(r'\b(?:tablet(?:\s+pc)?|ipad(?:\s+(?:pro|air|mini))?|galaxy\s+tab|surface\s+pro|chromebook\s+tablet|android\s+tablet|windows\s+tablet)\b',re.I)
-FALSE_CONTEXT=re.compile(r'\b(?:graphic(?:s)?\s+tablet|drawing\s+tablet|pen\s+tablet|signature\s+(?:pad|tablet)|writing\s+(?:pad|tablet)|lcd\s+writing|digitizer|drawing\s+pad|graphics?\s+pad|tablet\s+monitor|pen\s+display|digital\s+pen\s+design|handwriting\s+pad|animation\s+tablet|osu\s+tablet)\b',re.I)
-ACCESSORY=re.compile(r'\b(?:case|cover|folio|screen\s+protector|tempered\s+glass|protective\s+film|stand|holder|mount|keyboard\s+case|sleeve|bag|stylus|pen\s+(?:for|compatible)|replacement|repair|digitizer|touch\s+screen|lcd\s+(?:screen|display)|display\s+assembly|battery\s+for|charger\s+for|cable\s+for|motherboard|mainboard|flex\s+cable|ribbon\s+cable|connector|housing|shell)\b',re.I)
+# A tablet result must look like a complete consumer tablet in the TITLE itself.
+# Do not trust old family/type labels alone; some historic rows were misclassified as tablet.
+CONSUMER=re.compile(
+    r'\b(?:tablet(?:\s+pc)?|ipad(?:\s+(?:pro|air|mini))?|galaxy\s+tab|surface\s+pro|chromebook\s+tablet|android\s+tablet|windows\s+tablet|(?:lenovo|xiaomi|redmi|honor|huawei|samsung)\s+(?:tab|pad)\s*[a-z0-9-]*)\b',
+    re.I
+)
+FALSE_CONTEXT=re.compile(
+    r'\b(?:graphic(?:s)?\s+tablet|drawing\s+tablet|pen\s+tablet|signature\s+(?:pad|tablet)|writing\s+(?:pad|tablet)|lcd\s+writing|digitizer|drawing\s+pad|graphics?\s+pad|tablet\s+monitor|pen\s+display|digital\s+pen\s+design|handwriting\s+pad|animation\s+tablet|osu\s+tablet|screen\s+repair|screen\s+remover|separator\s+pad|heating\s+(?:stage|pad)|industrial\s+(?:tablet|panel)|control\s+panel)\b',
+    re.I
+)
+ACCESSORY=re.compile(
+    r'\b(?:cases?|covers?|folios?|screen\s+protectors?|tempered\s+glass|protective\s+films?|stands?|holders?|mounts?|keyboard\s+cases?|sleeves?|bags?|stylus|pens?\s+(?:for|compatible)|replacement|repair|digitizer|touch\s+screens?|touch\s+panels?|glass\s+panels?|lcd\s+(?:screen|display)|display\s+assembly|batter(?:y|ies)\s+for|chargers?\s+for|cables?|cords?|adapters?|docks?|motherboards?|mainboards?|flex\s+cables?|ribbon\s+cables?|connectors?|housings?|shells?)\b',
+    re.I
+)
 NON_DEVICE_TYPE=re.compile(r'(?:stylus|accessor|replacement|parts?|graphic|drawing|digitizer|pen-tablet|tablet-accessor)',re.I)
 
 
@@ -21,19 +32,13 @@ def candidate(r):
     role=clean(r.get('ro') or 'main').lower()
     if role not in {'main','used'}: return False
     title=clean(r.get('t'))
-    if not title: return False
-    family=clean(r.get('fa')).lower()
+    if not title or not CONSUMER.search(title): return False
     typ=clean(r.get('ty') or r.get('type')).lower()
     label=clean(r.get('tyl') or r.get('typeLabel')).lower()
-    blob=f'{title} {family} {typ} {label}'
-    explicit=bool(CONSUMER.search(title)) or family=='tablet' or typ in {'tablet','tablets'}
-    if not explicit: return False
+    blob=f'{title} {typ} {label}'
     if FALSE_CONTEXT.search(blob): return False
-    if NON_DEVICE_TYPE.search(f'{typ} {label}') and family!='tablet': return False
-    if ACCESSORY.search(title):
-        # Keep explicit complete-device phrases even when a model name contains a generic word.
-        if not re.search(r'\b(?:tablet\s+pc|chromebook\s+tablet|android\s+tablet|windows\s+tablet|ipad(?:\s+(?:pro|air|mini))?|galaxy\s+tab|surface\s+pro)\b',title,re.I):
-            return False
+    if ACCESSORY.search(title): return False
+    if NON_DEVICE_TYPE.search(f'{typ} {label}'): return False
     return True
 
 def rank(r):
@@ -64,7 +69,7 @@ CAP=180
 sellers={seller:ids[:CAP] for seller,ids in sorted(by.items()) if ids}
 kept={pid:records[pid] for ids in sellers.values() for pid in ids}
 
-# Report known placeholder-price rows so QA can prove they are present but never displayed as real prices.
+# Report known placeholder-price rows so QA can prove they remain in source data but are never presented as a real shopper price.
 suspect=[]
 for pid,r in kept.items():
     price=float(r.get('p') or 0)
