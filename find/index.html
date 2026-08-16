@@ -23,31 +23,66 @@
   <link rel="stylesheet" href="/css/v20-7-shopper-experience.css?v=20.7.11">
   <link rel="stylesheet" href="/css/v20-7-8-finder.css?v=20.7.11">
   <link rel="stylesheet" href="/css/v20-7-9-finder.css?v=20.7.11">
-  <script id="tp-v20-7-10-engine-bootstrap">
-  (() => {
-    const p = new URLSearchParams(location.search);
-    const robots = document.querySelector('meta[name="robots"]');
-    if (p.has("q") || p.has("tpid") || p.has("scope") || p.has("universal")) robots?.setAttribute("content", "noindex,follow,max-image-preview:large");
-    const engine = (p.get("engine") || "").toLowerCase();
-    if (engine === "legacy") { location.replace("/find/legacy.html" + (location.search || "?engine=legacy")); return; }
-    if (p.has("q") && !p.has("engine")) { p.set("engine", "v2064"); location.replace(location.pathname + "?" + p.toString() + location.hash); }
-  })();
+  <script id="tp-v21-13-engine-bootstrap">
+  (()=>{const p=new URLSearchParams(location.search),robots=document.querySelector('meta[name="robots"]');if(p.has("q")||p.has("tpid")||p.has("scope")||p.has("universal"))robots?.setAttribute("content","noindex,follow,max-image-preview:large");const engine=(p.get("engine")||"").toLowerCase();if(engine==="legacy"){location.replace("/find/legacy.html"+(location.search||"?engine=legacy"));return}if(p.has("q")&&!p.has("engine")){p.set("engine","v2064");location.replace(location.pathname+"?"+p.toString()+location.hash)}})();
   </script>
   <link rel="stylesheet" href="/css/buyer-decision-v20-7-11.css?v=20.7.11">
   <link rel="stylesheet" href="/css/v20-8-universal.css?v=20.8.4">
-<link rel="stylesheet" href="/css/trendpilot-calm-dark-v21.css?v=21.0.0"><link rel="stylesheet" href="/css/trendpilot-graphite-navy-v21-1.css?v=21.2.0"><link rel="stylesheet" href="/css/trendpilot-v21-2-1-final.css?v=21.12.0"></head>
+  <link rel="stylesheet" href="/css/trendpilot-calm-dark-v21.css?v=21.0.0">
+  <link rel="stylesheet" href="/css/trendpilot-graphite-navy-v21-1.css?v=21.2.0">
+  <link rel="stylesheet" href="/css/trendpilot-v21-2-1-final.css?v=21.12.0">
+</head>
 <body data-tp-page="finder" data-v20-public="true">
 <a class="tp-skip" href="#main">Skip to content</a>
-<header class="tp-header" data-v13-header><div class="tp-shell tp-nav"><a class="tp-brand" href="/" aria-label="TrendPilot AI home"><img src="/images/logo-v4.svg" alt="" width="46" height="46"><span>TrendPilot <em>AI</em></span></a><nav class="tp-links" data-tp-nav data-nav-version="20.8.6" aria-label="Explore TrendPilot"><strong class="tp-menu-title">Explore TrendPilot</strong><button class="tp-menu-close" data-tp-menu-close type="button" aria-label="Close menu">×</button><a href="/price-watch/">Saved products</a><a href="/rare-used/">Rare Finds</a><a href="/tickets/">Tickets & experiences</a><a href="/guides/">Buying Guides</a><a href="/sourcing/">Business & wholesale</a></nav><button class="tp-menu-button" data-tp-menu-button type="button" aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button></div><button class="tp-nav-backdrop" data-tp-nav-backdrop type="button" aria-label="Close menu"></button></header>
+<header class="tp-header" data-v13-header>
+  <div class="tp-shell tp-nav">
+    <a class="tp-brand" href="/" aria-label="TrendPilot AI home"><img src="/images/logo-v4.svg" alt="" width="46" height="46"><span>TrendPilot <em>AI</em></span></a>
+    <nav class="tp-links" data-tp-nav data-nav-version="21.13.0" aria-label="Explore TrendPilot">
+      <strong class="tp-menu-title">Explore TrendPilot</strong><button class="tp-menu-close" data-tp-menu-close type="button" aria-label="Close menu">×</button>
+      <a href="/price-watch/">Saved products</a><a href="/rare-used/">Rare Finds</a><a href="/tickets/">Tickets & experiences</a><a href="/guides/">Buying Guides</a><a href="/sourcing/">Business & wholesale</a>
+    </nav>
+    <button class="tp-menu-button" data-tp-menu-button type="button" aria-expanded="false" aria-label="Open menu"><span></span><span></span><span></span></button>
+  </div>
+  <button class="tp-nav-backdrop" data-tp-nav-backdrop type="button" aria-label="Close menu"></button>
+</header>
 <main id="main">
-  <section class="v207-shop-hero"><div class="tp-shell"><span class="v207-eyebrow">Search the catalogue</span><h1>Find the product. <span>Even when it is hard to find.</span></h1><p class="v207-lead">Type a product, brand, model or product code. TrendPilot searches the catalogue and keeps accessories and replacement parts separate when possible.</p>
-    <form class="tp-search" data-v2078-finder-form role="search" aria-label="Search products"><div class="tp-search-row"><label class="tp-search-scope"><span class="tp-sr-only">Search category</span><select data-tp-search-scope data-tp-finder-scope><option value="">All departments</option><option value="phones">Phones & tablets</option><option value="computers">Computers & laptops</option><option value="audio">Audio & headphones</option><option value="beauty">Beauty & fragrance</option><option value="home">Home & kitchen</option><option value="tools">Tools & workshop</option><option value="pets">Pet supplies</option><option value="printing">3D printing</option><option value="business">Business sourcing</option></select></label><label class="tp-search-input"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.4-3.4"></path></svg><span class="tp-sr-only">Search products</span><input data-tp-finder-input name="q" type="search" autocomplete="off" inputmode="search" placeholder="Product, brand, model or code..."></label><button class="tp-btn tp-btn-primary tp-search-submit" type="submit"><span>Search</span></button></div></form>
-    <div class="tp-quick-links" aria-label="Popular searches"><span>Popular:</span><button class="tp-chip" data-search-suggestion="phone" data-search-scope="phones" type="button">Phones</button><button class="tp-chip" data-search-suggestion="laptop" data-search-scope="computers" type="button">Laptops</button><button class="tp-chip" data-search-suggestion="headphones" data-search-scope="audio" type="button">Headphones</button><button class="tp-chip" data-search-suggestion="perfume" data-search-scope="beauty" type="button">Perfume</button><button class="tp-chip" data-search-suggestion="power bank" type="button">Power banks</button><a class="tp-chip" href="/rare-used/">Rare Finds</a></div>
-    <div class="v207-trust-row" aria-label="Search help"><span class="v207-trust-pill"><i></i>Main products first</span><span class="v207-trust-pill"><i></i>Searches the full catalogue</span><span class="v207-trust-pill"><i></i>Accessories kept separate</span><span class="v207-trust-pill"><i></i>Rare products included</span></div></div></section>
-  <section class="v207-results-wrap"><div class="tp-shell v207-layout"><aside class="tp-filter-panel" data-tp-filter-panel><div class="tp-filter-head"><h2>Refine results</h2><button class="tp-btn tp-btn-light tp-btn-small tp-filter-toggle" data-tp-filter-toggle type="button" aria-expanded="false" aria-controls="tp-filter-fields">Filters</button></div><div class="tp-filter-primary" id="tp-filter-fields" hidden><div class="tp-filter-group"><label for="tp-merchant">Seller</label><select id="tp-merchant" data-filter-merchant><option value="">All sellers</option></select></div><div class="tp-filter-group"><label>Price & budget</label><div class="tp-budget-shell" data-budget-tools></div><select id="tp-price" data-filter-price hidden><option value="">Any price</option></select></div><div class="tp-filter-group"><label for="tp-sort">Sort</label><select id="tp-sort" data-filter-sort><option value="smart">Best match</option><option value="best-value">Best value</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></div></div></aside>
-    <section class="tp-main-col" aria-label="Product results"><div class="tp-results-head"><div><h2 data-v2078-results-title>Search products</h2><p data-v2078-finder-status data-v2078-results-sub>Search by product name, brand, model or code.</p></div><span class="tp-results-count" data-v2078-results-count role="status" aria-live="polite">Ready</span></div><div class="tp-product-grid" data-v2078-product-grid aria-live="polite"><div class="tp78-empty"><h3>What are you looking for?</h3><p>Start with a product, brand, model or category.</p></div></div><button class="tp-btn tp-btn-light tp78-load-more" data-v2078-load-more type="button" hidden>Show more products</button></section></div></section>
+  <section class="v207-shop-hero"><div class="tp-shell">
+    <span class="v207-eyebrow">Search the catalogue</span>
+    <h1>Find the product. <span>Even when it is hard to find.</span></h1>
+    <p class="v207-lead">Type a product, brand, model or product code. TrendPilot searches the catalogue and keeps accessories and replacement parts separate when possible.</p>
+    <form class="tp-search" data-v2078-finder-form role="search" aria-label="Search products">
+      <div class="tp-search-row">
+        <label class="tp-search-scope"><span class="tp-sr-only">Search category</span><select data-tp-search-scope data-tp-finder-scope><option value="">All departments</option><option value="phones">Phones & tablets</option><option value="computers">Computers & laptops</option><option value="audio">Audio & headphones</option><option value="beauty">Beauty & fragrance</option><option value="home">Home & kitchen</option><option value="tools">Tools & workshop</option><option value="pets">Pet supplies</option><option value="printing">3D printing</option><option value="business">Business sourcing</option></select></label>
+        <label class="tp-search-input"><svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.4-3.4"></path></svg><span class="tp-sr-only">Search products</span><input data-tp-finder-input name="q" type="search" autocomplete="off" inputmode="search" placeholder="Product, brand, model or code..."></label>
+        <button class="tp-btn tp-btn-primary tp-search-submit" type="submit"><span>Search</span></button>
+      </div>
+    </form>
+    <div class="tp-quick-links" aria-label="Popular searches"><span>Popular:</span><button class="tp-chip" data-search-suggestion="phone" data-search-scope="phones" type="button">Phones</button><button class="tp-chip" data-search-suggestion="laptop" data-search-scope="computers" type="button">Laptops</button><button class="tp-chip" data-search-suggestion="headphones" data-search-scope="audio" type="button">Headphones</button><button class="tp-chip" data-search-suggestion="shoes" type="button">Shoes</button><button class="tp-chip" data-search-suggestion="perfume" data-search-scope="beauty" type="button">Perfume</button><button class="tp-chip" data-search-suggestion="power bank" type="button">Power banks</button><a class="tp-chip" href="/rare-used/">Rare Finds</a></div>
+    <div class="v207-trust-row" aria-label="Search help"><span class="v207-trust-pill"><i></i>Main products first</span><span class="v207-trust-pill"><i></i>Searches the full catalogue</span><span class="v207-trust-pill"><i></i>Accessories kept separate</span><span class="v207-trust-pill"><i></i>Seller options stay consistent</span></div>
+  </div></section>
+
+  <section class="v207-results-wrap"><div class="tp-shell v207-layout">
+    <aside class="tp-filter-panel" data-tp-filter-panel>
+      <div class="tp-filter-head"><h2>Refine results</h2><button class="tp-btn tp-btn-light tp-btn-small tp-filter-toggle" data-tp-filter-toggle type="button" aria-expanded="false" aria-controls="tp-filter-fields">Filters</button></div>
+      <div class="tp-filter-primary" id="tp-filter-fields" hidden>
+        <div class="tp-filter-group"><label for="tp-merchant">Seller</label><select id="tp-merchant" data-filter-merchant><option value="">All sellers</option></select></div>
+        <div class="tp-filter-group"><label>Price & budget</label><div class="tp-budget-shell" data-budget-tools></div></div>
+        <div class="tp-filter-group"><label for="tp-sort">Sort</label><select id="tp-sort" data-filter-sort><option value="smart">Best match</option><option value="best-value">Best value</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option></select></div>
+      </div>
+    </aside>
+    <section class="tp-main-col" aria-label="Product results">
+      <div class="tp-results-head"><div><h2 data-v2078-results-title>Search products</h2><p data-v2078-finder-status data-v2078-results-sub>Search by product name, brand, model or code.</p></div><span class="tp-results-count" data-v2078-results-count role="status" aria-live="polite">Ready</span></div>
+      <div class="tp-product-grid" data-v2078-product-grid aria-live="polite"><div class="tp78-empty"><h3>What are you looking for?</h3><p>Start with a product, brand, model or category.</p></div></div>
+      <button class="tp-btn tp-btn-light tp78-load-more" data-v2078-load-more type="button" hidden>Show more products</button>
+    </section>
+  </div></section>
 </main>
 <footer class="tp-footer" data-v13-footer><div class="tp-shell tp-footer-grid"><div><a class="tp-brand" href="/"><img src="/images/logo-v4.svg" alt="" width="42" height="42"><span>TrendPilot <em>AI</em></span></a><p>Find products, compare seller options and check important details before buying.</p></div><div><h2>Shop</h2><a href="/find/">Find products</a><a href="/compare/">Compare</a><a href="/deals/">Deals</a><a href="/price-watch/">Saved products</a></div><div><h2>Explore</h2><a href="/products/">Electronics</a><a href="/rare-used/">Rare Finds</a><a href="/tickets/">Tickets</a><a href="/sourcing/">Business sourcing</a></div><div><h2>Help & trust</h2><a href="/editorial-methodology.html">How we rank</a><a href="/affiliate-disclosure.html">Affiliate disclosure</a><a href="/privacy.html">Privacy</a><a href="/contact.html">Contact</a></div></div><div class="tp-shell tp-footer-bottom"><span>© <span data-year></span> TrendPilot AI.</span><span>Prices, stock and delivery can change. Confirm them before payment.</span></div></footer>
 <nav class="tp-bottom-nav" aria-label="Mobile navigation"><a data-bottom-link href="/"><b>⌂</b><span>Home</span></a><a data-bottom-link href="/find/"><b>⌕</b><span>Search</span></a><a data-bottom-link href="/deals/"><b>↓</b><span>Deals</span></a><a data-bottom-link href="/compare/"><b>⇄</b><span>Compare</span><i class="tp-count" data-compare-count hidden>0</i></a></nav>
 <script defer src="/js/smart-suggestions-v20-7-7.js?v=21.12.0"></script>
-<script src="/js/query-normalizer-v21-3.js?v=21.12.0"></script><script defer src="/js/universal-discovery-v20-9-1.js?v=21.10.1"></script><script defer src="/js/shopper-language-v21-4.js?v=21.5.0"></script><script defer src="/js/finder-shopper-filters-v21-10-2.js?v=21.10.2"></script></body></html>
+<script src="/js/query-normalizer-v21-3.js?v=21.12.0"></script>
+<script defer src="/js/universal-discovery-v20-9-1.js?v=21.13.0"></script>
+<script defer src="/js/shopper-language-v21-4.js?v=21.5.0"></script>
+<script defer src="/js/finder-shopper-filters-v21-10-2.js?v=21.10.2"></script>
+</body>
+</html>
