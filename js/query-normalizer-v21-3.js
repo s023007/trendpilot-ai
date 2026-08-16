@@ -6,6 +6,8 @@
   if (!raw) return;
 
   const fixes = [
+    [/\btablets\b/ig, "tablet"],
+    [/\bipads\b/ig, "ipad"],
     [/\b(?:makbook|mackbook|macbok|mackbok|mac\s+book)\b/ig, "macbook"],
     [/\b(?:shose|shooes)\b/ig, "shoes"],
     [/\b(?:headpone|headpones)\b/ig, "headphones"],
