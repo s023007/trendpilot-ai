@@ -1,0 +1,33 @@
+name: TrendPilot V21.13.3 — Pack Search Records Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-13-3-pack-search-records-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Build packed footwear and balanced seller indexes
+        run: python scripts/build-v21-13-seller-coverage.py
+      - name: Commit packed indexes and remove one-time writer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          rm -f .github/workflows/trendpilot-v21-13-3-pack-search-records-once.yml
+          git add data/v20-9/footwear-seller-samples.json data/v20-9/seller-browse-samples.json .github/workflows/trendpilot-v21-13-3-pack-search-records-once.yml
+          git commit -m 'TrendPilot V21.13.3 publish packed mobile seller indexes'
+          git pull --rebase origin main
+          git push origin HEAD:main
