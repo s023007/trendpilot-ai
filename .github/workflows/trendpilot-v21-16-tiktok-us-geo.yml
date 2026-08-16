@@ -1,4 +1,4 @@
-name: TrendPilot V21.16 — TikTok Shop US Geo Visibility
+name: TrendPilot V21.16 - TikTok Shop US Geo Visibility
 
 on:
   push:
@@ -41,18 +41,22 @@ jobs:
           bootstrap='<script src="/geo-bootstrap.js?v=21.16.0"></script><script defer src="/js/tiktok-us-geo-v21-16.js?v=21.16.0"></script>'
           changed=[]
           for p in Path('.').rglob('*.html'):
-              if any(x in p.parts for x in ('.git','node_modules','artifacts','coverage')): continue
-              try: s=p.read_text(encoding='utf-8')
-              except Exception: continue
+              if any(x in p.parts for x in ('.git','node_modules','artifacts','coverage')):
+                  continue
+              try:
+                  s=p.read_text(encoding='utf-8')
+              except Exception:
+                  continue
               old=s
               if 'geo-bootstrap.js?v=21.16.0' not in s and '</head>' in s.lower():
-                  i=s.lower().rfind('</head>'); s=s[:i]+bootstrap+s[i:]
-              s=re.sub(r'/js/packed-browse-v21-13-8\.js\?v=[^"\']+', '/js/packed-browse-v21-13-8.js?v=21.16.0', s)
-              s=re.sub(r'/js/compare-v20-9\.js\?v=[^"\']+', '/js/compare-v20-9.js?v=21.16.0', s)
+                  i=s.lower().rfind('</head>')
+                  s=s[:i]+bootstrap+s[i:]
+              s=re.sub(r"/js/packed-browse-v21-13-8\.js\?v=[^\"']+", '/js/packed-browse-v21-13-8.js?v=21.16.0', s)
+              s=re.sub(r"/js/compare-v20-9\.js\?v=[^\"']+", '/js/compare-v20-9.js?v=21.16.0', s)
               if s!=old:
-                  p.write_text(s,encoding='utf-8'); changed.append(p.as_posix())
+                  p.write_text(s,encoding='utf-8')
+                  changed.append(p.as_posix())
           print(f'Patched {len(changed)} HTML files for V21.16 geo visibility.')
-          print('\n'.join(changed[:100]))
           PY
 
       - name: Validate source contract
@@ -106,8 +110,12 @@ jobs:
               grep -q 'geo-bootstrap.js?v=21.16.0' /tmp/page.html || { good=0; break; }
               grep -q 'tiktok-us-geo-v21-16.js?v=21.16.0' /tmp/page.html || { good=0; break; }
             done
-            if [ "$good" = 1 ]; then echo 'V21.16 is live on core public routes.'; exit 0; fi
-            echo "Waiting for V21.16 deploy ($i/45)..."; sleep 6
+            if [ "$good" = 1 ]; then
+              echo 'V21.16 is live on core public routes.'
+              exit 0
+            fi
+            echo "Waiting for V21.16 deploy ($i/45)..."
+            sleep 6
           done
           exit 1
 
@@ -115,7 +123,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          echo '# TrendPilot V21.16 — TikTok Shop US Geo Visibility' >> "$GITHUB_STEP_SUMMARY"
+          echo '# TrendPilot V21.16 - TikTok Shop US Geo Visibility' >> "$GITHUB_STEP_SUMMARY"
           if [ -s artifacts/v21-16-tiktok-geo/report.json ]; then
             node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs=require('fs');const r=JSON.parse(fs.readFileSync('artifacts/v21-16-tiktok-geo/report.json','utf8'));
