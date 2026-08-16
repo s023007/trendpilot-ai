@@ -16,6 +16,7 @@ FOOT_POS=re.compile(r'\b(?:shoe|shoes|sneaker|sneakers|boot|boots|sandal|sandals
 FOOT_NEG=re.compile(r'\b(?:shoe covers?|shoe racks?|shoe bags?|shoe boxes?|shoelaces?|shoe laces?|insoles?|outsoles?|shoe horns?|shoe brushes?|shoe trees?|shoe stretchers?|shoe dryers?|shoe machines?|shoe making|shoe lasts?|shoe repair|shoe glue|shoe charms?|shoe clips?|shoe buckles?|shoe decorations?|shoe accessories|brake shoes?|snow blowers?|skid plates?|skid shoes?|guide shoes?|sliding shoes?|sanding shoes?|machine shoes?|elevator shoes?|rail shoes?|crawler shoes?|horseshoes?|horse shoes?|cv boots?|dust boots?|rack boots?|steering boots?|shift boots?|gear boots?|trunk boots?|boot gas|boot struts?|boot lids?|boot release|boot locks?|boot liners?|boot mats?|boot seals?|ball joint boots?|tie rod boots?|shock boots?|connector boots?|cable boots?|flooring installation|epoxy shoes?|temperature control iron|heel wedges?|heel lifts?|orthotics?|orthopedic inserts?|post[- ]?op|postoperative|walker boots?|walking boot braces?|medical boots?|ankle braces?|foot braces?|cast shoes?|fracture boots?|pressure relief boots?|fall management|patient|therapy|pain relief|single patient use)\b',re.I)
 COSTUME=re.compile(r'\b(?:cosplay|costume|halloween costume|carnival outfit|full outfit)\b',re.I)
 
+PACK_FIELDS=('id','t','im','p','cu','se','b','ty','tyl','fa','ro','r','x','ids','s')
 
 def clean(v): return ' '.join(str(v or '').split()).strip()
 def seller(row): return clean(row.get('se') or row.get('seller'))
@@ -41,6 +42,16 @@ def rank(row):
         -len(title(row))
     )
 
+def pack(row,rid):
+    out={}
+    for k in PACK_FIELDS:
+        if k in row and row[k] not in (None,'',[],{}): out[k]=row[k]
+    out['id']=rid
+    if 'se' not in out: out['se']=seller(row)
+    if 't' not in out: out['t']=title(row)
+    if 'ro' not in out: out['ro']=role(row)
+    return out
+
 foot=defaultdict(list)
 browse=defaultdict(list)
 seen_ids=set(); total=0
@@ -56,45 +67,52 @@ for p in sorted(SRC.glob('*.json')):
         if not rid or not s or not t or blocked(s): continue
         if rid in seen_ids: continue
         seen_ids.add(rid)
-        if footwear(row): foot[s].append((rank(row),rid,t))
+        packed=pack(row,rid)
+        if footwear(row): foot[s].append((rank(row),rid,packed))
         if role(row) in {'main','used'}:
-            browse[s].append((rank(row),rid,t))
+            browse[s].append((rank(row),rid,packed))
 
 
 def payload(source,per_seller,kind):
-    sellers={}
-    counts={}
+    sellers={}; counts={}; records={}
     for s,rows in sorted(source.items(),key=lambda kv:kv[0].lower()):
         rows.sort(key=lambda x:x[0],reverse=True)
         ids=[]; used=set()
-        for _,rid,_ in rows:
+        for _,rid,row in rows:
             if rid in used: continue
-            used.add(rid); ids.append(rid)
+            used.add(rid); ids.append(rid); records[rid]=row
             if len(ids)>=per_seller: break
         if ids:
             sellers[s]=ids
             counts[s]=len(rows)
     return {
-        'version':'21.13.2',
+        'version':'21.13.3',
         'kind':kind,
         'generated_from':'data/v20-9/products/*.json',
         'records_scanned':total,
         'seller_count':len(sellers),
+        'packed_record_count':len(records),
         'counts':counts,
-        'sellers':sellers
+        'sellers':sellers,
+        'records':records
     }
 
-foot_payload=payload(foot,120,'strict-consumer-footwear')
-browse_payload=payload(browse,36,'balanced-browse')
+foot_payload=payload(foot,120,'strict-consumer-footwear-packed')
+browse_payload=payload(browse,36,'balanced-browse-packed')
 (OUT/'footwear-seller-samples.json').write_text(json.dumps(foot_payload,separators=(',',':'),ensure_ascii=False),encoding='utf-8')
 (OUT/'seller-browse-samples.json').write_text(json.dumps(browse_payload,separators=(',',':'),ensure_ascii=False),encoding='utf-8')
 print(json.dumps({
     'footwear_sellers':foot_payload['counts'],
+    'footwear_packed_records':foot_payload['packed_record_count'],
     'browse_sellers':browse_payload['counts'],
-    'footwear_total':sum(foot_payload['counts'].values()),
+    'browse_packed_records':browse_payload['packed_record_count'],
     'records_scanned':total
 },indent=2,ensure_ascii=False))
 required={'Alibaba','AliExpress','TikTok Shop US'}
 actual=set(foot_payload['sellers'])
 if actual != required:
     raise SystemExit('Strict footwear seller universe mismatch. expected='+repr(sorted(required))+' actual='+repr(sorted(actual)))
+if foot_payload['packed_record_count']<200:
+    raise SystemExit('Strict footwear packed index is unexpectedly small')
+if browse_payload['packed_record_count']<250:
+    raise SystemExit('Balanced browse packed index is unexpectedly small')
