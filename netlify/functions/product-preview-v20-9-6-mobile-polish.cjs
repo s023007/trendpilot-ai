@@ -67,7 +67,9 @@ function polish(body){
     }
   };if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',run,{once:true});else run();})();</script>`;
 
-  return body.replace(/<\/body>/i,`${script}</body>`);
+  let out = body.replace(/<\/body>/i,`${script}</body>`);
+  if(!/seller-handoff-v21-15\.js/i.test(out)) out=out.replace(/<\/body>/i,'<script defer src="/js/seller-handoff-v21-15.js?v=21.15.0"></script></body>');
+  return out;
 }
 
 exports.handler=async function(event,context){
@@ -75,7 +77,7 @@ exports.handler=async function(event,context){
   const type=String(res?.headers?.["content-type"]||res?.headers?.["Content-Type"]||"");
   if(res?.statusCode===200 && /text\/html/i.test(type)){
     res.body=polish(res.body);
-    res.headers={...(res.headers||{}),"x-trendpilot-mobile-polish":"20.9.6"};
+    res.headers={...(res.headers||{}),"x-trendpilot-mobile-polish":"20.9.6","x-trendpilot-internal-first":"21.15.0"};
   }
   return res;
 };
