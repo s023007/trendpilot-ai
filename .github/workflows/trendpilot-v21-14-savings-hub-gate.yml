@@ -1,0 +1,65 @@
+name: TrendPilot V21.14 — Savings Hub Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-14-savings-hub-gate.yml
+      - deals/index.html
+      - deal/index.html
+      - coupon/index.html
+      - css/deals-revenue-v21-14.css
+      - js/deals-revenue-v21-14.js
+      - js/deal-detail-v21-14.js
+      - js/coupon-detail-v21-14.js
+      - scripts/qa-v21-14-savings-hub.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check V21.14 syntax
+        run: |
+          node --check js/deals-revenue-v21-14.js
+          node --check js/deal-detail-v21-14.js
+          node --check js/coupon-detail-v21-14.js
+          node --check scripts/qa-v21-14-savings-hub.mjs
+      - name: Install lightweight DOM runtime
+        run: npm install --no-save --ignore-scripts linkedom@0.18.12
+      - name: Run product-first savings regression QA
+        run: node scripts/qa-v21-14-savings-hub.mjs
+      - name: Verify public V21.14 deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 30); do
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/deals/' -o /tmp/deals.html || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/deal/' -o /tmp/deal.html || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/coupon/' -o /tmp/coupon.html || true
+            if grep -q 'deals-revenue-v21-14.js?v=21.14.0' /tmp/deals.html 2>/dev/null && grep -q 'deal-detail-v21-14.js?v=21.14.0' /tmp/deal.html 2>/dev/null && grep -q 'coupon-detail-v21-14.js?v=21.14.0' /tmp/coupon.html 2>/dev/null; then
+              echo 'V21.14 Savings Hub is live.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'V21.14 public markers not live in time.'
+          exit 1
+      - name: Upload Savings Hub evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-14-savings-hub-gate
+          path: artifacts/v21-14-savings-hub
+          if-no-files-found: ignore
