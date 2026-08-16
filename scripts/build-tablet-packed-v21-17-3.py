@@ -6,14 +6,15 @@ PRODUCTS=ROOT/'data/v20-9/products'
 OUT=ROOT/'data/v20-9/tablet-seller-samples.json'
 BLOCKED={'temu','joom','filamentpro eu cps','filamentpro'}
 
-# Consumer-tablet discovery is intentionally title-driven. Historic family/type labels
-# contain some false classifications, so a row must look like a complete device in its
-# public title and not merely mention a tablet that another product fits or controls.
+# Consumer-tablet discovery is title-driven. Historic family/type labels contain false
+# classifications, so a row must describe a complete device rather than merely mention
+# the device it fits, charges, mounts, connects to or controls.
 DIRECT_DEVICE=re.compile(
     r'\b(?:tablet\s+pc|android\s+tablet|windows\s+tablet|chromebook\s+tablet|'
-    r'ipad(?:\s+(?:pro|air|mini))?(?:\s+\d{1,2}(?:\.\d)?(?:-inch|\s*inch)?)?|'
-    r'galaxy\s+tab\s*[a-z0-9+.-]*|surface\s+pro\s*\d*|'
-    r'(?:lenovo|xiaomi|redmi|honor|huawei|samsung|oneplus|oppo|vivo|realme)\s+(?:tab|pad)\s*[a-z0-9+.-]*)\b',
+    r'(?:apple\s+)?ipad\s+(?:pro|air|mini)(?:\s+[a-z0-9+.-]+){0,3}|'
+    r'(?:apple\s+)?ipad\s+\d{1,2}(?:st|nd|rd|th)?\s*(?:gen(?:eration)?)?|'
+    r'galaxy\s+tab\s+[a-z][a-z0-9+.-]*|surface\s+pro\s+\d+[a-z0-9+.-]*|'
+    r'(?:lenovo|xiaomi|redmi|honor|huawei|samsung|oneplus|oppo|vivo|realme)\s+(?:tab|pad)\s+[a-z0-9+.-]+)\b',
     re.I
 )
 GENERIC_TABLET=re.compile(r'\btablets?\b',re.I)
@@ -28,7 +29,7 @@ FALSE_CONTEXT=re.compile(
     r'writing\s+(?:pad|tablet)|lcd\s+writing|digitizer|drawing\s+pad|graphics?\s+pad|'
     r'tablet\s+monitor|pen\s+display|digital\s+pen\s+design|handwriting\s+pad|animation\s+tablet|'
     r'osu\s+tablet|screen\s+repair|screen\s+remover|separator\s+pad|heating\s+(?:stage|pad)|'
-    r'industrial\s+(?:tablet|panel)|control\s+panel|tablet\s+(?:holder|mount|stand|bracket)|'
+    r'industrial\s+(?:grade\s+)?(?:tablet|panel)|control\s+panel|tablet\s+(?:holder|mount|stand|bracket)|'
     r'(?:holder|mount|stand|bracket)\s+(?:for\s+)?tablets?|tablet\s+accessor)\b',re.I
 )
 ACCESSORY=re.compile(
@@ -36,11 +37,16 @@ ACCESSORY=re.compile(
     r'stands?|holders?|mounts?|brackets?|keyboard\s+cases?|sleeves?|bags?|stylus|'
     r'pens?\s+(?:for|compatible)|replacement|repair|digitizer|touch\s+screens?|touch\s+panels?|'
     r'glass\s+panels?|lcd\s+(?:screen|display)|display\s+assembly|batter(?:y|ies)|chargers?|'
-    r'cables?|cords?|adapters?|docks?|controllers?|gamepads?|motherboards?|mainboards?|'
-    r'flex\s+cables?|ribbon\s+cables?|connectors?|housings?|shells?|parts?|spares?|'
-    r'gift\s+sets?|fragrances?|perfumes?|car\s+mounts?|wall\s+mounts?)\b',re.I
+    r'power\s*banks?|portable\s+chargers?|flash\s+drives?|memory\s+sticks?|pendrives?|'
+    r'video\s+transmitters?|transmitters?|receivers?|cables?|cords?|adapters?|docks?|hubs?|'
+    r'keyboards?|mice|mouse|controllers?|gamepads?|motherboards?|mainboards?|flex\s+cables?|'
+    r'ribbon\s+cables?|connectors?|housings?|shells?|parts?|spares?|gift\s+sets?|fragrances?|'
+    r'perfumes?|car\s+mounts?|wall\s+mounts?|charging\s+stations?)\b',re.I
 )
-FIT_LANGUAGE=re.compile(r'\b(?:for|fits?|compatible\s+with|replacement\s+for|designed\s+for|used\s+for|suitable\s+for)\b',re.I)
+FIT_BEFORE_DEVICE=re.compile(
+    r'\b(?:for|fits?|compatible\s+with|replacement\s+for|designed\s+for|suitable\s+for)\b[^,;]{0,80}'
+    r'\b(?:ipad|tablet|galaxy\s+tab|surface\s+pro|lenovo\s+(?:tab|pad)|xiaomi\s+pad)\b',re.I
+)
 
 
 def clean(v):
@@ -53,24 +59,26 @@ def candidate(r):
     if role not in {'main','used'}: return False
     title=clean(r.get('t'))
     if not title: return False
-    if FALSE_CONTEXT.search(title) or ACCESSORY.search(title): return False
+    if FALSE_CONTEXT.search(title) or ACCESSORY.search(title) or FIT_BEFORE_DEVICE.search(title): return False
 
     direct=bool(DIRECT_DEVICE.search(title))
     generic=bool(GENERIC_TABLET.search(title))
     if not direct and not (generic and DEVICE_SIGNAL.search(title)): return False
 
-    # Accessory listings often say "for iPad/Tablet". A genuine device can contain
-    # "for" elsewhere, but if fit-language appears immediately before the device phrase,
-    # reject it unless the title also carries strong complete-device specification evidence.
-    if re.search(r'\b(?:for|fits?|compatible\s+with|replacement\s+for)\s+(?:the\s+)?(?:apple\s+)?(?:ipad|tablet|galaxy\s+tab|surface\s+pro)\b',title,re.I):
-        if not (DEVICE_SIGNAL.search(title) and re.search(r'\b(?:tablet\s+pc|android\s+tablet|windows\s+tablet|chromebook\s+tablet)\b',title,re.I)):
-            return False
+    # A lone generic "tablet" plus a battery capacity is not enough; require an actual
+    # computing/display signal as well.
+    if not direct and generic:
+        strong=re.search(
+            r'\b(?:\d{1,2}(?:\.\d)?\s*(?:inch|inches|\")|\d+\s*gb\s*(?:ram|rom|storage)|'
+            r'android\s*\d{1,2}|snapdragon|mediatek|helio|unisoc|dimensity|octa[- ]?core|'
+            r'quad[- ]?core|touchscreen|ips\s+display|fhd|full\s+hd)\b',title,re.I)
+        if not strong: return False
     return True
 
 def rank(r):
     title=clean(r.get('t'))
     score=float(r.get('r') or 0)
-    if re.search(r'\b(?:ipad|galaxy\s+tab|surface\s+pro|chromebook\s+tablet)\b',title,re.I): score+=60
+    if re.search(r'\b(?:ipad\s+(?:pro|air|mini)|galaxy\s+tab|surface\s+pro|chromebook\s+tablet)\b',title,re.I): score+=60
     if re.search(r'\b(?:tablet\s+pc|android\s+tablet|windows\s+tablet)\b',title,re.I): score+=50
     if DEVICE_SIGNAL.search(title): score+=30
     if r.get('im'): score+=5
