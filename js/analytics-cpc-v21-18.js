@@ -5,6 +5,7 @@
   window.__TP_ANALYTICS_CPC_V21_18__ = true;
 
   const MEASUREMENT_ID = 'G-EKSFY3JE4D';
+  const CLARITY_ID = 'y3bc7e7s9g';
   const CPC_SELLER_RE = /\b(?:aliexpress|alibaba|geekbuying)\b/i;
   const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim().slice(0, 180);
 
@@ -20,6 +21,26 @@
     document.head.appendChild(tag);
   }
 
+  window.clarity = window.clarity || function(){
+    (window.clarity.q = window.clarity.q || []).push(arguments);
+  };
+  if (!document.querySelector(`script[src*="clarity.ms/tag/${CLARITY_ID}"]`)) {
+    const clarityTag = document.createElement('script');
+    clarityTag.async = true;
+    clarityTag.src = `https://www.clarity.ms/tag/${CLARITY_ID}?ref=bwt`;
+    document.head.appendChild(clarityTag);
+  }
+
+  const claritySet = (key, value) => {
+    const safe = clean(value);
+    if (!safe) return;
+    try { window.clarity('set', clean(key), safe); } catch (_) {}
+  };
+
+  const clarityEvent = name => {
+    try { window.clarity('event', clean(name)); } catch (_) {}
+  };
+
   const send = (name, params = {}) => {
     try {
       window.gtag('event', name, {
@@ -28,6 +49,7 @@
         ...params
       });
     } catch (_) {}
+    clarityEvent(name);
   };
 
   const currentQuery = () => {
@@ -40,6 +62,19 @@
     return clean(qs.get('scope') || '');
   };
 
+  const pageType = () => {
+    const path = location.pathname;
+    if (path === '/') return 'home';
+    if (/^\/find\//i.test(path)) return 'search';
+    if (/^\/product\//i.test(path)) return 'product';
+    if (/^\/deal\//i.test(path)) return 'deal';
+    if (/^\/coupon\//i.test(path)) return 'coupon';
+    if (/^\/handoff\//i.test(path)) return 'handoff';
+    if (/^\/compare\//i.test(path)) return 'compare';
+    if (/^\/deals\//i.test(path)) return 'deals';
+    return clean(document.body?.dataset?.tpPage || 'other');
+  };
+
   const sellerFromNode = node => {
     const explicit = clean(node?.dataset?.seller || node?.closest?.('[data-seller]')?.dataset?.seller || '');
     if (explicit) return explicit;
@@ -50,7 +85,13 @@
     return text;
   };
 
+  const syncClarityContext = () => {
+    claritySet('tp_page_type', pageType());
+    claritySet('tp_country', window.__TP_VISITOR_COUNTRY__ || document.documentElement.dataset.tpCountry || 'ZZ');
+  };
+
   const pageEvent = () => {
+    syncClarityContext();
     const path = location.pathname;
     const query = currentQuery();
     if (/^\/product\//i.test(path)) send('product_view', { search_term: query });
@@ -58,6 +99,7 @@
     else if (/^\/coupon\//i.test(path)) send('coupon_view', { search_term: query });
     else if (/^\/handoff\//i.test(path)) {
       const seller = sellerFromNode(document.querySelector('[data-continue]'));
+      claritySet('tp_seller', seller);
       send('seller_handoff_view', { seller });
     }
 
@@ -65,6 +107,8 @@
       send('search_intent', { search_term: query, search_scope: currentScope() });
     }
   };
+
+  document.addEventListener('trendpilot:geo-ready', syncClarityContext);
 
   document.addEventListener('click', event => {
     const a = event.target?.closest?.('a[href]');
@@ -75,6 +119,7 @@
 
     const seller = sellerFromNode(a);
     if (url.origin === location.origin && /^\/handoff\//i.test(url.pathname)) {
+      claritySet('tp_seller', seller);
       send('seller_intent', {
         seller,
         search_term: currentQuery(),
@@ -85,14 +130,17 @@
 
     if (/^\/handoff\//i.test(location.pathname) && /^https?:$/.test(url.protocol) && url.origin !== location.origin) {
       const finalSeller = seller || clean(document.querySelector('[data-seller]')?.textContent || url.hostname);
+      const isCpcCandidate = CPC_SELLER_RE.test(finalSeller);
+      claritySet('tp_seller', finalSeller);
+      claritySet('tp_cpc_candidate', isCpcCandidate ? 'yes' : 'no');
       const params = {
         seller: finalSeller,
         destination_host: clean(url.hostname),
         source_path: clean(document.referrer ? (() => { try { return new URL(document.referrer).pathname; } catch { return ''; } })() : ''),
-        cpc_candidate: CPC_SELLER_RE.test(finalSeller) ? 'yes' : 'no'
+        cpc_candidate: isCpcCandidate ? 'yes' : 'no'
       };
       send('seller_click', params);
-      if (CPC_SELLER_RE.test(finalSeller)) {
+      if (isCpcCandidate) {
         send('cpc_candidate_click', { ...params, cpc_status: 'candidate_not_confirmed' });
       }
     }

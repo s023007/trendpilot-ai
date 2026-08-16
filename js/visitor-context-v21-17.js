@@ -37,8 +37,8 @@
   if (!document.querySelector('script[data-tp-analytics-cpc]')) {
     const analytics = document.createElement('script');
     analytics.defer = true;
-    analytics.dataset.tpAnalyticsCpc = '21.18';
-    analytics.src = '/js/analytics-cpc-v21-18.js?v=21.18.0';
+    analytics.dataset.tpAnalyticsCpc = '21.19';
+    analytics.src = '/js/analytics-cpc-v21-18.js?v=21.19.0';
     document.head.appendChild(analytics);
   }
 })();
