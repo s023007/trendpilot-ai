@@ -33,4 +33,12 @@
     .then(response => response.ok ? response.json() : Promise.reject(new Error(`HTTP ${response.status}`)))
     .then(data => { clearTimeout(timer); finish(data && data.country); })
     .catch(() => { clearTimeout(timer); finish('ZZ'); });
+
+  if (!document.querySelector('script[data-tp-analytics-cpc]')) {
+    const analytics = document.createElement('script');
+    analytics.defer = true;
+    analytics.dataset.tpAnalyticsCpc = '21.18';
+    analytics.src = '/js/analytics-cpc-v21-18.js?v=21.18.0';
+    document.head.appendChild(analytics);
+  }
 })();
