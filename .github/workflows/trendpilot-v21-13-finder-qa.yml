@@ -1,0 +1,72 @@
+name: TrendPilot V21.13 — Finder Regression QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-13-finder-qa.yml
+      - scripts/qa-v21-13-finder.mjs
+      - js/universal-discovery-v20-9-1.js
+      - find/index.html
+      - data/v20-9/footwear-seller-samples.json
+      - data/v20-9/seller-browse-samples.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Wait for V21.13 public finder deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            finder=0
+            footwear=0
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/' -o /tmp/find.html && grep -q 'universal-discovery-v20-9-1.js?v=21.13.0' /tmp/find.html && finder=1 || true
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/data/v20-9/footwear-seller-samples.json?v=21.13.0' -o /tmp/footwear.json && grep -q '"version":"21.13.2"' /tmp/footwear.json && footwear=1 || true
+            if [ "$finder" = 1 ] && [ "$footwear" = 1 ]; then
+              echo "V21.13 finder and V21.13.2 footwear index are live."
+              exit 0
+            fi
+            echo "Waiting for public deploy ($i/60): finder=$finder footwear=$footwear"
+            sleep 10
+          done
+          echo 'Public deployment markers did not become ready.'
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check finder runtime syntax
+        run: node --check js/universal-discovery-v20-9-1.js
+
+      - name: Install Chromium QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Run mobile seller, footwear and load-more regression QA
+        env:
+          TP_BASE_URL: https://trendpilotchoice.com
+        run: node scripts/qa-v21-13-finder.mjs
+
+      - name: Upload finder QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-13-finder-qa
+          path: artifacts/v21-13-finder
+          if-no-files-found: ignore
