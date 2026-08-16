@@ -28,19 +28,18 @@ async function probe(browserType,name,{country='OM',abortGeo=false,userAgent=''}
   const browser=await browserType.launch({headless:true});
   const watchdog=setTimeout(()=>{console.error(`[qa] ${name} watchdog closing browser`);browser.close().catch(()=>{});},40000);
   try{
-    // Do not use Playwright's isMobile emulation here: Firefox does not implement it the same
-    // way as Chromium. A phone-sized viewport + Android UA exercises our site code consistently.
     const opts={viewport:{width:390,height:844},hasTouch:true}; if(userAgent)opts.userAgent=userAgent;
     const ctx=await browser.newContext(opts);
     const page=await ctx.newPage(); page.setDefaultTimeout(12000);
-    const errors=[],failed=[];
+    const errors=[],failed=[],responses=[];
     page.on('pageerror',e=>errors.push(String(e.message||e)));
     page.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||'failed'}`));
+    page.on('response',r=>{if(/visitor-context|tablet-seller-samples|packed-browse/i.test(r.url()))responses.push(`${r.status()} ${r.url()}`)});
     await page.route('**/visitor-context.json*',route=>abortGeo?route.abort():route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({country})}));
     const started=Date.now();
     await page.goto(`${BASE}/find/?q=tablets&engine=v2064&universal=1`,{waitUntil:'domcontentloaded',timeout:12000});
-    await page.waitForFunction(()=>window.__TP_PACKED_BROWSE__?.ready===true,{timeout:8000});
-    await page.waitForSelector('.tp78-card',{state:'attached',timeout:8000});
+    let readyError='';
+    try{await page.waitForFunction(()=>window.__TP_PACKED_BROWSE__?.ready===true,{timeout:8000})}catch(e){readyError=String(e?.message||e)}
     const base=await page.evaluate(()=>({
       elapsed:0,
       cards:document.querySelectorAll('.tp78-card').length,
@@ -51,11 +50,18 @@ async function probe(browserType,name,{country='OM',abortGeo=false,userAgent=''}
       packedActive:window.__TP_PACKED_BROWSE_ACTIVE__===true,
       geoReady:Boolean(window.__TP_GEO_READY__),
       currentQuery:new URLSearchParams(location.search).get('q')||'',
+      scripts:[...document.scripts].map(s=>s.src||'inline').filter(Boolean).slice(-15),
       texts:[...document.querySelectorAll('.tp78-card')].map(c=>(c.textContent||'').replace(/\s+/g,' ').trim()),
       status:(document.querySelector('[data-v2078-results-count]')?.textContent||'').trim(),
       gridText:(document.querySelector('[data-v2078-product-grid]')?.textContent||'').replace(/\s+/g,' ').trim().slice(0,500)
     }));
-    base.elapsed=Date.now()-started;base.errors=errors;base.requestFailures=failed;
+    base.elapsed=Date.now()-started;base.errors=errors;base.requestFailures=failed;base.responses=responses;base.readyError=readyError;
+    if(!base.packed?.ready||base.cards<1){
+      report.browsers[name]=base;
+      fs.writeFileSync(`${OUT}/report.json`,JSON.stringify(report,null,2));
+      console.error(`[qa] ${name} startup diagnostics`,JSON.stringify(base,null,2));
+      throw new Error(`${name} packed browse not ready: ${JSON.stringify(base)}`);
+    }
 
     if(base.sellers.some(x=>/^Lenovo$/i.test(x))){
       await page.selectOption('[data-filter-merchant]','Lenovo');
@@ -94,7 +100,6 @@ try{
 
   const yandexUA='Mozilla/5.0 (Linux; arm_64; Android 10; STK-L21) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 YaBrowser/26.8.0.0 Mobile Safari/537.36';
   const firefoxUA='Mozilla/5.0 (Android 10; Mobile; rv:141.0) Gecko/141.0 Firefox/141.0';
-
   const y=await probe(chromium,'yandex-style',{abortGeo:true,country:'ZZ',userAgent:yandexUA});
   check('yandex_loads_fast',y.elapsed<10000,`${y.elapsed}ms`);
   check('yandex_has_results',y.cards>0,`cards=${y.cards}`);
