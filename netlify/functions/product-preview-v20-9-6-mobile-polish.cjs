@@ -4,7 +4,7 @@ function polish(body){
   if(!body || !/<html/i.test(body)) return body;
   if(!/trendpilot-calm-dark-v21\.css/i.test(body)) body=body.replace(/<\/head>/i,'<link rel="stylesheet" href="/css/trendpilot-calm-dark-v21.css?v=21.0.0"></head>');
   if(!/trendpilot-graphite-navy-v21-1\.css/i.test(body)) body=body.replace(/<\/head>/i,'<link rel="stylesheet" href="/css/trendpilot-graphite-navy-v21-1.css?v=21.1.0"></head>');
-  if(!/geo-bootstrap\.js/i.test(body)) body=body.replace(/<\/head>/i,'<script src="/geo-bootstrap.js?v=21.16.0"></script><script defer src="/js/tiktok-us-geo-v21-16.js?v=21.16.0"></script></head>');
+  if(!/visitor-context-v21-17\.js/i.test(body)) body=body.replace(/<\/head>/i,'<script src="/js/visitor-context-v21-17.js?v=21.17.0"></script><script defer src="/js/tiktok-us-geo-v21-17.js?v=21.17.0"></script></head>');
   body=body.replace(/<meta name="theme-color" content="[^"]*">/i,'<meta name="theme-color" content="#121721">');
 
   const css = `
@@ -78,7 +78,7 @@ exports.handler=async function(event,context){
   const type=String(res?.headers?.["content-type"]||res?.headers?.["Content-Type"]||"");
   if(res?.statusCode===200 && /text\/html/i.test(type)){
     res.body=polish(res.body);
-    res.headers={...(res.headers||{}),"x-trendpilot-mobile-polish":"20.9.6","x-trendpilot-internal-first":"21.15.0","x-trendpilot-tiktok-geo":"21.16.0"};
+    res.headers={...(res.headers||{}),"x-trendpilot-mobile-polish":"20.9.6","x-trendpilot-internal-first":"21.15.0","x-trendpilot-tiktok-geo":"21.17.0","x-trendpilot-browser-compat":"21.17.0"};
   }
   return res;
 };

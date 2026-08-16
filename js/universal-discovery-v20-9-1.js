@@ -2,7 +2,7 @@
   "use strict";
 
   const CATALOG_VERSION = "20.9.0";
-  const RUNTIME_VERSION = "21.13.0";
+  const RUNTIME_VERSION = "21.17.0";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -18,6 +18,14 @@
   const cache = new Map();
   const state = {all:[],filtered:[],page:24,min:0,max:0,seller:"",sort:"smart",sellerSamples:{},sellerUniverse:[],bound:false};
   const loader = {groups:[],cursor:0,seen:new Set(),busy:false,done:false};
+  const waitForGeo = async()=>{try{const p=window.__TP_GEO_READY__;if(p&&typeof p.then==="function")await p}catch{}};
+  const sellerAllowed = seller => window.__TP_ALLOW_TIKTOK_US__===true || !/^TikTok\s*Shop\s*US$/i.test(C(seller));
+  function usablePrice(r){
+    const value=Number(r&&r.p)||0;if(!value)return 0;
+    const seller=L(r&&r.se),role=L((r&&r.ro)||"main"),text=L([r&&r.fa,r&&r.ty,r&&r.tyl,r&&r.t].join(" "));
+    if(seller.includes("lenovo")&&role!=="accessory"&&role!=="replacement_part"&&value<=5&&/\b(?:laptop|tablet|chromebook|notebook|computer)\b/i.test(text))return 0;
+    return value;
+  }
 
   const FOOT_POS = /\b(?:shoe|shoes|sneaker|sneakers|boot|boots|sandal|sandals|slipper|slippers|loafer|loafers|heel|heels|moccasin|moccasins|oxford|oxfords|cleat|cleats|footwear|clog|clogs|flip[- ]?flops?|ballet shoes?|running shoes?|walking shoes?|work boots?|hiking boots?)\b/i;
   const FOOT_NEG = /\b(?:shoe covers?|shoe racks?|shoe bags?|shoe boxes?|shoelaces?|shoe laces?|insoles?|outsoles?|shoe horns?|shoe brushes?|shoe trees?|shoe stretchers?|shoe dryers?|shoe machines?|shoe making|shoe repair|shoe glue|shoe charms?|shoe clips?|shoe buckles?|shoe decorations?|shoe accessories|brake shoes?|snow blowers?|skid plates?|skid shoes?|guide shoes?|sliding shoes?|sanding shoes?|machine shoes?|elevator shoes?|rail shoes?|crawler shoes?|horseshoes?|horse shoes?|cv boots?|dust boots?|rack boots?|steering boots?|shift boots?|gear boots?|trunk boots?|boot gas|boot struts?|boot lids?|boot release|boot locks?|boot liners?|boot mats?|boot seals?|ball joint boots?|tie rod boots?|shock boots?|connector boots?|cable boots?|flooring installation|epoxy shoes?|temperature control iron)\b/i;
@@ -109,7 +117,7 @@
   const intersect=(a,b)=>{const s=new Set(b);return a.filter(x=>s.has(x))};
 
   function balancedSampleIds(samples,perSeller=12){
-    const sellers=Object.keys(samples||{}).filter(s=>!BLOCK.has(L(s))).sort((a,b)=>a.localeCompare(b)),out=[];
+    const sellers=Object.keys(samples||{}).filter(s=>!BLOCK.has(L(s))&&sellerAllowed(s)).sort((a,b)=>a.localeCompare(b)),out=[];
     for(let i=0;i<perSeller;i++) for(const seller of sellers){const id=(samples[seller]||[])[i];if(id)out.push(id)}
     return unique(out);
   }
@@ -130,7 +138,7 @@
       samples=data?.families?.[family]||{};
     }
     state.sellerSamples=samples;
-    state.sellerUniverse=Object.keys(samples).filter(s=>!BLOCK.has(L(s))).sort((a,b)=>a.localeCompare(b));
+    state.sellerUniverse=Object.keys(samples).filter(s=>!BLOCK.has(L(s))&&sellerAllowed(s)).sort((a,b)=>a.localeCompare(b));
     return samples;
   }
 
@@ -171,7 +179,7 @@
     for(const t of tokens){if(title.includes(t))n+=16;else if(search.includes(t))n+=7}
     if(family&&(fam===family||type===family))n+=38;
     if(intent==="main")n+=role==="main"?36:role==="used"?18:-60;else if(intent==="used")n+=role==="used"?55:-35;else n+=role===intent?55:-42;
-    if(r.x)n+=10;if(r.im)n+=5;if(r.p)n+=2;return n;
+    if(r.x)n+=10;if(r.im)n+=5;if(usablePrice(r))n+=2;return n;
   }
   function roleOK(r){const role=C(r.ro||"main");if(intent==="main")return role==="main"||role==="used";if(intent==="used")return role==="used";return role===intent}
   function semanticOK(r){
@@ -182,7 +190,7 @@
     return true;
   }
   function acceptRow(r){
-    if(!r||BLOCK.has(L(r.se))||!roleOK(r)||!semanticOK(r))return false;
+    if(!r||BLOCK.has(L(r.se))||!sellerAllowed(r.se)||!roleOK(r)||!semanticOK(r))return false;
     const n=score(r);if(n<=-10)return false;r._score=n;return true;
   }
 
@@ -225,9 +233,9 @@
   function compareItems(){try{const x=JSON.parse(localStorage.getItem("tp-v209-compare")||"[]");return Array.isArray(x)?x:[]}catch{return[]}}
   function setCompare(items){try{localStorage.setItem("tp-v209-compare",JSON.stringify(items.slice(0,3)))}catch{};$$('[data-compare-count]').forEach(el=>{el.textContent=String(items.length);el.toggleAttribute("hidden",!items.length)})}
   function addCompare(r,b){const items=compareItems();if(items.some(x=>(typeof x==="string"?x:x.id)===r.id)){location.href="/compare/";return}const first=items[0],ff=typeof first==="object"?C(first.fa):"";if(ff&&C(r.fa)&&ff!==C(r.fa)){b.textContent="Choose the same family";setTimeout(()=>b.textContent="Compare",1400);return}if(items.length>=3){b.textContent="Comparison is full";setTimeout(()=>b.textContent="Compare",1400);return}items.push({id:r.id,fa:C(r.fa),t:C(r.t),ty:C(r.ty)});setCompare(items);b.textContent="Added ✓"}
-  const money=r=>`${r.cu==="USD"?"US$":E((r.cu||"")+" ")}${Number(r.p).toLocaleString(undefined,{maximumFractionDigits:2})}`;
+  const money=(r,v=usablePrice(r))=>`${r.cu==="USD"?"US$":E((r.cu||"")+" ")}${Number(v).toLocaleString(undefined,{maximumFractionDigits:2})}`;
   function card(r){
-    const price=r.p?money(r):"Check current price",href=`/item/?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(q)}`;
+    const pv=usablePrice(r),price=pv?money(r,pv):"Check current price",href=`/item/?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(q)}`;
     return `<article class="tp78-card tp90-search-card" data-v209-card data-v209-seller="${E(r.se)}" data-v209-role="${E(r.ro||"main")}" data-v209-family="${E(r.fa||r.ty)}"><a class="tp78-media" href="${E(href)}" aria-label="View ${E(r.t)} details">${r.im?`<img src="${E(r.im)}" alt="${E(r.t)}" width="360" height="360" loading="lazy" decoding="async" onerror="this.remove()">`:"<span class=\"tp78-fallback\">TP</span>"}</a><div class="tp78-body"><div class="tp78-top"><b>${E(genericFootwear?"Footwear":(r.b||r.tyl||"Product"))}</b><span>${E(r.se)}</span></div><h3><a href="${E(href)}">${E(r.t)}</a></h3><strong class="tp78-price">${E(price)}</strong><div class="tp78-actions"><a class="tp78-primary internal-detail" href="${E(href)}">View details →</a><button class="tp78-secondary" type="button" data-v209-compare="${E(r.id)}">Compare</button></div></div></article>`;
   }
 
@@ -252,8 +260,8 @@
   }
 
   function applyFilter(){
-    state.filtered=state.all.filter(r=>{if(state.seller&&C(r.se)!==state.seller)return false;const price=Number(r.p)||0;if(state.min&&(price<state.min||!price))return false;if(state.max&&(price>state.max||!price))return false;return true});
-    if(state.sort==="price-low")state.filtered.sort((a,b)=>(a.p||Infinity)-(b.p||Infinity));else if(state.sort==="price-high")state.filtered.sort((a,b)=>(b.p||0)-(a.p||0));else if(state.sort==="best-value")state.filtered.sort((a,b)=>(Number(b.x)-Number(a.x))||((a.p||Infinity)-(b.p||Infinity))||(b._score-a._score));else state.filtered.sort((a,b)=>b._score-a._score);
+    state.filtered=state.all.filter(r=>{if(state.seller&&C(r.se)!==state.seller)return false;const price=usablePrice(r);if(state.min&&(price<state.min||!price))return false;if(state.max&&(price>state.max||!price))return false;return true});
+    if(state.sort==="price-low")state.filtered.sort((a,b)=>(usablePrice(a)||Infinity)-(usablePrice(b)||Infinity));else if(state.sort==="price-high")state.filtered.sort((a,b)=>usablePrice(b)-usablePrice(a));else if(state.sort==="best-value")state.filtered.sort((a,b)=>(Number(b.x)-Number(a.x))||((usablePrice(a)||Infinity)-(usablePrice(b)||Infinity))||(b._score-a._score));else state.filtered.sort((a,b)=>b._score-a._score);
     draw();
   }
   function visibleRows(){
@@ -296,6 +304,7 @@
   }
 
   async function boot(){
+    await waitForGeo();
     window.__TP_FAST_SEARCH_START__=performance.now();navigation();buildBudget();setCompare(compareItems());if(!q)return;
     const grid=$("[data-v2078-product-grid]");if(!grid)return;grid.innerHTML='<div class="tp78-empty"><h3>Finding the best matches…</h3><p>Loading the most relevant products first.</p></div>';
     const samples=await sellerSamplesForQuery();const ids=await candidateIds(samples);prepareLoader(ids);

@@ -25,8 +25,9 @@
     for(const [group,list] of Object.entries(src))for(const p of Array.isArray(list)?list:[]){
       if(!p||blocked.test(clean(p.advertiser||p.seller)))continue;
       const key=clean(p.canonicalKey||p.id||p.url);if(!key||seen.has(key))continue;seen.add(key);
-      const price=Number(p.price),old=Number(p.oldPrice),disc=Number(p.discount);
-      out.push({...p,_key:key,_group:group,_price:Number.isFinite(price)?price:0,_old:Number.isFinite(old)?old:0,_disc:Number.isFinite(disc)?disc:0});
+      const rawPrice=Number(p.price),old=Number(p.oldPrice),disc=Number(p.discount),seller=low(p.advertiser||p.seller),priceText=low([p.name,p.category,p._group].join(' '));
+      const price=(seller.includes('lenovo')&&rawPrice>0&&rawPrice<=5&&/\b(?:laptop|tablet|chromebook|notebook|computer)\b/i.test(priceText))?0:rawPrice;
+      out.push({...p,_key:key,_group:group,_price:Number.isFinite(price)?price:0,_old:price>0&&Number.isFinite(old)&&old>price?old:0,_disc:price>0&&Number.isFinite(disc)?disc:0});
     }
     return out;
   }

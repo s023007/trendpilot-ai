@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "21.16.0";
+  const VERSION = "21.17.0";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -24,6 +24,13 @@
 
   const state = { data:null, rows:[], sellers:[], seller:"", sort:"smart", min:0, max:0, page:24 };
   const sellerAllowed = s => window.__TP_ALLOW_TIKTOK_US__ === true || !/^TikTok\s*Shop\s*US$/i.test(C(s));
+  const waitForGeo = async()=>{try{const p=window.__TP_GEO_READY__;if(p&&typeof p.then==="function")await p}catch{}};
+  function usablePrice(r){
+    const value=Number(r&&r.p)||0;if(!value)return 0;
+    const seller=C(r&&r.se).toLowerCase(),role=C((r&&r.ro)||"main").toLowerCase(),text=C([r&&r.fa,r&&r.ty,r&&r.tyl,r&&r.t].join(" ")).toLowerCase();
+    if(seller.includes("lenovo")&&role!=="accessory"&&role!=="replacement_part"&&value<=5&&/\b(?:laptop|tablet|chromebook|notebook|computer)\b/i.test(text))return 0;
+    return value;
+  }
 
   function compareItems(){
     try { const x = JSON.parse(localStorage.getItem("tp-v209-compare") || "[]"); return Array.isArray(x) ? x : []; }
@@ -41,11 +48,11 @@
     if(items.length>=3){ b.textContent="Comparison is full"; setTimeout(()=>b.textContent="Compare",1200); return; }
     items.push({id:r.id,fa:C(r.fa),t:C(r.t),ty:C(r.ty)}); setCompare(items); b.textContent="Added ✓";
   }
-  const money = r => `${r.cu === "USD" ? "US$" : E((r.cu || "") + " ")}${Number(r.p).toLocaleString(undefined,{maximumFractionDigits:2})}`;
+  const money = (r,v=usablePrice(r)) => `${r.cu === "USD" ? "US$" : E((r.cu || "") + " ")}${Number(v).toLocaleString(undefined,{maximumFractionDigits:2})}`;
 
   function card(r){
     const href=`/item/?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(q)}`;
-    const price=r.p?money(r):"Check current price";
+    const pv=usablePrice(r),price=pv?money(r,pv):"Check current price";
     const label=mode==="footwear"?"Footwear":E(r.b||r.tyl||r.ty||"Product");
     return `<article class="tp78-card tp90-search-card" data-v209-card data-v209-seller="${E(r.se)}" data-v209-role="${E(r.ro||"main")}" data-v209-family="${E(r.fa||r.ty||"")}">
       <a class="tp78-media" href="${E(href)}" aria-label="View ${E(r.t)} details">${r.im?`<img src="${E(r.im)}" alt="${E(r.t)}" width="360" height="360" loading="lazy" decoding="async" onerror="this.remove()">`:`<span class="tp78-fallback">TP</span>`}</a>
@@ -56,15 +63,15 @@
   function allFiltered(){
     let rows=state.rows.filter(r=>{
       if(state.seller && C(r.se)!==state.seller) return false;
-      const p=Number(r.p)||0;
+      const p=usablePrice(r);
       if(state.min && (!p || p<state.min)) return false;
       if(state.max && (!p || p>state.max)) return false;
       return true;
     });
     rows=rows.slice();
-    if(state.sort==="price-low") rows.sort((a,b)=>(Number(a.p)||Infinity)-(Number(b.p)||Infinity));
-    else if(state.sort==="price-high") rows.sort((a,b)=>(Number(b.p)||0)-(Number(a.p)||0));
-    else if(state.sort==="best-value") rows.sort((a,b)=>(Number(b.x)-Number(a.x))||((Number(a.p)||Infinity)-(Number(b.p)||Infinity))||((Number(b.r)||0)-(Number(a.r)||0)));
+    if(state.sort==="price-low") rows.sort((a,b)=>(usablePrice(a)||Infinity)-(usablePrice(b)||Infinity));
+    else if(state.sort==="price-high") rows.sort((a,b)=>usablePrice(b)-usablePrice(a));
+    else if(state.sort==="best-value") rows.sort((a,b)=>(Number(b.x)-Number(a.x))||((usablePrice(a)||Infinity)-(usablePrice(b)||Infinity))||((Number(b.r)||0)-(Number(a.r)||0)));
     else rows.sort((a,b)=>(Number(b.r)||0)-(Number(a.r)||0));
     return rows;
   }
@@ -125,6 +132,7 @@
   }
 
   async function boot(){
+    await waitForGeo();
     bindNavigation();
     const grid=$("[data-v2078-product-grid]");
     if(grid)grid.innerHTML='<div class="tp78-empty"><h3>Finding the best matches…</h3><p>Loading verified products from available sellers.</p></div>';
