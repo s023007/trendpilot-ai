@@ -1,0 +1,43 @@
+name: TrendPilot V21.15 — Internal First Fast Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-15-fast-gate.yml
+
+permissions:
+  contents: read
+
+jobs:
+  fast-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check guard syntax
+        run: |
+          node --check js/seller-handoff-v21-15.js
+          node --check scripts/qa-v21-15-guard-unit.mjs
+          node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+      - name: Install DOM test runtime
+        run: npm install --no-save --ignore-scripts linkedom@0.18.12
+      - name: Verify listing and detail routing contract
+        run: node scripts/qa-v21-15-guard-unit.mjs
+      - name: Verify public core route wiring
+        shell: bash
+        run: |
+          set -euo pipefail
+          for u in / /find/ /deals/ /rare-used/ /tickets/ /compare/ /products/ /price-watch/ /guides/ /sourcing/ /wholesale/ /software/ /deal/ /coupon/; do
+            curl -fsSL --max-time 20 "https://trendpilotchoice.com${u}" -o /tmp/tp.html
+            grep -q 'seller-handoff-v21-15.js?v=21.15.0' /tmp/tp.html
+          done
+          curl -fsSL --max-time 20 'https://trendpilotchoice.com/handoff/' -o /tmp/handoff.html
+          grep -q 'One last check before you leave TrendPilot' /tmp/handoff.html
+          ! grep -q 'seller-handoff-v21-15.js' /tmp/handoff.html
