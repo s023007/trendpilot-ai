@@ -24,6 +24,8 @@ const failures=[];const ok=(name,v,detail='')=>{if(!v)failures.push({name,detail
 const qs=s=>document.querySelector(s),qsa=s=>[...document.querySelectorAll(s)];
 ok('initial_deals_present',qsa('.tp214-deal').length>0,`count=${qsa('.tp214-deal').length}`);
 ok('initial_coupons_present',qsa('.tp214-coupon').length>0,`count=${qsa('.tp214-coupon').length}`);
+ok('coupon_visuals_present',qsa('.tp214-coupon-media').length===qsa('.tp214-coupon').length,`media=${qsa('.tp214-coupon-media').length} coupons=${qsa('.tp214-coupon').length}`);
+ok('coupon_images_use_https',qsa('[data-coupon-img]').every(img=>String(img.getAttribute('src')||'').startsWith('https://')),'non-HTTPS coupon image found');
 ok('deal_clicks_stay_internal',qsa('.tp214-deal a').some(a=>String(a.getAttribute('href')||'').startsWith('/deal/?id=')),'no internal deal detail link');
 ok('coupon_clicks_stay_internal',qsa('.tp214-coupon a').every(a=>String(a.getAttribute('href')||'').startsWith('/coupon/?id=')),'coupon listing has non-internal CTA');
 ok('blocked_sellers_absent',!document.body.textContent.match(/\b(?:Temu|Joom|FilamentPRO)\b/i),'blocked seller text present');
@@ -33,5 +35,22 @@ ok('toys_coupon_fallback',qsa('.tp214-coupon').length>0,qs('[data-tp-coupon-grid
 ok('toys_coupon_internal_only',qsa('.tp214-coupon a').every(a=>String(a.getAttribute('href')||'').startsWith('/coupon/?id=')),'external coupon CTA found');
 const codeButtons=qsa('[data-copy-code]');ok('coupon_copy_supported',codeButtons.length>0||qsa('.tp214-coupon').some(c=>/No code needed/.test(c.textContent)),'no usable coupon UI');
 const before=qsa('.tp214-deal').length;if(!qs('[data-deals-more]').hidden){qs('[data-deals-more]').dispatchEvent(new window.Event('click',{bubbles:true}));await new Promise(r=>setTimeout(r,10));ok('show_more_increases_deals',qsa('.tp214-deal').length>before,`${before}->${qsa('.tp214-deal').length}`)}
-const result={version:'21.14.0',passed:failures.length===0,checks:{initialDeals:qsa('.tp214-deal').length,initialCoupons:qsa('.tp214-coupon').length,toysContext:qs('[data-deals-context]').textContent},failures};
+
+const css=fs.readFileSync('css/deals-revenue-v21-14.css','utf8');
+ok('detail_h1_dark',/\.tp214-detail-card h1\{[^}]*color:#0c1729!important/.test(css),'detail h1 dark override missing');
+ok('detail_rules_readable',/\.tp214-rules\{[^}]*color:#334155!important/.test(css),'rules contrast override missing');
+ok('coupon_media_css',css.includes('.tp214-coupon-media{'),'coupon media CSS missing');
+
+const couponData=ctx.window.TREND_PILOT_COUPONS?.coupons||[];const coupon=couponData.find(c=>c.image)||couponData[0];
+if(coupon){
+  const parsed=parseHTML('<!doctype html><html><body><div data-coupon-detail></div></body></html>');
+  const cctx={window:parsed.window,document:parsed.document,console,URL,URLSearchParams,Intl,Date,setTimeout,clearTimeout,navigator:{clipboard:{writeText:async()=>{}}}};
+  cctx.window.TREND_PILOT_COUPONS=ctx.window.TREND_PILOT_COUPONS;cctx.location={search:`?id=${encodeURIComponent(coupon.id)}`,href:`https://trendpilotchoice.com/coupon/?id=${encodeURIComponent(coupon.id)}`};cctx.document.title='';
+  vm.createContext(cctx);vm.runInContext(fs.readFileSync('js/coupon-detail-v21-14.js','utf8'),cctx,{filename:'js/coupon-detail-v21-14.js'});cctx.document.dispatchEvent(new parsed.window.Event('DOMContentLoaded'));
+  const detailImg=cctx.document.querySelector('[data-coupon-detail-img]');
+  ok('coupon_detail_visual',!!cctx.document.querySelector('.tp214-coupon-brand'),'coupon detail brand visual missing');
+  if(detailImg)ok('coupon_detail_image_https',String(detailImg.getAttribute('src')||'').startsWith('https://'),detailImg.getAttribute('src')||'');
+}
+
+const result={version:'21.14.1',passed:failures.length===0,checks:{initialDeals:qsa('.tp214-deal').length,initialCoupons:qsa('.tp214-coupon').length,toysContext:qs('[data-deals-context]').textContent,couponImages:qsa('[data-coupon-img]').length},failures};
 fs.mkdirSync('artifacts/v21-14-savings-hub',{recursive:true});fs.writeFileSync('artifacts/v21-14-savings-hub/report.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));process.exit(result.passed?0:1);
