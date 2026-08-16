@@ -1,0 +1,144 @@
+name: TrendPilot V21.17.3 — Strict Tablets + Browser Stability
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-17-3-tablet-browser.yml
+      - scripts/build-tablet-packed-v21-17-3.py
+      - scripts/apply-v21-17-3-tablet-packed.py
+      - scripts/qa-v21-17-3-tablet-browser.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v21-17-3-tablet-browser
+  cancel-in-progress: true
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Build strict consumer tablet data
+        run: python scripts/build-tablet-packed-v21-17-3.py
+
+      - name: Apply packed tablet route
+        run: python scripts/apply-v21-17-3-tablet-packed.py
+
+      - name: Validate source contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/build-tablet-packed-v21-17-3.py scripts/apply-v21-17-3-tablet-packed.py
+          node --check js/visitor-context-v21-17.js
+          node --check js/tiktok-us-geo-v21-17.js
+          node --check js/packed-browse-v21-13-8.js
+          node --check js/universal-discovery-v20-9-1.js
+          node --check js/compare-v20-9.js
+          test -s data/v20-9/tablet-seller-samples.json
+          grep -Fq 'tablet-seller-samples.json?v=21.17.3' js/packed-browse-v21-13-8.js
+          grep -Fq 'packed-browse-v21-13-8.js?v=21.17.3' find/index.html
+          grep -Fq 'visitor-context-v21-17.js?v=21.17.0' find/index.html
+          ! grep -Fq 'geo-bootstrap.js?v=21.16.0' find/index.html
+
+      - name: Commit V21.17.3 production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add data/v20-9/tablet-seller-samples.json js/packed-browse-v21-13-8.js find/index.html
+          if git diff --cached --quiet; then
+            echo 'V21.17.3 production files already current.'
+          else
+            git commit -m 'TrendPilot V21.17.3 add strict fast tablet search'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install Chromium and Firefox
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium firefox
+
+      - name: Start local production mirror
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/v21173.log 2>&1 &
+          echo $! >/tmp/v21173.pid
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/find/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v21173.log
+          exit 1
+
+      - name: Run Yandex-style Chromium and Firefox tablet QA
+        env:
+          TP_BASE_URL: http://127.0.0.1:4173
+        run: node scripts/qa-v21-17-3-tablet-browser.mjs
+
+      - name: Stop local production mirror
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/v21173.pid ]; then kill "$(cat /tmp/v21173.pid)" 2>/dev/null || true; fi
+
+      - name: Wait for public deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            good=1
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/?q=tablets&engine=v2064&universal=1' -o /tmp/live.html || good=0
+            grep -Fq 'packed-browse-v21-13-8.js?v=21.17.3' /tmp/live.html 2>/dev/null || good=0
+            grep -Fq 'visitor-context-v21-17.js?v=21.17.0' /tmp/live.html 2>/dev/null || good=0
+            if grep -Fq 'geo-bootstrap.js?v=21.16.0' /tmp/live.html 2>/dev/null; then good=0; fi
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/data/v20-9/tablet-seller-samples.json?v=21.17.3' -o /tmp/tablets.json || good=0
+            grep -Fq '"kind":"strict-consumer-tablets"' /tmp/tablets.json 2>/dev/null || good=0
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/js/packed-browse-v21-13-8.js?v=21.17.3' -o /tmp/packed.js || good=0
+            grep -Fq 'mode === "tablet"' /tmp/packed.js 2>/dev/null || good=0
+            if [ "$good" = 1 ]; then echo 'V21.17.3 is live.'; exit 0; fi
+            echo "Waiting for V21.17.3 deploy ($i/60)..."; sleep 6
+          done
+          exit 1
+
+      - name: Write final summary
+        if: always()
+        shell: bash
+        run: |
+          echo '# TrendPilot V21.17.3 — Strict Tablets + Browser Stability' >> "$GITHUB_STEP_SUMMARY"
+          if [ -s artifacts/v21-17-3-tablet-browser/report.json ]; then
+            node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('artifacts/v21-17-3-tablet-browser/report.json','utf8'));
+          console.log(`- Final QA: **${r.passed?'PASS':'FAIL'}**`);
+          for(const [k,v] of Object.entries(r.checks||{})) console.log(`- ${v.ok?'✅':'❌'} ${k}${v.detail?`: ${v.detail}`:''}`);
+          for(const [name,b] of Object.entries(r.browsers||{})) console.log(`- ${name}: **${b.elapsed} ms**, ${b.cards} cards`);
+          if(r.error){console.log();console.log('```');console.log(r.error);console.log('```');}
+          NODE
+          fi
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-17-3-tablet-browser
+          path: artifacts/v21-17-3-tablet-browser
+          if-no-files-found: ignore
