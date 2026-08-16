@@ -1,4 +1,4 @@
-name: TrendPilot V21.17.3 — Strict Tablets + Browser Stability
+name: TrendPilot V21.17.5 — Strict Tablets + Browser Stability
 
 on:
   push:
@@ -8,13 +8,20 @@ on:
       - scripts/build-tablet-packed-v21-17-3.py
       - scripts/apply-v21-17-3-tablet-packed.py
       - scripts/qa-v21-17-3-tablet-browser.mjs
+      - data/v20-9/tablet-seller-samples.json
+      - find/index.html
+      - js/packed-browse-v21-13-8.js
+      - js/item-detail-v20-9.js
+      - js/finder-shopper-filters-v21-10-2.js
+      - js/visitor-context-v21-17.js
+      - js/tiktok-us-geo-v21-17.js
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: trendpilot-v21-17-3-tablet-browser
+  group: trendpilot-v21-17-tablet-browser
   cancel-in-progress: true
 
 jobs:
@@ -44,13 +51,18 @@ jobs:
           node --check js/packed-browse-v21-13-8.js
           node --check js/universal-discovery-v20-9-1.js
           node --check js/compare-v20-9.js
+          node --check js/item-detail-v20-9.js
+          node --check js/finder-shopper-filters-v21-10-2.js
           test -s data/v20-9/tablet-seller-samples.json
           grep -Fq 'tablet-seller-samples.json?v=21.17.3' js/packed-browse-v21-13-8.js
           grep -Fq 'packed-browse-v21-13-8.js?v=21.17.3' find/index.html
           grep -Fq 'visitor-context-v21-17.js?v=21.17.0' find/index.html
+          grep -Fq 'finder-shopper-filters-v21-10-2.js?v=21.17.5' find/index.html
+          grep -Fq 'budgetTitle.textContent !== "Price range"' js/finder-shopper-filters-v21-10-2.js
+          ! grep -Fq 'removeTechnicalPriceUI(main);' js/finder-shopper-filters-v21-10-2.js
           ! grep -Fq 'geo-bootstrap.js?v=21.16.0' find/index.html
 
-      - name: Commit V21.17.3 production files
+      - name: Commit generated tablet data if changed
         shell: bash
         run: |
           set -euo pipefail
@@ -58,9 +70,9 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add data/v20-9/tablet-seller-samples.json js/packed-browse-v21-13-8.js find/index.html
           if git diff --cached --quiet; then
-            echo 'V21.17.3 production files already current.'
+            echo 'V21.17.5 production files already current.'
           else
-            git commit -m 'TrendPilot V21.17.3 add strict fast tablet search'
+            git commit -m 'TrendPilot V21.17.5 refresh strict tablet data'
             git pull --rebase origin main
             git push origin HEAD:main
           fi
@@ -81,13 +93,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/v21173.log 2>&1 &
-          echo $! >/tmp/v21173.pid
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/v21175.log 2>&1 &
+          echo $! >/tmp/v21175.pid
           for i in $(seq 1 20); do
             if curl -fsS http://127.0.0.1:4173/find/ >/dev/null; then exit 0; fi
             sleep 1
           done
-          cat /tmp/v21173.log
+          cat /tmp/v21175.log
           exit 1
 
       - name: Run Yandex-style Chromium and Firefox tablet QA
@@ -99,7 +111,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          if [ -f /tmp/v21173.pid ]; then kill "$(cat /tmp/v21173.pid)" 2>/dev/null || true; fi
+          if [ -f /tmp/v21175.pid ]; then kill "$(cat /tmp/v21175.pid)" 2>/dev/null || true; fi
 
       - name: Wait for public deployment
         shell: bash
@@ -110,13 +122,16 @@ jobs:
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/?q=tablets&engine=v2064&universal=1' -o /tmp/live.html || good=0
             grep -Fq 'packed-browse-v21-13-8.js?v=21.17.3' /tmp/live.html 2>/dev/null || good=0
             grep -Fq 'visitor-context-v21-17.js?v=21.17.0' /tmp/live.html 2>/dev/null || good=0
+            grep -Fq 'finder-shopper-filters-v21-10-2.js?v=21.17.5' /tmp/live.html 2>/dev/null || good=0
             if grep -Fq 'geo-bootstrap.js?v=21.16.0' /tmp/live.html 2>/dev/null; then good=0; fi
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/data/v20-9/tablet-seller-samples.json?v=21.17.3' -o /tmp/tablets.json || good=0
             grep -Fq '"kind":"strict-consumer-tablets"' /tmp/tablets.json 2>/dev/null || good=0
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/js/packed-browse-v21-13-8.js?v=21.17.3' -o /tmp/packed.js || good=0
-            grep -Fq 'mode === "tablet"' /tmp/packed.js 2>/dev/null || good=0
-            if [ "$good" = 1 ]; then echo 'V21.17.3 is live.'; exit 0; fi
-            echo "Waiting for V21.17.3 deploy ($i/60)..."; sleep 6
+            grep -Fq 'function usablePrice' /tmp/packed.js 2>/dev/null || good=0
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/js/finder-shopper-filters-v21-10-2.js?v=21.17.5' -o /tmp/filters.js || good=0
+            grep -Fq 'budgetTitle.textContent !== "Price range"' /tmp/filters.js 2>/dev/null || good=0
+            if [ "$good" = 1 ]; then echo 'V21.17.5 is live.'; exit 0; fi
+            echo "Waiting for V21.17.5 deploy ($i/60)..."; sleep 6
           done
           exit 1
 
@@ -124,7 +139,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          echo '# TrendPilot V21.17.3 — Strict Tablets + Browser Stability' >> "$GITHUB_STEP_SUMMARY"
+          echo '# TrendPilot V21.17.5 — Strict Tablets + Browser Stability' >> "$GITHUB_STEP_SUMMARY"
           if [ -s artifacts/v21-17-3-tablet-browser/report.json ]; then
             node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
           const fs=require('fs');const r=JSON.parse(fs.readFileSync('artifacts/v21-17-3-tablet-browser/report.json','utf8'));
@@ -139,6 +154,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: trendpilot-v21-17-3-tablet-browser
+          name: trendpilot-v21-17-5-tablet-browser
           path: artifacts/v21-17-3-tablet-browser
           if-no-files-found: ignore
