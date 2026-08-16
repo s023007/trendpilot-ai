@@ -1,4 +1,4 @@
-name: TrendPilot V21.14 — Savings Hub Gate
+name: TrendPilot V21.14.1 — Savings Hub Gate
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check V21.14 syntax
+      - name: Check V21.14.1 syntax
         run: |
           node --check js/deals-revenue-v21-14.js
           node --check js/deal-detail-v21-14.js
@@ -40,7 +40,7 @@ jobs:
         run: npm install --no-save --ignore-scripts linkedom@0.18.12
       - name: Run product-first savings regression QA
         run: node scripts/qa-v21-14-savings-hub.mjs
-      - name: Verify public V21.14 deployment
+      - name: Verify public V21.14.1 deployment
         shell: bash
         run: |
           set -euo pipefail
@@ -48,18 +48,18 @@ jobs:
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/deals/' -o /tmp/deals.html || true
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/deal/' -o /tmp/deal.html || true
             curl -fsSL --max-time 20 'https://trendpilotchoice.com/coupon/' -o /tmp/coupon.html || true
-            if grep -q 'deals-revenue-v21-14.js?v=21.14.0' /tmp/deals.html 2>/dev/null && grep -q 'deal-detail-v21-14.js?v=21.14.0' /tmp/deal.html 2>/dev/null && grep -q 'coupon-detail-v21-14.js?v=21.14.0' /tmp/coupon.html 2>/dev/null; then
-              echo 'V21.14 Savings Hub is live.'
+            if grep -q 'deals-revenue-v21-14.js?v=21.14.1' /tmp/deals.html 2>/dev/null && grep -q 'deals-revenue-v21-14.css?v=21.14.1' /tmp/deal.html 2>/dev/null && grep -q 'coupon-detail-v21-14.js?v=21.14.1' /tmp/coupon.html 2>/dev/null; then
+              echo 'V21.14.1 Savings Hub imagery/readability update is live.'
               exit 0
             fi
             sleep 5
           done
-          echo 'V21.14 public markers not live in time.'
+          echo 'V21.14.1 public markers not live in time.'
           exit 1
       - name: Upload Savings Hub evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: trendpilot-v21-14-savings-hub-gate
+          name: trendpilot-v21-14-1-savings-hub-gate
           path: artifacts/v21-14-savings-hub
           if-no-files-found: ignore
