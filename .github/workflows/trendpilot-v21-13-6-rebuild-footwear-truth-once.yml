@@ -1,0 +1,33 @@
+name: TrendPilot V21.13.6 — Rebuild Strict Footwear Truth Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-13-6-rebuild-footwear-truth-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Rebuild strict footwear truth and packed browse indexes
+        run: python scripts/build-v21-13-seller-coverage.py
+      - name: Commit indexes and remove one-time writer
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          rm -f .github/workflows/trendpilot-v21-13-6-rebuild-footwear-truth-once.yml
+          git add data/v20-9/footwear-seller-samples.json data/v20-9/seller-browse-samples.json .github/workflows/trendpilot-v21-13-6-rebuild-footwear-truth-once.yml
+          git commit -m 'TrendPilot V21.13.6 publish strict footwear truth index'
+          git pull --rebase origin main
+          git push origin HEAD:main
