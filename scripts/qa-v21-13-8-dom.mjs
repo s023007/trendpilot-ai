@@ -36,6 +36,14 @@ async function run(query){
   const runtime=await waitReady(window);
   return {window,document,runtime};
 }
+function choose(select,value,window){
+  const opts=[...select.querySelectorAll('option')];
+  for(const o of opts)o.removeAttribute('selected');
+  const target=opts.find(o=>o.getAttribute('value')===value);
+  if(!target)throw new Error(`Option not found: ${value}`);
+  target.setAttribute('selected','selected');
+  select.dispatchEvent(new window.Event('change',{bubbles:true}));
+}
 
 try{
   const shoes=await run('shoes');
@@ -57,7 +65,7 @@ try{
   check('show_more_deep_purity',titles().every(t=>!BAD.test(t)),titles().join(' | '));
   const sel=shoes.document.querySelector('[data-filter-merchant]');
   for(const seller of ['AliExpress','TikTok Shop US']){
-    sel.value=seller;sel.dispatchEvent(new shoes.window.Event('change',{bubbles:true}));
+    choose(sel,seller,shoes.window);
     const names=cards().map(x=>x.getAttribute('data-v209-seller'));
     check(`seller_filter_${seller.replace(/\W+/g,'_')}`,names.length>0&&names.every(x=>x===seller),names.join(', '));
   }
