@@ -9,8 +9,10 @@ SRC=ROOT/'data/v20-9/products'
 OUT=ROOT/'data/v20-9'
 BLOCK={'temu','joom','filamentpro','filamentpro eu cps','filamentpro-eu-cps'}
 
-FOOT_POS=re.compile(r'\b(?:shoe|shoes|sneaker|sneakers|boot|boots|sandal|sandals|slipper|slippers|loafer|loafers|heel|heels|moccasin|moccasins|oxford|oxfords|cleat|cleats|footwear|clog|clogs|flip[- ]?flops?|ballet shoes?|running shoes?|walking shoes?|work boots?|hiking boots?)\b',re.I)
-FOOT_NEG=re.compile(r'\b(?:shoe covers?|shoe racks?|shoe bags?|shoe boxes?|shoelaces?|shoe laces?|insoles?|outsoles?|shoe horns?|shoe brushes?|shoe trees?|shoe stretchers?|shoe dryers?|shoe machines?|shoe making|shoe repair|shoe glue|shoe charms?|shoe clips?|shoe buckles?|shoe decorations?|shoe accessories|brake shoes?|snow blowers?|skid plates?|skid shoes?|guide shoes?|sliding shoes?|sanding shoes?|machine shoes?|elevator shoes?|rail shoes?|crawler shoes?|horseshoes?|horse shoes?|cv boots?|dust boots?|rack boots?|steering boots?|shift boots?|gear boots?|trunk boots?|boot gas|boot struts?|boot lids?|boot release|boot locks?|boot liners?|boot mats?|boot seals?|ball joint boots?|tie rod boots?|shock boots?|connector boots?|cable boots?|flooring installation|epoxy shoes?|temperature control iron)\b',re.I)
+# Generic footwear search is intentionally conservative: wearable shoes only.
+# Bare "heel" is not enough because medical heel wedges and mechanical parts are not shoes.
+FOOT_POS=re.compile(r'\b(?:shoe|shoes|sneaker|sneakers|boot|boots|sandal|sandals|slipper|slippers|loafer|loafers|moccasin|moccasins|oxford|oxfords|cleat|cleats|footwear|clog|clogs|flip[- ]?flops?|ballet shoes?|running shoes?|walking shoes?|work boots?|hiking boots?|high[- ]?heels?|heeled shoes?|heeled sandals?|heeled boots?)\b',re.I)
+FOOT_NEG=re.compile(r'\b(?:shoe covers?|shoe racks?|shoe bags?|shoe boxes?|shoelaces?|shoe laces?|insoles?|outsoles?|shoe horns?|shoe brushes?|shoe trees?|shoe stretchers?|shoe dryers?|shoe machines?|shoe making|shoe lasts?|shoe repair|shoe glue|shoe charms?|shoe clips?|shoe buckles?|shoe decorations?|shoe accessories|brake shoes?|snow blowers?|skid plates?|skid shoes?|guide shoes?|sliding shoes?|sanding shoes?|machine shoes?|elevator shoes?|rail shoes?|crawler shoes?|horseshoes?|horse shoes?|cv boots?|dust boots?|rack boots?|steering boots?|shift boots?|gear boots?|trunk boots?|boot gas|boot struts?|boot lids?|boot release|boot locks?|boot liners?|boot mats?|boot seals?|ball joint boots?|tie rod boots?|shock boots?|connector boots?|cable boots?|flooring installation|epoxy shoes?|temperature control iron|heel wedges?|heel lifts?|orthotics?|orthopedic inserts?|post[- ]?op|postoperative|walker boots?|walking boot braces?|medical boots?|ankle braces?|foot braces?|cast shoes?|fracture boots?|pressure relief boots?)\b',re.I)
 COSTUME=re.compile(r'\b(?:cosplay|costume|halloween costume|carnival outfit|full outfit)\b',re.I)
 
 
@@ -70,7 +72,7 @@ def payload(source,per_seller,kind):
             sellers[s]=ids
             counts[s]=len(rows)
     return {
-        'version':'21.13.0',
+        'version':'21.13.1',
         'kind':kind,
         'generated_from':'data/v20-9/products/*.json',
         'records_scanned':total,
@@ -79,7 +81,7 @@ def payload(source,per_seller,kind):
         'sellers':sellers
     }
 
-foot_payload=payload(foot,120,'strict-footwear')
+foot_payload=payload(foot,120,'strict-wearable-footwear')
 browse_payload=payload(browse,36,'balanced-browse')
 (OUT/'footwear-seller-samples.json').write_text(json.dumps(foot_payload,separators=(',',':'),ensure_ascii=False),encoding='utf-8')
 (OUT/'seller-browse-samples.json').write_text(json.dumps(browse_payload,separators=(',',':'),ensure_ascii=False),encoding='utf-8')
@@ -89,5 +91,7 @@ print(json.dumps({
     'footwear_total':sum(foot_payload['counts'].values()),
     'records_scanned':total
 },indent=2,ensure_ascii=False))
-if len(foot_payload['sellers'])<2:
-    raise SystemExit('Strict footwear index unexpectedly has fewer than two sellers')
+required={'Alibaba','AliExpress','TikTok Shop US'}
+missing=required-set(foot_payload['sellers'])
+if missing:
+    raise SystemExit('Strict footwear index lost expected sellers: '+', '.join(sorted(missing)))
