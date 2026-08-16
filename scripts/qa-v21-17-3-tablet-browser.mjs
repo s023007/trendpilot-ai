@@ -10,23 +10,27 @@ const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
 
 const data=JSON.parse(fs.readFileSync('data/v20-9/tablet-seller-samples.json','utf8'));
 const rows=Object.values(data.records||{});
-const falseRe=/\b(?:graphic(?:s)? tablet|drawing tablet|pen tablet|signature (?:pad|tablet)|writing (?:pad|tablet)|digitizer|drawing pad|tablet monitor|pen display|digital pen design|stylus pen|tablet case|tablet cover|screen protector)\b/i;
+const falseRe=/\b(?:graphic(?:s)? tablet|drawing tablet|pen tablet|signature (?:pad|tablet)|writing (?:pad|tablet)|digitizer|drawing pad|tablet monitor|pen display|digital pen design|stylus|tablet case|tablet cover|screen protector|tempered glass|replacement|repair|battery|charger|cable|adapter|dock|controller|gamepad|mount|holder|bracket|gift set|fragrance|perfume|industrial tablet|control panel)\b/i;
+const deviceRe=/\b(?:tablet pc|android tablet|windows tablet|chromebook tablet|ipad(?:\s+(?:pro|air|mini))?|galaxy tab|surface pro|(?:lenovo|xiaomi|redmi|honor|huawei|samsung|oneplus|oppo|vivo|realme)\s+(?:tab|pad))\b/i;
 const suspects=data.qa?.lenovoPlaceholderPrices||[];
 
 check('packed_tablet_records',rows.length>=5,`records=${rows.length}`);
 check('packed_tablet_sellers',Object.keys(data.sellers||{}).length>=1,JSON.stringify(Object.keys(data.sellers||{})));
-check('no_graphic_tablet_false_positives',!rows.some(r=>falseRe.test(clean([r.t,r.ty,r.tyl].join(' ')))),rows.filter(r=>falseRe.test(clean([r.t,r.ty,r.tyl].join(' ')))).slice(0,3).map(r=>r.t).join(' | '));
+check('all_rows_look_like_consumer_tablets',rows.every(r=>deviceRe.test(clean(r.t))),rows.filter(r=>!deviceRe.test(clean(r.t))).slice(0,5).map(r=>r.t).join(' | '));
+check('no_accessory_or_false_tablet_rows',!rows.some(r=>falseRe.test(clean(r.t))),rows.filter(r=>falseRe.test(clean(r.t))).slice(0,5).map(r=>r.t).join(' | '));
 check('lenovo_placeholder_fixture_present',suspects.length>=1,JSON.stringify(suspects));
 
 async function probe(browserType,name,{country='OM',abortGeo=false,userAgent=''}){
   const browser=await browserType.launch({headless:true});
   const opts={viewport:{width:390,height:844},isMobile:true,hasTouch:true}; if(userAgent)opts.userAgent=userAgent;
   const ctx=await browser.newContext(opts); const page=await ctx.newPage(); page.setDefaultTimeout(20000);
-  const errors=[];page.on('pageerror',e=>errors.push(String(e.message||e)));
+  const errors=[],failed=[];
+  page.on('pageerror',e=>errors.push(String(e.message||e)));
+  page.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||'failed'}`));
   await page.route('**/visitor-context.json*',route=>abortGeo?route.abort():route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({country})}));
   const started=Date.now();
   await page.goto(`${BASE}/find/?q=tablets&engine=v2064&universal=1`,{waitUntil:'domcontentloaded',timeout:20000});
-  await page.waitForFunction(()=>window.__TP_PACKED_BROWSE__?.ready===true&&document.querySelectorAll('.tp78-card').length>0,{timeout:15000});
+  await page.waitForTimeout(3500);
   const base=await page.evaluate(()=>({
     elapsed:0,
     cards:document.querySelectorAll('.tp78-card').length,
@@ -34,11 +38,21 @@ async function probe(browserType,name,{country='OM',abortGeo=false,userAgent=''}
     allow:window.__TP_ALLOW_TIKTOK_US__===true,
     country:window.__TP_VISITOR_COUNTRY__||'',
     packed:window.__TP_PACKED_BROWSE__||null,
-    texts:[...document.querySelectorAll('.tp78-card')].map(c=>(c.textContent||'').replace(/\s+/g,' ').trim())
+    packedActive:window.__TP_PACKED_BROWSE_ACTIVE__===true,
+    geoReady:Boolean(window.__TP_GEO_READY__),
+    currentQuery:new URLSearchParams(location.search).get('q')||'',
+    texts:[...document.querySelectorAll('.tp78-card')].map(c=>(c.textContent||'').replace(/\s+/g,' ').trim()),
+    status:(document.querySelector('[data-v2078-results-count]')?.textContent||'').trim(),
+    gridText:(document.querySelector('[data-v2078-product-grid]')?.textContent||'').replace(/\s+/g,' ').trim().slice(0,500)
   }));
-  base.elapsed=Date.now()-started;base.errors=errors;
+  base.elapsed=Date.now()-started;base.errors=errors;base.requestFailures=failed;
+  if(!base.packed?.ready||base.cards<1){
+    report.browsers[name]=base;
+    await page.screenshot({path:`${OUT}/${name}-failure.png`,fullPage:true});
+    await browser.close();
+    throw new Error(`${name} packed browse not ready: ${JSON.stringify(base)}`);
+  }
 
-  // Exercise the exact bad-data class through the rendered listing UI.
   if(base.sellers.some(x=>/^Lenovo$/i.test(x))){
     await page.selectOption('[data-filter-merchant]','Lenovo');
     for(let i=0;i<12;i++){
@@ -46,13 +60,13 @@ async function probe(browserType,name,{country='OM',abortGeo=false,userAgent=''}
       if(!(await more.count())||await more.isHidden())break;
       await more.click();
     }
-    base.lenovoTexts=await page.locator('.tp78-card').allTextContents();
+    base.lenovoTexts=(await page.locator('.tp78-card').allTextContents()).map(clean);
   }else base.lenovoTexts=[];
 
   const suspect=suspects[0];
   if(suspect){
     await page.goto(`${BASE}/item/?id=${encodeURIComponent(suspect.id)}`,{waitUntil:'domcontentloaded',timeout:20000});
-    await page.waitForFunction(()=>/Check current price|US\$/i.test(document.querySelector('main')?.textContent||''),{timeout:15000});
+    await page.waitForTimeout(1500);
     base.suspectDetail=clean(await page.locator('main').innerText());
   }
   await page.screenshot({path:`${OUT}/${name}.png`,fullPage:true});
