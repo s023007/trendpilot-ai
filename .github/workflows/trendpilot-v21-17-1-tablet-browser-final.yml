@@ -1,0 +1,141 @@
+name: TrendPilot V21.17.1 — Tablet Price + Browser Final Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-17-1-tablet-browser-final.yml
+      - scripts/apply-v21-17-1-tablets.py
+      - scripts/qa-v21-17-browser-price.mjs
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-v21-17-1-tablet-browser-final
+  cancel-in-progress: true
+
+jobs:
+  final-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Apply tablet plural fix
+        run: python scripts/apply-v21-17-1-tablets.py
+
+      - name: Validate source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/apply-v21-17-1-tablets.py
+          node --check js/visitor-context-v21-17.js
+          node --check js/tiktok-us-geo-v21-17.js
+          node --check js/universal-discovery-v20-9-1.js
+          node --check js/query-normalizer-v21-3.js
+          node --check js/packed-browse-v21-13-8.js
+          node --check js/compare-v20-9.js
+          grep -Fq 'tablet:/^(?:tablets?|ipads?)$/i' js/universal-discovery-v20-9-1.js
+          grep -Fq 'function usablePrice' js/universal-discovery-v20-9-1.js
+          grep -Fq 'visitor-context-v21-17.js?v=21.17.0' find/index.html
+          ! grep -Fq 'geo-bootstrap.js?v=21.16.0' find/index.html
+
+      - name: Commit tablet fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'TrendPilot Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add js/universal-discovery-v20-9-1.js js/query-normalizer-v21-3.js
+          if git diff --cached --quiet; then
+            echo 'Tablet plural fix already current.'
+          else
+            git commit -m 'TrendPilot V21.17.1 support tablet plural search'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install browser QA runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --no-save --ignore-scripts playwright@1.55.0
+          npx playwright install --with-deps chromium firefox
+
+      - name: Start local site
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --bind 127.0.0.1 >/tmp/tp-v21171.log 2>&1 &
+          echo $! >/tmp/tp-v21171.pid
+          for i in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:4173/find/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/tp-v21171.log
+          exit 1
+
+      - name: Run Yandex-style Chromium and Firefox QA
+        env:
+          TP_BASE_URL: http://127.0.0.1:4173
+        run: node scripts/qa-v21-17-browser-price.mjs
+
+      - name: Stop local site
+        if: always()
+        shell: bash
+        run: |
+          if [ -f /tmp/tp-v21171.pid ]; then kill "$(cat /tmp/tp-v21171.pid)" 2>/dev/null || true; fi
+
+      - name: Wait for live deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 60); do
+            good=1
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/find/?q=tablets&engine=v2064&universal=1' -o /tmp/live-find.html || good=0
+            grep -Fq 'visitor-context-v21-17.js?v=21.17.0' /tmp/live-find.html 2>/dev/null || good=0
+            grep -Fq 'universal-discovery-v20-9-1.js?v=21.17.0' /tmp/live-find.html 2>/dev/null || good=0
+            if grep -Fq 'geo-bootstrap.js?v=21.16.0' /tmp/live-find.html 2>/dev/null; then good=0; fi
+            curl -fsSL --max-time 20 'https://trendpilotchoice.com/js/universal-discovery-v20-9-1.js?v=21.17.0' -o /tmp/live-universal.js || good=0
+            grep -Fq 'tablet:/^(?:tablets?|ipads?)$/i' /tmp/live-universal.js 2>/dev/null || good=0
+            grep -Fq 'function usablePrice' /tmp/live-universal.js 2>/dev/null || good=0
+            if [ "$good" = 1 ]; then echo 'V21.17.1 is live.'; exit 0; fi
+            echo "Waiting for live V21.17.1 ($i/60)..."
+            sleep 6
+          done
+          exit 1
+
+      - name: Write summary
+        if: always()
+        shell: bash
+        run: |
+          echo '# TrendPilot V21.17.1 — Tablet Price + Browser Final Gate' >> "$GITHUB_STEP_SUMMARY"
+          if [ -s artifacts/v21-17-browser-price/report.json ]; then
+            node <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const fs=require('fs');const r=JSON.parse(fs.readFileSync('artifacts/v21-17-browser-price/report.json','utf8'));
+          console.log(`- Final browser QA: **${r.passed?'PASS':'FAIL'}**`);
+          for(const [k,v] of Object.entries(r.checks||{})) console.log(`- ${v.ok?'✅':'❌'} ${k}${v.detail?`: ${v.detail}`:''}`);
+          if(r.yandex_style_blocked_geo) console.log(`- Yandex-style load: **${r.yandex_style_blocked_geo.elapsed} ms**`);
+          if(r.firefox_oman) console.log(`- Firefox load: **${r.firefox_oman.elapsed} ms**`);
+          if(r.error){console.log();console.log('```');console.log(r.error);console.log('```');}
+          NODE
+          fi
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-17-1-tablet-browser-final
+          path: artifacts/v21-17-browser-price
+          if-no-files-found: ignore
