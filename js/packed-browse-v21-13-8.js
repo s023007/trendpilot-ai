@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "21.17.0";
+  const VERSION = "21.17.3";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -12,7 +12,8 @@
   const ql = q.toLowerCase();
   const FOOT = /^(?:shoe|shoes|sneaker|sneakers|boot|boots|sandal|sandals|slipper|slippers|footwear|loafer|loafers|heel|heels)$/i;
   const BROAD = /^(?:popular products?|popular|products?|best sellers?|bestsellers?|trending products?|trending)$/i;
-  const mode = FOOT.test(ql) ? "footwear" : BROAD.test(ql) ? "broad" : "";
+  const TABLET = /^(?:tablet|tablets|ipad|ipads)$/i;
+  const mode = FOOT.test(ql) ? "footwear" : TABLET.test(ql) ? "tablet" : BROAD.test(ql) ? "broad" : "";
   if (!mode) return;
 
   window.__TP_PACKED_BROWSE_ACTIVE__ = true;
@@ -20,7 +21,9 @@
 
   const dataUrl = mode === "footwear"
     ? `/data/v20-9/footwear-seller-samples.json?v=21.13.7`
-    : `/data/v20-9/seller-browse-samples.json?v=21.13.7`;
+    : mode === "tablet"
+      ? `/data/v20-9/tablet-seller-samples.json?v=21.17.3`
+      : `/data/v20-9/seller-browse-samples.json?v=21.13.7`;
 
   const state = { data:null, rows:[], sellers:[], seller:"", sort:"smart", min:0, max:0, page:24 };
   const sellerAllowed = s => window.__TP_ALLOW_TIKTOK_US__ === true || !/^TikTok\s*Shop\s*US$/i.test(C(s));
@@ -53,7 +56,7 @@
   function card(r){
     const href=`/item/?id=${encodeURIComponent(r.id)}&q=${encodeURIComponent(q)}`;
     const pv=usablePrice(r),price=pv?money(r,pv):"Check current price";
-    const label=mode==="footwear"?"Footwear":E(r.b||r.tyl||r.ty||"Product");
+    const label=mode==="footwear"?"Footwear":mode==="tablet"?"Tablet":E(r.b||r.tyl||r.ty||"Product");
     return `<article class="tp78-card tp90-search-card" data-v209-card data-v209-seller="${E(r.se)}" data-v209-role="${E(r.ro||"main")}" data-v209-family="${E(r.fa||r.ty||"")}">
       <a class="tp78-media" href="${E(href)}" aria-label="View ${E(r.t)} details">${r.im?`<img src="${E(r.im)}" alt="${E(r.t)}" width="360" height="360" loading="lazy" decoding="async" onerror="this.remove()">`:`<span class="tp78-fallback">TP</span>`}</a>
       <div class="tp78-body"><div class="tp78-top"><b>${label}</b><span>${E(r.se)}</span></div><h3><a href="${E(href)}">${E(r.t)}</a></h3><strong class="tp78-price">${E(price)}</strong><div class="tp78-actions"><a class="tp78-primary internal-detail" href="${E(href)}">View details →</a><button class="tp78-secondary" type="button" data-packed-compare="${E(r.id)}">Compare</button></div></div>
@@ -148,7 +151,11 @@
       bindControls();
       const head=$("[data-v2078-results-title]"); if(head)head.textContent=`Results for “${q}”`;
       const sub=$("[data-v2078-results-sub]");
-      if(sub) sub.textContent=mode==="footwear"?"Showing verified wearable footwear only. Sellers appear only when the catalogue contains matching footwear available for your region.":"Popular products are balanced across sellers represented in the current catalogue sample and available for your region.";
+      if(sub) sub.textContent=mode==="footwear"
+        ? "Showing verified wearable footwear only. Sellers appear only when the catalogue contains matching footwear available for your region."
+        : mode==="tablet"
+          ? "Showing consumer tablets only. Drawing tablets, stylus products, accessories and replacement parts are excluded."
+          : "Popular products are balanced across sellers represented in the current catalogue sample and available for your region.";
       window.__TP_PACKED_BROWSE__.ready=true; window.__TP_PACKED_BROWSE__.sellerCount=state.sellers.length; window.__TP_PACKED_BROWSE__.recordCount=state.rows.length; window.__TP_PACKED_BROWSE__.country=String(window.__TP_VISITOR_COUNTRY__||'ZZ');
       draw();
     } catch(err){
