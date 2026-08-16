@@ -30,7 +30,7 @@
 
   function targetFamily(value) {
     if (/\b(?:phone|smartphone|smart phone|mobile phone|cell phone|iphone|galaxy|pixel|redmi|oneplus|poco|nothing phone)\b/i.test(value)) return "phone";
-    if (/\b(?:tablet|ipad|galaxy tab|surface pro)\b/i.test(value)) return "tablet";
+    if (/\b(?:tablets?|ipads?|galaxy tabs?|surface pro)\b/i.test(value)) return "tablet";
     if (/\b(?:laptop|chromebook|notebook computer|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|xps|legion|surface laptop)\b/i.test(value)) return "laptop";
     if (/\b(?:headphones?|headsets?|earbuds?|earphones?|airpods|tws)\b/i.test(value)) return "headphones";
     if (/\b(?:speaker|soundbar|subwoofer)\b/i.test(value)) return "speaker";
@@ -64,7 +64,7 @@
   const family = targetFamily(q);
   const MAIN = {
     phone: /\b(?:smartphone|smart phone|mobile phone|cell phone|feature phone|rugged phone|satellite phone|foldable phone|android phone|iphone(?:\s*(?:\d{1,2}|x|xs|xr|se|pro|max|plus|mini))?|galaxy\s+(?:s|a|m|f|z|note)\s*[a-z0-9+.-]*|pixel\s+\d[a-z0-9+.-]*|redmi\s+[a-z0-9+.-]+|oneplus\s+[a-z0-9+.-]+|poco\s+[a-z0-9+.-]+|nothing\s+phone|honor\s+[a-z0-9+.-]+|huawei\s+[a-z0-9+.-]+|oppo\s+[a-z0-9+.-]+|vivo\s+[a-z0-9+.-]+|realme\s+[a-z0-9+.-]+|motorola\s+[a-z0-9+.-]+|moto\s+[a-z0-9+.-]+|nokia\s+[a-z0-9+.-]+|zte\s+[a-z0-9+.-]+|nubia\s+[a-z0-9+.-]+|doogee\s+[a-z0-9+.-]+|oukitel\s+[a-z0-9+.-]+|ulefone\s+[a-z0-9+.-]+|blackview\s+[a-z0-9+.-]+|fossibot\s+[a-z0-9+.-]+|cubot\s+[a-z0-9+.-]+|umidigi\s+[a-z0-9+.-]+)\b/i,
-    tablet: /\b(?:tablet|ipad|galaxy tab|surface pro)\b/i,
+    tablet: /\b(?:tablets?|ipads?|galaxy tabs?|surface pro)\b/i,
     laptop: /\b(?:laptop|chromebook|notebook computer|macbook|thinkpad|ideapad|thinkbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|xps|legion|surface laptop)\b/i,
     headphones: /\b(?:headphones?|headsets?|earbuds?|earphones?|airpods|tws)\b/i,
     speaker: /\b(?:speaker|soundbar|subwoofer)\b/i,

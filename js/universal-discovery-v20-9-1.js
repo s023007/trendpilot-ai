@@ -50,7 +50,7 @@
     const x=L(value);
     const rules=[
       ["phone",/\b(?:phone|smartphone|iphone|galaxy|pixel|redmi|oneplus)\b/i],
-      ["tablet",/\b(?:tablet|ipad|galaxy tab|surface pro)\b/i],
+      ["tablet",/\b(?:tablets?|ipads?|galaxy tabs?|surface pro)\b/i],
       ["laptop",/\b(?:laptop|chromebook|notebook computer|thinkpad|ideapad|thinkbook|macbook|vivobook|zenbook|probook|elitebook|latitude|inspiron|xps|legion|surface laptop)\b/i],
       ["computer",/\b(?:computer|pc\b|desktop|monitor|keyboard|mouse|ssd|hard drive|nvme|ram\b|graphics card|gpu\b|motherboard)\b/i],
       ["camera",/\b(?:camera|webcam|camera lens|dash cam|action cam|tripod)\b/i],
@@ -89,6 +89,7 @@
   const broadBrowse=BROAD_QUERY.test(L(q));
   const GENERIC={
     phone:/^(?:phones?|smartphones?|mobile phones?)$/i,
+    tablet:/^(?:tablets?|ipads?)$/i,
     laptop:/^(?:laptops?|notebooks?)$/i,
     headphones:/^(?:headphones?|headsets?|earbuds?|earphones?)$/i,
     smartwatch:/^(?:smartwatches?|smart watches?)$/i,
