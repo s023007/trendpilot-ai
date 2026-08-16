@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "21.13.8";
+  const VERSION = "21.16.0";
   const d = document;
   const $ = (s, r = d) => r.querySelector(s);
   const $$ = (s, r = d) => [...r.querySelectorAll(s)];
@@ -15,7 +15,6 @@
   const mode = FOOT.test(ql) ? "footwear" : BROAD.test(ql) ? "broad" : "";
   if (!mode) return;
 
-  // This flag is set synchronously so the legacy universal runtime is not loaded for packed queries.
   window.__TP_PACKED_BROWSE_ACTIVE__ = true;
   window.__TP_PACKED_BROWSE__ = {version: VERSION, mode, ready: false};
 
@@ -23,16 +22,8 @@
     ? `/data/v20-9/footwear-seller-samples.json?v=21.13.7`
     : `/data/v20-9/seller-browse-samples.json?v=21.13.7`;
 
-  const state = {
-    data: null,
-    rows: [],
-    sellers: [],
-    seller: "",
-    sort: "smart",
-    min: 0,
-    max: 0,
-    page: 24
-  };
+  const state = { data:null, rows:[], sellers:[], seller:"", sort:"smart", min:0, max:0, page:24 };
+  const sellerAllowed = s => window.__TP_ALLOW_TIKTOK_US__ === true || !/^TikTok\s*Shop\s*US$/i.test(C(s));
 
   function compareItems(){
     try { const x = JSON.parse(localStorage.getItem("tp-v209-compare") || "[]"); return Array.isArray(x) ? x : []; }
@@ -140,17 +131,17 @@
     try{
       const response=await fetch(dataUrl,{cache:"reload"}); if(!response.ok)throw new Error(`HTTP ${response.status}`);
       const data=await response.json(); state.data=data;
-      state.sellers=Object.keys(data.sellers||{}).sort((a,b)=>a.localeCompare(b));
+      state.sellers=Object.keys(data.sellers||{}).filter(sellerAllowed).sort((a,b)=>a.localeCompare(b));
       const rows=[]; const seen=new Set();
       for(const seller of state.sellers){
-        for(const id of data.sellers[seller]||[]){ const r=data.records?.[id]; if(!r||seen.has(id))continue;seen.add(id);rows.push(r); }
+        for(const id of data.sellers[seller]||[]){ const r=data.records?.[id]; if(!r||seen.has(id)||!sellerAllowed(r.se))continue;seen.add(id);rows.push(r); }
       }
       state.rows=rows;
       bindControls();
       const head=$("[data-v2078-results-title]"); if(head)head.textContent=`Results for “${q}”`;
       const sub=$("[data-v2078-results-sub]");
-      if(sub) sub.textContent=mode==="footwear"?"Showing verified wearable footwear only. Sellers appear only when the catalogue contains matching footwear.":"Popular products are balanced across every seller represented in the current catalogue sample.";
-      window.__TP_PACKED_BROWSE__.ready=true; window.__TP_PACKED_BROWSE__.sellerCount=state.sellers.length; window.__TP_PACKED_BROWSE__.recordCount=state.rows.length;
+      if(sub) sub.textContent=mode==="footwear"?"Showing verified wearable footwear only. Sellers appear only when the catalogue contains matching footwear available for your region.":"Popular products are balanced across sellers represented in the current catalogue sample and available for your region.";
+      window.__TP_PACKED_BROWSE__.ready=true; window.__TP_PACKED_BROWSE__.sellerCount=state.sellers.length; window.__TP_PACKED_BROWSE__.recordCount=state.rows.length; window.__TP_PACKED_BROWSE__.country=String(window.__TP_VISITOR_COUNTRY__||'ZZ');
       draw();
     } catch(err){
       window.__TP_PACKED_BROWSE__.error=String(err?.message||err);
