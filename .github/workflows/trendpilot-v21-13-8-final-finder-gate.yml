@@ -1,0 +1,81 @@
+name: TrendPilot V21.13.8 — Final Finder Gate
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/trendpilot-v21-13-8-final-finder-gate.yml
+      - scripts/qa-v21-13-8-dom.mjs
+      - js/packed-browse-v21-13-8.js
+      - find/index.html
+      - data/v20-9/footwear-seller-samples.json
+      - data/v20-9/seller-browse-samples.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check runtime syntax
+        run: node --check js/packed-browse-v21-13-8.js && node --check scripts/qa-v21-13-8-dom.mjs
+      - name: Install lightweight DOM runtime
+        run: npm install --no-save --ignore-scripts linkedom@0.18.12
+      - name: Execute exact finder runtime in deterministic DOM
+        run: node scripts/qa-v21-13-8-dom.mjs
+      - name: Verify live deployment matches current main exactly
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import hashlib,json,re,time,urllib.request
+          from pathlib import Path
+          root=Path('.')
+          def get(url):
+              req=urllib.request.Request(url,headers={'User-Agent':'TrendPilot-QA/21.13.8'})
+              with urllib.request.urlopen(req,timeout=20) as r:return r.read()
+          def sha(b):return hashlib.sha256(b).hexdigest()
+          html=b''
+          for i in range(24):
+              try:
+                  html=get('https://trendpilotchoice.com/find/')
+                  if b'packed-browse-v21-13-8.js?v=21.13.8' in html:break
+              except Exception:pass
+              time.sleep(5)
+          assert b'packed-browse-v21-13-8.js?v=21.13.8' in html, 'V21.13.8 finder marker is not live'
+          assert b'packed-search-cache-v21-13-' not in html, 'obsolete packed cache still referenced'
+          remote=get('https://trendpilotchoice.com/js/packed-browse-v21-13-8.js?v=21.13.8')
+          assert sha(remote)==sha((root/'js/packed-browse-v21-13-8.js').read_bytes()), 'live packed runtime differs from main'
+          for name,ver in [('footwear-seller-samples.json','21.13.7'),('seller-browse-samples.json','21.13.7')]:
+              remote=get(f'https://trendpilotchoice.com/data/v20-9/{name}?v={ver}')
+              local=(root/'data/v20-9'/name).read_bytes()
+              assert sha(remote)==sha(local), f'live {name} differs from main'
+          foot=json.loads((root/'data/v20-9/footwear-seller-samples.json').read_text())
+          browse=json.loads((root/'data/v20-9/seller-browse-samples.json').read_text())
+          assert sorted(foot['sellers'])==['AliExpress','TikTok Shop US'], sorted(foot['sellers'])
+          assert len(foot.get('records',{}))>=100
+          assert len(browse['sellers'])>=10
+          assert all(x in browse['sellers'] for x in ['Alibaba','AliExpress','TikTok Shop US','Lenovo','Geekbuying'])
+          assert not any(re.search(r'(?:Temu|Joom|FilamentPRO)',x,re.I) for x in list(foot['sellers'])+list(browse['sellers']))
+          print('LIVE_RELEASE_MATCH=PASS')
+          print('FOOTWEAR_SELLERS=',sorted(foot['sellers']))
+          print('FOOTWEAR_RECORDS=',len(foot.get('records',{})))
+          print('POPULAR_SELLERS=',len(browse['sellers']))
+          PY
+      - name: Upload final finder evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trendpilot-v21-13-8-final-finder-gate
+          path: artifacts/v21-13-8-dom
+          if-no-files-found: ignore
