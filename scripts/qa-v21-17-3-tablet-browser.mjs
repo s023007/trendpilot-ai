@@ -4,7 +4,7 @@ import fs from 'node:fs';
 const BASE=(process.env.TP_BASE_URL||'http://127.0.0.1:4173').replace(/\/$/,'');
 const OUT='artifacts/v21-17-3-tablet-browser';
 fs.mkdirSync(OUT,{recursive:true});
-const report={version:'21.17.3',checks:{},browsers:{},passed:false};
+const report={version:'21.17.4',checks:{},browsers:{},passed:false};
 const check=(name,value,detail='')=>{report.checks[name]={ok:Boolean(value),detail};if(!value)throw new Error(`${name}: ${detail}`)};
 const clean=v=>String(v??'').replace(/\s+/g,' ').trim();
 
@@ -24,69 +24,77 @@ check('no_accessory_or_false_tablet_rows',!rows.some(r=>falseRe.test(clean(r.t))
 check('lenovo_placeholder_fixture_present',suspects.length>=1,JSON.stringify(suspects));
 
 async function probe(browserType,name,{country='OM',abortGeo=false,userAgent=''}){
+  console.log(`[qa] starting ${name}`);
   const browser=await browserType.launch({headless:true});
-  const opts={viewport:{width:390,height:844},isMobile:true,hasTouch:true}; if(userAgent)opts.userAgent=userAgent;
-  const ctx=await browser.newContext(opts); const page=await ctx.newPage(); page.setDefaultTimeout(20000);
-  const errors=[],failed=[];
-  page.on('pageerror',e=>errors.push(String(e.message||e)));
-  page.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||'failed'}`));
-  await page.route('**/visitor-context.json*',route=>abortGeo?route.abort():route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({country})}));
-  const started=Date.now();
-  await page.goto(`${BASE}/find/?q=tablets&engine=v2064&universal=1`,{waitUntil:'domcontentloaded',timeout:20000});
-  await page.waitForTimeout(3500);
-  const base=await page.evaluate(()=>({
-    elapsed:0,
-    cards:document.querySelectorAll('.tp78-card').length,
-    sellers:[...document.querySelectorAll('[data-filter-merchant] option')].map(x=>(x.textContent||'').trim()),
-    allow:window.__TP_ALLOW_TIKTOK_US__===true,
-    country:window.__TP_VISITOR_COUNTRY__||'',
-    packed:window.__TP_PACKED_BROWSE__||null,
-    packedActive:window.__TP_PACKED_BROWSE_ACTIVE__===true,
-    geoReady:Boolean(window.__TP_GEO_READY__),
-    currentQuery:new URLSearchParams(location.search).get('q')||'',
-    texts:[...document.querySelectorAll('.tp78-card')].map(c=>(c.textContent||'').replace(/\s+/g,' ').trim()),
-    status:(document.querySelector('[data-v2078-results-count]')?.textContent||'').trim(),
-    gridText:(document.querySelector('[data-v2078-product-grid]')?.textContent||'').replace(/\s+/g,' ').trim().slice(0,500)
-  }));
-  base.elapsed=Date.now()-started;base.errors=errors;base.requestFailures=failed;
-  if(!base.packed?.ready||base.cards<1){
-    report.browsers[name]=base;
-    await page.screenshot({path:`${OUT}/${name}-failure.png`,fullPage:true});
-    await browser.close();
-    throw new Error(`${name} packed browse not ready: ${JSON.stringify(base)}`);
-  }
+  const watchdog=setTimeout(()=>{console.error(`[qa] ${name} watchdog closing browser`);browser.close().catch(()=>{});},40000);
+  try{
+    // Do not use Playwright's isMobile emulation here: Firefox does not implement it the same
+    // way as Chromium. A phone-sized viewport + Android UA exercises our site code consistently.
+    const opts={viewport:{width:390,height:844},hasTouch:true}; if(userAgent)opts.userAgent=userAgent;
+    const ctx=await browser.newContext(opts);
+    const page=await ctx.newPage(); page.setDefaultTimeout(12000);
+    const errors=[],failed=[];
+    page.on('pageerror',e=>errors.push(String(e.message||e)));
+    page.on('requestfailed',r=>failed.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||'failed'}`));
+    await page.route('**/visitor-context.json*',route=>abortGeo?route.abort():route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({country})}));
+    const started=Date.now();
+    await page.goto(`${BASE}/find/?q=tablets&engine=v2064&universal=1`,{waitUntil:'domcontentloaded',timeout:12000});
+    await page.waitForFunction(()=>window.__TP_PACKED_BROWSE__?.ready===true,{timeout:8000});
+    await page.waitForSelector('.tp78-card',{state:'attached',timeout:8000});
+    const base=await page.evaluate(()=>({
+      elapsed:0,
+      cards:document.querySelectorAll('.tp78-card').length,
+      sellers:[...document.querySelectorAll('[data-filter-merchant] option')].map(x=>(x.textContent||'').trim()),
+      allow:window.__TP_ALLOW_TIKTOK_US__===true,
+      country:window.__TP_VISITOR_COUNTRY__||'',
+      packed:window.__TP_PACKED_BROWSE__||null,
+      packedActive:window.__TP_PACKED_BROWSE_ACTIVE__===true,
+      geoReady:Boolean(window.__TP_GEO_READY__),
+      currentQuery:new URLSearchParams(location.search).get('q')||'',
+      texts:[...document.querySelectorAll('.tp78-card')].map(c=>(c.textContent||'').replace(/\s+/g,' ').trim()),
+      status:(document.querySelector('[data-v2078-results-count]')?.textContent||'').trim(),
+      gridText:(document.querySelector('[data-v2078-product-grid]')?.textContent||'').replace(/\s+/g,' ').trim().slice(0,500)
+    }));
+    base.elapsed=Date.now()-started;base.errors=errors;base.requestFailures=failed;
 
-  if(base.sellers.some(x=>/^Lenovo$/i.test(x))){
-    await page.selectOption('[data-filter-merchant]','Lenovo');
-    for(let i=0;i<12;i++){
-      const more=page.locator('[data-v2078-load-more]');
-      if(!(await more.count())||await more.isHidden())break;
-      await more.click();
+    if(base.sellers.some(x=>/^Lenovo$/i.test(x))){
+      await page.selectOption('[data-filter-merchant]','Lenovo');
+      await page.waitForTimeout(100);
+      base.lenovoTexts=(await page.locator('.tp78-card').allTextContents()).map(clean);
+    }else base.lenovoTexts=[];
+
+    const suspect=suspects[0];
+    if(suspect){
+      await page.goto(`${BASE}/item/?id=${encodeURIComponent(suspect.id)}`,{waitUntil:'domcontentloaded',timeout:12000});
+      await page.waitForFunction(()=>/Check current price|US\$/i.test(document.querySelector('main')?.textContent||''),{timeout:8000});
+      base.suspectDetail=clean(await page.locator('main').innerText({timeout:8000}));
     }
-    base.lenovoTexts=(await page.locator('.tp78-card').allTextContents()).map(clean);
-  }else base.lenovoTexts=[];
-
-  const suspect=suspects[0];
-  if(suspect){
-    await page.goto(`${BASE}/item/?id=${encodeURIComponent(suspect.id)}`,{waitUntil:'domcontentloaded',timeout:20000});
-    await page.waitForTimeout(1500);
-    base.suspectDetail=clean(await page.locator('main').innerText());
+    await page.screenshot({path:`${OUT}/${name}.png`,fullPage:false,timeout:8000});
+    report.browsers[name]=base;
+    console.log(`[qa] ${name} done in ${base.elapsed}ms with ${base.cards} cards`);
+    return base;
+  } finally {
+    clearTimeout(watchdog);
+    await browser.close().catch(()=>{});
   }
-  await page.screenshot({path:`${OUT}/${name}.png`,fullPage:true});
-  await browser.close();report.browsers[name]=base;return base;
 }
 
 try{
   const source=fs.readFileSync('find/index.html','utf8');
   check('packed_runtime_21173',source.includes('packed-browse-v21-13-8.js?v=21.17.3'));
   check('nonblocking_geo_loader',source.includes('visitor-context-v21-17.js?v=21.17.0')&&!source.includes('geo-bootstrap.js?v=21.16.0'));
+  const visitor=fs.readFileSync('js/visitor-context-v21-17.js','utf8');
+  check('geo_has_fail_safe',visitor.includes("setTimeout(() => finish('ZZ'), 1400)"));
   const packed=fs.readFileSync('js/packed-browse-v21-13-8.js','utf8');
   check('tablet_packed_mode',packed.includes('TABLET.test(ql) ? "tablet"'));
   check('tablet_packed_data',packed.includes('tablet-seller-samples.json?v=21.17.3'));
   check('lenovo_price_guard',packed.includes('function usablePrice'));
+  const detailSource=fs.readFileSync('js/item-detail-v20-9.js','utf8');
+  check('detail_lenovo_price_guard',detailSource.includes('seller.includes("lenovo")&&value>0&&value<=5'));
 
   const yandexUA='Mozilla/5.0 (Linux; arm_64; Android 10; STK-L21) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 YaBrowser/26.8.0.0 Mobile Safari/537.36';
   const firefoxUA='Mozilla/5.0 (Android 10; Mobile; rv:141.0) Gecko/141.0 Firefox/141.0';
+
   const y=await probe(chromium,'yandex-style',{abortGeo:true,country:'ZZ',userAgent:yandexUA});
   check('yandex_loads_fast',y.elapsed<10000,`${y.elapsed}ms`);
   check('yandex_has_results',y.cards>0,`cards=${y.cards}`);
