@@ -13,23 +13,23 @@ const goodFoot=/\b(?:shoe|shoes|sneaker|sneakers|boot|boots|sandal|sandals|slipp
 
 const browser=await chromium.launch({headless:true});
 const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
-page.setDefaultTimeout(30000);
+page.setDefaultTimeout(15000);
+// Product images are tested elsewhere. Abort them here so external merchant CDNs cannot slow search-logic QA.
+await page.route('**/*',route=>route.request().resourceType()==='image'?route.abort():route.continue());
 const consoleErrors=[]; const pageErrors=[]; const failedRequests=[];
 page.on('console',m=>{if(m.type()==='error')consoleErrors.push(m.text())});
 page.on('pageerror',e=>pageErrors.push(String(e)));
-page.on('requestfailed',r=>failedRequests.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||''}`));
+page.on('requestfailed',r=>{if(r.resourceType()!=='image')failedRequests.push(`${r.method()} ${r.url()} :: ${r.failure()?.errorText||''}`)});
 
-async function waitCards(min=1){
-  await page.waitForFunction(n=>document.querySelectorAll('[data-v209-card]').length>=n,min,{timeout:45000});
-}
+async function waitCards(min=1,timeout=22000){await page.waitForFunction(n=>document.querySelectorAll('[data-v209-card]').length>=n,min,{timeout})}
 async function sellers(){return page.locator('[data-filter-merchant] option').allTextContents()}
 async function titles(){return page.locator('[data-v209-card] h3').allTextContents()}
 async function cards(){return page.locator('[data-v209-card]').count()}
 
 try{
-  await page.goto(`${BASE}/find/?q=shoes&engine=v2064&universal=1&ui=2130`,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.goto(`${BASE}/find/?q=shoes&engine=v2064&universal=1&ui=2130`,{waitUntil:'domcontentloaded',timeout:30000});
   await waitCards(3);
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(500);
   const shoeSellers=await sellers();
   report.evidence.shoeSellers=shoeSellers;
   const expected=['Alibaba','AliExpress','TikTok Shop US'];
@@ -43,33 +43,36 @@ try{
 
   const before=await cards();
   const more=page.locator('[data-v2078-load-more]');
-  check('show_more_visible_before_click',await more.isVisible().catch(()=>false),'button hidden');
-  if(await more.isVisible().catch(()=>false)){
-    await more.click();
-    await page.waitForFunction(n=>document.querySelectorAll('[data-v209-card]').length>n,before,{timeout:45000}).catch(()=>{});
+  const moreVisible=await more.isVisible().catch(()=>false);
+  check('show_more_visible_before_click',moreVisible,'button hidden');
+  if(moreVisible){
+    await more.click({timeout:10000});
+    await page.waitForFunction(n=>document.querySelectorAll('[data-v209-card]').length>n,before,{timeout:22000}).catch(()=>{});
   }
   const after=await cards();
   report.evidence.showMore={before,after};
   check('show_more_increases_visible_cards',after>before,`before=${before} after=${after}`);
   const deepTitles=await titles();
   report.evidence.shoeTitlesAfterMore=deepTitles;
-  check('shoes_deep_results_all_look_like_footwear',deepTitles.length>=after&&deepTitles.every(t=>goodFoot.test(t)&&!badFoot.test(t)),deepTitles.join(' | '));
+  check('shoes_deep_results_all_look_like_footwear',deepTitles.length===after&&deepTitles.every(t=>goodFoot.test(t)&&!badFoot.test(t)),deepTitles.join(' | '));
 
   for(const seller of expected){
-    await page.locator('[data-filter-merchant]').selectOption({label:seller});
-    await page.waitForTimeout(500);
-    await waitCards(1);
+    const select=page.locator('[data-filter-merchant]');
+    await select.selectOption({label:seller},{timeout:12000});
+    await page.waitForFunction(s=>{
+      const rows=[...document.querySelectorAll('[data-v209-card]')];
+      return rows.length>0&&rows.every(r=>(r.getAttribute('data-v209-seller')||'')===s);
+    },seller,{timeout:22000});
     const sellerNames=await page.locator('[data-v209-card]').evaluateAll(els=>els.map(e=>e.getAttribute('data-v209-seller')||''));
     const sellerTitles=await titles();
     report.evidence[`seller_${seller}`]={count:sellerNames.length,titles:sellerTitles.slice(0,8)};
     check(`seller_filter_${seller.replace(/\W+/g,'_')}`,sellerNames.length>0&&sellerNames.every(x=>x===seller),sellerNames.join(', '));
     check(`seller_filter_${seller.replace(/\W+/g,'_')}_footwear`,sellerTitles.every(t=>goodFoot.test(t)&&!badFoot.test(t)),sellerTitles.join(' | '));
   }
-  await page.locator('[data-filter-merchant]').selectOption('');
 
-  await page.goto(`${BASE}/find/?q=popular%20products&engine=v2064&universal=1&ui=2130`,{waitUntil:'domcontentloaded',timeout:60000});
+  await page.goto(`${BASE}/find/?q=popular%20products&engine=v2064&universal=1&ui=2130`,{waitUntil:'domcontentloaded',timeout:30000});
   await waitCards(8);
-  await page.waitForTimeout(800);
+  await page.waitForTimeout(500);
   const popularSellers=await sellers();
   report.evidence.popularSellers=popularSellers;
   const popularRequired=['Alibaba','AliExpress','TikTok Shop US','Lenovo','Geekbuying'];
@@ -77,7 +80,7 @@ try{
   check('popular_products_key_sellers_present',popularRequired.every(x=>popularSellers.includes(x)),`options=${JSON.stringify(popularSellers)}`);
   check('popular_products_no_blocked_sellers',!popularSellers.some(x=>blocked.test(x)),popularSellers.join(', '));
   const snap=JSON.stringify(popularSellers);
-  await page.waitForTimeout(2200);
+  await page.waitForTimeout(1600);
   check('popular_products_seller_options_stable',JSON.stringify(await sellers())===snap,`before=${snap} after=${JSON.stringify(await sellers())}`);
 
   check('no_page_errors',pageErrors.length===0,pageErrors.join(' | '));
@@ -91,7 +94,7 @@ try{
   report.evidence.failedRequests=failedRequests;
   report.passed=report.failures.length===0&&Object.values(report.checks).every(Boolean);
   fs.writeFileSync(path.join(OUT,'report.json'),JSON.stringify(report,null,2));
-  await page.screenshot({path:path.join(OUT,'final-mobile.png'),fullPage:true}).catch(()=>{});
+  await page.screenshot({path:path.join(OUT,'final-mobile.png'),fullPage:true,timeout:15000}).catch(()=>{});
   await browser.close();
 }
 
