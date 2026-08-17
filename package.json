@@ -3,7 +3,7 @@
   "private": true,
   "description": "TrendPilot AI runtime for Netlify and Namecheap cPanel",
   "scripts": {
-    "start": "node server.cjs"
+    "start": "node server.js"
   },
   "engines": {
     "node": ">=20 <23"
