@@ -30,11 +30,13 @@ for(const e of rows){
   const post=e.post_id||'(unattributed)';
   const angle=e.angle_id||'(none)';
   const key=post+'\t'+angle;
-  if(!map.has(key))map.set(key,{post,angle,page_view:0,product_detail_click:0,product_view:0,seller_click:0,compare_click:0,sessions:new Set(),sellers:new Set()});
+  if(!map.has(key))map.set(key,{post,angle,page_view:0,product_detail_click:0,product_view:0,seller_click:0,compare_click:0,review_source_click:0,sessions:new Set(),sellers:new Set(),reviewConfidence:new Set(),reviewSources:new Set()});
   const x=map.get(key);
   if(Object.prototype.hasOwnProperty.call(x,e.event))x[e.event]++;
   if(e.session_id)x.sessions.add(e.session_id);
   if(e.seller)x.sellers.add(e.seller);
+  if(e.review_confidence)x.reviewConfidence.add(e.review_confidence);
+  if(e.review_source)x.reviewSources.add(e.review_source);
 }
 const pct=(n,d)=>d?`${(100*n/d).toFixed(1)}%`:'0.0%';
 const out=[...map.values()].map(x=>({
@@ -48,6 +50,9 @@ const out=[...map.values()].map(x=>({
   detail_clicks:x.product_detail_click,
   detail_click_rate:pct(x.product_detail_click,x.page_view),
   compare_clicks:x.compare_click,
+  review_source_clicks:x.review_source_click,
+  review_confidence:[...x.reviewConfidence].join('|'),
+  review_sources_opened:[...x.reviewSources].join('|'),
   sellers:[...x.sellers].join('|')
 })).sort((a,b)=>b.seller_clicks-a.seller_clicks||b.product_views-a.product_views||b.sessions-a.sessions);
 
