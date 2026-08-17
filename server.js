@@ -6,6 +6,10 @@ const { pathToFileURL } = require('url');
 const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
+const RUNNING_UNDER_PASSENGER = typeof PhusionPassenger !== 'undefined';
+if (RUNNING_UNDER_PASSENGER) {
+  try { PhusionPassenger.configure({ autoInstall: false }); } catch {}
+}
 
 const MIME = {
   '.html':'text/html; charset=utf-8', '.htm':'text/html; charset=utf-8',
@@ -182,6 +186,14 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, HOST, () => {
-  console.log(`TrendPilot Namecheap runtime listening on ${HOST}:${PORT}`);
-});
+function onListening() {
+  console.log(RUNNING_UNDER_PASSENGER
+    ? 'TrendPilot Namecheap runtime listening through Passenger'
+    : `TrendPilot Namecheap runtime listening on ${HOST}:${PORT}`);
+}
+
+if (RUNNING_UNDER_PASSENGER) {
+  server.listen('passenger', onListening);
+} else {
+  server.listen(PORT, HOST, onListening);
+}
