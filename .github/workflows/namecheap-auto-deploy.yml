@@ -1,0 +1,67 @@
+name: Namecheap Auto Deploy
+
+on:
+  push:
+    branches:
+      - namecheap-migration-v21
+  workflow_dispatch:
+
+concurrency:
+  group: namecheap-auto-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CPANEL_HOST: 7t7k.top
+      CPANEL_PORT: "21098"
+      CPANEL_USER: kehwgbpo
+      CPANEL_REPO: /home/kehwgbpo/trendpilot-repo
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Check one-time SSH setup
+        if: env.DEPLOY_KEY == ''
+        run: |
+          echo "NAMECHEAP_SSH_PRIVATE_KEY is not configured yet."
+          echo "Add the dedicated Namecheap SSH private key as a GitHub Actions repository secret, then run this workflow once."
+
+      - name: Checkout TrendPilot
+        if: env.DEPLOY_KEY != ''
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure SSH
+        if: env.DEPLOY_KEY != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          ssh-keyscan -p "$CPANEL_PORT" "$CPANEL_HOST" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Push to cPanel and auto-deploy
+        if: env.DEPLOY_KEY != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          git remote remove cpanel 2>/dev/null || true
+          git remote add cpanel "ssh://trendpilot-namecheap${CPANEL_REPO}"
+          git push cpanel HEAD:refs/heads/namecheap-migration-v21
+          echo "TrendPilot was pushed to the cPanel-managed repository. cPanel's post-receive hook now runs .cpanel.yml automatically."
