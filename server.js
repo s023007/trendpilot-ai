@@ -41,7 +41,7 @@ function injectGlobalHtml(body) {
   if (!body || !/<html\b/i.test(String(body))) return body;
   let out = String(body);
   if (!/post-intelligence-v21\.js/i.test(out)) {
-    out = out.replace(/<\/body>/i, '<script defer src="/js/post-intelligence-v21.js?v=21.0.0"></script></body>');
+    out = out.replace(/<\/body>/i, '<script defer src="/js/post-intelligence-v21.js?v=21.1.0"></script></body>');
   }
   return out;
 }
@@ -92,7 +92,7 @@ async function handleTrack(req, res) {
   try { input = JSON.parse(raw.toString('utf8') || '{}'); }
   catch { return send(res, 400, { 'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store' }, 'Invalid JSON'); }
 
-  const allowedEvents = new Set(['page_view','product_detail_click','product_view','seller_click','compare_click']);
+  const allowedEvents = new Set(['page_view','product_detail_click','product_view','seller_click','compare_click','review_source_click']);
   const event = safeText(input.event, 48);
   if (!allowedEvents.has(event)) return send(res, 400, { 'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store' }, 'Invalid event');
 
@@ -108,6 +108,9 @@ async function handleTrack(req, res) {
     route_type: safeText(input.route_type, 40),
     trust_level: safeText(input.trust_level, 40),
     trust_score: Number.isFinite(Number(input.trust_score)) ? Math.max(0, Math.min(100, Number(input.trust_score))) : null,
+    review_confidence: safeText(input.review_confidence, 40),
+    review_sources: Number.isFinite(Number(input.review_sources)) ? Math.max(0, Math.min(100, Number(input.review_sources))) : 0,
+    review_source: safeText(input.review_source, 100),
     post_id: safeText(input.post_id, 120),
     angle_id: safeText(input.angle_id, 100),
     utm_id: safeText(input.utm_id, 120),
