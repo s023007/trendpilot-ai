@@ -1,0 +1,67 @@
+name: TrendPilot Pinterest Auto Publisher V1
+
+on:
+  workflow_dispatch:
+    inputs:
+      product_id:
+        description: Product ID from the TrendPilot packed catalog
+        required: false
+        default: "6aaec79cc643e9"
+        type: string
+      board_name:
+        description: Pinterest board name
+        required: false
+        default: "Back to School Finds"
+        type: string
+      publish:
+        description: Create the Pin in Buffer queue (false = dry run)
+        required: true
+        default: false
+        type: boolean
+      campaign:
+        description: UTM campaign
+        required: false
+        default: "pinterest_product_launch_2026"
+        type: string
+  push:
+    branches: [main]
+    paths:
+      - "scripts/buffer-pinterest-publisher.mjs"
+      - ".github/workflows/trendpilot-pinterest-auto-publisher.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-pinterest-pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      PRODUCT_ID: ${{ inputs.product_id || '6aaec79cc643e9' }}
+      BOARD_NAME: ${{ inputs.board_name || 'Back to School Finds' }}
+      PUBLISH: ${{ inputs.publish || 'false' }}
+      CAMPAIGN: ${{ inputs.campaign || 'pinterest_product_launch_2026' }}
+    steps:
+      - name: Checkout catalog and publisher
+        uses: actions/checkout@v4
+
+      - name: Validate and prepare Pinterest product Pin
+        shell: bash
+        run: node scripts/buffer-pinterest-publisher.mjs
+
+      - name: Safety summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## TrendPilot Pinterest Auto Publisher V1"
+            echo
+            echo "- Product ID: \`${PRODUCT_ID}\`"
+            echo "- Board: **${BOARD_NAME}**"
+            echo "- Publish requested: **${PUBLISH}**"
+            echo "- Buffer API key: stored only in GitHub Secrets"
+            echo "- Global seller guards: enabled"
+            echo "- TikTok Shop US global-publish guard: enabled"
+            echo "- Lenovo placeholder-price guard: enabled"
+          } >> "$GITHUB_STEP_SUMMARY"
