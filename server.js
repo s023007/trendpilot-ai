@@ -7,6 +7,7 @@ const ROOT = __dirname;
 const PORT = Number(process.env.PORT || 3000);
 const HOST = process.env.HOST || '0.0.0.0';
 const RUNNING_UNDER_PASSENGER = typeof PhusionPassenger !== 'undefined';
+const ANALYTICS_DIR = process.env.TP_ANALYTICS_DIR || path.join(process.env.HOME || path.dirname(ROOT), 'trendpilot-analytics');
 if (RUNNING_UNDER_PASSENGER) {
   try { PhusionPassenger.configure({ autoInstall: false }); } catch {}
 }
@@ -36,6 +37,15 @@ function redirect(res, location, status = 301) {
   send(res, status, { Location: location, 'Cache-Control':'no-store' }, '');
 }
 
+function injectGlobalHtml(body) {
+  if (!body || !/<html\b/i.test(String(body))) return body;
+  let out = String(body);
+  if (!/post-intelligence-v21\.js/i.test(out)) {
+    out = out.replace(/<\/body>/i, '<script defer src="/js/post-intelligence-v21.js?v=21.0.0"></script></body>');
+  }
+  return out;
+}
+
 function safeStaticPath(urlPath) {
   let decoded;
   try { decoded = decodeURIComponent(urlPath); } catch { return null; }
@@ -61,6 +71,65 @@ async function bodyBuffer(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(Buffer.from(chunk));
   return Buffer.concat(chunks);
+}
+
+function safeText(v, max = 180) {
+  return String(v ?? '').replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
+}
+
+function safePath(v) {
+  const s = safeText(v, 320);
+  return s.startsWith('/') ? s : '';
+}
+
+async function handleTrack(req, res) {
+  if ((req.method || 'GET').toUpperCase() !== 'POST') {
+    return send(res, 405, { 'Content-Type':'text/plain; charset=utf-8', 'Allow':'POST', 'Cache-Control':'no-store' }, 'Method not allowed');
+  }
+  const raw = await bodyBuffer(req);
+  if (raw.length > 32768) return send(res, 413, { 'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store' }, 'Payload too large');
+  let input;
+  try { input = JSON.parse(raw.toString('utf8') || '{}'); }
+  catch { return send(res, 400, { 'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store' }, 'Invalid JSON'); }
+
+  const allowedEvents = new Set(['page_view','product_detail_click','product_view','seller_click','compare_click']);
+  const event = safeText(input.event, 48);
+  if (!allowedEvents.has(event)) return send(res, 400, { 'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store' }, 'Invalid event');
+
+  const record = {
+    server_ts: new Date().toISOString(),
+    event,
+    session_id: safeText(input.session_id, 80),
+    path: safePath(input.path),
+    product_route: safeText(input.product_route, 180),
+    product_title: safeText(input.product_title, 220),
+    seller: safeText(input.seller, 100),
+    seller_host: safeText(input.seller_host, 120),
+    route_type: safeText(input.route_type, 40),
+    trust_level: safeText(input.trust_level, 40),
+    trust_score: Number.isFinite(Number(input.trust_score)) ? Math.max(0, Math.min(100, Number(input.trust_score))) : null,
+    post_id: safeText(input.post_id, 120),
+    angle_id: safeText(input.angle_id, 100),
+    utm_id: safeText(input.utm_id, 120),
+    utm_source: safeText(input.utm_source, 80),
+    utm_medium: safeText(input.utm_medium, 80),
+    utm_campaign: safeText(input.utm_campaign, 120),
+    utm_content: safeText(input.utm_content, 120),
+    utm_term: safeText(input.utm_term, 120),
+    referrer_host: safeText(input.referrer_host, 120),
+    viewport: safeText(input.viewport, 32)
+  };
+
+  try {
+    await fs.promises.mkdir(ANALYTICS_DIR, { recursive: true });
+    const day = new Date().toISOString().slice(0,10);
+    const file = path.join(ANALYTICS_DIR, `events-${day}.jsonl`);
+    await fs.promises.appendFile(file, JSON.stringify(record) + '\n', { encoding:'utf8', mode:0o600 });
+    return send(res, 204, { 'Cache-Control':'no-store' }, '');
+  } catch (err) {
+    console.error('[TrendPilot analytics]', err);
+    return send(res, 500, { 'Content-Type':'text/plain; charset=utf-8', 'Cache-Control':'no-store' }, 'Tracking unavailable');
+  }
 }
 
 async function loadFunction(name) {
@@ -112,6 +181,12 @@ async function invokeNetlifyFunction(name, req, res, url, extraQuery = {}) {
   }
   let out = result && result.body != null ? result.body : '';
   if (result && result.isBase64Encoded) out = Buffer.from(out, 'base64');
+  const type = String(outHeaders['content-type'] || outHeaders['Content-Type'] || '');
+  if (/text\/html/i.test(type) && !Buffer.isBuffer(out)) {
+    out = injectGlobalHtml(out);
+    delete outHeaders['content-length'];
+    delete outHeaders['Content-Length'];
+  }
   send(res, statusCode, outHeaders, out);
 }
 
@@ -134,6 +209,10 @@ async function serveStatic(req, res, pathname) {
     }
     if (!stat.isFile()) return false;
     const ext = path.extname(file).toLowerCase();
+    if (ext === '.html' || ext === '.htm') {
+      const body = injectGlobalHtml(await fs.promises.readFile(file, 'utf8'));
+      return send(res, 200, { 'Content-Type':MIME[ext], 'Cache-Control':'no-cache' }, body);
+    }
     const headers = {
       'Content-Type': MIME[ext] || 'application/octet-stream',
       'Content-Length': String(stat.size),
@@ -148,6 +227,8 @@ async function serveStatic(req, res, pathname) {
 async function route(req, res) {
   const url = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
   const p = url.pathname;
+
+  if (p === '/tp/track') return handleTrack(req, res);
 
   if (p === '/comparisons') return redirect(res, '/compare/');
   if (p === '/electronics') return redirect(res, '/products/');
@@ -172,7 +253,7 @@ async function route(req, res) {
 
   const fallback = safeStaticPath('/404.html');
   if (fallback && fs.existsSync(fallback)) {
-    const body = await fs.promises.readFile(fallback);
+    const body = injectGlobalHtml(await fs.promises.readFile(fallback, 'utf8'));
     return send(res, 404, {'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-cache'}, body);
   }
   send(res, 404, {'Content-Type':'text/plain; charset=utf-8'}, 'Not found');
