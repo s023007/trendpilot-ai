@@ -1,12 +1,6 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/kehwgbpo/trendpilot-node/
-    - /bin/mkdir -p $DEPLOYPATH
-    - /bin/tar --exclude=.git --exclude=.cpanel.yml --exclude=node_modules --exclude=package-lock.json --exclude=tmp -cf /home/kehwgbpo/trendpilot-deploy.tar .
-    - /bin/tar -xf /home/kehwgbpo/trendpilot-deploy.tar -C $DEPLOYPATH
-    - /bin/rm -f /home/kehwgbpo/trendpilot-deploy.tar
-    - /bin/cp $DEPLOYPATH/server.js $DEPLOYPATH/app.js
-    - /bin/mkdir -p $DEPLOYPATH/tmp
-    - /bin/bash -lc 'source /home/kehwgbpo/nodevenv/trendpilot-node/20/bin/activate && cd /home/kehwgbpo/trendpilot-node && npm install --omit=dev'
-    - /usr/bin/touch $DEPLOYPATH/tmp/restart.txt
+    - /bin/bash -lc 'source /home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate && cd /home/kehwgbpo/trendpilot-repo && npm install --omit=dev'
+    - /bin/mkdir -p /home/kehwgbpo/trendpilot-repo/tmp
+    - /usr/bin/touch /home/kehwgbpo/trendpilot-repo/tmp/restart.txt
