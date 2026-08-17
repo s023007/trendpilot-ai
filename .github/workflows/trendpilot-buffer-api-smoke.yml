@@ -1,0 +1,127 @@
+name: TrendPilot Buffer API Smoke Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/trendpilot-buffer-api-smoke.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-buffer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+    steps:
+      - name: Validate Buffer secret is available
+        shell: bash
+        run: |
+          if [ -z "$BUFFER_API_KEY" ]; then
+            echo "BUFFER_API_KEY is missing from repository secrets." >&2
+            exit 1
+          fi
+          echo "BUFFER_API_KEY is present."
+
+      - name: Authenticate and discover connected Buffer channels
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const endpoint = 'https://api.buffer.com';
+          const apiKey = process.env.BUFFER_API_KEY;
+
+          async function gql(query) {
+            const response = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify({ query }),
+            });
+
+            const body = await response.text();
+            let payload;
+            try {
+              payload = JSON.parse(body);
+            } catch {
+              throw new Error(`Buffer API returned non-JSON HTTP ${response.status}`);
+            }
+
+            if (!response.ok) {
+              throw new Error(`Buffer API HTTP ${response.status}`);
+            }
+            if (payload.errors?.length) {
+              throw new Error(`Buffer GraphQL error: ${payload.errors.map(e => e.message).join('; ')}`);
+            }
+            return payload.data;
+          }
+
+          (async () => {
+            const accountData = await gql(`query {
+              account {
+                id
+                organizations { id name }
+              }
+            }`);
+
+            const organizations = accountData?.account?.organizations || [];
+            if (!organizations.length) {
+              throw new Error('Buffer authentication succeeded but no organizations were returned.');
+            }
+
+            const discovered = [];
+            for (const org of organizations) {
+              const safeOrgId = JSON.stringify(String(org.id));
+              const channelData = await gql(`query {
+                channels(input: { organizationId: ${safeOrgId} }) {
+                  id
+                  name
+                  service
+                }
+              }`);
+              for (const channel of channelData?.channels || []) {
+                discovered.push({
+                  organization: org.name || 'Buffer workspace',
+                  channelId: channel.id,
+                  name: channel.name || '(unnamed)',
+                  service: channel.service || '(unknown)',
+                });
+              }
+            }
+
+            if (!discovered.length) {
+              throw new Error('Buffer API is connected, but no social channels were found.');
+            }
+
+            // Never print the API key. Channel IDs are intentionally omitted from logs.
+            console.log(`Buffer API authentication: OK`);
+            console.log(`Organizations found: ${organizations.length}`);
+            console.log(`Connected channels found: ${discovered.length}`);
+            for (const channel of discovered) {
+              console.log(`- ${channel.service}: ${channel.name}`);
+            }
+
+            const pinterest = discovered.filter(c => String(c.service).toLowerCase() === 'pinterest');
+            if (!pinterest.length) {
+              throw new Error('No Pinterest channel is connected to this Buffer account yet.');
+            }
+
+            fs.writeFileSync('/tmp/buffer-channels.json', JSON.stringify(discovered, null, 2));
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+              `## Buffer connection verified ✅\n\n` +
+              `- Organizations: **${organizations.length}**\n` +
+              `- Connected channels: **${discovered.length}**\n` +
+              `- Pinterest channels: **${pinterest.length}**\n\n` +
+              discovered.map(c => `- ${c.service}: ${c.name}`).join('\n') + '\n'
+            );
+          })().catch(error => {
+            console.error(error.message);
+            process.exit(1);
+          });
+          NODE
