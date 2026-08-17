@@ -1,0 +1,70 @@
+{
+  "version": "21.1.0",
+  "updated_at": "2026-08-17T22:23:00+04:00",
+  "policy": {
+    "exact_model_only": true,
+    "variant_difference_must_be_disclosed": true,
+    "no_aggregate_rating_without_compatible_scales_and_identity": true
+  },
+  "entries": [
+    {
+      "model": "FOSSiBOT F106 PRO",
+      "aliases": ["FOSSiBOT F106 PRO", "Fossibot F106 Pro"],
+      "identity_confidence": "exact_model",
+      "review_confidence": "Moderate",
+      "review_confidence_reason": "The exact model is supported by retailer customer reviews, independent user opinions and a professional hands-on test. Some sources cover a different RAM presentation or configuration, so TrendPilot does not merge them into one universal rating.",
+      "buyer_summary": "Evidence is broadly positive for ruggedness, battery life and outdoor features, while performance, display brightness and software support are recurring cautions.",
+      "strengths": [
+        "Large battery and long endurance are repeatedly highlighted",
+        "Rugged construction and outdoor usefulness are recurring positives",
+        "Camping light and loud-speaker features are useful differentiators"
+      ],
+      "cautions": [
+        "Helio G85 performance is modest for demanding apps or games",
+        "The phone is bulky and heavy",
+        "Professional testing noted limited display brightness and weak software-update expectations"
+      ],
+      "sources": [
+        {
+          "type": "retailer_customer_reviews",
+          "name": "Geekbuying",
+          "relationship": "same_listing",
+          "rating": 5.0,
+          "scale": 5,
+          "review_count": 29,
+          "verified_purchase_claim": false,
+          "note": "Geekbuying lists the FOSSiBOT F106 PRO item code 524438 with 29 reviews and a displayed 5/5 customer rating.",
+          "url": "https://www.geekbuying.com/item/FOSSiBOT-F106-PRO-15-256GB-6-58-Rugged-Smartphone-524438.html"
+        },
+        {
+          "type": "retailer_customer_reviews",
+          "name": "PcComponentes",
+          "relationship": "same_model_variant_differs",
+          "rating": 4.0,
+          "scale": 5,
+          "review_count": 4,
+          "verified_purchase_claim": true,
+          "note": "Same FOSSiBOT F106 Pro model; the listed configuration is 8GB/256GB, so this evidence is treated as same-model rather than same-listing evidence.",
+          "url": "https://www.pccomponentes.com/fossibot-f106-pro-4g-8gb-256gb-658-negro"
+        },
+        {
+          "type": "independent_user_reviews",
+          "name": "Kimovil",
+          "relationship": "same_model_variant_differs",
+          "review_count": 2,
+          "verified_purchase_claim": false,
+          "note": "Kimovil has two user opinions for the FOSSiBOT F106 Pro and explicitly marks the volume as not enough reviews.",
+          "url": "https://www.kimovil.com/en/opinions/fossibot-f106-pro"
+        },
+        {
+          "type": "professional_review",
+          "name": "Heise Bestenlisten",
+          "relationship": "same_model",
+          "published": "2025-03-14",
+          "note": "Hands-on professional test of the exact FOSSiBOT F106 Pro model. It praises ruggedness, battery, night-vision camera and bright LED, while criticizing performance, display brightness, software patch age, 4G-only connectivity and bulk.",
+          "url": "https://www.heise.de/bestenlisten/testbericht/fossibot-f106-pro-im-test/nk9f667"
+        }
+      ]
+    }
+  ]
+}
