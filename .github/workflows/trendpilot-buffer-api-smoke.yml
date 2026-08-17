@@ -26,7 +26,7 @@ jobs:
           fi
           echo "BUFFER_API_KEY is present."
 
-      - name: Authenticate and discover connected Buffer channels
+      - name: Authenticate and discover connected Buffer channels and Pinterest boards
         shell: bash
         run: |
           node <<'NODE'
@@ -53,9 +53,7 @@ jobs:
               throw new Error(`Buffer API returned non-JSON HTTP ${response.status}`);
             }
 
-            if (!response.ok) {
-              throw new Error(`Buffer API HTTP ${response.status}`);
-            }
+            if (!response.ok) throw new Error(`Buffer API HTTP ${response.status}`);
             if (payload.errors?.length) {
               throw new Error(`Buffer GraphQL error: ${payload.errors.map(e => e.message).join('; ')}`);
             }
@@ -99,7 +97,6 @@ jobs:
               throw new Error('Buffer API is connected, but no social channels were found.');
             }
 
-            // Never print the API key. Channel IDs are intentionally omitted from logs.
             console.log(`Buffer API authentication: OK`);
             console.log(`Organizations found: ${organizations.length}`);
             console.log(`Connected channels found: ${discovered.length}`);
@@ -112,13 +109,49 @@ jobs:
               throw new Error('No Pinterest channel is connected to this Buffer account yet.');
             }
 
-            fs.writeFileSync('/tmp/buffer-channels.json', JSON.stringify(discovered, null, 2));
+            const boardRows = [];
+            for (const channel of pinterest) {
+              const safeChannelId = JSON.stringify(String(channel.channelId));
+              const detail = await gql(`query {
+                channel(input: { id: ${safeChannelId} }) {
+                  name
+                  metadata {
+                    ... on PinterestMetadata {
+                      boards {
+                        name
+                        serviceId
+                        url
+                      }
+                    }
+                  }
+                }
+              }`);
+              const boards = detail?.channel?.metadata?.boards || [];
+              for (const board of boards) {
+                boardRows.push({
+                  channel: detail?.channel?.name || channel.name,
+                  name: board.name,
+                  serviceId: board.serviceId,
+                  url: board.url,
+                });
+              }
+            }
+
+            console.log(`Pinterest boards found: ${boardRows.length}`);
+            for (const board of boardRows) {
+              console.log(`- Board: ${board.name} (${board.url || 'no URL'})`);
+            }
+
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
               `## Buffer connection verified ✅\n\n` +
               `- Organizations: **${organizations.length}**\n` +
               `- Connected channels: **${discovered.length}**\n` +
-              `- Pinterest channels: **${pinterest.length}**\n\n` +
-              discovered.map(c => `- ${c.service}: ${c.name}`).join('\n') + '\n'
+              `- Pinterest channels: **${pinterest.length}**\n` +
+              `- Pinterest boards: **${boardRows.length}**\n\n` +
+              discovered.map(c => `- ${c.service}: ${c.name}`).join('\n') + '\n\n' +
+              (boardRows.length
+                ? `### Pinterest boards\n${boardRows.map(b => `- ${b.name}`).join('\n')}\n`
+                : `### Pinterest boards\nNo boards found yet.\n`)
             );
           })().catch(error => {
             console.error(error.message);
