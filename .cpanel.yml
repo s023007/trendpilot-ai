@@ -1,6 +1,4 @@
 ---
 deployment:
   tasks:
-    - /bin/bash -lc 'source /home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate && cd /home/kehwgbpo/trendpilot-repo && npm install --omit=dev'
-    - /bin/mkdir -p /home/kehwgbpo/trendpilot-repo/tmp
-    - /usr/bin/touch /home/kehwgbpo/trendpilot-repo/tmp/restart.txt
+    - /bin/bash /home/kehwgbpo/trendpilot-repo/scripts/namecheap-deploy.sh
