@@ -1,0 +1,159 @@
+name: Buffer Auto Publish Draft
+
+on:
+  push:
+    branches:
+      - namecheap-migration-v21
+    paths:
+      - '.github/workflows/buffer-auto-publish-draft.yml'
+      - 'data/campaigns/fossibot-f106-pro-launch-v1.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  create-drafts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      CAMPAIGN_FILE: data/campaigns/fossibot-f106-pro-launch-v1.json
+      PRODUCT_ID: bcba2c15f61566
+
+    steps:
+      - name: Checkout TrendPilot
+        uses: actions/checkout@v4
+
+      - name: Require Buffer key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${BUFFER_API_KEY:-}" || { echo "BUFFER_API_KEY is missing"; exit 1; }
+
+      - name: Create safe Buffer drafts for first tracked post
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const apiKey = process.env.BUFFER_API_KEY;
+          const campaign = JSON.parse(fs.readFileSync(process.env.CAMPAIGN_FILE, 'utf8'));
+          const post = campaign.posts.find(p => p.sequence === 1);
+          if (!post) throw new Error('Campaign post sequence 1 not found');
+
+          function findProduct(id) {
+            const dir = path.join(process.cwd(), 'data/v20-9/products');
+            for (const file of fs.readdirSync(dir).filter(x => x.endsWith('.json'))) {
+              const obj = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
+              if (obj[id]) return obj[id];
+            }
+            return null;
+          }
+
+          const product = findProduct(process.env.PRODUCT_ID);
+          if (!product || !product.im) throw new Error('Product image not found for ' + process.env.PRODUCT_ID);
+          const imageUrl = product.im;
+
+          async function gql(query, variables = {}) {
+            const r = await fetch('https://api.buffer.com', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+              },
+              body: JSON.stringify({ query, variables })
+            });
+            const body = await r.json();
+            if (!r.ok || body.errors) throw new Error(JSON.stringify(body));
+            return body.data;
+          }
+
+          const accountData = await gql(`query { account { organizations { id name } } }`);
+          const orgs = accountData?.account?.organizations || [];
+          if (!orgs.length) throw new Error('No Buffer organizations found');
+          const org = orgs[0];
+
+          const chData = await gql(`query GetChannels($org: String!) {
+            channels(input: { organizationId: $org }) {
+              id name displayName service isQueuePaused
+            }
+          }`, { org: org.id });
+
+          const channels = chData?.channels || [];
+          console.log('BUFFER_ORGANIZATION', JSON.stringify({ id: org.id, name: org.name }));
+          console.log('BUFFER_CHANNELS', JSON.stringify(channels.map(c => ({ id:c.id, name:c.name, displayName:c.displayName, service:c.service, paused:c.isQueuePaused }))));
+
+          const supported = new Set(['pinterest','facebook','instagram','tiktok']);
+          const targets = channels.filter(c => supported.has(c.service) && post[c.service]);
+          if (!targets.length) throw new Error('No connected campaign-compatible Buffer channels found');
+
+          async function pinterestBoard(channelId) {
+            const data = await gql(`query GetPinterestChannel($id: ChannelId!) {
+              channel(input: { id: $id }) {
+                metadata {
+                  ... on PinterestMetadata {
+                    boards { id name serviceId url }
+                  }
+                }
+              }
+            }`, { id: channelId });
+            const boards = data?.channel?.metadata?.boards || [];
+            console.log('PINTEREST_BOARDS', JSON.stringify(boards.map(b => ({name:b.name, serviceId:b.serviceId, url:b.url}))));
+            if (!boards.length) throw new Error('Pinterest channel has no boards');
+            const preferred = boards.find(b => /trend\s*pilot/i.test(b.name)) || boards[0];
+            return preferred;
+          }
+
+          async function createDraft(channel) {
+            const spec = post[channel.service];
+            let text = spec.caption || spec.description || '';
+            const link = spec.link || campaign.product.landing_page;
+            if (channel.service !== 'pinterest' && link && !text.includes(link)) text += `\n\n${link}`;
+
+            const input = {
+              text,
+              channelId: channel.id,
+              schedulingType: 'automatic',
+              mode: 'addToQueue',
+              saveToDraft: true,
+              aiAssisted: true,
+              source: 'trendpilot-github',
+              assets: [{ image: { url: imageUrl, metadata: { altText: campaign.product.name } } }]
+            };
+
+            if (channel.service === 'pinterest') {
+              const board = await pinterestBoard(channel.id);
+              input.metadata = {
+                pinterest: {
+                  boardServiceId: board.serviceId,
+                  title: spec.title || campaign.product.name,
+                  url: link
+                }
+              };
+            }
+
+            const mutation = `mutation CreatePost($input: CreatePostInput!) {
+              createPost(input: $input) {
+                ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
+                ... on MutationError { message }
+              }
+            }`;
+            const result = await gql(mutation, { input });
+            const payload = result?.createPost;
+            if (!payload || payload.message) throw new Error(`Buffer createPost failed for ${channel.service}: ${payload?.message || 'unknown error'}`);
+            console.log('DRAFT_CREATED', JSON.stringify({ service: channel.service, channel: channel.displayName || channel.name, postId: payload.post.id, status: payload.post.status }));
+          }
+
+          for (const channel of targets) await createDraft(channel);
+          console.log('BUFFER_DRAFT_TEST_OK');
+          NODE
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Buffer draft test" >> "$GITHUB_STEP_SUMMARY"
+          echo "This workflow uses the existing BUFFER_API_KEY, discovers connected channels at runtime, attaches the FOSSiBOT product image, preserves post_id/creative_id tracking links, and saves Post 1 as drafts only. Nothing is published live by this workflow." >> "$GITHUB_STEP_SUMMARY"
