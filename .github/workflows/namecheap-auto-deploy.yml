@@ -48,12 +48,15 @@ jobs:
           node --check js/item-detail-v20-9.js
           node --check js/item-confidence-v21-4.js
           node --check js/item-conversion-v21-5.js
+          node --check js/item-campaign-v1.js
           node --check js/tp-analytics-v1.js
           grep -q 'item-confidence-v21-4.js?v=21.4.2' item/index.html
           grep -q 'item-conversion-v21-5.js' item/index.html
+          grep -q 'item-campaign-v1.js' item/index.html
           grep -q 'tp-analytics-v1.js' item/index.html
           test -f data/tp-track.php
           test -f data/review-evidence-v21.json
+          test -f data/campaigns/fossibot-f106-pro-launch-v1.json
           test -d data/v20-9/products
 
       - name: Configure SSH
@@ -160,7 +163,7 @@ jobs:
             RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${TEST_URL}/namecheap-static-release.txt?ts=$(date +%s)" || true)"
             ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${TEST_URL}/item/?ts=$(date +%s)" || true)"
             echo "test attempt=$attempt release=$RELEASE"
-            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM"; then
+            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'item-campaign-v1.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM"; then
               echo "TEST_SITE_LIVE_OK sha=$RELEASE"
               exit 0
             fi
@@ -176,8 +179,9 @@ jobs:
           for attempt in {1..16}; do
             RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/namecheap-production-release.txt?ts=$(date +%s)" || true)"
             ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/item/?ts=$(date +%s)" || true)"
+            CAMPAIGN="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/data/campaigns/fossibot-f106-pro-launch-v1.json?ts=$(date +%s)" || true)"
             echo "production attempt=$attempt release=$RELEASE"
-            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM"; then
+            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'item-campaign-v1.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM" && grep -q 'f106-pro-launch-v1' <<< "$CAMPAIGN"; then
               echo "PRODUCTION_SITE_LIVE_OK sha=$RELEASE"
               exit 0
             fi
@@ -217,6 +221,8 @@ jobs:
           curl -isS --max-time 20 "${PRODUCTION_URL}/namecheap-production-release.txt?diagnostic=$(date +%s)" | head -40 || true
           echo '--- production item page ---'
           curl -isS --max-time 20 "${PRODUCTION_URL}/item/?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- production campaign ---'
+          curl -isS --max-time 20 "${PRODUCTION_URL}/data/campaigns/fossibot-f106-pro-launch-v1.json?diagnostic=$(date +%s)" | head -80 || true
           echo '--- production analytics probe ---'
           curl -isS --max-time 20 "${PRODUCTION_URL}/data/tp-track.php?probe=1&diagnostic=$(date +%s)" | head -40 || true
           echo '--- remote production root ---'
