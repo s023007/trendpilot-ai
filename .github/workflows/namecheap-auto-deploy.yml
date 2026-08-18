@@ -22,9 +22,9 @@ jobs:
       CPANEL_PORT: "21098"
       CPANEL_USER: kehwgbpo
       APP_DIR: /home/kehwgbpo/trendpilot-repo
+      STATIC_ROOT: /home/kehwgbpo/trendpilot-test.7t7k.top
       BRANCH: namecheap-migration-v21
-      HOT_RELOAD_URL: https://trendpilot-test.7t7k.top/.netlify/functions/namecheap-hot-reload-v1
-      PROCESS_PROBE_URL: https://trendpilot-test.7t7k.top/.netlify/functions/namecheap-runtime-probe-v2
+      SITE_URL: https://trendpilot-test.7t7k.top
       DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
 
     steps:
@@ -39,18 +39,15 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Validate deployment source
+      - name: Validate static shopper build
         shell: bash
         run: |
           set -euo pipefail
-          node --check server.js
-          node --check server.cjs
-          node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
-          node --check netlify/functions/namecheap-hot-reload-v1.cjs
-          node --check netlify/functions/namecheap-runtime-probe-v2.cjs
-          node --check js/post-intelligence-v21.js
-          grep -q 'tp-pc-panel' netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
-          grep -q 'x-trendpilot-product-confidence' netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+          node --check js/item-detail-v20-9.js
+          node --check js/item-confidence-v21-4.js
+          grep -q 'item-confidence-v21-4.js' item/index.html
+          test -f data/review-evidence-v21.json
+          test -d data/v20-9/products
 
       - name: Configure SSH
         shell: bash
@@ -81,7 +78,7 @@ jobs:
           set -euo pipefail
           ssh trendpilot-namecheap 'printf "SSH_OK\n"'
 
-      - name: Sync GitHub branch to Namecheap
+      - name: Sync GitHub branch on Namecheap
         shell: bash
         run: |
           set -euo pipefail
@@ -89,76 +86,86 @@ jobs:
           set -eo pipefail
           APP_DIR=/home/kehwgbpo/trendpilot-repo
           BRANCH=namecheap-migration-v21
-          NODE_ENV_ACTIVATE=/home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate
-
           cd "$APP_DIR"
-          OLD_PACKAGE="$(git show HEAD:package.json 2>/dev/null | sha256sum | awk '{print $1}' || true)"
           git fetch --prune origin "$BRANCH"
           git checkout "$BRANCH"
           git reset --hard FETCH_HEAD
-          NEW_HEAD="$(git rev-parse HEAD)"
-          NEW_PACKAGE="$(sha256sum package.json 2>/dev/null | awk '{print $1}' || true)"
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          REMOTE
 
-          if [ -f "$NODE_ENV_ACTIVATE" ]; then
-            source "$NODE_ENV_ACTIVATE"
-          fi
-          node --check server.js
-          node --check server.cjs
-          node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
-          node --check netlify/functions/namecheap-hot-reload-v1.cjs
-          node --check netlify/functions/namecheap-runtime-probe-v2.cjs
-          node --check js/post-intelligence-v21.js
+      - name: Publish static site and bypass Passenger
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -eo pipefail
+          APP_DIR=/home/kehwgbpo/trendpilot-repo
+          STATIC_ROOT=/home/kehwgbpo/trendpilot-test.7t7k.top
 
-          if [ "$OLD_PACKAGE" != "$NEW_PACKAGE" ] || [ ! -d node_modules ]; then
-            npm install --omit=dev
-          fi
+          test -d "$STATIC_ROOT" || { echo "Static document root not found: $STATIC_ROOT"; exit 1; }
 
-          mkdir -p tmp
-          printf '%s\n' "$NEW_HEAD" > tmp/last-deployed-sha.txt
-          echo "DEPLOYED_SHA=$NEW_HEAD"
+          # Copy only browser-facing site assets. Node/Passenger is no longer required
+          # for normal shopper pages, so HTML/CSS/JS/JSON changes become visible immediately.
+          for d in css js images data item find compare deals products sourcing; do
+            if [ -d "$APP_DIR/$d" ]; then
+              mkdir -p "$STATIC_ROOT/$d"
+              cp -a "$APP_DIR/$d/." "$STATIC_ROOT/$d/"
+            fi
+          done
+
+          for f in index.html 404.html manifest.webmanifest robots.txt sitemap.xml; do
+            if [ -f "$APP_DIR/$f" ]; then
+              cp -a "$APP_DIR/$f" "$STATIC_ROOT/$f"
+            fi
+          done
+
+          # cPanel's Node app previously routed this domain through Passenger.
+          # Disable Passenger at the document root so Apache serves the static site directly.
+          cat > "$STATIC_ROOT/.htaccess" <<'HTACCESS'
+          PassengerEnabled off
+          Options -Indexes
+          DirectoryIndex index.html
+          HTACCESS
+
+          git -C "$APP_DIR" rev-parse HEAD > "$STATIC_ROOT/namecheap-static-release.txt"
+          echo "STATIC_ROOT=$STATIC_ROOT"
+          echo "STATIC_SHA=$(cat "$STATIC_ROOT/namecheap-static-release.txt")"
           REMOTE
 
       - name: Verify deployed Git commit
         shell: bash
         run: |
           set -euo pipefail
-          REMOTE_SHA="$(ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD')"
+          REMOTE_SHA="$(ssh trendpilot-namecheap 'cat /home/kehwgbpo/trendpilot-test.7t7k.top/namecheap-static-release.txt')"
           echo "GitHub SHA: $GITHUB_SHA"
-          echo "Namecheap SHA: $REMOTE_SHA"
+          echo "Static SHA: $REMOTE_SHA"
           test "$REMOTE_SHA" = "$GITHUB_SHA"
 
-      - name: Hot-reload cached product modules
+      - name: Verify live static item page
         shell: bash
         run: |
           set -euo pipefail
-          BODY="$(curl -fsS --max-time 30 -H 'Cache-Control: no-cache' "${HOT_RELOAD_URL}?sha=${GITHUB_SHA}&ts=$(date +%s)")"
-          echo "$BODY"
-          printf '%s' "$BODY" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") is True; assert d.get("confidenceMarkerLoaded") is True; assert d.get("fileVersion")=="21.3.0"; print("HOT_RELOAD_OK pid=%s purged=%s version=%s"%(d.get("pid"),d.get("purgedCount"),d.get("fileVersion")))'
+          for attempt in {1..12}; do
+            RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/namecheap-static-release.txt?ts=$(date +%s)" || true)"
+            ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/item/?ts=$(date +%s)" || true)"
+            echo "attempt=$attempt release=$RELEASE"
+            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js' <<< "$ITEM"; then
+              echo "STATIC_LIVE_OK sha=$RELEASE"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Static site verification failed. Passenger may still be intercepting the domain or the document root may differ."
+          exit 1
 
-      - name: Best-effort Passenger restart marker
-        shell: bash
-        run: |
-          set -euo pipefail
-          ssh trendpilot-namecheap 'mkdir -p /home/kehwgbpo/trendpilot-repo/tmp && touch /home/kehwgbpo/trendpilot-repo/tmp/restart.txt'
-
-      - name: Verify Namecheap runtime remains healthy
-        shell: bash
-        run: |
-          set -euo pipefail
-          BODY="$(curl -fsS --max-time 25 -H 'Cache-Control: no-cache' "${PROCESS_PROBE_URL}?phase=post-hot-reload&sha=${GITHUB_SHA}&ts=$(date +%s)")"
-          echo "$BODY"
-          grep -q '"runtime":"namecheap-v2"' <<< "$BODY"
-
-      - name: Safe diagnostics on failure
+      - name: Diagnostics on failure
         if: failure()
         shell: bash
         run: |
           set +e
-          echo '--- hot reload response ---'
-          curl -isS --max-time 20 "${HOT_RELOAD_URL}?diagnostic=$(date +%s)" | head -100 || true
-          echo '--- process probe ---'
-          curl -isS --max-time 20 "${PROCESS_PROBE_URL}?diagnostic=$(date +%s)" | head -80 || true
-          echo '--- remote SHA ---'
-          ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD 2>/dev/null || true' || true
-          echo '--- product module timestamp ---'
-          ssh trendpilot-namecheap 'stat /home/kehwgbpo/trendpilot-repo/netlify/functions/product-preview-v20-9-6-mobile-polish.cjs 2>/dev/null | head -10 || true' || true
+          echo '--- live release marker ---'
+          curl -isS --max-time 20 "${SITE_URL}/namecheap-static-release.txt?diagnostic=$(date +%s)" | head -40 || true
+          echo '--- live item page ---'
+          curl -isS --max-time 20 "${SITE_URL}/item/?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- remote document root ---'
+          ssh trendpilot-namecheap 'ls -la /home/kehwgbpo/trendpilot-test.7t7k.top | head -50; echo ---HTACCESS---; cat /home/kehwgbpo/trendpilot-test.7t7k.top/.htaccess 2>/dev/null || true' || true
