@@ -62,6 +62,14 @@
   status = 200
   force = true
 
+# The live shopper UI currently opens product details under /item/*.
+# Keep both public routes on the exact same server-rendered product runtime.
+[[redirects]]
+  from = "/item/*"
+  to = "/.netlify/functions/product-preview-production-confidence-v1?slug=:splat"
+  status = 200
+  force = true
+
 # Do not expose function source files through the public publish root.
 [[redirects]]
   from = "/netlify/functions/*"
