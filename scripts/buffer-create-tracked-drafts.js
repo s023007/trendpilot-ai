@@ -62,7 +62,7 @@ const path = require('path');
   );
 
   const channels = channelData?.channels || [];
-  const wanted = ['pinterest', 'tiktok', 'youtube'];
+  const wanted = ['pinterest', 'youtube', 'tiktok'];
   const targets = wanted.map((service) => channels.find((c) => c.service === service)).filter(Boolean);
 
   console.log('BUFFER_ORGANIZATION', JSON.stringify({ id: org.id, name: org.name }));
@@ -81,7 +81,9 @@ const path = require('path');
     if (!post[service]) throw new Error(`Campaign post 1 has no ${service} content`);
   }
 
-  async function getPinterestBoard(channelId) {
+  const suitablePinterestBoard = (name = '') => /trend\s*pilot|tech|gadget|electronics|phone|smartphone|mobile|shopping|product/i.test(name);
+
+  async function getPinterestBoards(channelId) {
     const data = await gql(
       `query GetPinterestChannel($id: ChannelId!) {
         channel(input: { id: $id }) {
@@ -96,22 +98,27 @@ const path = require('path');
       'Get Pinterest boards',
     );
     const boards = data?.channel?.metadata?.boards || [];
-    if (!boards.length) throw new Error('Pinterest channel has no boards');
     console.log('PINTEREST_BOARDS', JSON.stringify(boards.map((b) => ({ name: b.name, serviceId: b.serviceId }))));
-    const preferred = boards.find((b) => /trend\s*pilot|tech|gadget|phone|electronics|shopping/i.test(b.name));
-    if (preferred) return preferred;
-    console.log('PINTEREST_BOARD_FALLBACK', boards[0].name);
-    return boards[0];
+    return boards;
   }
 
-  async function existingDraft(channel, expectedText) {
+  async function getMatchingDrafts(channel, expectedText) {
     const data = await gql(
       `query ExistingDrafts($org: OrganizationId!, $channel: ChannelId!) {
         posts(first: 50, input: {
           organizationId: $org,
           filter: { status: [draft], channelIds: [$channel] }
         }) {
-          edges { node { id text createdAt channelId } }
+          edges {
+            node {
+              id text createdAt channelId channelService
+              metadata {
+                ... on PinterestPostMetadata {
+                  board { name serviceId }
+                }
+              }
+            }
+          }
         }
       }`,
       { org: org.id, channel: channel.id },
@@ -119,7 +126,26 @@ const path = require('path');
     );
     const drafts = (data?.posts?.edges || []).map((edge) => edge.node);
     const needle = expectedText.replace(/\s+/g, ' ').trim().slice(0, 120).toLowerCase();
-    return drafts.find((draft) => (draft.text || '').replace(/\s+/g, ' ').trim().toLowerCase().startsWith(needle)) || null;
+    return drafts.filter((draft) => (draft.text || '').replace(/\s+/g, ' ').trim().toLowerCase().startsWith(needle));
+  }
+
+  async function deleteDraft(id, reason) {
+    const data = await gql(
+      `mutation DeletePost($input: DeletePostInput!) {
+        deletePost(input: $input) {
+          __typename
+          ... on DeletePostSuccess { id }
+          ... on VoidMutationError { message }
+        }
+      }`,
+      { input: { id } },
+      'Delete misplaced Buffer draft',
+    );
+    const payload = data?.deletePost;
+    if (!payload || payload.__typename === 'VoidMutationError') {
+      throw new Error(`Could not delete misplaced draft ${id}: ${payload?.message || 'unknown error'}`);
+    }
+    console.log('MISPLACED_DRAFT_DELETED', JSON.stringify({ id, reason }));
   }
 
   async function createDraft(channel) {
@@ -128,10 +154,26 @@ const path = require('path');
     const link = spec.link || campaign.product.landing_page;
     if (channel.service !== 'pinterest' && link && !text.includes(link)) text += `\n\n${link}`;
 
-    const duplicate = await existingDraft(channel, text);
-    if (duplicate) {
-      console.log('DRAFT_ALREADY_EXISTS', JSON.stringify({ service: channel.service, postId: duplicate.id }));
-      return;
+    let pinterestBoard = null;
+    if (channel.service === 'pinterest') {
+      const matches = await getMatchingDrafts(channel, text);
+      for (const draft of matches) {
+        const boardName = draft?.metadata?.board?.name || '';
+        if (boardName && !suitablePinterestBoard(boardName)) {
+          await deleteDraft(draft.id, `wrong Pinterest board: ${boardName}`);
+        }
+      }
+      const boards = await getPinterestBoards(channel.id);
+      pinterestBoard = boards.find((b) => suitablePinterestBoard(b.name)) || null;
+      if (!pinterestBoard) {
+        throw new Error(`No suitable Pinterest board exists. Create a board such as "Tech & Gadgets" or "Phones & Electronics". Existing boards: ${boards.map((b) => b.name).join(' | ')}`);
+      }
+    }
+
+    const duplicates = await getMatchingDrafts(channel, text);
+    if (duplicates.length) {
+      console.log('DRAFT_ALREADY_EXISTS', JSON.stringify({ service: channel.service, postId: duplicates[0].id }));
+      return { service: channel.service, status: 'existing', postId: duplicates[0].id };
     }
 
     const input = {
@@ -147,11 +189,10 @@ const path = require('path');
     };
 
     if (channel.service === 'pinterest') {
-      const board = await getPinterestBoard(channel.id);
       input.assets = [{ image: { url: imageUrl, metadata: { altText: campaign.product.name } } }];
       input.metadata = {
         pinterest: {
-          boardServiceId: board.serviceId,
+          boardServiceId: pinterestBoard.serviceId,
           title: spec.title || campaign.product.name,
           url: link,
         },
@@ -160,7 +201,7 @@ const path = require('path');
       input.assets = [{ video: { url: videoUrl, metadata: { thumbnailOffset: 1000 } } }];
       input.metadata = { tiktok: { isAiGenerated: false } };
     } else if (channel.service === 'youtube') {
-      input.assets = [{ video: { url: videoUrl, metadata: { thumbnailOffset: 1000 } } }];
+      input.assets = [{ video: { url: videoUrl } }];
       input.metadata = {
         youtube: {
           title: spec.title || campaign.product.name,
@@ -180,6 +221,11 @@ const path = require('path');
           __typename
           ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
           ... on MutationError { message }
+          ... on InvalidInputError { message }
+          ... on UnauthorizedError { message }
+          ... on UnexpectedError { message }
+          ... on RestProxyError { message }
+          ... on LimitReachedError { message }
         }
       }`,
       { input },
@@ -187,8 +233,8 @@ const path = require('path');
     );
 
     const payload = result?.createPost;
-    if (!payload || payload.__typename === 'MutationError' || payload.message || !payload.post?.id) {
-      throw new Error(`Buffer createPost failed for ${channel.service}: ${payload?.message || 'unknown error'}`);
+    if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
+      throw new Error(`Buffer createPost failed for ${channel.service}: ${payload?.__typename || 'unknown type'}: ${payload?.message || 'unknown error'}`);
     }
     console.log('DRAFT_CREATED', JSON.stringify({
       service: channel.service,
@@ -196,11 +242,28 @@ const path = require('path');
       postId: payload.post.id,
       status: payload.post.status,
     }));
+    return { service: channel.service, status: 'created', postId: payload.post.id };
   }
 
+  const results = [];
+  const failures = [];
+
+  // Each channel is isolated so one network cannot prevent the others from being tested.
   for (const service of wanted) {
     const channel = targets.find((c) => c.service === service);
-    await createDraft(channel);
+    try {
+      results.push(await createDraft(channel));
+    } catch (error) {
+      const message = error?.message || String(error);
+      failures.push({ service, message });
+      console.error('CHANNEL_DRAFT_FAILED', JSON.stringify({ service, message }));
+    }
+  }
+
+  console.log('BUFFER_CHANNEL_RESULTS', JSON.stringify(results));
+  if (failures.length) {
+    console.error('BUFFER_CHANNEL_FAILURES', JSON.stringify(failures));
+    throw new Error(`Buffer draft test had ${failures.length} channel failure(s): ${failures.map((f) => `${f.service}: ${f.message}`).join(' || ')}`);
   }
 
   console.log('BUFFER_THREE_CHANNEL_DRAFT_TEST_OK');
