@@ -24,7 +24,7 @@ jobs:
       APP_ROOT: trendpilot-repo
       APP_DIR: /home/kehwgbpo/trendpilot-repo
       BRANCH: namecheap-migration-v21
-      LIVE_PROBE_URL: https://trendpilot-test.7t7k.top/.netlify/functions/namecheap-runtime-probe-v1
+      PROCESS_PROBE_URL: https://trendpilot-test.7t7k.top/.netlify/functions/namecheap-runtime-probe-v2
       DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
 
     steps:
@@ -46,10 +46,10 @@ jobs:
           node --check server.js
           node --check server.cjs
           node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
-          node --check netlify/functions/namecheap-runtime-probe-v1.cjs
+          node --check netlify/functions/namecheap-runtime-probe-v2.cjs
           node --check js/post-intelligence-v21.js
           grep -q 'tp-pc-panel' netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
-          grep -q 'tp-trust-panel' js/post-intelligence-v21.js
+          grep -q 'x-trendpilot-product-confidence' netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
 
       - name: Configure SSH
         shell: bash
@@ -80,7 +80,7 @@ jobs:
           set -euo pipefail
           ssh trendpilot-namecheap 'printf "SSH_OK\n"'
 
-      - name: Sync branch and restart Node app
+      - name: Sync GitHub branch to Namecheap
         shell: bash
         run: |
           set -euo pipefail
@@ -102,7 +102,7 @@ jobs:
           node --check server.js
           node --check server.cjs
           node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
-          node --check netlify/functions/namecheap-runtime-probe-v1.cjs
+          node --check netlify/functions/namecheap-runtime-probe-v2.cjs
           node --check js/post-intelligence-v21.js
 
           if [ "$OLD_PACKAGE" != "$NEW_PACKAGE" ] || [ ! -d node_modules ]; then
@@ -111,6 +111,30 @@ jobs:
 
           mkdir -p tmp
           printf '%s\n' "$NEW_HEAD" > tmp/last-deployed-sha.txt
+          echo "DEPLOYED_SHA=$NEW_HEAD"
+          REMOTE
+
+      - name: Capture Passenger PID before restart
+        id: before
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PROCESS_PROBE_URL}?phase=before&sha=${GITHUB_SHA}&ts=$(date +%s)")"
+          echo "$BODY"
+          PID="$(printf '%s' "$BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin)["pid"])')"
+          test -n "$PID"
+          echo "pid=$PID" >> "$GITHUB_OUTPUT"
+          echo "Passenger PID before restart: $PID"
+
+      - name: Restart exact Namecheap Node app
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -eo pipefail
+          APP_DIR=/home/kehwgbpo/trendpilot-repo
+          cd "$APP_DIR"
+          mkdir -p tmp
           touch tmp/restart.txt
 
           SELECTOR_BIN=""
@@ -118,21 +142,47 @@ jobs:
             SELECTOR_BIN="$(command -v cloudlinux-selector)"
           elif [ -x /usr/sbin/cloudlinux-selector ]; then
             SELECTOR_BIN=/usr/sbin/cloudlinux-selector
+          elif [ -x /usr/bin/cloudlinux-selector ]; then
+            SELECTOR_BIN=/usr/bin/cloudlinux-selector
           fi
 
           if [ -n "$SELECTOR_BIN" ]; then
-            $SELECTOR_BIN set --json --interpreter nodejs --user kehwgbpo --app-root trendpilot-repo --startup-file server.js || true
-            $SELECTOR_BIN restart --json --interpreter nodejs --user kehwgbpo --app-root trendpilot-repo || {
-              $SELECTOR_BIN stop --json --interpreter nodejs --user kehwgbpo --app-root trendpilot-repo || true
+            echo "Using selector: $SELECTOR_BIN"
+            "$SELECTOR_BIN" set --json --interpreter nodejs --domain trendpilot-test.7t7k.top --app-root trendpilot-repo --startup-file server.js || true
+            "$SELECTOR_BIN" restart --json --interpreter nodejs --domain trendpilot-test.7t7k.top --app-root trendpilot-repo || {
+              "$SELECTOR_BIN" stop --json --interpreter nodejs --domain trendpilot-test.7t7k.top --app-root trendpilot-repo || true
               sleep 2
-              $SELECTOR_BIN start --json --interpreter nodejs --user kehwgbpo --app-root trendpilot-repo || true
+              "$SELECTOR_BIN" start --json --interpreter nodejs --domain trendpilot-test.7t7k.top --app-root trendpilot-repo || true
             }
+          else
+            echo "cloudlinux-selector not available; relying on Passenger tmp/restart.txt"
           fi
 
           touch tmp/restart.txt
-          sleep 5
-          echo "DEPLOYED_SHA=$NEW_HEAD"
           REMOTE
+
+      - name: Require Passenger process restart
+        shell: bash
+        env:
+          BEFORE_PID: ${{ steps.before.outputs.pid }}
+        run: |
+          set -euo pipefail
+          echo "Waiting for Passenger PID to change from $BEFORE_PID"
+          LAST_BODY=''
+          for attempt in $(seq 1 20); do
+            sleep 3
+            LAST_BODY="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PROCESS_PROBE_URL}?phase=after&sha=${GITHUB_SHA}&attempt=${attempt}&ts=$(date +%s)" || true)"
+            if [ -n "$LAST_BODY" ]; then
+              echo "$LAST_BODY"
+              AFTER_PID="$(printf '%s' "$LAST_BODY" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("pid", ""))' 2>/dev/null || true)"
+              if [ -n "$AFTER_PID" ] && [ "$AFTER_PID" != "$BEFORE_PID" ]; then
+                echo "Passenger restarted: $BEFORE_PID -> $AFTER_PID"
+                exit 0
+              fi
+            fi
+          done
+          echo "Passenger PID did not change. The Node process is still serving cached product modules."
+          exit 1
 
       - name: Verify deployed Git commit
         shell: bash
@@ -143,36 +193,16 @@ jobs:
           echo "Namecheap SHA: $REMOTE_SHA"
           test "$REMOTE_SHA" = "$GITHUB_SHA"
 
-      - name: Verify Namecheap runtime can load deployed files
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f /tmp/tp_probe_headers /tmp/tp_probe_body
-          for attempt in $(seq 1 12); do
-            echo "Runtime probe $attempt/12"
-            if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' -D /tmp/tp_probe_headers -o /tmp/tp_probe_body \
-              "${LIVE_PROBE_URL}?deploy=${GITHUB_SHA}&attempt=${attempt}&ts=$(date +%s)"; then
-              if grep -qi '^x-trendpilot-runtime-probe:[[:space:]]*namecheap-v1' /tmp/tp_probe_headers \
-                 && grep -q '"runtime":"namecheap-v1"' /tmp/tp_probe_body; then
-                echo "NAMECHEAP_RUNTIME_PROBE_OK"
-                exit 0
-              fi
-            fi
-            sleep 4
-          done
-          echo "Runtime probe failed."
-          exit 1
-
       - name: Safe diagnostics on failure
         if: failure()
         shell: bash
         run: |
           set +e
-          echo '--- probe response ---'
-          curl -isS --max-time 20 "${LIVE_PROBE_URL}?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- process probe ---'
+          curl -isS --max-time 20 "${PROCESS_PROBE_URL}?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- selector location ---'
+          ssh trendpilot-namecheap 'command -v cloudlinux-selector || ls -l /usr/sbin/cloudlinux-selector /usr/bin/cloudlinux-selector 2>/dev/null || true' || true
           echo '--- remote SHA ---'
           ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD 2>/dev/null || true' || true
-          echo '--- deploy marker ---'
-          ssh trendpilot-namecheap 'cat /home/kehwgbpo/trendpilot-repo/tmp/last-deployed-sha.txt 2>/dev/null || true' || true
           echo '--- restart marker ---'
           ssh trendpilot-namecheap 'stat /home/kehwgbpo/trendpilot-repo/tmp/restart.txt 2>/dev/null | head -8 || true' || true
