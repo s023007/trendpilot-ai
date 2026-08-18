@@ -45,19 +45,17 @@ jobs:
           if (!post) throw new Error('Campaign post sequence 1 not found');
 
           function findProduct(id) {
-            const dir = path.join(process.cwd(), 'data/v20-9/products');
-            for (const file of fs.readdirSync(dir).filter(x => x.endsWith('.json'))) {
-              const obj = JSON.parse(fs.readFileSync(path.join(dir, file), 'utf8'));
-              if (obj[id]) return obj[id];
-            }
-            return null;
+            const bucket = path.join(process.cwd(), 'data/v20-9/products', `${id.slice(0,2)}.json`);
+            const obj = JSON.parse(fs.readFileSync(bucket, 'utf8'));
+            return obj[id] || null;
           }
 
           const product = findProduct(process.env.PRODUCT_ID);
           if (!product || !product.im) throw new Error('Product image not found for ' + process.env.PRODUCT_ID);
           const imageUrl = product.im;
+          console.log('PRODUCT_IMAGE_URL', imageUrl);
 
-          async function gql(query, variables = {}) {
+          async function gql(query, variables = {}, label = 'Buffer GraphQL') {
             const r = await fetch('https://api.buffer.com', {
               method: 'POST',
               headers: {
@@ -66,29 +64,37 @@ jobs:
               },
               body: JSON.stringify({ query, variables })
             });
-            const body = await r.json();
-            if (!r.ok || body.errors) throw new Error(JSON.stringify(body));
+            const text = await r.text();
+            let body;
+            try { body = JSON.parse(text); }
+            catch { throw new Error(`${label}: non-JSON response HTTP ${r.status}: ${text.slice(0,800)}`); }
+            if (!r.ok || body.errors?.length) {
+              throw new Error(`${label}: HTTP ${r.status} ${JSON.stringify(body)}`);
+            }
             return body.data;
           }
 
-          const accountData = await gql(`query { account { organizations { id name } } }`);
+          const accountData = await gql(`query { account { organizations { id name } } }`, {}, 'Get Buffer account');
           const orgs = accountData?.account?.organizations || [];
           if (!orgs.length) throw new Error('No Buffer organizations found');
           const org = orgs[0];
 
-          const chData = await gql(`query GetChannels($org: String!) {
+          const chData = await gql(`query GetChannels($org: OrganizationId!) {
             channels(input: { organizationId: $org }) {
               id name displayName service isQueuePaused
             }
-          }`, { org: org.id });
+          }`, { org: org.id }, 'Get Buffer channels');
 
           const channels = chData?.channels || [];
           console.log('BUFFER_ORGANIZATION', JSON.stringify({ id: org.id, name: org.name }));
           console.log('BUFFER_CHANNELS', JSON.stringify(channels.map(c => ({ id:c.id, name:c.name, displayName:c.displayName, service:c.service, paused:c.isQueuePaused }))));
 
-          const supported = new Set(['pinterest','facebook','instagram','tiktok']);
-          const targets = channels.filter(c => supported.has(c.service) && post[c.service]);
-          if (!targets.length) throw new Error('No connected campaign-compatible Buffer channels found');
+          // Publish-test only the three production social channels declared by the campaign.
+          // The separate test_channel (TikTok) is intentionally excluded here.
+          const desiredServices = new Set([campaign.primary_channel, ...(campaign.secondary_channels || [])].filter(Boolean));
+          const targets = channels.filter(c => desiredServices.has(c.service) && post[c.service]);
+          if (!targets.length) throw new Error(`No connected production campaign channels found. Wanted: ${[...desiredServices].join(', ')}`);
+          console.log('BUFFER_DRAFT_TARGETS', JSON.stringify(targets.map(c => ({service:c.service, channel:c.displayName || c.name}))));
 
           async function pinterestBoard(channelId) {
             const data = await gql(`query GetPinterestChannel($id: ChannelId!) {
@@ -99,12 +105,11 @@ jobs:
                   }
                 }
               }
-            }`, { id: channelId });
+            }`, { id: channelId }, 'Get Pinterest boards');
             const boards = data?.channel?.metadata?.boards || [];
             console.log('PINTEREST_BOARDS', JSON.stringify(boards.map(b => ({name:b.name, serviceId:b.serviceId, url:b.url}))));
             if (!boards.length) throw new Error('Pinterest channel has no boards');
-            const preferred = boards.find(b => /trend\s*pilot/i.test(b.name)) || boards[0];
-            return preferred;
+            return boards.find(b => /trend\s*pilot/i.test(b.name)) || boards[0];
           }
 
           async function createDraft(channel) {
@@ -119,6 +124,7 @@ jobs:
               schedulingType: 'automatic',
               mode: 'addToQueue',
               saveToDraft: true,
+              needsApproval: false,
               aiAssisted: true,
               source: 'trendpilot-github',
               assets: [{ image: { url: imageUrl, metadata: { altText: campaign.product.name } } }]
@@ -133,17 +139,30 @@ jobs:
                   url: link
                 }
               };
+            } else if (channel.service === 'instagram') {
+              input.metadata = {
+                instagram: {
+                  type: 'post',
+                  shouldShareToFeed: true,
+                  isAiGenerated: true
+                }
+              };
+            } else if (channel.service === 'facebook') {
+              input.metadata = { facebook: { type: 'post' } };
             }
 
             const mutation = `mutation CreatePost($input: CreatePostInput!) {
               createPost(input: $input) {
+                __typename
                 ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
                 ... on MutationError { message }
               }
             }`;
-            const result = await gql(mutation, { input });
+            const result = await gql(mutation, { input }, `Create ${channel.service} draft`);
             const payload = result?.createPost;
-            if (!payload || payload.message) throw new Error(`Buffer createPost failed for ${channel.service}: ${payload?.message || 'unknown error'}`);
+            if (!payload || payload.__typename === 'MutationError' || payload.message || !payload.post?.id) {
+              throw new Error(`Buffer createPost failed for ${channel.service}: ${payload?.message || 'unknown error'}`);
+            }
             console.log('DRAFT_CREATED', JSON.stringify({ service: channel.service, channel: channel.displayName || channel.name, postId: payload.post.id, status: payload.post.status }));
           }
 
@@ -156,4 +175,4 @@ jobs:
         shell: bash
         run: |
           echo "### Buffer draft test" >> "$GITHUB_STEP_SUMMARY"
-          echo "This workflow uses the existing BUFFER_API_KEY, discovers connected channels at runtime, attaches the FOSSiBOT product image, preserves post_id/creative_id tracking links, and saves Post 1 as drafts only. Nothing is published live by this workflow." >> "$GITHUB_STEP_SUMMARY"
+          echo "This workflow uses the existing BUFFER_API_KEY, discovers the campaign's production channels, attaches the FOSSiBOT image, preserves post_id/creative_id tracking links, and saves Post 1 as drafts only. Nothing is published live by this workflow." >> "$GITHUB_STEP_SUMMARY"
