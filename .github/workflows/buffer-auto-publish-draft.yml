@@ -1,4 +1,4 @@
-name: Buffer Auto Publish Draft
+name: Buffer Auto Publish Queue
 
 on:
   push:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  create-drafts:
+  queue-posts:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -123,7 +123,7 @@ jobs:
           echo "Public campaign video could not be fetched"
           exit 1
 
-      - name: Create safe Buffer drafts for Pinterest TikTok YouTube
+      - name: Add tracked post to Buffer queues
         shell: bash
         run: |
           set -euo pipefail
@@ -133,6 +133,7 @@ jobs:
         if: always()
         shell: bash
         run: |
-          echo "### Buffer three-channel draft test" >> "$GITHUB_STEP_SUMMARY"
-          echo "Target channels are locked to Pinterest, TikTok and YouTube only. Facebook and Instagram are excluded." >> "$GITHUB_STEP_SUMMARY"
-          echo "Pinterest uses the product image. TikTok and YouTube use a generated vertical MP4 hosted on trendpilotchoice.com. Posts remain drafts; nothing is published live by this workflow." >> "$GITHUB_STEP_SUMMARY"
+          echo "### Buffer three-channel automatic queue" >> "$GITHUB_STEP_SUMMARY"
+          echo "Targets are locked to Pinterest, TikTok and YouTube only. Facebook and Instagram are excluded." >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinterest is locked to the Tech & Gadget board. Existing matching drafts are promoted into the queue; already scheduled/sending/sent matches are skipped to prevent duplicates." >> "$GITHUB_STEP_SUMMARY"
+          echo "TikTok and YouTube use the generated vertical MP4 hosted on trendpilotchoice.com. The campaign is added to the next available Buffer queue slot for each channel." >> "$GITHUB_STEP_SUMMARY"
