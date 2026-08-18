@@ -1,15 +1,138 @@
 name: Buffer Auto Publish Draft
 
 on:
+  push:
+    branches:
+      - namecheap-migration-v21
+    paths:
+      - '.github/workflows/buffer-auto-publish-draft.yml'
+      - 'scripts/buffer-create-tracked-drafts.js'
+      - 'data/campaigns/fossibot-f106-pro-launch-v1.json'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  paused:
+  create-drafts:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      NAMECHEAP_SSH_PRIVATE_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+      CAMPAIGN_FILE: data/campaigns/fossibot-f106-pro-launch-v1.json
+      PRODUCT_ID: bcba2c15f61566
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      PRODUCTION_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      MEDIA_RELATIVE_PATH: media/campaigns/f106-pro-p01-short-v1.mp4
+      MEDIA_VIDEO_URL: https://trendpilotchoice.com/media/campaigns/f106-pro-p01-short-v1.mp4
+
     steps:
-      - name: Alignment notice
+      - name: Checkout TrendPilot
+        uses: actions/checkout@v4
+
+      - name: Require Buffer and Namecheap keys
+        shell: bash
         run: |
-          echo "Buffer draft automation is temporarily manual-only while TrendPilot is aligned to Pinterest, TikTok and YouTube only."
+          set -euo pipefail
+          test -n "${BUFFER_API_KEY:-}" || { echo "BUFFER_API_KEY is missing"; exit 1; }
+          test -n "${NAMECHEAP_SSH_PRIVATE_KEY:-}" || { echo "NAMECHEAP_SSH_PRIVATE_KEY is missing"; exit 1; }
+
+      - name: Validate three-channel campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/buffer-create-tracked-drafts.js
+          node <<'NODE'
+          const fs = require('fs');
+          const c = JSON.parse(fs.readFileSync(process.env.CAMPAIGN_FILE, 'utf8'));
+          const channels = [c.primary_channel, ...(c.secondary_channels || [])];
+          const expected = ['pinterest', 'tiktok', 'youtube'];
+          if (JSON.stringify(channels) !== JSON.stringify(expected)) {
+            throw new Error(`Campaign channels must be exactly ${expected.join(', ')}; got ${channels.join(', ')}`);
+          }
+          const p = c.posts.find(x => x.sequence === 1);
+          for (const s of expected) if (!p?.[s]) throw new Error(`Post 1 missing ${s} content`);
+          console.log('THREE_CHANNEL_CAMPAIGN_OK', channels.join(','));
+          NODE
+
+      - name: Build vertical product video for TikTok and YouTube
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE_URL="$(node <<'NODE'
+          const fs = require('fs');
+          const id = process.env.PRODUCT_ID;
+          const obj = JSON.parse(fs.readFileSync(`data/v20-9/products/${id.slice(0,2)}.json`, 'utf8'));
+          if (!obj[id]?.im) process.exit(2);
+          process.stdout.write(obj[id].im);
+          NODE
+          )"
+          echo "PRODUCT_IMAGE_URL=$IMAGE_URL"
+          curl -fL --retry 3 --max-time 60 "$IMAGE_URL" -o /tmp/f106-product-image
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -hide_banner -loglevel error -y \
+            -loop 1 -i /tmp/f106-product-image \
+            -t 12 -r 30 \
+            -vf "scale=1000:1000:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=white,format=yuv420p" \
+            -c:v libx264 -preset veryfast -movflags +faststart \
+            /tmp/f106-pro-p01-short-v1.mp4
+          test -s /tmp/f106-pro-p01-short-v1.mp4
+          ls -lh /tmp/f106-pro-p01-short-v1.mp4
+
+      - name: Publish video asset to trendpilotchoice.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$NAMECHEAP_SSH_PRIVATE_KEY" > ~/.ssh/namecheap_buffer_media
+          chmod 600 ~/.ssh/namecheap_buffer_media
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap-buffer
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_buffer_media
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+          ssh trendpilot-namecheap-buffer "mkdir -p '$PRODUCTION_ROOT/media/campaigns'"
+          scp /tmp/f106-pro-p01-short-v1.mp4 "trendpilot-namecheap-buffer:$PRODUCTION_ROOT/$MEDIA_RELATIVE_PATH"
+          ssh trendpilot-namecheap-buffer "test -s '$PRODUCTION_ROOT/$MEDIA_RELATIVE_PATH' && ls -lh '$PRODUCTION_ROOT/$MEDIA_RELATIVE_PATH'"
+
+      - name: Verify public video asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..10}; do
+            if curl -fLsS --range 0-1023 --max-time 20 "${MEDIA_VIDEO_URL}?v=${GITHUB_SHA}" -o /tmp/media-probe && test -s /tmp/media-probe; then
+              echo "PUBLIC_VIDEO_OK $MEDIA_VIDEO_URL"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Public campaign video could not be fetched"
+          exit 1
+
+      - name: Create safe Buffer drafts for Pinterest TikTok YouTube
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/buffer-create-tracked-drafts.js
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Buffer three-channel draft test" >> "$GITHUB_STEP_SUMMARY"
+          echo "Target channels are locked to Pinterest, TikTok and YouTube only. Facebook and Instagram are excluded." >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinterest uses the product image. TikTok and YouTube use a generated vertical MP4 hosted on trendpilotchoice.com. Posts remain drafts; nothing is published live by this workflow." >> "$GITHUB_STEP_SUMMARY"
