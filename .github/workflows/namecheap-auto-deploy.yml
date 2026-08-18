@@ -87,6 +87,7 @@ jobs:
           set -eo pipefail
           REPO=/home/kehwgbpo/trendpilot-repo
           BRANCH=namecheap-migration-v21
+          CPANEL_USER=kehwgbpo
           NODE_ENV_ACTIVATE=/home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate
           cd "$REPO"
 
@@ -97,8 +98,6 @@ jobs:
           git checkout "$BRANCH"
           git reset --hard FETCH_HEAD
 
-          # Activate the CloudLinux/Namecheap Node.js environment exactly as the
-          # Node.js Selector expects, now without nounset breaking activate.
           source "$NODE_ENV_ACTIVATE"
           node --check server.js
           node --check server.cjs
@@ -114,19 +113,23 @@ jobs:
 
           mkdir -p tmp
           printf '%s\n' "$NEW_HEAD" > tmp/last-deployed-sha.txt
-
-          # Passenger restart signal used by cPanel/CloudLinux Node applications.
           touch tmp/restart.txt
 
-          # Restart through Node.js Selector as well when available. The restart.txt
-          # signal above remains the fallback if the CLI is not exposed to the account.
+          # CloudLinux requires the user/domain selector with the app root for a
+          # deterministic restart. Do not hide restart failures anymore.
           if command -v cloudlinux-selector >/dev/null 2>&1; then
-            cloudlinux-selector restart --json --interpreter nodejs --app-root trendpilot-repo || true
+            RESTART_JSON="$(cloudlinux-selector restart --json --interpreter nodejs --user "$CPANEL_USER" --app-root trendpilot-repo)"
+            printf '%s\n' "$RESTART_JSON"
+            printf '%s' "$RESTART_JSON" | grep -q '"result"[[:space:]]*:[[:space:]]*"success"'
           elif [ -x /usr/sbin/cloudlinux-selector ]; then
-            /usr/sbin/cloudlinux-selector restart --json --interpreter nodejs --app-root trendpilot-repo || true
+            RESTART_JSON="$(/usr/sbin/cloudlinux-selector restart --json --interpreter nodejs --user "$CPANEL_USER" --app-root trendpilot-repo)"
+            printf '%s\n' "$RESTART_JSON"
+            printf '%s' "$RESTART_JSON" | grep -q '"result"[[:space:]]*:[[:space:]]*"success"'
+          else
+            echo "cloudlinux-selector is not available; relying on Passenger tmp/restart.txt"
           fi
 
-          sleep 4
+          sleep 6
           echo "OLD_HEAD=$OLD_HEAD"
           echo "NEW_HEAD=$NEW_HEAD"
           echo "AUTO_DEPLOY_OK"
