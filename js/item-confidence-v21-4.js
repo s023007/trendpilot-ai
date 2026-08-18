@@ -1,6 +1,6 @@
 (()=>{
 "use strict";
-const VERSION="21.4.1";
+const VERSION="21.4.2";
 const d=document,$=s=>d.querySelector(s),C=v=>String(v??"").replace(/\s+/g," ").trim();
 const E=v=>C(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
 const N=v=>C(v).toLowerCase().replace(/[®™]/g,"").replace(/[^a-z0-9]+/g," ").replace(/\s+/g," ").trim();
@@ -57,33 +57,41 @@ function sourcesHtml(entry){
   if(!src.length)return "";
   return `<details class="tp-ic-sources"><summary>See ${src.length} review source${src.length===1?"":"s"}</summary>${src.map(s=>`<a class="tp-ic-source" href="${E(s.url||"#")}" target="_blank" rel="nofollow noopener"><span><strong>${E(s.name||"Source")}</strong><small>${E(sourceMeta(s)||s.note||"Review evidence")}</small></span><b>View ↗</b></a>`).join("")}</details>`;
 }
+let rendering=false;
 async function render(){
   if($(".tp-item-confidence"))return true;
+  if(rendering)return false;
   const detail=$("[data-tp85-detail]");
   if(!detail||detail.hasAttribute("hidden"))return false;
-  let r;
+  rendering=true;
   try{
-    const res=await fetch(`/data/v20-9/products/${id.slice(0,2)}.json?v=20.9.0`,{cache:"force-cache"});
-    if(!res.ok)return false;
-    const bucket=await res.json();r=bucket?.[id];if(!r)return false;
-  }catch{return false}
-  const raw=C(r.t||$("[data-tp85-title]")?.textContent||"Product");
-  const entry=await loadReview(raw),f=scoreRecord(r,entry),sources=Array.isArray(entry?.sources)?entry.sources:[];
-  const same=sources.find(s=>s.relationship==="same_listing"&&Number(s.review_count)>0);
-  const headline=same?`${ratingText(same)} from ${same.review_count} ${same.name} reviews`:entry?`${sources.length} exact-model evidence source${sources.length===1?"":"s"}`:"Exact-model review research pending";
-  const strengths=(entry?.strengths||[]).slice(0,3),cautions=(entry?.cautions||[]).slice(0,3);
-  addStyle();
-  const panel=d.createElement("section");panel.className="tp-item-confidence";panel.dataset.version=VERSION;
-  panel.innerHTML=`<div class="tp-ic-top"><div><div class="tp-ic-kicker">BUYING CONFIDENCE</div><h2>${E(f.level)} confidence</h2><p>TrendPilot checks whether the seller route, listing price and review evidence match the product shown.</p></div><div class="tp-ic-score"><strong>${f.score}</strong><span>/100</span></div></div>
-  <div class="tp-ic-checks"><div class="tp-ic-check"><b class="${f.direct?"tp-ic-ok":"tp-ic-wait"}">${f.direct?"✓":"!"} Product route</b><small>${f.direct?"Direct product destination is available":"Confirm the exact item on the seller page"}</small></div><div class="tp-ic-check"><b class="${f.price?"tp-ic-ok":"tp-ic-wait"}">${f.price?"✓":"!"} Price evidence</b><small>${f.price?"A seller price is attached to this record":"Check the current price with the seller"}</small></div><div class="tp-ic-check"><b class="${entry?"tp-ic-ok":"tp-ic-wait"}">${entry?"✓":"…"} Review evidence</b><small>${entry?`${E(entry.review_confidence||"Moderate")} confidence · ${sources.length} source${sources.length===1?"":"s"}`:"Exact-model evidence is still being verified"}</small></div></div>
-  <div class="tp-ic-review"><div class="tp-ic-rhead"><div><span>REVIEW CONFIDENCE</span><strong>${E(entry?.review_confidence||"Pending")}</strong></div><p>${E(headline)}</p></div><p class="tp-ic-summary">${E(entry?.buyer_summary||"TrendPilot will not claim customer satisfaction until review evidence is tied to this exact model.")}</p>${entry?`<div class="tp-ic-cols"><div><h3>What buyers/tests like</h3>${strengths.map(x=>`<p>✓ ${E(x)}</p>`).join("")}</div><div><h3>Watch-outs</h3>${cautions.map(x=>`<p>• ${E(x)}</p>`).join("")}</div></div>`:""}${sourcesHtml(entry)}<p class="tp-ic-policy"><strong>Review policy:</strong> ratings from different products are never merged; different configurations are labelled separately.</p></div>`;
-  const highlights=$("[data-tp85-highlights-wrap]");
-  const summary=$("[data-tp85-summary]");
-  if(highlights&&!highlights.hasAttribute("hidden"))highlights.insertAdjacentElement("afterend",panel);
-  else if(summary)summary.insertAdjacentElement("afterend",panel);
-  else $(".tp85-copy")?.prepend(panel);
-  d.documentElement.dataset.tpItemConfidence=VERSION;
-  return true;
+    let r;
+    try{
+      const res=await fetch(`/data/v20-9/products/${id.slice(0,2)}.json?v=20.9.0`,{cache:"force-cache"});
+      if(!res.ok)return false;
+      const bucket=await res.json();r=bucket?.[id];if(!r)return false;
+    }catch{return false}
+    const raw=C(r.t||$("[data-tp85-title]")?.textContent||"Product");
+    const entry=await loadReview(raw),f=scoreRecord(r,entry),sources=Array.isArray(entry?.sources)?entry.sources:[];
+    if($(".tp-item-confidence"))return true;
+    const same=sources.find(s=>s.relationship==="same_listing"&&Number(s.review_count)>0);
+    const headline=same?`${ratingText(same)} from ${same.review_count} ${same.name} reviews`:entry?`${sources.length} exact-model evidence source${sources.length===1?"":"s"}`:"Exact-model review research pending";
+    const strengths=(entry?.strengths||[]).slice(0,3),cautions=(entry?.cautions||[]).slice(0,3);
+    addStyle();
+    const panel=d.createElement("section");panel.className="tp-item-confidence";panel.dataset.version=VERSION;
+    panel.innerHTML=`<div class="tp-ic-top"><div><div class="tp-ic-kicker">BUYING CONFIDENCE</div><h2>${E(f.level)} confidence</h2><p>TrendPilot checks whether the seller route, listing price and review evidence match the product shown.</p></div><div class="tp-ic-score"><strong>${f.score}</strong><span>/100</span></div></div>
+    <div class="tp-ic-checks"><div class="tp-ic-check"><b class="${f.direct?"tp-ic-ok":"tp-ic-wait"}">${f.direct?"✓":"!"} Product route</b><small>${f.direct?"Direct product destination is available":"Confirm the exact item on the seller page"}</small></div><div class="tp-ic-check"><b class="${f.price?"tp-ic-ok":"tp-ic-wait"}">${f.price?"✓":"!"} Price evidence</b><small>${f.price?"A seller price is attached to this record":"Check the current price with the seller"}</small></div><div class="tp-ic-check"><b class="${entry?"tp-ic-ok":"tp-ic-wait"}">${entry?"✓":"…"} Review evidence</b><small>${entry?`${E(entry.review_confidence||"Moderate")} confidence · ${sources.length} source${sources.length===1?"":"s"}`:"Exact-model evidence is still being verified"}</small></div></div>
+    <div class="tp-ic-review"><div class="tp-ic-rhead"><div><span>REVIEW CONFIDENCE</span><strong>${E(entry?.review_confidence||"Pending")}</strong></div><p>${E(headline)}</p></div><p class="tp-ic-summary">${E(entry?.buyer_summary||"TrendPilot will not claim customer satisfaction until review evidence is tied to this exact model.")}</p>${entry?`<div class="tp-ic-cols"><div><h3>What buyers/tests like</h3>${strengths.map(x=>`<p>✓ ${E(x)}</p>`).join("")}</div><div><h3>Watch-outs</h3>${cautions.map(x=>`<p>• ${E(x)}</p>`).join("")}</div></div>`:""}${sourcesHtml(entry)}<p class="tp-ic-policy"><strong>Review policy:</strong> ratings from different products are never merged; different configurations are labelled separately.</p></div>`;
+    const highlights=$("[data-tp85-highlights-wrap]");
+    const summary=$("[data-tp85-summary]");
+    if(highlights&&!highlights.hasAttribute("hidden"))highlights.insertAdjacentElement("afterend",panel);
+    else if(summary)summary.insertAdjacentElement("afterend",panel);
+    else $(".tp85-copy")?.prepend(panel);
+    d.documentElement.dataset.tpItemConfidence=VERSION;
+    return true;
+  }finally{
+    rendering=false;
+  }
 }
 let tries=0;
 const timer=setInterval(async()=>{tries++;if(await render()||tries>=30)clearInterval(timer)},180);
