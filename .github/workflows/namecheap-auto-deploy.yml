@@ -22,9 +22,11 @@ jobs:
       CPANEL_PORT: "21098"
       CPANEL_USER: kehwgbpo
       APP_DIR: /home/kehwgbpo/trendpilot-repo
-      STATIC_ROOT: /home/kehwgbpo/trendpilot-test.7t7k.top
+      TEST_ROOT: /home/kehwgbpo/trendpilot-test.7t7k.top
+      PRODUCTION_ROOT: /home/kehwgbpo/trendpilotchoice.com
       BRANCH: namecheap-migration-v21
-      SITE_URL: https://trendpilot-test.7t7k.top
+      TEST_URL: https://trendpilot-test.7t7k.top
+      PRODUCTION_URL: https://trendpilotchoice.com
       DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
 
     steps:
@@ -77,11 +79,11 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Verify Namecheap SSH
+      - name: Verify Namecheap SSH and document roots
         shell: bash
         run: |
           set -euo pipefail
-          ssh trendpilot-namecheap 'printf "SSH_OK\n"'
+          ssh trendpilot-namecheap 'test -d /home/kehwgbpo/trendpilot-test.7t7k.top && test -d /home/kehwgbpo/trendpilotchoice.com && printf "SSH_AND_ROOTS_OK\n"'
 
       - name: Sync GitHub branch on Namecheap
         shell: bash
@@ -98,97 +100,124 @@ jobs:
           echo "SOURCE_SHA=$(git rev-parse HEAD)"
           REMOTE
 
-      - name: Publish static site and bypass Passenger
+      - name: Publish static site to test and production
         shell: bash
         run: |
           set -euo pipefail
           ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
           set -eo pipefail
           APP_DIR=/home/kehwgbpo/trendpilot-repo
-          STATIC_ROOT=/home/kehwgbpo/trendpilot-test.7t7k.top
 
-          test -d "$STATIC_ROOT" || { echo "Static document root not found: $STATIC_ROOT"; exit 1; }
+          publish_root() {
+            ROOT="$1"
+            MARKER="$2"
+            test -d "$ROOT" || { echo "Document root not found: $ROOT"; exit 1; }
 
-          # Copy only browser-facing site assets. Node/Passenger is no longer required
-          # for normal shopper pages, so HTML/CSS/JS/JSON changes become visible immediately.
-          for d in css js images data item find compare deals products sourcing; do
-            if [ -d "$APP_DIR/$d" ]; then
-              mkdir -p "$STATIC_ROOT/$d"
-              cp -a "$APP_DIR/$d/." "$STATIC_ROOT/$d/"
-            fi
-          done
+            for d in css js images data item find compare deals products sourcing; do
+              if [ -d "$APP_DIR/$d" ]; then
+                mkdir -p "$ROOT/$d"
+                cp -a "$APP_DIR/$d/." "$ROOT/$d/"
+              fi
+            done
 
-          for f in index.html 404.html manifest.webmanifest robots.txt sitemap.xml; do
-            if [ -f "$APP_DIR/$f" ]; then
-              cp -a "$APP_DIR/$f" "$STATIC_ROOT/$f"
-            fi
-          done
+            for f in index.html 404.html manifest.webmanifest robots.txt sitemap.xml; do
+              if [ -f "$APP_DIR/$f" ]; then
+                cp -a "$APP_DIR/$f" "$ROOT/$f"
+              fi
+            done
 
-          # cPanel's Node app previously routed this domain through Passenger.
-          # Disable Passenger at the document root so Apache serves the static site directly.
-          cat > "$STATIC_ROOT/.htaccess" <<'HTACCESS'
+            cat > "$ROOT/.htaccess" <<'HTACCESS'
           PassengerEnabled off
           Options -Indexes
           DirectoryIndex index.html
           HTACCESS
 
-          git -C "$APP_DIR" rev-parse HEAD > "$STATIC_ROOT/namecheap-static-release.txt"
-          echo "STATIC_ROOT=$STATIC_ROOT"
-          echo "STATIC_SHA=$(cat "$STATIC_ROOT/namecheap-static-release.txt")"
+            git -C "$APP_DIR" rev-parse HEAD > "$ROOT/$MARKER"
+            echo "PUBLISHED root=$ROOT sha=$(cat "$ROOT/$MARKER")"
+          }
+
+          publish_root /home/kehwgbpo/trendpilot-test.7t7k.top namecheap-static-release.txt
+          publish_root /home/kehwgbpo/trendpilotchoice.com namecheap-production-release.txt
           REMOTE
 
-      - name: Verify deployed Git commit
+      - name: Verify deployed Git commit on both roots
         shell: bash
         run: |
           set -euo pipefail
-          REMOTE_SHA="$(ssh trendpilot-namecheap 'cat /home/kehwgbpo/trendpilot-test.7t7k.top/namecheap-static-release.txt')"
+          TEST_SHA="$(ssh trendpilot-namecheap 'cat /home/kehwgbpo/trendpilot-test.7t7k.top/namecheap-static-release.txt')"
+          PROD_SHA="$(ssh trendpilot-namecheap 'cat /home/kehwgbpo/trendpilotchoice.com/namecheap-production-release.txt')"
           echo "GitHub SHA: $GITHUB_SHA"
-          echo "Static SHA: $REMOTE_SHA"
-          test "$REMOTE_SHA" = "$GITHUB_SHA"
+          echo "Test SHA: $TEST_SHA"
+          echo "Production SHA: $PROD_SHA"
+          test "$TEST_SHA" = "$GITHUB_SHA"
+          test "$PROD_SHA" = "$GITHUB_SHA"
 
-      - name: Verify live Product V1
+      - name: Verify live test site
         shell: bash
         run: |
           set -euo pipefail
           for attempt in {1..12}; do
-            RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/namecheap-static-release.txt?ts=$(date +%s)" || true)"
-            ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/item/?ts=$(date +%s)" || true)"
-            echo "attempt=$attempt release=$RELEASE"
+            RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${TEST_URL}/namecheap-static-release.txt?ts=$(date +%s)" || true)"
+            ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${TEST_URL}/item/?ts=$(date +%s)" || true)"
+            echo "test attempt=$attempt release=$RELEASE"
             if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM"; then
-              echo "PRODUCT_V1_LIVE_OK sha=$RELEASE"
+              echo "TEST_SITE_LIVE_OK sha=$RELEASE"
               exit 0
             fi
             sleep 3
           done
-          echo "Product V1 static verification failed."
+          echo "Test site verification failed."
           exit 1
 
-      - name: Verify first-party analytics runtime
+      - name: Verify live production site
         shell: bash
         run: |
           set -euo pipefail
-          for attempt in {1..8}; do
-            PROBE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/data/tp-track.php?probe=1&ts=$(date +%s)" || true)"
-            echo "analytics_probe=$PROBE"
+          for attempt in {1..16}; do
+            RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/namecheap-production-release.txt?ts=$(date +%s)" || true)"
+            ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/item/?ts=$(date +%s)" || true)"
+            echo "production attempt=$attempt release=$RELEASE"
+            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM"; then
+              echo "PRODUCTION_SITE_LIVE_OK sha=$RELEASE"
+              exit 0
+            fi
+            sleep 4
+          done
+          echo "Production site verification failed."
+          exit 1
+
+      - name: Verify first-party analytics on production
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..10}; do
+            PROBE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/data/tp-track.php?probe=1&ts=$(date +%s)" || true)"
+            echo "production_analytics_probe=$PROBE"
             if [ "$PROBE" = '{"ok":true,"runtime":"analytics-v1"}' ]; then
-              echo "ANALYTICS_LIVE_OK"
+              echo "PRODUCTION_ANALYTICS_LIVE_OK"
               exit 0
             fi
             sleep 3
           done
-          echo "First-party analytics endpoint is not executing as PHP on Namecheap."
+          echo "Production analytics endpoint is not executing as PHP on Namecheap."
           exit 1
+
+      - name: Production auto-deploy complete
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "NAMECHEAP_PRODUCTION_AUTO_DEPLOY_OK sha=$GITHUB_SHA"
 
       - name: Diagnostics on failure
         if: failure()
         shell: bash
         run: |
           set +e
-          echo '--- live release marker ---'
-          curl -isS --max-time 20 "${SITE_URL}/namecheap-static-release.txt?diagnostic=$(date +%s)" | head -40 || true
-          echo '--- live item page ---'
-          curl -isS --max-time 20 "${SITE_URL}/item/?diagnostic=$(date +%s)" | head -80 || true
-          echo '--- analytics probe ---'
-          curl -isS --max-time 20 "${SITE_URL}/data/tp-track.php?probe=1&diagnostic=$(date +%s)" | head -40 || true
-          echo '--- remote document root ---'
-          ssh trendpilot-namecheap 'ls -la /home/kehwgbpo/trendpilot-test.7t7k.top | head -50; echo ---HTACCESS---; cat /home/kehwgbpo/trendpilot-test.7t7k.top/.htaccess 2>/dev/null || true' || true
+          echo '--- production release marker ---'
+          curl -isS --max-time 20 "${PRODUCTION_URL}/namecheap-production-release.txt?diagnostic=$(date +%s)" | head -40 || true
+          echo '--- production item page ---'
+          curl -isS --max-time 20 "${PRODUCTION_URL}/item/?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- production analytics probe ---'
+          curl -isS --max-time 20 "${PRODUCTION_URL}/data/tp-track.php?probe=1&diagnostic=$(date +%s)" | head -40 || true
+          echo '--- remote production root ---'
+          ssh trendpilot-namecheap 'ls -la /home/kehwgbpo/trendpilotchoice.com | head -50; echo ---HTACCESS---; cat /home/kehwgbpo/trendpilotchoice.com/.htaccess 2>/dev/null || true' || true
