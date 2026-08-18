@@ -81,8 +81,6 @@ const path = require('path');
     if (!post[service]) throw new Error(`Campaign post 1 has no ${service} content`);
   }
 
-  // TrendPilot currently has four Pinterest boards. Match by stable name prefix so
-  // truncated UI labels do not matter and products never fall back to the first board.
   const boardMatchers = {
     tech: /^tech\s*&\s*gadget/i,
     home: /^smart\s+home\s*&/i,
@@ -91,7 +89,6 @@ const path = require('path');
   };
 
   function choosePinterestBoard(boards) {
-    // FOSSiBOT F106 Pro is a phone, so this campaign must go only to Tech & Gadget…
     return boards.find((b) => boardMatchers.tech.test(String(b.name || '').trim())) || null;
   }
 
@@ -118,16 +115,16 @@ const path = require('path');
     return boards;
   }
 
-  async function getMatchingDrafts(channel, expectedText) {
+  async function getMatchingPosts(channel, expectedText) {
     const data = await gql(
-      `query ExistingDrafts($org: OrganizationId!, $channel: ChannelId!) {
+      `query ExistingPosts($org: OrganizationId!, $channel: ChannelId!) {
         posts(first: 50, input: {
           organizationId: $org,
-          filter: { status: [draft], channelIds: [$channel] }
+          filter: { status: [draft, scheduled, sending, sent], channelIds: [$channel] }
         }) {
           edges {
             node {
-              id text createdAt channelId channelService
+              id text createdAt dueAt status channelId channelService
               metadata {
                 ... on PinterestPostMetadata {
                   board { name serviceId }
@@ -138,11 +135,11 @@ const path = require('path');
         }
       }`,
       { org: org.id, channel: channel.id },
-      `Get ${channel.service} drafts`,
+      `Get ${channel.service} posts`,
     );
-    const drafts = (data?.posts?.edges || []).map((edge) => edge.node);
+    const posts = (data?.posts?.edges || []).map((edge) => edge.node);
     const needle = expectedText.replace(/\s+/g, ' ').trim().slice(0, 120).toLowerCase();
-    return drafts.filter((draft) => (draft.text || '').replace(/\s+/g, ' ').trim().toLowerCase().startsWith(needle));
+    return posts.filter((item) => (item.text || '').replace(/\s+/g, ' ').trim().toLowerCase().startsWith(needle));
   }
 
   async function deleteDraft(id, reason) {
@@ -164,42 +161,50 @@ const path = require('path');
     console.log('MISPLACED_DRAFT_DELETED', JSON.stringify({ id, reason }));
   }
 
-  async function createDraft(channel) {
-    const spec = post[channel.service];
-    let text = spec.caption || spec.description || '';
-    const link = spec.link || campaign.product.landing_page;
-    if (channel.service !== 'pinterest' && link && !text.includes(link)) text += `\n\n${link}`;
-
-    let pinterestBoard = null;
-    if (channel.service === 'pinterest') {
-      const matches = await getMatchingDrafts(channel, text);
-      for (const draft of matches) {
-        const boardName = draft?.metadata?.board?.name || '';
-        if (boardName && !isCorrectPinterestBoard(boardName)) {
-          await deleteDraft(draft.id, `wrong Pinterest board for phone campaign: ${boardName}`);
+  async function promoteDraftToQueue(item, service) {
+    const data = await gql(
+      `mutation EditPost($input: EditPostInput!) {
+        editPost(input: $input) {
+          __typename
+          ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
+          ... on MutationError { message }
+          ... on InvalidInputError { message }
+          ... on UnauthorizedError { message }
+          ... on UnexpectedError { message }
+          ... on RestProxyError { message }
+          ... on LimitReachedError { message }
         }
-      }
-
-      const boards = await getPinterestBoards(channel.id);
-      pinterestBoard = choosePinterestBoard(boards);
-      if (!pinterestBoard) {
-        throw new Error(`Required Tech & Gadget Pinterest board was not found. Existing boards: ${boards.map((b) => b.name).join(' | ')}`);
-      }
-      console.log('PINTEREST_BOARD_SELECTED', JSON.stringify({ name: pinterestBoard.name, serviceId: pinterestBoard.serviceId }));
+      }`,
+      {
+        input: {
+          id: item.id,
+          schedulingType: 'automatic',
+          mode: 'addToQueue',
+          saveToDraft: false,
+        },
+      },
+      `Promote ${service} draft to queue`,
+    );
+    const payload = data?.editPost;
+    if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
+      throw new Error(`Buffer editPost failed for ${service}: ${payload?.__typename || 'unknown type'}: ${payload?.message || 'unknown error'}`);
     }
+    console.log('POST_QUEUED_FROM_DRAFT', JSON.stringify({
+      service,
+      postId: payload.post.id,
+      status: payload.post.status,
+      dueAt: payload.post.dueAt,
+    }));
+    return { service, action: 'promoted', postId: payload.post.id, status: payload.post.status, dueAt: payload.post.dueAt };
+  }
 
-    const duplicates = await getMatchingDrafts(channel, text);
-    if (duplicates.length) {
-      console.log('DRAFT_ALREADY_EXISTS', JSON.stringify({ service: channel.service, postId: duplicates[0].id }));
-      return { service: channel.service, status: 'existing', postId: duplicates[0].id };
-    }
-
+  function buildPostInput(channel, spec, text, link, pinterestBoard) {
     const input = {
       text,
       channelId: channel.id,
       schedulingType: 'automatic',
       mode: 'addToQueue',
-      saveToDraft: true,
+      saveToDraft: false,
       needsApproval: false,
       aiAssisted: true,
       source: 'trendpilot-github',
@@ -232,7 +237,10 @@ const path = require('path');
         },
       };
     }
+    return input;
+  }
 
+  async function createQueuedPost(channel, input) {
     const result = await gql(
       `mutation CreatePost($input: CreatePostInput!) {
         createPost(input: $input) {
@@ -247,44 +255,93 @@ const path = require('path');
         }
       }`,
       { input },
-      `Create ${channel.service} draft`,
+      `Create queued ${channel.service} post`,
     );
 
     const payload = result?.createPost;
     if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
       throw new Error(`Buffer createPost failed for ${channel.service}: ${payload?.__typename || 'unknown type'}: ${payload?.message || 'unknown error'}`);
     }
-    console.log('DRAFT_CREATED', JSON.stringify({
+    console.log('POST_QUEUED_NEW', JSON.stringify({
       service: channel.service,
       channel: channel.displayName || channel.name,
       postId: payload.post.id,
       status: payload.post.status,
+      dueAt: payload.post.dueAt,
     }));
-    return { service: channel.service, status: 'created', postId: payload.post.id };
+    return { service: channel.service, action: 'created', postId: payload.post.id, status: payload.post.status, dueAt: payload.post.dueAt };
+  }
+
+  async function queueTrackedPost(channel) {
+    const spec = post[channel.service];
+    let text = spec.caption || spec.description || '';
+    const link = spec.link || campaign.product.landing_page;
+    if (channel.service !== 'pinterest' && link && !text.includes(link)) text += `\n\n${link}`;
+
+    let pinterestBoard = null;
+    let matches = await getMatchingPosts(channel, text);
+
+    if (channel.service === 'pinterest') {
+      for (const item of matches.filter((x) => x.status === 'draft')) {
+        const boardName = item?.metadata?.board?.name || '';
+        if (boardName && !isCorrectPinterestBoard(boardName)) {
+          await deleteDraft(item.id, `wrong Pinterest board for phone campaign: ${boardName}`);
+        }
+      }
+
+      const boards = await getPinterestBoards(channel.id);
+      pinterestBoard = choosePinterestBoard(boards);
+      if (!pinterestBoard) {
+        throw new Error(`Required Tech & Gadget Pinterest board was not found. Existing boards: ${boards.map((b) => b.name).join(' | ')}`);
+      }
+      console.log('PINTEREST_BOARD_SELECTED', JSON.stringify({ name: pinterestBoard.name, serviceId: pinterestBoard.serviceId }));
+      matches = await getMatchingPosts(channel, text);
+    }
+
+    const alreadyLiveOrQueued = matches.find((x) => ['scheduled', 'sending', 'sent'].includes(x.status));
+    if (alreadyLiveOrQueued) {
+      console.log('POST_ALREADY_QUEUED_OR_SENT', JSON.stringify({
+        service: channel.service,
+        postId: alreadyLiveOrQueued.id,
+        status: alreadyLiveOrQueued.status,
+        dueAt: alreadyLiveOrQueued.dueAt,
+      }));
+      return { service: channel.service, action: 'existing', postId: alreadyLiveOrQueued.id, status: alreadyLiveOrQueued.status, dueAt: alreadyLiveOrQueued.dueAt };
+    }
+
+    const reusableDraft = matches.find((x) => {
+      if (x.status !== 'draft') return false;
+      if (channel.service !== 'pinterest') return true;
+      return isCorrectPinterestBoard(x?.metadata?.board?.name || '');
+    });
+
+    if (reusableDraft) return promoteDraftToQueue(reusableDraft, channel.service);
+
+    const input = buildPostInput(channel, spec, text, link, pinterestBoard);
+    return createQueuedPost(channel, input);
   }
 
   const results = [];
   const failures = [];
 
-  // Each channel is isolated so one network cannot prevent the others from being tested.
   for (const service of wanted) {
     const channel = targets.find((c) => c.service === service);
     try {
-      results.push(await createDraft(channel));
+      results.push(await queueTrackedPost(channel));
     } catch (error) {
       const message = error?.message || String(error);
       failures.push({ service, message });
-      console.error('CHANNEL_DRAFT_FAILED', JSON.stringify({ service, message }));
+      console.error('CHANNEL_QUEUE_FAILED', JSON.stringify({ service, message }));
     }
   }
 
-  console.log('BUFFER_CHANNEL_RESULTS', JSON.stringify(results));
+  console.log('BUFFER_QUEUE_RESULTS', JSON.stringify(results));
   if (failures.length) {
-    console.error('BUFFER_CHANNEL_FAILURES', JSON.stringify(failures));
-    throw new Error(`Buffer draft test had ${failures.length} channel failure(s): ${failures.map((f) => `${f.service}: ${f.message}`).join(' || ')}`);
+    console.error('BUFFER_QUEUE_FAILURES', JSON.stringify(failures));
+    throw new Error(`Buffer queue run had ${failures.length} channel failure(s): ${failures.map((f) => `${f.service}: ${f.message}`).join(' || ')}`);
   }
 
-  console.log('BUFFER_THREE_CHANNEL_DRAFT_TEST_OK');
+  console.log('BUFFER_THREE_CHANNEL_QUEUE_OK');
 })().catch((error) => {
   console.error(error?.stack || error);
   process.exit(1);
