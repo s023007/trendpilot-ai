@@ -1,0 +1,164 @@
+name: Namecheap Auto Deploy
+
+on:
+  push:
+    branches:
+      - namecheap-migration-v21
+  workflow_dispatch:
+
+concurrency:
+  group: namecheap-auto-deploy
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: "21098"
+      CPANEL_USER: kehwgbpo
+      APP_DIR: /home/kehwgbpo/trendpilot-repo
+      BRANCH: namecheap-migration-v21
+      HOT_RELOAD_URL: https://trendpilot-test.7t7k.top/.netlify/functions/namecheap-hot-reload-v1
+      PROCESS_PROBE_URL: https://trendpilot-test.7t7k.top/.netlify/functions/namecheap-runtime-probe-v2
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
+    steps:
+      - name: Require Namecheap SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo "NAMECHEAP_SSH_PRIVATE_KEY is missing."; exit 1; }
+
+      - name: Checkout TrendPilot
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Validate deployment source
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check server.js
+          node --check server.cjs
+          node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+          node --check netlify/functions/namecheap-hot-reload-v1.cjs
+          node --check netlify/functions/namecheap-runtime-probe-v2.cjs
+          node --check js/post-intelligence-v21.js
+          grep -q 'tp-pc-panel' netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+          grep -q 'x-trendpilot-product-confidence' netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Verify Namecheap SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'printf "SSH_OK\n"'
+
+      - name: Sync GitHub branch to Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -eo pipefail
+          APP_DIR=/home/kehwgbpo/trendpilot-repo
+          BRANCH=namecheap-migration-v21
+          NODE_ENV_ACTIVATE=/home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate
+
+          cd "$APP_DIR"
+          OLD_PACKAGE="$(git show HEAD:package.json 2>/dev/null | sha256sum | awk '{print $1}' || true)"
+          git fetch --prune origin "$BRANCH"
+          git checkout "$BRANCH"
+          git reset --hard FETCH_HEAD
+          NEW_HEAD="$(git rev-parse HEAD)"
+          NEW_PACKAGE="$(sha256sum package.json 2>/dev/null | awk '{print $1}' || true)"
+
+          if [ -f "$NODE_ENV_ACTIVATE" ]; then
+            source "$NODE_ENV_ACTIVATE"
+          fi
+          node --check server.js
+          node --check server.cjs
+          node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+          node --check netlify/functions/namecheap-hot-reload-v1.cjs
+          node --check netlify/functions/namecheap-runtime-probe-v2.cjs
+          node --check js/post-intelligence-v21.js
+
+          if [ "$OLD_PACKAGE" != "$NEW_PACKAGE" ] || [ ! -d node_modules ]; then
+            npm install --omit=dev
+          fi
+
+          mkdir -p tmp
+          printf '%s\n' "$NEW_HEAD" > tmp/last-deployed-sha.txt
+          echo "DEPLOYED_SHA=$NEW_HEAD"
+          REMOTE
+
+      - name: Verify deployed Git commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          REMOTE_SHA="$(ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD')"
+          echo "GitHub SHA: $GITHUB_SHA"
+          echo "Namecheap SHA: $REMOTE_SHA"
+          test "$REMOTE_SHA" = "$GITHUB_SHA"
+
+      - name: Hot-reload cached product modules
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(curl -fsS --max-time 30 -H 'Cache-Control: no-cache' "${HOT_RELOAD_URL}?sha=${GITHUB_SHA}&ts=$(date +%s)")"
+          echo "$BODY"
+          printf '%s' "$BODY" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") is True; assert d.get("confidenceMarkerLoaded") is True; assert d.get("fileVersion")=="21.3.0"; print("HOT_RELOAD_OK pid=%s purged=%s version=%s"%(d.get("pid"),d.get("purgedCount"),d.get("fileVersion")))'
+
+      - name: Best-effort Passenger restart marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'mkdir -p /home/kehwgbpo/trendpilot-repo/tmp && touch /home/kehwgbpo/trendpilot-repo/tmp/restart.txt'
+
+      - name: Verify Namecheap runtime remains healthy
+        shell: bash
+        run: |
+          set -euo pipefail
+          BODY="$(curl -fsS --max-time 25 -H 'Cache-Control: no-cache' "${PROCESS_PROBE_URL}?phase=post-hot-reload&sha=${GITHUB_SHA}&ts=$(date +%s)")"
+          echo "$BODY"
+          grep -q '"runtime":"namecheap-v2"' <<< "$BODY"
+
+      - name: Safe diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          echo '--- hot reload response ---'
+          curl -isS --max-time 20 "${HOT_RELOAD_URL}?diagnostic=$(date +%s)" | head -100 || true
+          echo '--- process probe ---'
+          curl -isS --max-time 20 "${PROCESS_PROBE_URL}?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- remote SHA ---'
+          ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD 2>/dev/null || true' || true
+          echo '--- product module timestamp ---'
+          ssh trendpilot-namecheap 'stat /home/kehwgbpo/trendpilot-repo/netlify/functions/product-preview-v20-9-6-mobile-polish.cjs 2>/dev/null | head -10 || true' || true
