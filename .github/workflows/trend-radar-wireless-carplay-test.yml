@@ -1,0 +1,164 @@
+name: Trend Radar - Wireless CarPlay 3-Channel Test
+
+on:
+  push:
+    branches:
+      - namecheap-migration-v21
+    paths:
+      - '.github/workflows/trend-radar-wireless-carplay-test.yml'
+      - 'scripts/buffer-publish-trend-video.js'
+      - 'data/campaigns/wireless-carplay-trend-test-v1.json'
+      - 'images/media/carplay-compatibility.png'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      NAMECHEAP_SSH_PRIVATE_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+      CAMPAIGN_FILE: data/campaigns/wireless-carplay-trend-test-v1.json
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      PRODUCTION_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      MEDIA_RELATIVE_PATH: media/campaigns/wireless-carplay-p01-trend-v1.mp4
+      MEDIA_VIDEO_URL: https://trendpilotchoice.com/media/campaigns/wireless-carplay-p01-trend-v1.mp4
+
+    steps:
+      - name: Checkout TrendPilot
+        uses: actions/checkout@v4
+
+      - name: Require publishing credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${BUFFER_API_KEY:-}" || { echo "BUFFER_API_KEY is missing"; exit 1; }
+          test -n "${NAMECHEAP_SSH_PRIVATE_KEY:-}" || { echo "NAMECHEAP_SSH_PRIVATE_KEY is missing"; exit 1; }
+
+      - name: Validate trend campaign and source asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/buffer-publish-trend-video.js
+          test -s images/media/carplay-compatibility.png
+          node <<'NODE'
+          const fs = require('fs');
+          const c = JSON.parse(fs.readFileSync(process.env.CAMPAIGN_FILE, 'utf8'));
+          const channels = [c.primary_channel, ...(c.secondary_channels || [])];
+          const expected = ['pinterest', 'tiktok', 'youtube'];
+          if (JSON.stringify(channels) !== JSON.stringify(expected)) {
+            throw new Error(`Campaign channels must be exactly ${expected.join(', ')}; got ${channels.join(', ')}`);
+          }
+          const p = c.posts?.find(x => x.sequence === 1);
+          for (const s of expected) if (!p?.[s]) throw new Error(`Post 1 missing ${s}`);
+          if (!c.product?.landing_page?.startsWith('https://trendpilotchoice.com/')) {
+            throw new Error('Campaign must link to the production TrendPilot domain');
+          }
+          console.log('TREND_CAMPAIGN_OK', c.campaign_id, c.trend?.topic, channels.join(','));
+          NODE
+
+      - name: Build AI-directed vertical problem-solution video
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update -y
+            sudo apt-get install -y ffmpeg
+          fi
+          FONT=/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+          BOLD=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+          test -f "$FONT"
+          test -f "$BOLD"
+
+          ffmpeg -hide_banner -loglevel error -y \
+            -loop 1 -i images/media/carplay-compatibility.png \
+            -filter_complex "\
+              [0:v]scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,gblur=sigma=32[bg];\
+              [0:v]scale=950:-2[fg];\
+              [bg][fg]overlay=(W-w)/2:460,\
+              drawbox=x=48:y=52:w=984:h=330:color=0x081934@0.92:t=fill:enable='between(t,0,3.6)',\
+              drawtext=fontfile=${BOLD}:text='Still plugging in':fontcolor=white:fontsize=68:x=(w-text_w)/2:y=105:enable='between(t,0,3.6)',\
+              drawtext=fontfile=${BOLD}:text='for CarPlay?':fontcolor=0x6EE7D8:fontsize=72:x=(w-text_w)/2:y=190:enable='between(t,0,3.6)',\
+              drawtext=fontfile=${FONT}:text='That daily cable routine gets old.':fontcolor=white:fontsize=35:x=(w-text_w)/2:y=300:enable='between(t,0,3.6)',\
+              drawbox=x=48:y=52:w=984:h=330:color=0x081934@0.92:t=fill:enable='between(t,3.6,7.2)',\
+              drawtext=fontfile=${BOLD}:text='Wireless CarPlay':fontcolor=0x6EE7D8:fontsize=70:x=(w-text_w)/2:y=105:enable='between(t,3.6,7.2)',\
+              drawtext=fontfile=${BOLD}:text='can remove the cable':fontcolor=white:fontsize=56:x=(w-text_w)/2:y=200:enable='between(t,3.6,7.2)',\
+              drawtext=fontfile=${FONT}:text='Small upgrade. Much easier routine.':fontcolor=white:fontsize=34:x=(w-text_w)/2:y=300:enable='between(t,3.6,7.2)',\
+              drawbox=x=48:y=52:w=984:h=350:color=0x081934@0.94:t=fill:enable='between(t,7.2,11.2)',\
+              drawtext=fontfile=${BOLD}:text='CHECK THIS FIRST':fontcolor=0xFBBF24:fontsize=56:x=(w-text_w)/2:y=95:enable='between(t,7.2,11.2)',\
+              drawtext=fontfile=${BOLD}:text='Wired CarPlay should':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=185:enable='between(t,7.2,11.2)',\
+              drawtext=fontfile=${BOLD}:text='already work reliably.':fontcolor=white:fontsize=52:x=(w-text_w)/2:y=255:enable='between(t,7.2,11.2)',\
+              drawbox=x=48:y=52:w=984:h=390:color=0x081934@0.94:t=fill:enable='between(t,11.2,15)',\
+              drawtext=fontfile=${BOLD}:text='Before you buy':fontcolor=0x6EE7D8:fontsize=64:x=(w-text_w)/2:y=90:enable='between(t,11.2,15)',\
+              drawtext=fontfile=${FONT}:text='Check USB  |  firmware  |  return route':fontcolor=white:fontsize=34:x=(w-text_w)/2:y=200:enable='between(t,11.2,15)',\
+              drawtext=fontfile=${BOLD}:text='TrendPilot buying guide':fontcolor=white:fontsize=48:x=(w-text_w)/2:y=285:enable='between(t,11.2,15)',\
+              drawbox=x=120:y=1590:w=840:h=145:color=0x081934@0.88:t=fill,\
+              drawtext=fontfile=${BOLD}:text='TrendPilot':fontcolor=white:fontsize=46:x=(w-text_w)/2:y=1615,\
+              drawtext=fontfile=${FONT}:text='Smarter buying. Fewer surprises.':fontcolor=0x6EE7D8:fontsize=30:x=(w-text_w)/2:y=1680,\
+              fade=t=in:st=0:d=0.35,fade=t=out:st=14.65:d=0.35,format=yuv420p[outv]" \
+            -map '[outv]' -t 15 -r 30 -an \
+            -c:v libx264 -preset veryfast -crf 21 -movflags +faststart \
+            /tmp/wireless-carplay-p01-trend-v1.mp4
+
+          test -s /tmp/wireless-carplay-p01-trend-v1.mp4
+          ffprobe -v error -show_entries format=duration,size -of default=noprint_wrappers=1 /tmp/wireless-carplay-p01-trend-v1.mp4
+
+      - name: Publish video asset to Namecheap production
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$NAMECHEAP_SSH_PRIVATE_KEY" > ~/.ssh/namecheap_trend_media
+          chmod 600 ~/.ssh/namecheap_trend_media
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap-trend
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_trend_media
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+          ssh trendpilot-namecheap-trend "mkdir -p '$PRODUCTION_ROOT/media/campaigns'"
+          scp /tmp/wireless-carplay-p01-trend-v1.mp4 "trendpilot-namecheap-trend:$PRODUCTION_ROOT/$MEDIA_RELATIVE_PATH"
+          ssh trendpilot-namecheap-trend "test -s '$PRODUCTION_ROOT/$MEDIA_RELATIVE_PATH' && ls -lh '$PRODUCTION_ROOT/$MEDIA_RELATIVE_PATH'"
+
+      - name: Verify public production video
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..12}; do
+            if curl -fLsS --range 0-2047 --max-time 20 "${MEDIA_VIDEO_URL}?v=${GITHUB_SHA}" -o /tmp/video-probe && test -s /tmp/video-probe; then
+              echo "PUBLIC_TREND_VIDEO_OK $MEDIA_VIDEO_URL"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Public trend video could not be fetched from Namecheap"
+          exit 1
+
+      - name: Publish one trend video now to Pinterest TikTok and YouTube
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/buffer-publish-trend-video.js
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Trend Radar - Wireless CarPlay test" >> "$GITHUB_STEP_SUMMARY"
+          echo "One 15-second vertical problem-solution video was built from truthful TrendPilot CarPlay guidance and a real repository visual asset." >> "$GITHUB_STEP_SUMMARY"
+          echo "Targets are locked to Pinterest, TikTok and YouTube only." >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinterest is routed to Tech & Gadget Deals. All three channels receive the same MP4 from trendpilotchoice.com with channel-specific tracked links." >> "$GITHUB_STEP_SUMMARY"
+          echo "Buffer mode is shareNow for this one-off overnight test. Duplicate matching posts are skipped." >> "$GITHUB_STEP_SUMMARY"
+          echo "The video does not fabricate a product demonstration: it uses problem-solution motion graphics and the buying-guide rule that wired CarPlay should already work reliably." >> "$GITHUB_STEP_SUMMARY"
