@@ -152,50 +152,13 @@ const path = require('path');
         }
       }`,
       { input: { id } },
-      'Delete misplaced Buffer draft',
+      'Delete Buffer draft',
     );
     const payload = data?.deletePost;
     if (!payload || payload.__typename === 'VoidMutationError') {
-      throw new Error(`Could not delete misplaced draft ${id}: ${payload?.message || 'unknown error'}`);
+      throw new Error(`Could not delete draft ${id}: ${payload?.message || 'unknown error'}`);
     }
-    console.log('MISPLACED_DRAFT_DELETED', JSON.stringify({ id, reason }));
-  }
-
-  async function promoteDraftToQueue(item, service) {
-    const data = await gql(
-      `mutation EditPost($input: EditPostInput!) {
-        editPost(input: $input) {
-          __typename
-          ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
-          ... on MutationError { message }
-          ... on InvalidInputError { message }
-          ... on UnauthorizedError { message }
-          ... on UnexpectedError { message }
-          ... on RestProxyError { message }
-          ... on LimitReachedError { message }
-        }
-      }`,
-      {
-        input: {
-          id: item.id,
-          schedulingType: 'automatic',
-          mode: 'addToQueue',
-          saveToDraft: false,
-        },
-      },
-      `Promote ${service} draft to queue`,
-    );
-    const payload = data?.editPost;
-    if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
-      throw new Error(`Buffer editPost failed for ${service}: ${payload?.__typename || 'unknown type'}: ${payload?.message || 'unknown error'}`);
-    }
-    console.log('POST_QUEUED_FROM_DRAFT', JSON.stringify({
-      service,
-      postId: payload.post.id,
-      status: payload.post.status,
-      dueAt: payload.post.dueAt,
-    }));
-    return { service, action: 'promoted', postId: payload.post.id, status: payload.post.status, dueAt: payload.post.dueAt };
+    console.log('DRAFT_DELETED', JSON.stringify({ id, reason }));
   }
 
   function buildPostInput(channel, spec, text, link, pinterestBoard) {
@@ -309,13 +272,18 @@ const path = require('path');
       return { service: channel.service, action: 'existing', postId: alreadyLiveOrQueued.id, status: alreadyLiveOrQueued.status, dueAt: alreadyLiveOrQueued.dueAt };
     }
 
+    // Buffer's editPost mutation does not preserve the full media and network-specific
+    // metadata reliably when a draft is promoted. Replace a matching draft with a new,
+    // complete queued post instead. This is especially required for TikTok/YouTube video.
     const reusableDraft = matches.find((x) => {
       if (x.status !== 'draft') return false;
       if (channel.service !== 'pinterest') return true;
       return isCorrectPinterestBoard(x?.metadata?.board?.name || '');
     });
 
-    if (reusableDraft) return promoteDraftToQueue(reusableDraft, channel.service);
+    if (reusableDraft) {
+      await deleteDraft(reusableDraft.id, `replace ${channel.service} draft with full queued post including media and metadata`);
+    }
 
     const input = buildPostInput(channel, spec, text, link, pinterestBoard);
     return createQueuedPost(channel, input);
