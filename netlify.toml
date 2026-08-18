@@ -1,5 +1,6 @@
 [build]
   publish = "."
+  ignore = "test \"$BRANCH\" = \"namecheap-migration-v21\""
 
 [[headers]]
   for = "/*"
