@@ -82,7 +82,9 @@ jobs:
         run: |
           set -euo pipefail
           ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
-          set -euo pipefail
+          # CloudLinux's Node virtualenv activation script reads variables that may
+          # legitimately be unset, so do not enable bash nounset (-u) in this shell.
+          set -eo pipefail
           REPO=/home/kehwgbpo/trendpilot-repo
           BRANCH=namecheap-migration-v21
           NODE_ENV_ACTIVATE=/home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate
@@ -95,7 +97,8 @@ jobs:
           git checkout "$BRANCH"
           git reset --hard FETCH_HEAD
 
-          # Namecheap/CloudLinux exposes node/npm through the app virtual environment.
+          # Activate the CloudLinux/Namecheap Node.js environment exactly as the
+          # Node.js Selector expects, now without nounset breaking activate.
           source "$NODE_ENV_ACTIVATE"
           node --check server.js
           node --check server.cjs
@@ -112,11 +115,11 @@ jobs:
           mkdir -p tmp
           printf '%s\n' "$NEW_HEAD" > tmp/last-deployed-sha.txt
 
-          # Passenger restart.txt is the cPanel-standard restart signal.
+          # Passenger restart signal used by cPanel/CloudLinux Node applications.
           touch tmp/restart.txt
 
-          # Namecheap uses CloudLinux Node.js Selector. Restart it explicitly when
-          # the CLI is exposed to the account; keep restart.txt as the fallback.
+          # Restart through Node.js Selector as well when available. The restart.txt
+          # signal above remains the fallback if the CLI is not exposed to the account.
           if command -v cloudlinux-selector >/dev/null 2>&1; then
             cloudlinux-selector restart --json --interpreter nodejs --app-root trendpilot-repo || true
           elif [ -x /usr/sbin/cloudlinux-selector ]; then
