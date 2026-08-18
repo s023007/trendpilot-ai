@@ -81,7 +81,23 @@ const path = require('path');
     if (!post[service]) throw new Error(`Campaign post 1 has no ${service} content`);
   }
 
-  const suitablePinterestBoard = (name = '') => /trend\s*pilot|tech|gadget|electronics|phone|smartphone|mobile|shopping|product/i.test(name);
+  // TrendPilot currently has four Pinterest boards. Match by stable name prefix so
+  // truncated UI labels do not matter and products never fall back to the first board.
+  const boardMatchers = {
+    tech: /^tech\s*&\s*gadget/i,
+    home: /^smart\s+home\s*&/i,
+    school: /^back\s+to\s+school/i,
+    fashion: /^fashion\s*&\s*everyday/i,
+  };
+
+  function choosePinterestBoard(boards) {
+    // FOSSiBOT F106 Pro is a phone, so this campaign must go only to Tech & Gadget…
+    return boards.find((b) => boardMatchers.tech.test(String(b.name || '').trim())) || null;
+  }
+
+  function isCorrectPinterestBoard(name = '') {
+    return boardMatchers.tech.test(String(name).trim());
+  }
 
   async function getPinterestBoards(channelId) {
     const data = await gql(
@@ -159,15 +175,17 @@ const path = require('path');
       const matches = await getMatchingDrafts(channel, text);
       for (const draft of matches) {
         const boardName = draft?.metadata?.board?.name || '';
-        if (boardName && !suitablePinterestBoard(boardName)) {
-          await deleteDraft(draft.id, `wrong Pinterest board: ${boardName}`);
+        if (boardName && !isCorrectPinterestBoard(boardName)) {
+          await deleteDraft(draft.id, `wrong Pinterest board for phone campaign: ${boardName}`);
         }
       }
+
       const boards = await getPinterestBoards(channel.id);
-      pinterestBoard = boards.find((b) => suitablePinterestBoard(b.name)) || null;
+      pinterestBoard = choosePinterestBoard(boards);
       if (!pinterestBoard) {
-        throw new Error(`No suitable Pinterest board exists. Create a board such as "Tech & Gadgets" or "Phones & Electronics". Existing boards: ${boards.map((b) => b.name).join(' | ')}`);
+        throw new Error(`Required Tech & Gadget Pinterest board was not found. Existing boards: ${boards.map((b) => b.name).join(' | ')}`);
       }
+      console.log('PINTEREST_BOARD_SELECTED', JSON.stringify({ name: pinterestBoard.name, serviceId: pinterestBoard.serviceId }));
     }
 
     const duplicates = await getMatchingDrafts(channel, text);
