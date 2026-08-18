@@ -16,35 +16,36 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     env:
-      CPANEL_HOST: 7t7k.top
+      CPANEL_HOST: 198.54.120.162
       CPANEL_PORT: "21098"
       CPANEL_USER: kehwgbpo
       CPANEL_REPO: /home/kehwgbpo/trendpilot-repo
       DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
     steps:
-      - name: Check one-time SSH setup
-        if: env.DEPLOY_KEY == ''
+      - name: Require Namecheap SSH key
+        shell: bash
         run: |
-          echo "NAMECHEAP_SSH_PRIVATE_KEY is not configured yet."
-          echo "Add the dedicated Namecheap SSH private key as a GitHub Actions repository secret, then run this workflow once."
+          set -euo pipefail
+          if [ -z "${DEPLOY_KEY:-}" ]; then
+            echo "NAMECHEAP_SSH_PRIVATE_KEY is missing."
+            exit 1
+          fi
 
       - name: Checkout TrendPilot
-        if: env.DEPLOY_KEY != ''
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 2
 
       - name: Configure SSH
-        if: env.DEPLOY_KEY != ''
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
           chmod 600 ~/.ssh/namecheap_deploy
-          ssh-keyscan -p "$CPANEL_PORT" "$CPANEL_HOST" >> ~/.ssh/known_hosts
-          chmod 600 ~/.ssh/known_hosts
           cat > ~/.ssh/config <<EOF
           Host trendpilot-namecheap
             HostName $CPANEL_HOST
@@ -52,16 +53,59 @@ jobs:
             User $CPANEL_USER
             IdentityFile ~/.ssh/namecheap_deploy
             IdentitiesOnly yes
-            StrictHostKeyChecking yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Push to cPanel and auto-deploy
-        if: env.DEPLOY_KEY != ''
+      - name: Verify Namecheap SSH
         shell: bash
         run: |
           set -euo pipefail
-          git remote remove cpanel 2>/dev/null || true
-          git remote add cpanel "ssh://trendpilot-namecheap${CPANEL_REPO}"
-          git push cpanel HEAD:refs/heads/namecheap-migration-v21
-          echo "TrendPilot was pushed to the cPanel-managed repository. cPanel's post-receive hook now runs .cpanel.yml automatically."
+          ssh trendpilot-namecheap 'printf "SSH_OK\n"'
+
+      - name: Sync GitHub branch to Namecheap and restart
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -euo pipefail
+          REPO=/home/kehwgbpo/trendpilot-repo
+          BRANCH=namecheap-migration-v21
+          cd "$REPO"
+
+          OLD_HEAD="$(git rev-parse HEAD)"
+          OLD_PACKAGE="$(git show HEAD:package.json 2>/dev/null | sha256sum | awk '{print $1}' || true)"
+
+          git fetch --prune origin "$BRANCH"
+          git checkout "$BRANCH"
+          git reset --hard FETCH_HEAD
+
+          NEW_HEAD="$(git rev-parse HEAD)"
+          NEW_PACKAGE="$(sha256sum package.json 2>/dev/null | awk '{print $1}' || true)"
+
+          if [ "$OLD_PACKAGE" != "$NEW_PACKAGE" ] || [ ! -d node_modules ]; then
+            source /home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate
+            npm install --omit=dev
+          fi
+
+          mkdir -p tmp
+          touch tmp/restart.txt
+
+          echo "OLD_HEAD=$OLD_HEAD"
+          echo "NEW_HEAD=$NEW_HEAD"
+          echo "AUTO_DEPLOY_OK"
+          REMOTE
+
+      - name: Verify deployed commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          REMOTE_SHA="$(ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD')"
+          echo "GitHub SHA: $GITHUB_SHA"
+          echo "Namecheap SHA: $REMOTE_SHA"
+          test "$REMOTE_SHA" = "$GITHUB_SHA"
