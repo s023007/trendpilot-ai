@@ -1,0 +1,143 @@
+name: Namecheap Production Stage
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: namecheap-production-stage
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  stage-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: "21098"
+      CPANEL_USER: kehwgbpo
+      APP_DIR: /home/kehwgbpo/trendpilot-repo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      BRANCH: namecheap-migration-v21
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
+    steps:
+      - name: Require Namecheap SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo "NAMECHEAP_SSH_PRIVATE_KEY is missing."; exit 1; }
+
+      - name: Checkout tested TrendPilot branch
+        uses: actions/checkout@v4
+        with:
+          ref: namecheap-migration-v21
+          fetch-depth: 2
+
+      - name: Validate shopper build
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/item-detail-v20-9.js
+          node --check js/item-confidence-v21-4.js
+          node --check js/item-conversion-v21-5.js
+          node --check js/tp-analytics-v1.js
+          grep -q 'item-confidence-v21-4.js?v=21.4.2' item/index.html
+          grep -q 'item-conversion-v21-5.js' item/index.html
+          grep -q 'tp-analytics-v1.js' item/index.html
+          test -f data/tp-track.php
+          test -f data/review-evidence-v21.json
+          test -d data/v20-9/products
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Verify Namecheap SSH and production root
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'printf "SSH_OK\n"; test -d /home/kehwgbpo/trendpilotchoice.com; printf "PRODUCTION_ROOT_OK\n"'
+
+      - name: Sync tested branch on Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -eo pipefail
+          APP_DIR=/home/kehwgbpo/trendpilot-repo
+          BRANCH=namecheap-migration-v21
+          cd "$APP_DIR"
+          git fetch --prune origin "$BRANCH"
+          git checkout "$BRANCH"
+          git reset --hard FETCH_HEAD
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          REMOTE
+
+      - name: Publish tested site to production document root
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -eo pipefail
+          APP_DIR=/home/kehwgbpo/trendpilot-repo
+          STATIC_ROOT=/home/kehwgbpo/trendpilotchoice.com
+
+          test -d "$STATIC_ROOT" || { echo "Production document root not found: $STATIC_ROOT"; exit 1; }
+
+          for d in css js images data item find compare deals products sourcing; do
+            if [ -d "$APP_DIR/$d" ]; then
+              mkdir -p "$STATIC_ROOT/$d"
+              cp -a "$APP_DIR/$d/." "$STATIC_ROOT/$d/"
+            fi
+          done
+
+          for f in index.html 404.html manifest.webmanifest robots.txt sitemap.xml; do
+            if [ -f "$APP_DIR/$f" ]; then
+              cp -a "$APP_DIR/$f" "$STATIC_ROOT/$f"
+            fi
+          done
+
+          cat > "$STATIC_ROOT/.htaccess" <<'HTACCESS'
+          PassengerEnabled off
+          Options -Indexes
+          DirectoryIndex index.html
+          HTACCESS
+
+          git -C "$APP_DIR" rev-parse HEAD > "$STATIC_ROOT/namecheap-production-release.txt"
+          echo "PRODUCTION_SHA=$(cat "$STATIC_ROOT/namecheap-production-release.txt")"
+          REMOTE
+
+      - name: Verify production files on Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA="$(ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD')"
+          REMOTE_SHA="$(ssh trendpilot-namecheap 'cat /home/kehwgbpo/trendpilotchoice.com/namecheap-production-release.txt')"
+          echo "Source SHA: $SOURCE_SHA"
+          echo "Production SHA: $REMOTE_SHA"
+          test "$REMOTE_SHA" = "$SOURCE_SHA"
+          ssh trendpilot-namecheap 'grep -q "item-conversion-v21-5.js" /home/kehwgbpo/trendpilotchoice.com/item/index.html'
+          ssh trendpilot-namecheap 'test -f /home/kehwgbpo/trendpilotchoice.com/data/tp-track.php'
+          echo "PRODUCTION_STAGE_READY"
