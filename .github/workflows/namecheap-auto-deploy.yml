@@ -16,7 +16,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     env:
       CPANEL_HOST: 198.54.120.162
       CPANEL_PORT: "21098"
@@ -109,8 +109,7 @@ jobs:
           printf '%s\n' "$NEW_HEAD" > tmp/last-deployed-sha.txt
           touch tmp/restart.txt
 
-          # Passenger's restart.txt is the primary cPanel restart signal.
-          # Node.js Selector is best-effort only; the live HTTP test below is authoritative.
+          # Best-effort selector restart. Passenger restart.txt remains the cPanel-standard signal.
           if command -v cloudlinux-selector >/dev/null 2>&1; then
             cloudlinux-selector restart --json --interpreter nodejs --domain trendpilot-test.7t7k.top --app-root trendpilot-repo || true
           elif [ -x /usr/sbin/cloudlinux-selector ]; then
@@ -129,15 +128,15 @@ jobs:
           echo "Namecheap SHA: $REMOTE_SHA"
           test "$REMOTE_SHA" = "$GITHUB_SHA"
 
-      - name: Verify live product runtime
-        id: live
+      - name: First live product check
+        id: live1
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
           rm -f /tmp/tp_headers /tmp/tp_body
-          for attempt in $(seq 1 18); do
-            echo "Live verification attempt $attempt/18"
+          for attempt in $(seq 1 8); do
+            echo "Live verification attempt $attempt/8"
             if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' -D /tmp/tp_headers -o /tmp/tp_body \
               "${LIVE_PRODUCT_URL}?deploy=${GITHUB_SHA}&attempt=${attempt}&ts=$(date +%s)"; then
               if grep -qi '^x-trendpilot-product-confidence:[[:space:]]*21\.3\.0' /tmp/tp_headers \
@@ -149,27 +148,98 @@ jobs:
             fi
             sleep 5
           done
-          echo "Live product is still not serving the new confidence runtime."
-          echo '--- response headers ---'
-          cat /tmp/tp_headers 2>/dev/null || true
-          echo '--- known markers ---'
-          grep -Eo 'tp-pc-panel|FOSSiBOT F106 PRO|data-tp-product-ui="[^"]+"' /tmp/tp_body 2>/dev/null | head -20 || true
           exit 1
 
-      - name: Passenger diagnostics when live runtime is stale
-        if: steps.live.outcome == 'failure'
-        shell: bash
-        run: |
-          set +e
-          echo '--- cPanel Passenger applications ---'
-          ssh trendpilot-namecheap 'uapi --output=jsonpretty PassengerApps list_applications || true'
-          echo '--- CloudLinux Node applications ---'
-          ssh trendpilot-namecheap 'cloudlinux-selector get --json --interpreter nodejs --user kehwgbpo || true'
-          echo '--- app files on Namecheap ---'
-          ssh trendpilot-namecheap 'cd /home/kehwgbpo/trendpilot-repo && git rev-parse HEAD && stat tmp/restart.txt && grep -n "CONFIDENCE_VERSION" netlify/functions/product-preview-v20-9-6-mobile-polish.cjs | head || true'
-
-      - name: Require live runtime verification
+      - name: Recover stale Namecheap Node runtime
+        if: steps.live1.outcome == 'failure'
         shell: bash
         run: |
           set -euo pipefail
-          test "${{ steps.live.outcome }}" = "success" || { echo "Namecheap files synced, but the live product runtime is still stale."; exit 1; }
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -eo pipefail
+          DOMAIN=trendpilot-test.7t7k.top
+          USERNAME=kehwgbpo
+          DEFAULT_ROOT=trendpilot-repo
+          REPO=/home/kehwgbpo/trendpilot-repo
+          NODE_ENV_ACTIVATE=/home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate
+          cd "$REPO"
+          source "$NODE_ENV_ACTIVATE"
+          mkdir -p tmp
+          touch tmp/restart.txt
+
+          SELECTOR_BIN=""
+          if command -v cloudlinux-selector >/dev/null 2>&1; then SELECTOR_BIN="$(command -v cloudlinux-selector)";
+          elif [ -x /usr/sbin/cloudlinux-selector ]; then SELECTOR_BIN=/usr/sbin/cloudlinux-selector; fi
+
+          APP_ROOT="$DEFAULT_ROOT"
+          if [ -n "$SELECTOR_BIN" ]; then
+            SELECTOR_JSON="$($SELECTOR_BIN get --json --interpreter nodejs --user "$USERNAME" 2>/dev/null || true)"
+            DETECTED_ROOT="$(printf '%s' "$SELECTOR_JSON" | node -e '
+              let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{
+                try { const root=JSON.parse(s); const target="trendpilot-test.7t7k.top"; let found="";
+                  const walk=o=>{ if(!o||typeof o!=="object"||found)return; for(const [k,v] of Object.entries(o)){ if(v&&typeof v==="object"&&String(v.domain||"").toLowerCase()===target){found=k;return;} walk(v);} }; walk(root); if(found) process.stdout.write(found);
+                } catch(e) {}
+              });' || true)"
+            if [ -n "$DETECTED_ROOT" ]; then APP_ROOT="$DETECTED_ROOT"; fi
+            echo "Detected Node app root: $APP_ROOT"
+
+            # Restart with both supported selector identities; if restart is unreliable,
+            # perform a controlled stop/start on the staging app only.
+            $SELECTOR_BIN restart --json --interpreter nodejs --domain "$DOMAIN" --app-root "$APP_ROOT" || \
+              $SELECTOR_BIN restart --json --interpreter nodejs --user "$USERNAME" --app-root "$APP_ROOT" || true
+            sleep 2
+            $SELECTOR_BIN stop --json --interpreter nodejs --domain "$DOMAIN" --app-root "$APP_ROOT" || \
+              $SELECTOR_BIN stop --json --interpreter nodejs --user "$USERNAME" --app-root "$APP_ROOT" || true
+            sleep 2
+            $SELECTOR_BIN start --json --interpreter nodejs --domain "$DOMAIN" --app-root "$APP_ROOT" || \
+              $SELECTOR_BIN start --json --interpreter nodejs --user "$USERNAME" --app-root "$APP_ROOT" || true
+          fi
+
+          touch tmp/restart.txt
+          sleep 4
+          REMOTE
+
+      - name: Final live product verification
+        id: live2
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f /tmp/tp_headers /tmp/tp_body
+          for attempt in $(seq 1 12); do
+            echo "Final live verification attempt $attempt/12"
+            if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' -D /tmp/tp_headers -o /tmp/tp_body \
+              "${LIVE_PRODUCT_URL}?deploy=${GITHUB_SHA}&final=${attempt}&ts=$(date +%s)"; then
+              if grep -qi '^x-trendpilot-product-confidence:[[:space:]]*21\.3\.0' /tmp/tp_headers \
+                 && grep -q 'tp-pc-panel' /tmp/tp_body \
+                 && grep -q 'FOSSiBOT F106 PRO' /tmp/tp_body; then
+                echo "LIVE_PRODUCT_CONFIDENCE_OK"
+                exit 0
+              fi
+            fi
+            sleep 5
+          done
+          echo "Live product is still not serving the current confidence runtime."
+          echo '--- response headers ---'
+          cat /tmp/tp_headers 2>/dev/null || true
+          echo '--- safe body markers ---'
+          grep -Eo 'tp-pc-panel|FOSSiBOT F106 PRO|data-tp-product-ui="[^"]+"' /tmp/tp_body 2>/dev/null | head -20 || true
+          exit 1
+
+      - name: Safe diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          echo '--- deployed SHA ---'
+          git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD || true
+          echo '--- restart signal ---'
+          stat /home/kehwgbpo/trendpilot-repo/tmp/restart.txt 2>/dev/null || true
+          echo '--- confidence code version ---'
+          grep -n 'CONFIDENCE_VERSION' /home/kehwgbpo/trendpilot-repo/netlify/functions/product-preview-v20-9-6-mobile-polish.cjs | head || true
+          echo '--- registered Node app (sanitized) ---'
+          if command -v cloudlinux-selector >/dev/null 2>&1; then
+            cloudlinux-selector get --json --interpreter nodejs --user kehwgbpo 2>/dev/null | node -e '
+              let s=""; process.stdin.on("data",d=>s+=d).on("end",()=>{try{const x=JSON.parse(s);const out=[];const walk=o=>{if(!o||typeof o!=="object")return;for(const [k,v] of Object.entries(o)){if(v&&typeof v==="object"&&v.domain)out.push({app_root:k,domain:v.domain,app_uri:v.app_uri||"",startup_file:v.startup_file||"",app_status:v.app_status||""});walk(v)}};walk(x);console.log(JSON.stringify(out,null,2))}catch(e){console.log("selector config unavailable")}});' || true
+          fi
+          REMOTE
