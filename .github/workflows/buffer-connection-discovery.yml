@@ -1,0 +1,102 @@
+name: Buffer Connection Discovery
+
+on:
+  push:
+    branches:
+      - namecheap-migration-v21
+    paths:
+      - .github/workflows/buffer-connection-discovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+
+    steps:
+      - name: Require existing Buffer API key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${BUFFER_API_KEY:-}" || { echo "BUFFER_API_KEY is missing."; exit 1; }
+          echo "BUFFER_API_KEY_PRESENT"
+
+      - name: Discover Buffer organizations and channels
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const apiKey = process.env.BUFFER_API_KEY;
+          const endpoint = 'https://api.buffer.com';
+
+          async function gql(query, variables = {}) {
+            const r = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'content-type': 'application/json',
+                authorization: `Bearer ${apiKey}`,
+              },
+              body: JSON.stringify({ query, variables }),
+            });
+            const body = await r.json();
+            if (!r.ok || body.errors?.length) {
+              console.error(JSON.stringify(body, null, 2));
+              process.exit(1);
+            }
+            return body.data;
+          }
+
+          const accountData = await gql(`
+            query DiscoverAccount {
+              account {
+                id
+                organizations {
+                  id
+                  name
+                }
+              }
+            }
+          `);
+
+          const orgs = accountData?.account?.organizations || [];
+          if (!orgs.length) {
+            console.error('No Buffer organizations were returned for this API key.');
+            process.exit(1);
+          }
+
+          console.log(`BUFFER_ORGANIZATIONS=${orgs.length}`);
+          let totalChannels = 0;
+
+          for (const org of orgs) {
+            const channelData = await gql(`
+              query DiscoverChannels($orgId: OrganizationId!) {
+                channels(input: { organizationId: $orgId }) {
+                  id
+                  name
+                  displayName
+                  service
+                  isQueuePaused
+                }
+              }
+            `, { orgId: org.id });
+
+            const channels = channelData?.channels || [];
+            totalChannels += channels.length;
+            console.log(`ORGANIZATION name=${JSON.stringify(org.name)} id=${org.id} channels=${channels.length}`);
+            for (const c of channels) {
+              console.log(`CHANNEL service=${c.service} name=${JSON.stringify(c.displayName || c.name)} id=${c.id} queuePaused=${c.isQueuePaused}`);
+            }
+          }
+
+          console.log(`BUFFER_CHANNELS_TOTAL=${totalChannels}`);
+          if (!totalChannels) {
+            console.error('No connected Buffer channels were found.');
+            process.exit(1);
+          }
+          console.log('BUFFER_CONNECTION_DISCOVERY_OK');
+          NODE
