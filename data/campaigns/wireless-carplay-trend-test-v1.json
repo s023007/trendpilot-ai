@@ -1,0 +1,47 @@
+{
+  "campaign_id": "wireless-carplay-trend-test-v1",
+  "status": "ready",
+  "market": "US-focused",
+  "primary_channel": "pinterest",
+  "secondary_channels": ["tiktok", "youtube"],
+  "pinterest_board": "tech",
+  "product": {
+    "name": "Wireless CarPlay Adapter Buying Guide",
+    "category": "car_tech",
+    "landing_page": "https://trendpilotchoice.com/products/wireless-carplay-adapters/"
+  },
+  "trend": {
+    "topic": "wireless carplay",
+    "source_note": "Selected from active short-form car-tech interest and matched to an existing TrendPilot buying guide.",
+    "creative_strategy": "problem-solution with a transparent compatibility warning"
+  },
+  "measurement": {
+    "primary_metric": "outbound_product_click / guide_view",
+    "secondary_metrics": ["guide_view", "social_click", "save_or_engagement"],
+    "rule": "Keep the problem-solution angle only if it attracts useful guide traffic and product-option clicks; do not optimize for impressions alone."
+  },
+  "disclosure": "Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links.",
+  "posts": [
+    {
+      "sequence": 1,
+      "post_id": "wireless-carplay-p01",
+      "creative_id": "cable-to-wireless-problem-solution-v1",
+      "angle": "daily cable annoyance to wireless convenience, with compatibility-first guidance",
+      "hypothesis": "A relatable cable-friction hook plus an honest compatibility warning will earn more qualified clicks than a generic gadget promotion.",
+      "pinterest": {
+        "title": "Wireless CarPlay Without the Cable? Check This First",
+        "description": "Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links. Still plugging in your iPhone every drive? A wireless CarPlay adapter can remove the daily cable routine — but it normally needs reliable wired CarPlay first. TrendPilot's quick guide shows the compatibility, USB, firmware and return checks worth doing before you buy.",
+        "link": "https://trendpilotchoice.com/products/wireless-carplay-adapters/?post_id=wireless-carplay-p01&creative_id=cable-to-wireless-problem-solution-v1&utm_source=pinterest&utm_medium=organic_social&utm_campaign=wireless-carplay-trend-test-v1&utm_content=problem-solution"
+      },
+      "tiktok": {
+        "caption": "Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links. Still plugging in for CarPlay every drive? A wireless adapter can remove the cable routine — but check one thing first: wired CarPlay should already work reliably. See the quick buyer guide before choosing one. #CarPlay #WirelessCarPlay #CarTech #CarGadgets",
+        "link": "https://trendpilotchoice.com/products/wireless-carplay-adapters/?post_id=wireless-carplay-p01&creative_id=cable-to-wireless-problem-solution-v1&utm_source=tiktok&utm_medium=organic_social&utm_campaign=wireless-carplay-trend-test-v1&utm_content=problem-solution"
+      },
+      "youtube": {
+        "title": "Wireless CarPlay Adapter: Check This Before You Buy",
+        "description": "Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links. Wireless CarPlay can remove the daily cable routine, but most adapters expect wired CarPlay to already work reliably. Check compatibility, USB behavior, firmware support and return terms before choosing one.",
+        "link": "https://trendpilotchoice.com/products/wireless-carplay-adapters/?post_id=wireless-carplay-p01&creative_id=cable-to-wireless-problem-solution-v1&utm_source=youtube&utm_medium=organic_social&utm_campaign=wireless-carplay-trend-test-v1&utm_content=problem-solution"
+      }
+    }
+  ]
+}
