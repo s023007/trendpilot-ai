@@ -1,0 +1,125 @@
+name: Pinterest Growth Loop
+
+on:
+  schedule:
+    - cron: '20 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pinterest-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  queue-next-pin:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      NAMECHEAP_SSH_PRIVATE_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+      PINTEREST_GROWTH_CAMPAIGN: data/campaigns/pinterest-growth-f106-v1.json
+      PIN_CREATIVE_OUTPUT_DIR: /tmp/pinterest-growth
+      PIN_ASSET_BASE_URL: https://trendpilotchoice.com/media/pinterest-growth/f106-pro
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      PRODUCTION_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      SOURCE_BRANCH: namecheap-migration-v21
+
+    steps:
+      - name: Checkout TrendPilot growth source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_BRANCH }}
+
+      - name: Require Buffer and Namecheap keys
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${BUFFER_API_KEY:-}" || { echo "BUFFER_API_KEY is missing"; exit 1; }
+          test -n "${NAMECHEAP_SSH_PRIVATE_KEY:-}" || { echo "NAMECHEAP_SSH_PRIVATE_KEY is missing"; exit 1; }
+
+      - name: Validate Pinterest growth campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check scripts/pinterest-growth-queue.js
+          python3 -m py_compile scripts/build-pinterest-growth-creatives.py
+          node <<'NODE'
+          const fs = require('fs');
+          const campaign = JSON.parse(fs.readFileSync(process.env.PINTEREST_GROWTH_CAMPAIGN, 'utf8'));
+          if (campaign.channel !== 'pinterest') throw new Error('Growth campaign must be Pinterest-only');
+          if (campaign.board_key !== 'tech') throw new Error('FOSSiBOT growth campaign must stay on the Tech & Gadget board');
+          if (!Array.isArray(campaign.pins) || campaign.pins.length !== 5) throw new Error('Expected exactly five Pinterest creative variants');
+          const ids = new Set(campaign.pins.map((p) => p.pin_id));
+          if (ids.size !== campaign.pins.length) throw new Error('Pinterest pin IDs must be unique');
+          console.log('PINTEREST_GROWTH_CAMPAIGN_OK', campaign.campaign_id, campaign.pins.length);
+          NODE
+
+      - name: Build five 2x3 Pinterest creatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet pillow
+          python3 scripts/build-pinterest-growth-creatives.py
+          test "$(find "$PIN_CREATIVE_OUTPUT_DIR" -maxdepth 1 -name '*.png' | wc -l)" -eq 5
+          ls -lh "$PIN_CREATIVE_OUTPUT_DIR"
+
+      - name: Upload Pinterest creatives to Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$NAMECHEAP_SSH_PRIVATE_KEY" > ~/.ssh/namecheap_pinterest_growth
+          chmod 600 ~/.ssh/namecheap_pinterest_growth
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap-pinterest
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_pinterest_growth
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+          ssh trendpilot-namecheap-pinterest "mkdir -p '$PRODUCTION_ROOT/media/pinterest-growth/f106-pro'"
+          scp "$PIN_CREATIVE_OUTPUT_DIR"/*.png "trendpilot-namecheap-pinterest:$PRODUCTION_ROOT/media/pinterest-growth/f106-pro/"
+          ssh trendpilot-namecheap-pinterest "ls -lh '$PRODUCTION_ROOT/media/pinterest-growth/f106-pro'"
+
+      - name: Verify public Pinterest creative assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          for id in f106-pg01 f106-pg02 f106-pg03 f106-pg04 f106-pg05; do
+            ok=0
+            for attempt in {1..8}; do
+              if curl -fLsS --range 0-1023 --max-time 20 "$PIN_ASSET_BASE_URL/$id.png?v=$GITHUB_RUN_ID" -o /tmp/pin-probe && test -s /tmp/pin-probe; then
+                echo "PIN_ASSET_OK $id"
+                ok=1
+                break
+              fi
+              sleep 3
+            done
+            test "$ok" -eq 1 || { echo "Pinterest creative could not be fetched: $id"; exit 1; }
+          done
+
+      - name: Queue one new Pinterest growth Pin
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/pinterest-growth-queue.js
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### TrendPilot Pinterest Growth Loop" >> "$GITHUB_STEP_SUMMARY"
+          echo "This workflow queues at most one new Pinterest creative per run." >> "$GITHUB_STEP_SUMMARY"
+          echo "The FOSSiBOT campaign contains five distinct buyer-intent angles and is locked to Tech & Gadget Deals." >> "$GITHUB_STEP_SUMMARY"
+          echo "Each creative has a unique post_id / creative_id / UTM destination for later performance comparison." >> "$GITHUB_STEP_SUMMARY"
+          echo "TikTok and YouTube are not touched by this workflow." >> "$GITHUB_STEP_SUMMARY"
