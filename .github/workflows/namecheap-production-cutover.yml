@@ -1,0 +1,165 @@
+name: Namecheap Production Cutover
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: namecheap-production-cutover
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: "21098"
+      CPANEL_USER: kehwgbpo
+      APP_DIR: /home/kehwgbpo/trendpilot-repo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      BRANCH: namecheap-migration-v21
+      SITE_URL: https://trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
+    steps:
+      - name: Require Namecheap SSH key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo "NAMECHEAP_SSH_PRIVATE_KEY is missing."; exit 1; }
+
+      - name: Checkout tested TrendPilot branch
+        uses: actions/checkout@v4
+        with:
+          ref: namecheap-migration-v21
+          fetch-depth: 2
+
+      - name: Validate shopper build
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check js/item-detail-v20-9.js
+          node --check js/item-confidence-v21-4.js
+          node --check js/item-conversion-v21-5.js
+          node --check js/tp-analytics-v1.js
+          grep -q 'item-confidence-v21-4.js?v=21.4.2' item/index.html
+          grep -q 'item-conversion-v21-5.js' item/index.html
+          grep -q 'tp-analytics-v1.js' item/index.html
+          test -f data/tp-track.php
+          test -f data/review-evidence-v21.json
+          test -d data/v20-9/products
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Verify Namecheap SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'printf "SSH_OK\n"'
+
+      - name: Verify production document root exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'test -d /home/kehwgbpo/trendpilotchoice.com && printf "PRODUCTION_ROOT_OK\n"'
+
+      - name: Sync tested branch on Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -eo pipefail
+          APP_DIR=/home/kehwgbpo/trendpilot-repo
+          BRANCH=namecheap-migration-v21
+          cd "$APP_DIR"
+          git fetch --prune origin "$BRANCH"
+          git checkout "$BRANCH"
+          git reset --hard FETCH_HEAD
+          echo "SOURCE_SHA=$(git rev-parse HEAD)"
+          REMOTE
+
+      - name: Publish tested static site to trendpilotchoice.com
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
+          set -eo pipefail
+          APP_DIR=/home/kehwgbpo/trendpilot-repo
+          STATIC_ROOT=/home/kehwgbpo/trendpilotchoice.com
+
+          test -d "$STATIC_ROOT" || { echo "Production document root not found: $STATIC_ROOT"; exit 1; }
+
+          for d in css js images data item find compare deals products sourcing; do
+            if [ -d "$APP_DIR/$d" ]; then
+              mkdir -p "$STATIC_ROOT/$d"
+              cp -a "$APP_DIR/$d/." "$STATIC_ROOT/$d/"
+            fi
+          done
+
+          for f in index.html 404.html manifest.webmanifest robots.txt sitemap.xml; do
+            if [ -f "$APP_DIR/$f" ]; then
+              cp -a "$APP_DIR/$f" "$STATIC_ROOT/$f"
+            fi
+          done
+
+          cat > "$STATIC_ROOT/.htaccess" <<'HTACCESS'
+          PassengerEnabled off
+          Options -Indexes
+          DirectoryIndex index.html
+          HTACCESS
+
+          git -C "$APP_DIR" rev-parse HEAD > "$STATIC_ROOT/namecheap-production-release.txt"
+          echo "PRODUCTION_SHA=$(cat "$STATIC_ROOT/namecheap-production-release.txt")"
+          REMOTE
+
+      - name: Verify production files on server
+        shell: bash
+        run: |
+          set -euo pipefail
+          REMOTE_SHA="$(ssh trendpilot-namecheap 'cat /home/kehwgbpo/trendpilotchoice.com/namecheap-production-release.txt')"
+          echo "GitHub SHA: $GITHUB_SHA"
+          echo "Production SHA: $REMOTE_SHA"
+          test "$REMOTE_SHA" = "$GITHUB_SHA"
+          ssh trendpilot-namecheap 'grep -q "item-conversion-v21-5.js" /home/kehwgbpo/trendpilotchoice.com/item/index.html'
+
+      - name: Verify live production after DNS cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..16}; do
+            RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/namecheap-production-release.txt?ts=$(date +%s)" || true)"
+            ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/item/?ts=$(date +%s)" || true)"
+            ANALYTICS="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/data/tp-track.php?probe=1&ts=$(date +%s)" || true)"
+            echo "attempt=$attempt release=$RELEASE analytics=$ANALYTICS"
+            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && [ "$ANALYTICS" = '{"ok":true,"runtime":"analytics-v1"}' ]; then
+              echo "PRODUCTION_CUTOVER_LIVE_OK sha=$RELEASE"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "Production files exist on Namecheap but trendpilotchoice.com is not yet serving them. Check DNS/SSL propagation."
+          exit 1
