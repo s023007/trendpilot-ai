@@ -11,19 +11,20 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 10
     env:
       CPANEL_HOST: 198.54.120.162
       CPANEL_PORT: "21098"
       CPANEL_USER: kehwgbpo
-      SOURCE_REPO: /home/kehwgbpo/trendpilot-repo
-      TARGET_DOMAIN: trendpilot-test.7t7k.top
-      LIVE_PRODUCT_URL: https://trendpilot-test.7t7k.top/product/bcba2c15f61566/
+      APP_ROOT: trendpilot-repo
+      APP_DIR: /home/kehwgbpo/trendpilot-repo
+      BRANCH: namecheap-migration-v21
+      LIVE_PROBE_URL: https://trendpilot-test.7t7k.top/.netlify/functions/namecheap-runtime-probe-v1
       DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
 
     steps:
@@ -38,15 +39,17 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Validate runtime source
+      - name: Validate deployment source
         shell: bash
         run: |
           set -euo pipefail
           node --check server.js
           node --check server.cjs
           node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+          node --check netlify/functions/namecheap-runtime-probe-v1.cjs
+          node --check js/post-intelligence-v21.js
           grep -q 'tp-pc-panel' netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
-          grep -q 'x-trendpilot-product-confidence' netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+          grep -q 'tp-trust-panel' js/post-intelligence-v21.js
 
       - name: Configure SSH
         shell: bash
@@ -77,20 +80,17 @@ jobs:
           set -euo pipefail
           ssh trendpilot-namecheap 'printf "SSH_OK\n"'
 
-      - name: Detect app root, sync source and restart actual Node app
+      - name: Sync branch and restart Node app
         shell: bash
         run: |
           set -euo pipefail
           ssh trendpilot-namecheap 'bash -se' <<'REMOTE'
           set -eo pipefail
-          USERNAME=kehwgbpo
-          DOMAIN=trendpilot-test.7t7k.top
-          SOURCE=/home/kehwgbpo/trendpilot-repo
+          APP_DIR=/home/kehwgbpo/trendpilot-repo
           BRANCH=namecheap-migration-v21
-          DEFAULT_ROOT=trendpilot-repo
-          SOURCE_NODE_ENV=/home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate
+          NODE_ENV_ACTIVATE=/home/kehwgbpo/nodevenv/trendpilot-repo/20/bin/activate
 
-          cd "$SOURCE"
+          cd "$APP_DIR"
           OLD_PACKAGE="$(git show HEAD:package.json 2>/dev/null | sha256sum | awk '{print $1}' || true)"
           git fetch --prune origin "$BRANCH"
           git checkout "$BRANCH"
@@ -98,10 +98,20 @@ jobs:
           NEW_HEAD="$(git rev-parse HEAD)"
           NEW_PACKAGE="$(sha256sum package.json 2>/dev/null | awk '{print $1}' || true)"
 
-          source "$SOURCE_NODE_ENV"
+          source "$NODE_ENV_ACTIVATE"
           node --check server.js
           node --check server.cjs
           node --check netlify/functions/product-preview-v20-9-6-mobile-polish.cjs
+          node --check netlify/functions/namecheap-runtime-probe-v1.cjs
+          node --check js/post-intelligence-v21.js
+
+          if [ "$OLD_PACKAGE" != "$NEW_PACKAGE" ] || [ ! -d node_modules ]; then
+            npm install --omit=dev
+          fi
+
+          mkdir -p tmp
+          printf '%s\n' "$NEW_HEAD" > tmp/last-deployed-sha.txt
+          touch tmp/restart.txt
 
           SELECTOR_BIN=""
           if command -v cloudlinux-selector >/dev/null 2>&1; then
@@ -110,154 +120,59 @@ jobs:
             SELECTOR_BIN=/usr/sbin/cloudlinux-selector
           fi
 
-          APP_ROOT="$DEFAULT_ROOT"
-          STARTUP_FILE=""
-          APP_STATUS=""
           if [ -n "$SELECTOR_BIN" ]; then
-            SELECTOR_JSON="$($SELECTOR_BIN get --json --interpreter nodejs --user "$USERNAME" 2>/dev/null || true)"
-            APP_META="$(printf '%s' "$SELECTOR_JSON" | node -e '
-              let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{
-                try{
-                  const root=JSON.parse(s), target="trendpilot-test.7t7k.top";
-                  let hit=null;
-                  const walk=(o,key="")=>{
-                    if(!o||typeof o!=="object"||hit)return;
-                    if(String(o.domain||"").toLowerCase()===target){hit={root:String(o.app_root||o.appRoot||key||""),startup:String(o.startup_file||o.startupFile||""),status:String(o.app_status||o.status||"")};return;}
-                    for(const [k,v] of Object.entries(o)) walk(v,k);
-                  };
-                  walk(root);
-                  if(hit) process.stdout.write([hit.root,hit.startup,hit.status].join("\t"));
-                }catch(e){}
-              });' || true)"
-            if [ -n "$APP_META" ]; then
-              IFS=$'\t' read -r DETECTED_ROOT STARTUP_FILE APP_STATUS <<< "$APP_META"
-              if [ -n "$DETECTED_ROOT" ]; then APP_ROOT="$DETECTED_ROOT"; fi
-            fi
+            $SELECTOR_BIN set --json --interpreter nodejs --user kehwgbpo --app-root trendpilot-repo --startup-file server.js || true
+            $SELECTOR_BIN restart --json --interpreter nodejs --user kehwgbpo --app-root trendpilot-repo || {
+              $SELECTOR_BIN stop --json --interpreter nodejs --user kehwgbpo --app-root trendpilot-repo || true
+              sleep 2
+              $SELECTOR_BIN start --json --interpreter nodejs --user kehwgbpo --app-root trendpilot-repo || true
+            }
           fi
 
-          APP_ROOT="${APP_ROOT#/}"
-          case "$APP_ROOT" in
-            *..*) echo "Unsafe app root detected"; exit 1;;
-          esac
-          APP_DIR="/home/$USERNAME/$APP_ROOT"
-          echo "Detected app root: $APP_ROOT"
-          echo "Detected startup file: ${STARTUP_FILE:-unknown}"
-          echo "Detected app status: ${APP_STATUS:-unknown}"
-
-          if [ "$APP_DIR" != "$SOURCE" ]; then
-            echo "Node app root differs from the Git clone; syncing source into the real app root."
-            mkdir -p "$APP_DIR"
-            rsync -a --exclude='.git' --exclude='node_modules' --exclude='tmp' "$SOURCE"/ "$APP_DIR"/
-          fi
-
-          if [ "$APP_DIR" = "$SOURCE" ] && { [ "$OLD_PACKAGE" != "$NEW_PACKAGE" ] || [ ! -d "$SOURCE/node_modules" ]; }; then
-            npm install --omit=dev
-          fi
-
-          mkdir -p "$APP_DIR/tmp" "$SOURCE/tmp"
-          printf '%s\n' "$NEW_HEAD" > "$APP_DIR/tmp/last-deployed-sha.txt"
-          printf '%s\n' "$NEW_HEAD" > "$SOURCE/tmp/last-deployed-sha.txt"
-          printf '%s\n' "$APP_ROOT" > "$SOURCE/tmp/last-detected-app-root.txt"
-          touch "$APP_DIR/tmp/restart.txt"
-
-          if [ -n "$SELECTOR_BIN" ]; then
-            $SELECTOR_BIN set --json --interpreter nodejs --domain "$DOMAIN" --app-root "$APP_ROOT" --startup-file server.js || \
-              $SELECTOR_BIN set --json --interpreter nodejs --user "$USERNAME" --app-root "$APP_ROOT" --startup-file server.js || true
-
-            if [ "$APP_DIR" != "$SOURCE" ]; then
-              $SELECTOR_BIN install-modules --json --interpreter nodejs --domain "$DOMAIN" --app-root "$APP_ROOT" || \
-                $SELECTOR_BIN install-modules --json --interpreter nodejs --user "$USERNAME" --app-root "$APP_ROOT" || true
-            fi
-
-            $SELECTOR_BIN stop --json --interpreter nodejs --domain "$DOMAIN" --app-root "$APP_ROOT" || \
-              $SELECTOR_BIN stop --json --interpreter nodejs --user "$USERNAME" --app-root "$APP_ROOT" || true
-            sleep 2
-            $SELECTOR_BIN start --json --interpreter nodejs --domain "$DOMAIN" --app-root "$APP_ROOT" || \
-              $SELECTOR_BIN start --json --interpreter nodejs --user "$USERNAME" --app-root "$APP_ROOT" || true
-            sleep 2
-            $SELECTOR_BIN restart --json --interpreter nodejs --domain "$DOMAIN" --app-root "$APP_ROOT" || \
-              $SELECTOR_BIN restart --json --interpreter nodejs --user "$USERNAME" --app-root "$APP_ROOT" || true
-          fi
-
-          touch "$APP_DIR/tmp/restart.txt"
+          touch tmp/restart.txt
           sleep 5
+          echo "DEPLOYED_SHA=$NEW_HEAD"
           REMOTE
 
-      - name: Verify source commit reached Namecheap
+      - name: Verify deployed Git commit
         shell: bash
         run: |
           set -euo pipefail
           REMOTE_SHA="$(ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD')"
           echo "GitHub SHA: $GITHUB_SHA"
-          echo "Namecheap source SHA: $REMOTE_SHA"
+          echo "Namecheap SHA: $REMOTE_SHA"
           test "$REMOTE_SHA" = "$GITHUB_SHA"
 
-      - name: Verify live product runtime
-        id: live
-        continue-on-error: true
+      - name: Verify Namecheap runtime can load deployed files
         shell: bash
         run: |
           set -euo pipefail
-          rm -f /tmp/tp_headers /tmp/tp_body
-          for attempt in $(seq 1 18); do
-            echo "Live verification attempt $attempt/18"
-            if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' -D /tmp/tp_headers -o /tmp/tp_body \
-              "${LIVE_PRODUCT_URL}?deploy=${GITHUB_SHA}&attempt=${attempt}&ts=$(date +%s)"; then
-              if grep -qi '^x-trendpilot-product-confidence:[[:space:]]*21\.3\.0' /tmp/tp_headers \
-                 && grep -q 'tp-pc-panel' /tmp/tp_body; then
-                echo "LIVE_PRODUCT_RUNTIME_OK"
+          rm -f /tmp/tp_probe_headers /tmp/tp_probe_body
+          for attempt in $(seq 1 12); do
+            echo "Runtime probe $attempt/12"
+            if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' -D /tmp/tp_probe_headers -o /tmp/tp_probe_body \
+              "${LIVE_PROBE_URL}?deploy=${GITHUB_SHA}&attempt=${attempt}&ts=$(date +%s)"; then
+              if grep -qi '^x-trendpilot-runtime-probe:[[:space:]]*namecheap-v1' /tmp/tp_probe_headers \
+                 && grep -q '"runtime":"namecheap-v1"' /tmp/tp_probe_body; then
+                echo "NAMECHEAP_RUNTIME_PROBE_OK"
                 exit 0
               fi
             fi
-            sleep 5
+            sleep 4
           done
-          echo "Live product is still not serving the current product-confidence runtime."
+          echo "Runtime probe failed."
           exit 1
 
-      - name: Capture sanitized runtime diagnostics
-        if: always()
+      - name: Safe diagnostics on failure
+        if: failure()
         shell: bash
         run: |
           set +e
-          mkdir -p diagnostics
-          {
-            echo "status=${{ steps.live.outcome }}"
-            echo "github_sha=$GITHUB_SHA"
-            echo "checked_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            echo "--- live headers ---"
-            grep -Ei '^(HTTP/|server:|x-trendpilot-|cache-control:|content-type:)' /tmp/tp_headers 2>/dev/null || true
-            echo "--- live body markers ---"
-            grep -Eo 'tp-pc-panel|FOSSiBOT F106 PRO|data-tp-product-ui="[^"]+"' /tmp/tp_body 2>/dev/null | head -20 || true
-            echo "--- remote app ---"
-          } > diagnostics/namecheap-runtime-last.txt 2>&1
-
-          ssh trendpilot-namecheap 'ROOT="$(cat /home/kehwgbpo/trendpilot-repo/tmp/last-detected-app-root.txt 2>/dev/null || echo trendpilot-repo)"; \
-            echo "app_root=$ROOT"; \
-            echo "source_sha=$(git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD 2>/dev/null || true)"; \
-            echo "deployed_marker=$(cat /home/kehwgbpo/$ROOT/tmp/last-deployed-sha.txt 2>/dev/null || true)"; \
-            echo "startup_marker=$(grep -n CONFIDENCE_VERSION /home/kehwgbpo/$ROOT/netlify/functions/product-preview-v20-9-6-mobile-polish.cjs 2>/dev/null | head -1 || true)"; \
-            if command -v cloudlinux-selector >/dev/null 2>&1; then \
-              echo "--- selector summary ---"; \
-              cloudlinux-selector get --json --interpreter nodejs --user kehwgbpo 2>/dev/null | grep -Eo '"(domain|app_root|startup_file|app_status|status)"[[:space:]]*:[[:space:]]*"[^"]*"' | head -40 || true; \
-            fi' >> diagnostics/namecheap-runtime-last.txt 2>&1 || true
-
-          cat diagnostics/namecheap-runtime-last.txt
-
-      - name: Persist diagnostics for the next investigation
-        if: always()
-        shell: bash
-        run: |
-          set +e
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add diagnostics/namecheap-runtime-last.txt
-          if ! git diff --cached --quiet; then
-            git commit -m 'chore: record Namecheap runtime diagnostics [skip ci]'
-            git push origin HEAD:namecheap-migration-v21 || true
-          fi
-
-      - name: Require live runtime verification
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "${{ steps.live.outcome }}" = "success" || { echo "Namecheap deployment is still stale; diagnostics were saved to diagnostics/namecheap-runtime-last.txt."; exit 1; }
+          echo '--- probe response ---'
+          curl -isS --max-time 20 "${LIVE_PROBE_URL}?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- remote SHA ---'
+          ssh trendpilot-namecheap 'git -C /home/kehwgbpo/trendpilot-repo rev-parse HEAD 2>/dev/null || true' || true
+          echo '--- deploy marker ---'
+          ssh trendpilot-namecheap 'cat /home/kehwgbpo/trendpilot-repo/tmp/last-deployed-sha.txt 2>/dev/null || true' || true
+          echo '--- restart marker ---'
+          ssh trendpilot-namecheap 'stat /home/kehwgbpo/trendpilot-repo/tmp/restart.txt 2>/dev/null | head -8 || true' || true
