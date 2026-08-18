@@ -45,7 +45,12 @@ jobs:
           set -euo pipefail
           node --check js/item-detail-v20-9.js
           node --check js/item-confidence-v21-4.js
-          grep -q 'item-confidence-v21-4.js' item/index.html
+          node --check js/item-conversion-v21-5.js
+          node --check js/tp-analytics-v1.js
+          grep -q 'item-confidence-v21-4.js?v=21.4.2' item/index.html
+          grep -q 'item-conversion-v21-5.js' item/index.html
+          grep -q 'tp-analytics-v1.js' item/index.html
+          test -f data/tp-track.php
           test -f data/review-evidence-v21.json
           test -d data/v20-9/products
 
@@ -141,7 +146,7 @@ jobs:
           echo "Static SHA: $REMOTE_SHA"
           test "$REMOTE_SHA" = "$GITHUB_SHA"
 
-      - name: Verify live static item page
+      - name: Verify live Product V1
         shell: bash
         run: |
           set -euo pipefail
@@ -149,13 +154,29 @@ jobs:
             RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/namecheap-static-release.txt?ts=$(date +%s)" || true)"
             ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/item/?ts=$(date +%s)" || true)"
             echo "attempt=$attempt release=$RELEASE"
-            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js' <<< "$ITEM"; then
-              echo "STATIC_LIVE_OK sha=$RELEASE"
+            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM"; then
+              echo "PRODUCT_V1_LIVE_OK sha=$RELEASE"
               exit 0
             fi
             sleep 3
           done
-          echo "Static site verification failed. Passenger may still be intercepting the domain or the document root may differ."
+          echo "Product V1 static verification failed."
+          exit 1
+
+      - name: Verify first-party analytics runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..8}; do
+            PROBE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${SITE_URL}/data/tp-track.php?probe=1&ts=$(date +%s)" || true)"
+            echo "analytics_probe=$PROBE"
+            if [ "$PROBE" = '{"ok":true,"runtime":"analytics-v1"}' ]; then
+              echo "ANALYTICS_LIVE_OK"
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "First-party analytics endpoint is not executing as PHP on Namecheap."
           exit 1
 
       - name: Diagnostics on failure
@@ -167,5 +188,7 @@ jobs:
           curl -isS --max-time 20 "${SITE_URL}/namecheap-static-release.txt?diagnostic=$(date +%s)" | head -40 || true
           echo '--- live item page ---'
           curl -isS --max-time 20 "${SITE_URL}/item/?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- analytics probe ---'
+          curl -isS --max-time 20 "${SITE_URL}/data/tp-track.php?probe=1&diagnostic=$(date +%s)" | head -40 || true
           echo '--- remote document root ---'
           ssh trendpilot-namecheap 'ls -la /home/kehwgbpo/trendpilot-test.7t7k.top | head -50; echo ---HTACCESS---; cat /home/kehwgbpo/trendpilot-test.7t7k.top/.htaccess 2>/dev/null || true' || true
