@@ -57,6 +57,12 @@ jobs:
           test -f data/tp-track.php
           test -f data/review-evidence-v21.json
           test -f data/campaigns/fossibot-f106-pro-launch-v1.json
+          test -f data/campaigns/pinterest-growth-wireless-carplay-v1.json
+          test -f data/campaigns/discovery-wireless-carplay-v1.json
+          test -f products/wireless-carplay-adapters/guide/index.html
+          test -f products/feed.xml
+          test -s sitemap.xml
+          test -f 0d2916d362aea74d9aab63e45f6ca04e.txt
           test -d data/v20-9/products
 
       - name: Configure SSH
@@ -123,7 +129,7 @@ jobs:
               fi
             done
 
-            for f in index.html 404.html manifest.webmanifest robots.txt sitemap.xml; do
+            for f in index.html 404.html manifest.webmanifest robots.txt sitemap.xml sitemap-v20-8.xml 0d2916d362aea74d9aab63e45f6ca04e.txt; do
               if [ -f "$APP_DIR/$f" ]; then
                 cp -a "$APP_DIR/$f" "$ROOT/$f"
               fi
@@ -162,8 +168,9 @@ jobs:
           for attempt in {1..12}; do
             RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${TEST_URL}/namecheap-static-release.txt?ts=$(date +%s)" || true)"
             ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${TEST_URL}/item/?ts=$(date +%s)" || true)"
+            GUIDE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${TEST_URL}/products/wireless-carplay-adapters/guide/?ts=$(date +%s)" || true)"
             echo "test attempt=$attempt release=$RELEASE"
-            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'item-campaign-v1.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM"; then
+            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'Will a Wireless CarPlay Adapter Work in Your Car?' <<< "$GUIDE"; then
               echo "TEST_SITE_LIVE_OK sha=$RELEASE"
               exit 0
             fi
@@ -179,9 +186,13 @@ jobs:
           for attempt in {1..16}; do
             RELEASE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/namecheap-production-release.txt?ts=$(date +%s)" || true)"
             ITEM="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/item/?ts=$(date +%s)" || true)"
-            CAMPAIGN="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/data/campaigns/fossibot-f106-pro-launch-v1.json?ts=$(date +%s)" || true)"
+            CAMPAIGN="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/data/campaigns/pinterest-growth-wireless-carplay-v1.json?ts=$(date +%s)" || true)"
+            GUIDE="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/products/wireless-carplay-adapters/guide/?ts=$(date +%s)" || true)"
+            FEED="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/products/feed.xml?ts=$(date +%s)" || true)"
+            SITEMAP="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/sitemap.xml?ts=$(date +%s)" || true)"
+            KEY="$(curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "${PRODUCTION_URL}/0d2916d362aea74d9aab63e45f6ca04e.txt?ts=$(date +%s)" || true)"
             echo "production attempt=$attempt release=$RELEASE"
-            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'item-conversion-v21-5.js' <<< "$ITEM" && grep -q 'item-campaign-v1.js' <<< "$ITEM" && grep -q 'tp-analytics-v1.js' <<< "$ITEM" && grep -q 'f106-pro-launch-v1' <<< "$CAMPAIGN"; then
+            if [ "$RELEASE" = "$GITHUB_SHA" ] && grep -q 'item-confidence-v21-4.js?v=21.4.2' <<< "$ITEM" && grep -q 'wireless-carplay-pinterest-growth-v1' <<< "$CAMPAIGN" && grep -q 'Will a Wireless CarPlay Adapter Work in Your Car?' <<< "$GUIDE" && grep -q 'TrendPilot Buying Guides' <<< "$FEED" && grep -q 'wireless-carplay-adapters/guide/' <<< "$SITEMAP" && [ "$KEY" = '0d2916d362aea74d9aab63e45f6ca04e' ]; then
               echo "PRODUCTION_SITE_LIVE_OK sha=$RELEASE"
               exit 0
             fi
@@ -221,8 +232,10 @@ jobs:
           curl -isS --max-time 20 "${PRODUCTION_URL}/namecheap-production-release.txt?diagnostic=$(date +%s)" | head -40 || true
           echo '--- production item page ---'
           curl -isS --max-time 20 "${PRODUCTION_URL}/item/?diagnostic=$(date +%s)" | head -80 || true
-          echo '--- production campaign ---'
-          curl -isS --max-time 20 "${PRODUCTION_URL}/data/campaigns/fossibot-f106-pro-launch-v1.json?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- production Wireless CarPlay guide ---'
+          curl -isS --max-time 20 "${PRODUCTION_URL}/products/wireless-carplay-adapters/guide/?diagnostic=$(date +%s)" | head -80 || true
+          echo '--- production sitemap ---'
+          curl -isS --max-time 20 "${PRODUCTION_URL}/sitemap.xml?diagnostic=$(date +%s)" | head -80 || true
           echo '--- production analytics probe ---'
           curl -isS --max-time 20 "${PRODUCTION_URL}/data/tp-track.php?probe=1&diagnostic=$(date +%s)" | head -40 || true
           echo '--- remote production root ---'
