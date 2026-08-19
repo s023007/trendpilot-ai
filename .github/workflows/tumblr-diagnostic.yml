@@ -29,7 +29,7 @@ jobs:
       - name: Install Tumblr client
         run: npm install --no-save tumblr.js@5.0.1
 
-      - name: Diagnose auth, queue and image post
+      - name: Diagnose Tumblr posting paths
         shell: bash
         run: |
           set +e
@@ -44,7 +44,8 @@ jobs:
             blog: null,
             queue_before: null,
             text_probe: null,
-            image_probe: null,
+            npf_image_probe: null,
+            legacy_photo_probe: null,
             queue_after: null,
             error: null
           };
@@ -59,6 +60,9 @@ jobs:
             token: process.env.TUMBLR_OAUTH_TOKEN,
             token_secret: process.env.TUMBLR_OAUTH_TOKEN_SECRET,
           });
+
+          const destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=diagnostic';
+          const source = 'https://raw.githubusercontent.com/s023007/trendpilot-ai/main/images/social/carplay-ai-01.jpg';
 
           (async () => {
             try {
@@ -75,7 +79,6 @@ jobs:
               const q1 = await client.blogQueue(blogName, {limit: 50, offset: 0});
               out.queue_before = (q1?.posts || []).map(p => ({id:String(p.id), summary:p.summary||'', tags:p.tags||[]}));
 
-              // Probe signed posting without media, then delete it if successful.
               try {
                 const tp = await client.createPost(blogName, {
                   state: 'queue',
@@ -89,24 +92,38 @@ jobs:
                 out.text_probe = {ok:false, error:String(e?.stack || e)};
               }
 
-              // Image probe using the known-good local campaign asset already in the repo.
               try {
-                if (!fs.existsSync('images/social/carplay-ai-01.jpg')) throw new Error('images/social/carplay-ai-01.jpg missing');
                 const st = fs.statSync('images/social/carplay-ai-01.jpg');
                 const ip = await client.createPost(blogName, {
                   state: 'queue',
-                  tags: ['trendpilot-carplay-ai-01','wireless carplay','car accessories','TrendPilot'],
+                  tags: ['trendpilot-npf-image-probe'],
                   content: [
-                    {type:'image', media: fs.createReadStream('images/social/carplay-ai-01.jpg'), alt_text:'AI-generated Wireless CarPlay buying guide image from TrendPilot'},
-                    {type:'text', subtype:'heading1', text:'Will a Wireless CarPlay Adapter Work in Your Car?'},
-                    {type:'text', text:'Check wired CarPlay support, the USB data port, firmware updates and return terms before buying.'},
-                    {type:'link', url:'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=diagnostic', title:'Read the full Wireless CarPlay buying guide', description:'Five practical checks before comparing adapters.', site_name:'TrendPilot'}
+                    {type:'image', media: fs.createReadStream('images/social/carplay-ai-01.jpg'), alt_text:'TrendPilot Wireless CarPlay image'},
+                    {type:'text', text:'NPF image probe'}
                   ]
                 });
                 const iid = String(ip?.id || ip?.response?.id || '');
-                out.image_probe = {ok: !!iid, id: iid || null, bytes: st.size, response_keys: Object.keys(ip||{})};
+                out.npf_image_probe = {ok: !!iid, id: iid || null, bytes: st.size, response_keys: Object.keys(ip||{})};
+                if (iid) await client.deletePost(blogName, iid);
               } catch (e) {
-                out.image_probe = {ok:false, error:String(e?.stack || e)};
+                let bytes = null;
+                try { bytes = fs.statSync('images/social/carplay-ai-01.jpg').size; } catch {}
+                out.npf_image_probe = {ok:false, bytes, error:String(e?.stack || e)};
+              }
+
+              try {
+                const lp = await client.createLegacyPost(blogName, {
+                  type: 'photo',
+                  state: 'queue',
+                  tags: 'trendpilot-carplay-ai-01,wireless carplay,car accessories,TrendPilot',
+                  source,
+                  link: destination,
+                  caption: '<h2>Will a Wireless CarPlay Adapter Work in Your Car?</h2><p>Check wired CarPlay support, the USB data port, firmware updates and return terms before buying.</p><p><a href="' + destination + '">Read the full Wireless CarPlay buying guide on TrendPilot</a></p>'
+                });
+                const lid = String(lp?.id || lp?.response?.id || '');
+                out.legacy_photo_probe = {ok: !!lid, id: lid || null, response_keys: Object.keys(lp||{}), source};
+              } catch (e) {
+                out.legacy_photo_probe = {ok:false, source, error:String(e?.stack || e)};
               }
 
               const q2 = await client.blogQueue(blogName, {limit: 50, offset: 0});
