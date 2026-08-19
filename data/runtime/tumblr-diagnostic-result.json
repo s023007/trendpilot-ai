@@ -1,20 +1,26 @@
 {
-  "started_at": "2026-08-19T18:23:25.880Z",
+  "started_at": "2026-08-19T18:26:58.763Z",
   "missing_secrets": [],
   "auth_ok": true,
   "blog": "trendpilotchoice",
   "queue_before": [],
   "text_probe": {
     "ok": true,
-    "id": "825401075160989696",
+    "id": "825401298508726272",
     "response_keys": [
       "id",
       "state",
       "display_text"
     ]
   },
-  "image_probe": {
+  "npf_image_probe": {
     "ok": false,
+    "bytes": 10539,
+    "error": "Error: API error: 400 Bad Request\n    at IncomingMessage.<anonymous> (/home/runner/work/trendpilot-ai/trendpilot-ai/node_modules/tumblr.js/lib/tumblr.js:339:13)\n    at IncomingMessage.emit (node:events:536:35)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  },
+  "legacy_photo_probe": {
+    "ok": false,
+    "source": "https://raw.githubusercontent.com/s023007/trendpilot-ai/main/images/social/carplay-ai-01.jpg",
     "error": "Error: API error: 400 Bad Request\n    at IncomingMessage.<anonymous> (/home/runner/work/trendpilot-ai/trendpilot-ai/node_modules/tumblr.js/lib/tumblr.js:339:13)\n    at IncomingMessage.emit (node:events:536:35)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)"
   },
   "queue_after": [],
