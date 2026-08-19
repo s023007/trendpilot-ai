@@ -1,0 +1,91 @@
+{
+  "checked_at": "2026-08-19T05:46:39.929Z",
+  "live": {
+    "page": {
+      "url": "https://trendpilotchoice.com/products/wireless-carplay-adapters/?audit=1787118399977",
+      "status": 200,
+      "ok": true,
+      "containsExpected": true,
+      "bytes": 20231
+    },
+    "sitemap": {
+      "url": "https://trendpilotchoice.com/sitemap.xml?audit=1787118400319",
+      "status": 200,
+      "ok": true,
+      "containsExpected": true,
+      "bytes": 1762
+    },
+    "feed": {
+      "url": "https://trendpilotchoice.com/feed.xml?audit=1787118400349",
+      "status": 200,
+      "ok": true,
+      "containsExpected": true,
+      "bytes": 1050
+    },
+    "indexnow_key": {
+      "url": "https://trendpilotchoice.com/d3f1a9c7e5b24f6081c4a9d2e7b5f310.txt?audit=1787118400378",
+      "status": 200,
+      "ok": true,
+      "containsExpected": true,
+      "bytes": 33
+    },
+    "pin_image": {
+      "url": "https://trendpilotchoice.com/media/pinterest-growth/wireless-carplay-v1/carplay-pg01.png?audit=1787118400404",
+      "status": 200,
+      "ok": true,
+      "containsExpected": true,
+      "bytes": 306894
+    }
+  },
+  "buffer": {
+    "channels": [
+      {
+        "id": "6a81fd16ccaf649a67b9df35",
+        "service": "pinterest",
+        "name": "trendpilotchoice",
+        "queuePaused": false
+      },
+      {
+        "id": "6a8264b9ccaf649a67bd97bd",
+        "service": "youtube",
+        "name": "Trendpilotchoice",
+        "queuePaused": false
+      },
+      {
+        "id": "6a8264f7ccaf649a67bd9877",
+        "service": "tiktok",
+        "name": "trendpilot.ai",
+        "queuePaused": false
+      }
+    ],
+    "existing": [
+      {
+        "id": "6a8542b94cc5b353b08751b3",
+        "status": "scheduled",
+        "dueAt": "2026-08-19T10:17:00.000Z",
+        "textPreview": "Will a wireless CarPlay adapter work in your car? Start with the key compatibility check: the common wired-to-wireless type normally expects the vehicle to supp"
+      },
+      {
+        "id": "6a84bfc45284c02bafe8227c",
+        "status": "sent",
+        "dueAt": "2026-08-18T20:25:40.126Z",
+        "textPreview": "Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links. Still plugging in your iPhone every drive? A wireless CarPlay adapt"
+      },
+      {
+        "id": "6a84955baf0852fb78eaa2e8",
+        "status": "sent",
+        "dueAt": "2026-08-18T17:27:00.000Z",
+        "textPreview": "Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links. The FOSSiBOT F106 Pro is built around endurance: a 12,000mAh batter"
+      }
+    ],
+    "created": {
+      "skipped": true,
+      "reason": "matching Wireless CarPlay Pin already exists",
+      "existingId": "6a8542b94cc5b353b08751b3",
+      "status": "scheduled",
+      "dueAt": "2026-08-19T10:17:00.000Z"
+    }
+  },
+  "status": "ok",
+  "error": null
+}
