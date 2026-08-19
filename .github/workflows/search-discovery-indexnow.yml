@@ -1,0 +1,100 @@
+name: TrendPilot Search Discovery IndexNow
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/search-discovery-indexnow.yml"
+  schedule:
+    - cron: '10 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-search-discovery-indexnow
+  cancel-in-progress: false
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      INDEXNOW_KEY: d3f1a9c7e5b24f6081c4a9d2e7b5f310
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Verify public discovery files and submit IndexNow
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/runtime
+          page_code="$(curl -LsS -o /tmp/page.html -w '%{http_code}' "$PUBLIC_ORIGIN/products/wireless-carplay-adapters/?indexnow=$GITHUB_RUN_ID")"
+          sitemap_code="$(curl -LsS -o /tmp/sitemap.xml -w '%{http_code}' "$PUBLIC_ORIGIN/sitemap.xml?indexnow=$GITHUB_RUN_ID")"
+          key_code="$(curl -LsS -o /tmp/key.txt -w '%{http_code}' "$PUBLIC_ORIGIN/$INDEXNOW_KEY.txt?indexnow=$GITHUB_RUN_ID")"
+          page_ok=false; sitemap_ok=false; key_ok=false
+          if [ "$page_code" = "200" ] && grep -Fq 'Wireless CarPlay Adapter' /tmp/page.html; then page_ok=true; fi
+          if [ "$sitemap_code" = "200" ] && grep -Fq "$PUBLIC_ORIGIN/products/wireless-carplay-adapters/" /tmp/sitemap.xml; then sitemap_ok=true; fi
+          if [ "$key_code" = "200" ] && grep -Fq "$INDEXNOW_KEY" /tmp/key.txt; then key_ok=true; fi
+
+          cat > /tmp/indexnow.json <<EOF
+          {
+            "host": "trendpilotchoice.com",
+            "key": "$INDEXNOW_KEY",
+            "keyLocation": "$PUBLIC_ORIGIN/$INDEXNOW_KEY.txt",
+            "urlList": [
+              "$PUBLIC_ORIGIN/products/wireless-carplay-adapters/",
+              "$PUBLIC_ORIGIN/products/",
+              "$PUBLIC_ORIGIN/guides/",
+              "$PUBLIC_ORIGIN/deals/",
+              "$PUBLIC_ORIGIN/tickets/"
+            ]
+          }
+          EOF
+          indexnow_code="$(curl -sS -o /tmp/indexnow-body.txt -w '%{http_code}' -H 'Content-Type: application/json; charset=utf-8' -d @/tmp/indexnow.json https://api.indexnow.org/indexnow || true)"
+          body="$(cat /tmp/indexnow-body.txt 2>/dev/null || true)"
+          python3 - <<PY
+          import json, os
+          result = {
+            'checked_at': '${{ github.event.head_commit.timestamp || '' }}' or None,
+            'run_id': '${{ github.run_id }}',
+            'public_checks': {
+              'page': {'http': int('$page_code'), 'ok': '$page_ok' == 'true'},
+              'sitemap': {'http': int('$sitemap_code'), 'ok': '$sitemap_ok' == 'true'},
+              'key': {'http': int('$key_code'), 'ok': '$key_ok' == 'true'},
+            },
+            'indexnow': {
+              'http': int('$indexnow_code') if '$indexnow_code'.isdigit() else None,
+              'accepted': '$indexnow_code' in ('200','202'),
+              'response': '''$body'''[:1000],
+            },
+            'urls': [
+              os.environ['PUBLIC_ORIGIN'] + '/products/wireless-carplay-adapters/',
+              os.environ['PUBLIC_ORIGIN'] + '/products/',
+              os.environ['PUBLIC_ORIGIN'] + '/guides/',
+              os.environ['PUBLIC_ORIGIN'] + '/deals/',
+              os.environ['PUBLIC_ORIGIN'] + '/tickets/'
+            ]
+          }
+          with open('data/runtime/indexnow-last.json','w',encoding='utf-8') as f:
+              json.dump(result,f,indent=2)
+              f.write('\n')
+          print(json.dumps(result,indent=2))
+          PY
+
+      - name: Persist IndexNow result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/runtime/indexnow-last.json || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/indexnow-last.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record Search Discovery IndexNow result"
+          git pull --rebase origin main
+          git push origin HEAD:main
