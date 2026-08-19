@@ -1,0 +1,84 @@
+{
+  "campaign_id": "wireless-carplay-discovery-v1",
+  "status": "ready",
+  "created_at": "2026-08-19",
+  "strategy": "search_first_multi_channel",
+  "topic": "Wireless CarPlay adapters",
+  "landing_page": "https://trendpilotchoice.com/products/wireless-carplay-adapters/guide/",
+  "hero_image": "https://trendpilotchoice.com/images/media/carplay-compatibility.png",
+  "search_intents": [
+    "will wireless carplay adapter work in my car",
+    "wireless carplay adapter compatibility",
+    "best wireless carplay adapter",
+    "wired vs wireless carplay",
+    "wireless carplay adapter problems"
+  ],
+  "active_channels": {
+    "google_search": {"mode": "seo_sitemap", "status": "ready"},
+    "google_images": {"mode": "html_image_plus_image_sitemap", "status": "ready"},
+    "bing_search": {"mode": "sitemap_plus_indexnow", "status": "ready"},
+    "bing_images": {"mode": "crawlable_image_plus_indexnow_page", "status": "ready"},
+    "duckduckgo": {"mode": "open_web_discovery", "status": "ready"},
+    "yahoo": {"mode": "open_web_discovery", "status": "ready"},
+    "pinterest": {"mode": "buffer_queue", "status": "ready", "campaign_file": "data/campaigns/pinterest-growth-wireless-carplay-v1.json"},
+    "flipboard": {"mode": "rss", "status": "feed_ready_account_review_required", "feed": "https://trendpilotchoice.com/products/feed.xml"},
+    "lemon8": {"mode": "image_post_pack", "status": "copy_ready_account_publish_required"},
+    "tumblr": {"mode": "photo_link_post_pack", "status": "copy_ready_account_publish_required"},
+    "pearltrees": {"mode": "collection_link_pack", "status": "copy_ready_account_publish_required"},
+    "arena": {"mode": "channel_link_pack", "status": "copy_ready_account_publish_required"},
+    "reddit": {"mode": "community_value_post", "status": "manual_context_required_no_spam"},
+    "quora": {"mode": "answer_first", "status": "manual_question_context_required"},
+    "smartnews": {"mode": "publisher_feed_candidate", "status": "feed_ready_publisher_access_required"}
+  },
+  "deferred_video_social": {
+    "status": "deferred_not_cancelled",
+    "channels": ["tiktok", "youtube_shorts", "instagram_reels", "facebook"],
+    "phase_2_strategy": "Build an audience first with useful research-led general videos. Monetization comes later, with priority on travel deals, event tickets, flights and hotel bookings when relevant and supported by approved affiliate programs."
+  },
+  "channel_copy": {
+    "lemon8": {
+      "title": "Will a Wireless CarPlay Adapter Work in Your Car?",
+      "slides": [
+        "Check wired CarPlay first",
+        "Make sure the USB port carries data",
+        "Look for cold-start reconnection evidence",
+        "Check the firmware update path",
+        "Read the return terms before the price"
+      ],
+      "caption": "Thinking about going wireless? Most wired-to-wireless CarPlay adapters make sense only when wired Apple CarPlay already works reliably. Here are five checks before you buy. Full guide on TrendPilot.",
+      "destination": "https://trendpilotchoice.com/products/wireless-carplay-adapters/guide/?utm_source=lemon8&utm_medium=organic_social&utm_campaign=wireless-carplay-discovery-v1"
+    },
+    "tumblr": {
+      "title": "Before You Buy a Wireless CarPlay Adapter",
+      "body": "A wireless adapter can remove the cable routine, but compatibility comes first. Confirm wired CarPlay, the USB data port, reconnection behavior, firmware support and return terms before ordering.",
+      "tags": ["carplay", "wireless carplay", "car tech", "buying guide", "iphone"],
+      "destination": "https://trendpilotchoice.com/products/wireless-carplay-adapters/guide/?utm_source=tumblr&utm_medium=organic_social&utm_campaign=wireless-carplay-discovery-v1"
+    },
+    "pearltrees": {
+      "collection": "Useful Car Tech Buying Guides",
+      "title": "Wireless CarPlay Adapter Compatibility Guide",
+      "destination": "https://trendpilotchoice.com/products/wireless-carplay-adapters/guide/?utm_source=pearltrees&utm_medium=referral&utm_campaign=wireless-carplay-discovery-v1"
+    },
+    "arena": {
+      "channel": "Useful Car Tech",
+      "title": "Will a Wireless CarPlay Adapter Work in Your Car?",
+      "destination": "https://trendpilotchoice.com/products/wireless-carplay-adapters/guide/?utm_source=arena&utm_medium=referral&utm_campaign=wireless-carplay-discovery-v1"
+    },
+    "reddit": {
+      "post_angle": "buyer_checklist_not_product_push",
+      "title": "5 things to check before buying a wireless CarPlay adapter",
+      "body": "The biggest mistake is treating these adapters as a way to add CarPlay to any car. For the common wired-to-wireless type, start by proving wired CarPlay works, then check the USB data port, reconnection evidence, firmware updates and return route. The full checklist is on TrendPilot if the community allows reference links.",
+      "destination": "https://trendpilotchoice.com/products/wireless-carplay-adapters/guide/?utm_source=reddit&utm_medium=community&utm_campaign=wireless-carplay-discovery-v1"
+    },
+    "quora": {
+      "question_target": "Will a wireless CarPlay adapter work in my car?",
+      "answer": "Usually, a wired-to-wireless CarPlay adapter is intended for a car that already supports wired Apple CarPlay. First confirm wired CarPlay works reliably, then check the USB data port, vehicle or head-unit compatibility, firmware update method and return terms. Those checks matter more than simply choosing the cheapest adapter.",
+      "destination": "https://trendpilotchoice.com/products/wireless-carplay-adapters/guide/?utm_source=quora&utm_medium=answer&utm_campaign=wireless-carplay-discovery-v1"
+    }
+  },
+  "measurement": {
+    "primary": ["organic_landing_sessions", "qualified_product_clicks", "seller_outbound_clicks"],
+    "secondary": ["pinterest_saves", "rss_referrals", "image_search_traffic"],
+    "rule": "Keep each channel source identifiable with UTM parameters and expand the search intents that deliver qualified visits rather than raw impressions alone."
+  }
+}
