@@ -96,15 +96,16 @@ jobs:
                 const st = fs.statSync('images/social/carplay-ai-01.jpg');
                 const ip = await client.createPost(blogName, {
                   state: 'queue',
-                  tags: ['trendpilot-npf-image-probe'],
+                  tags: ['trendpilot-carplay-ai-01','wireless carplay','car accessories','TrendPilot'],
                   content: [
                     {type:'image', media: fs.createReadStream('images/social/carplay-ai-01.jpg'), alt_text:'TrendPilot Wireless CarPlay image'},
-                    {type:'text', text:'NPF image probe'}
+                    {type:'text', subtype:'heading1', text:'Will a Wireless CarPlay Adapter Work in Your Car?'},
+                    {type:'text', text:'Check wired CarPlay support, the USB data port, firmware updates and return terms before buying.'},
+                    {type:'link', url:destination, title:'Read the full Wireless CarPlay buying guide', description:'Five practical checks before comparing adapters.', site_name:'TrendPilot'}
                   ]
                 });
                 const iid = String(ip?.id || ip?.response?.id || '');
                 out.npf_image_probe = {ok: !!iid, id: iid || null, bytes: st.size, response_keys: Object.keys(ip||{})};
-                if (iid) await client.deletePost(blogName, iid);
               } catch (e) {
                 let bytes = null;
                 try { bytes = fs.statSync('images/social/carplay-ai-01.jpg').size; } catch {}
@@ -113,15 +114,14 @@ jobs:
 
               try {
                 const lp = await client.createLegacyPost(blogName, {
-                  type: 'photo',
-                  state: 'queue',
-                  tags: 'trendpilot-carplay-ai-01,wireless carplay,car accessories,TrendPilot',
-                  source,
-                  link: destination,
-                  caption: '<h2>Will a Wireless CarPlay Adapter Work in Your Car?</h2><p>Check wired CarPlay support, the USB data port, firmware updates and return terms before buying.</p><p><a href="' + destination + '">Read the full Wireless CarPlay buying guide on TrendPilot</a></p>'
+                  type: 'photo', state: 'queue',
+                  tags: 'trendpilot-legacy-photo-probe,wireless carplay,TrendPilot',
+                  source, link: destination,
+                  caption: '<p>TrendPilot legacy photo probe</p>'
                 });
                 const lid = String(lp?.id || lp?.response?.id || '');
                 out.legacy_photo_probe = {ok: !!lid, id: lid || null, response_keys: Object.keys(lp||{}), source};
+                if (lid) await client.deletePost(blogName, lid);
               } catch (e) {
                 out.legacy_photo_probe = {ok:false, source, error:String(e?.stack || e)};
               }
@@ -130,9 +130,7 @@ jobs:
               out.queue_after = (q2?.posts || []).map(p => ({id:String(p.id), summary:p.summary||'', tags:p.tags||[]}));
             } catch (e) {
               out.error = String(e?.stack || e);
-            } finally {
-              save();
-            }
+            } finally { save(); }
           })();
           NODE
 
