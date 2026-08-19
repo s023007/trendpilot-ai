@@ -24,9 +24,21 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install Tumblr client
-        run: npm install --no-save tumblr.js@5.0.1
-      - name: Diagnose Tumblr image posting
+      - name: Install dependencies
+        run: |
+          npm install --no-save tumblr.js@5.0.1
+          python -m pip install --quiet pillow
+      - name: Convert campaign image to PNG
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          im = Image.open('images/social/carplay-ai-01.jpg').convert('RGB')
+          im.save('/tmp/carplay-ai-01.png', 'PNG', optimize=True)
+          print(im.size)
+          PY
+          file /tmp/carplay-ai-01.png
+          ls -l /tmp/carplay-ai-01.png
+      - name: Diagnose Tumblr PNG posting
         shell: bash
         run: |
           set +e
@@ -34,7 +46,7 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const tumblr = require('tumblr.js');
-          const out = { started_at:new Date().toISOString(), auth_ok:false, blog:null, image_bytes:null, image_probe:null, queue_after:null, error:null };
+          const out = { started_at:new Date().toISOString(), auth_ok:false, blog:null, jpg_bytes:null, png_bytes:null, image_probe:null, queue_after:null, error:null };
           const save=()=>fs.writeFileSync('data/runtime/tumblr-diagnostic-result.json',JSON.stringify(out,null,2)+'\n');
           const client=tumblr.createClient({consumer_key:process.env.TUMBLR_CONSUMER_KEY,consumer_secret:process.env.TUMBLR_CONSUMER_SECRET,token:process.env.TUMBLR_OAUTH_TOKEN,token_secret:process.env.TUMBLR_OAUTH_TOKEN_SECRET});
           (async()=>{
@@ -44,20 +56,20 @@ jobs:
               const preferred=blogs.find(b=>String(b.name||'').toLowerCase()==='trendpilotchoice')||blogs.find(b=>String(b.url||'').toLowerCase().includes('trendpilotchoice'))||blogs.find(b=>b.primary)||blogs[0];
               if(!preferred) throw new Error('No Tumblr blog resolved');
               const blogName=preferred.name||preferred.url; out.blog=blogName;
-              out.image_bytes=fs.statSync('images/social/carplay-ai-01.jpg').size;
+              out.jpg_bytes=fs.statSync('images/social/carplay-ai-01.jpg').size;
+              out.png_bytes=fs.statSync('/tmp/carplay-ai-01.png').size;
               const q=await client.blogQueue(blogName,{limit:50,offset:0});
               for(const p of (q?.posts||[])){
-                if(Array.isArray(p.tags)&&(p.tags.includes('trendpilot-carplay-ai-01')||p.tags.includes('trendpilot-npf-image-probe'))) await client.deletePost(blogName,String(p.id));
+                if(Array.isArray(p.tags)&&p.tags.includes('trendpilot-carplay-ai-01')) await client.deletePost(blogName,String(p.id));
               }
               try {
                 const r=await client.createPost(blogName,{
                   state:'queue',
-                  tags:['trendpilot-carplay-ai-01','wireless carplay','car accessories','car gadgets','apple carplay','buying guide','TrendPilot'],
+                  tags:['trendpilot-carplay-ai-01','wireless carplay','car accessories','TrendPilot'],
                   content:[
-                    {type:'image',media:fs.createReadStream('images/social/carplay-ai-01.jpg'),alt_text:'Wireless CarPlay buying guide image from TrendPilot'},
+                    {type:'image',media:fs.createReadStream('/tmp/carplay-ai-01.png'),alt_text:'Wireless CarPlay buying guide image from TrendPilot'},
                     {type:'text',subtype:'heading1',text:'Will a Wireless CarPlay Adapter Work in Your Car?'},
-                    {type:'text',text:'Before buying, confirm that wired CarPlay already works, the USB port carries data, firmware updates are available, and the seller has a clear return route.'},
-                    {type:'link',url:'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=verified-ai-01',title:'Read the full Wireless CarPlay buying guide',description:'Five practical checks before comparing adapters.',site_name:'TrendPilot'}
+                    {type:'text',text:'Before buying, confirm that wired CarPlay already works, the USB port carries data, firmware updates are available, and the seller has a clear return route.'}
                   ]
                 });
                 out.image_probe={ok:true,id:String(r?.id||r?.response?.id||''),response_keys:Object.keys(r||{})};
@@ -76,5 +88,3 @@ jobs:
           git add data/runtime/tumblr-diagnostic-result.json
           git commit -m "chore: record Tumblr diagnostic result" || exit 0
           git push
-
-# diagnostic-trigger: validated-jpeg-4
