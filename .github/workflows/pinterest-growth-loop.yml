@@ -1,6 +1,10 @@
 name: Pinterest Search-First Growth Loop
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/pinterest-growth-loop.yml"
   schedule:
     - cron: '20 2 * * *'
   workflow_dispatch:
@@ -19,7 +23,7 @@ jobs:
     env:
       BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
       NAMECHEAP_SSH_PRIVATE_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
-      PINTEREST_GROWTH_CAMPAIGN: data/campaigns/pinterest-growth-f106-v1.json
+      PINTEREST_GROWTH_CAMPAIGN: data/campaigns/pinterest-growth-wireless-carplay-v1.json
       PIN_CREATIVE_OUTPUT_DIR: /tmp/pinterest-growth
       PUBLIC_SITE_ORIGIN: https://trendpilotchoice.com
       CPANEL_HOST: 198.54.120.162
@@ -145,6 +149,6 @@ jobs:
         run: |
           echo "### TrendPilot Pinterest Search-First Growth Loop" >> "$GITHUB_STEP_SUMMARY"
           echo "This workflow queues at most one Pinterest creative per daily run." >> "$GITHUB_STEP_SUMMARY"
-          echo "The active campaign is driven by buyer-search intent and sends visitors to TrendPilot before any seller link." >> "$GITHUB_STEP_SUMMARY"
-          echo "Creative count, asset path, alt text and search query metadata are campaign-driven rather than product-hardcoded." >> "$GITHUB_STEP_SUMMARY"
-          echo "Search terms in campaign files are seed hypotheses until separately validated; the workflow does not claim search volume." >> "$GITHUB_STEP_SUMMARY"
+          echo "Active campaign: Wireless CarPlay buyer-intent discovery." >> "$GITHUB_STEP_SUMMARY"
+          echo "Every Pin sends visitors to TrendPilot before any seller link." >> "$GITHUB_STEP_SUMMARY"
+          echo "Search terms are buyer-intent hypotheses until separately validated; the workflow does not claim search volume." >> "$GITHUB_STEP_SUMMARY"
