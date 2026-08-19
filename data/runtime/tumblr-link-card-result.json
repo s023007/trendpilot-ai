@@ -1,9 +1,32 @@
 {
-  "started_at": "2026-08-19T18:45:08.215Z",
+  "started_at": "2026-08-19T18:46:39.489Z",
   "auth_ok": true,
   "blog": "trendpilotchoice",
-  "created": null,
-  "queue_verified": false,
-  "queue": null,
-  "error": "Error: API error: 400 Bad Request\n    at IncomingMessage.<anonymous> (/home/runner/work/trendpilot-ai/trendpilot-ai/node_modules/tumblr.js/lib/tumblr.js:339:13)\n    at IncomingMessage.emit (node:events:536:35)\n    at endReadableNT (node:internal/streams/readable:1698:12)\n    at process.processTicksAndRejections (node:internal/process/task_queues:82:21)"
+  "created": {
+    "ok": true,
+    "id": "825402536904278016",
+    "response_keys": [
+      "id",
+      "state",
+      "display_text"
+    ]
+  },
+  "queue_verified": true,
+  "queue": [
+    {
+      "id": "825402536904278016",
+      "summary": "Will a Wireless CarPlay Adapter Work in Your Car?",
+      "tags": [
+        "trendpilot-carplay-linkcard-v2",
+        "wireless carplay",
+        "car accessories",
+        "car gadgets",
+        "apple carplay",
+        "buying guide",
+        "smart shopping",
+        "TrendPilot"
+      ]
+    }
+  ],
+  "error": null
 }
