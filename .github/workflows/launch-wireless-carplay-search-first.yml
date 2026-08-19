@@ -1,0 +1,227 @@
+name: Launch Wireless CarPlay Search-First Campaign
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/launch-wireless-carplay-search-first.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wireless-carplay-search-first-launch
+  cancel-in-progress: false
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      NAMECHEAP_SSH_PRIVATE_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+      SOURCE_BRANCH: namecheap-migration-v21
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      PRODUCTION_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PINTEREST_GROWTH_CAMPAIGN: data/campaigns/pinterest-growth-wireless-carplay-v1.json
+      PIN_CREATIVE_OUTPUT_DIR: /tmp/pinterest-growth
+      PIN_ASSET_BASE_URL: https://trendpilotchoice.com/media/pinterest-growth/wireless-carplay-v1
+      INDEXNOW_KEY: d3f1a9c7e5b24f6081c4a9d2e7b5f310
+
+    steps:
+      - name: Checkout production source branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SOURCE_BRANCH }}
+          fetch-depth: 0
+
+      - name: Require deployment and Buffer credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${NAMECHEAP_SSH_PRIVATE_KEY:-}" || { echo "NAMECHEAP_SSH_PRIVATE_KEY is missing"; exit 1; }
+          test -n "${BUFFER_API_KEY:-}" || { echo "BUFFER_API_KEY is missing"; exit 1; }
+
+      - name: Upgrade Wireless CarPlay page for Search-First launch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+
+          path = Path('products/wireless-carplay-adapters/index.html')
+          text = path.read_text(encoding='utf-8')
+
+          old_title = 'Best Wireless CarPlay Adapter Buying Guide 2026'
+          new_title = 'Wireless CarPlay Adapter Guide 2026: Will It Work in Your Car?'
+          old_desc = 'Check wired CarPlay compatibility, USB behavior, firmware support, reconnection and return terms before choosing a wireless CarPlay adapter.'
+          new_desc = 'Will a wireless CarPlay adapter work in your car? Check wired CarPlay support, USB data, reconnection, firmware updates and return terms before buying.'
+          old_h1 = 'Wireless CarPlay adapters: check compatibility before the price.'
+          new_h1 = 'Will a Wireless CarPlay Adapter Work in Your Car? 5 Checks Before Buying'
+
+          text = text.replace('https://trendpilot-ai.netlify.app', 'https://trendpilotchoice.com')
+          text = text.replace(old_title, new_title)
+          text = text.replace(old_desc, new_desc)
+          text = text.replace(old_h1, new_h1)
+          text = text.replace('"dateModified":"2026-08-03"', '"dateModified":"2026-08-19"')
+          text = text.replace('Updated 3 August 2026', 'Updated 19 August 2026')
+          text = text.replace('<strong>3 August 2026</strong>', '<strong>19 August 2026</strong>')
+
+          rss = '<link rel="alternate" type="application/rss+xml" title="TrendPilot Buying Guides" href="https://trendpilotchoice.com/feed.xml"/>'
+          if 'rel="alternate" type="application/rss+xml"' not in text:
+              text = text.replace('</head>', rss + '\n</head>', 1)
+
+          if 'trendpilot-ai.netlify.app' in text:
+              raise SystemExit('Old Netlify hostname still remains in CarPlay page')
+          if 'https://trendpilotchoice.com/products/wireless-carplay-adapters/' not in text:
+              raise SystemExit('Current canonical destination missing')
+          if new_h1 not in text:
+              raise SystemExit('Search-first H1 missing')
+
+          path.write_text(text, encoding='utf-8')
+          print('CARPLAY_PAGE_PATCHED')
+          PY
+
+      - name: Validate campaign files and SEO assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          campaign = json.loads(Path('data/campaigns/pinterest-growth-wireless-carplay-v1.json').read_text())
+          assert campaign['product']['landing_page'] == 'https://trendpilotchoice.com/products/wireless-carplay-adapters/'
+          assert campaign['product']['image_url'].endswith('/images/og/carplay-guide.jpg')
+          assert len(campaign['pins']) == 5
+          for pin in campaign['pins']:
+              assert '/guide/' not in pin['link']
+              assert pin['link'].startswith('https://trendpilotchoice.com/products/wireless-carplay-adapters/')
+          ET.parse('sitemap.xml')
+          ET.parse('feed.xml')
+          key = Path(f"{__import__('os').environ['INDEXNOW_KEY']}.txt").read_text().strip()
+          assert key == __import__('os').environ['INDEXNOW_KEY']
+          print('SEARCH_FIRST_ASSETS_OK')
+          PY
+
+      - name: Commit Search-First page update to production source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add products/wireless-carplay-adapters/index.html sitemap.xml feed.xml "${INDEXNOW_KEY}.txt" data/campaigns/pinterest-growth-wireless-carplay-v1.json data/campaigns/wireless-carplay-multichannel-v1.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Launch Wireless CarPlay Search-First campaign"
+            git push origin HEAD:${SOURCE_BRANCH}
+          else
+            echo "Source branch already contains Search-First launch files"
+          fi
+
+      - name: Build five fresh Pinterest creatives
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --disable-pip-version-check --quiet pillow
+          python3 scripts/build-pinterest-growth-creatives.py
+          test "$(find "$PIN_CREATIVE_OUTPUT_DIR" -maxdepth 1 -name 'carplay-pg*.png' | wc -l | tr -d ' ')" -eq 5
+          cat "$PIN_CREATIVE_OUTPUT_DIR/manifest.json"
+
+      - name: Configure Namecheap SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$NAMECHEAP_SSH_PRIVATE_KEY" > ~/.ssh/namecheap_search_launch
+          chmod 600 ~/.ssh/namecheap_search_launch
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap-launch
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_search_launch
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy page, discovery files and Pinterest assets to Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap-launch "mkdir -p '$PRODUCTION_ROOT/products/wireless-carplay-adapters' '$PRODUCTION_ROOT/media/pinterest-growth/wireless-carplay-v1'"
+          scp products/wireless-carplay-adapters/index.html "trendpilot-namecheap-launch:$PRODUCTION_ROOT/products/wireless-carplay-adapters/index.html"
+          scp sitemap.xml feed.xml "${INDEXNOW_KEY}.txt" "trendpilot-namecheap-launch:$PRODUCTION_ROOT/"
+          scp "$PIN_CREATIVE_OUTPUT_DIR"/carplay-pg*.png "trendpilot-namecheap-launch:$PRODUCTION_ROOT/media/pinterest-growth/wireless-carplay-v1/"
+
+      - name: Verify live Search-First assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fLsS --max-time 30 "$PUBLIC_ORIGIN/products/wireless-carplay-adapters/?launch=$GITHUB_RUN_ID" -o /tmp/carplay.html
+          grep -Fq 'Will a Wireless CarPlay Adapter Work in Your Car? 5 Checks Before Buying' /tmp/carplay.html
+          ! grep -Fq 'trendpilot-ai.netlify.app' /tmp/carplay.html
+          curl -fLsS --max-time 30 "$PUBLIC_ORIGIN/sitemap.xml?launch=$GITHUB_RUN_ID" -o /tmp/sitemap.xml
+          grep -Fq "$PUBLIC_ORIGIN/products/wireless-carplay-adapters/" /tmp/sitemap.xml
+          ! grep -Fq '/products/wireless-carplay-adapters/guide/' /tmp/sitemap.xml
+          curl -fLsS --max-time 30 "$PUBLIC_ORIGIN/feed.xml?launch=$GITHUB_RUN_ID" -o /tmp/feed.xml
+          grep -Fq 'Wireless CarPlay Adapter Guide 2026' /tmp/feed.xml
+          curl -fLsS --max-time 30 "$PUBLIC_ORIGIN/${INDEXNOW_KEY}.txt?launch=$GITHUB_RUN_ID" -o /tmp/indexnow-key.txt
+          grep -Fq "$INDEXNOW_KEY" /tmp/indexnow-key.txt
+          for id in carplay-pg01 carplay-pg02 carplay-pg03 carplay-pg04 carplay-pg05; do
+            curl -fLsS --range 0-2047 --max-time 30 "$PIN_ASSET_BASE_URL/$id.png?launch=$GITHUB_RUN_ID" -o "/tmp/$id.png"
+            test -s "/tmp/$id.png"
+          done
+          echo 'LIVE_SEARCH_FIRST_ASSETS_OK'
+
+      - name: Notify IndexNow for Bing and participating engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/indexnow.json <<EOF
+          {
+            "host": "trendpilotchoice.com",
+            "key": "$INDEXNOW_KEY",
+            "keyLocation": "$PUBLIC_ORIGIN/$INDEXNOW_KEY.txt",
+            "urlList": [
+              "$PUBLIC_ORIGIN/products/wireless-carplay-adapters/",
+              "$PUBLIC_ORIGIN/products/",
+              "$PUBLIC_ORIGIN/guides/"
+            ]
+          }
+          EOF
+          code="$(curl -sS -o /tmp/indexnow-response.txt -w '%{http_code}' -H 'Content-Type: application/json; charset=utf-8' -d @/tmp/indexnow.json https://api.indexnow.org/indexnow || true)"
+          echo "INDEXNOW_HTTP=$code"
+          cat /tmp/indexnow-response.txt || true
+          case "$code" in
+            200|202) echo 'INDEXNOW_ACCEPTED' ;;
+            *) echo 'IndexNow was not accepted yet; page and key are live, so a later retry can be made.' ;;
+          esac
+
+      - name: Queue first fresh Pinterest Pin in Buffer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/pinterest-growth-queue.js | tee /tmp/pinterest-queue.log
+          grep -Eq 'PINTEREST_GROWTH_PIN_QUEUED|PINTEREST_GROWTH_COMPLETE' /tmp/pinterest-queue.log
+
+      - name: Search-First launch summary
+        if: always()
+        shell: bash
+        run: |
+          echo "### Wireless CarPlay Search-First launch" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Live landing page: $PUBLIC_ORIGIN/products/wireless-carplay-adapters/" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Google/Google Images: sitemap + canonical + image metadata ready" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Bing: sitemap + IndexNow notification attempted" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Pinterest: five fresh 2:3 creatives generated; at most one queued now" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Flipboard/SmartNews: RSS feed ready at $PUBLIC_ORIGIN/feed.xml; account/publisher onboarding still required" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Lemon8/Tumblr/Pearltrees/Are.na/Reddit/Quora: channel-specific publish pack stored in data/campaigns/wireless-carplay-multichannel-v1.json" >> "$GITHUB_STEP_SUMMARY"
+          echo "- TikTok/YouTube Shorts/Instagram Reels/Facebook video marketing remains deferred, not cancelled" >> "$GITHUB_STEP_SUMMARY"
