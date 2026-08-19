@@ -31,13 +31,13 @@ jobs:
       - name: Install official Tumblr client
         run: npm install --no-save tumblr.js@5.0.1
 
-      - name: Queue one TrendPilot test post
+      - name: Replace queued TrendPilot test post with new AI visual
         shell: bash
         run: |
           set -euo pipefail
           curl -fsSL \
-            "https://trendpilotchoice.com/images/media/carplay-compatibility.png" \
-            -o /tmp/carplay-compatibility.png
+            "https://raw.githubusercontent.com/s023007/trendpilot-ai/main/images/social/carplay-ai-01.jpg" \
+            -o /tmp/carplay-ai-01.jpg
 
           node <<'NODE'
           const fs = require('fs');
@@ -60,7 +60,7 @@ jobs:
           });
 
           const title = 'Will a Wireless CarPlay Adapter Work in Your Car?';
-          const destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=tumblr-smoke-01';
+          const destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=tumblr-ai-01';
 
           function textOfPost(post) {
             const parts = [];
@@ -85,10 +85,10 @@ jobs:
             console.log(`Authenticated blog resolved: ${blogName}`);
 
             const queued = await client.blogQueue(blogName, { limit: 50, offset: 0 });
-            const existing = (queued?.posts || []).find(p => textOfPost(p).includes(title.toLowerCase()));
-            if (existing) {
-              console.log(`Already queued; skipping duplicate. Post ID: ${existing.id}`);
-              return;
+            const oldPosts = (queued?.posts || []).filter(p => textOfPost(p).includes(title.toLowerCase()));
+            for (const p of oldPosts) {
+              await client.deletePost(blogName, String(p.id));
+              console.log(`Deleted old queued post ${p.id}`);
             }
 
             const response = await client.createPost(blogName, {
@@ -105,8 +105,8 @@ jobs:
               content: [
                 {
                   type: 'image',
-                  media: fs.createReadStream('/tmp/carplay-compatibility.png'),
-                  alt_text: 'Wireless CarPlay compatibility guide illustration from TrendPilot',
+                  media: fs.createReadStream('/tmp/carplay-ai-01.jpg'),
+                  alt_text: 'AI-generated illustration of a wireless CarPlay adapter in a modern car interior',
                 },
                 {
                   type: 'text',
@@ -131,7 +131,7 @@ jobs:
               ],
             });
 
-            console.log('Tumblr queue test created successfully.');
+            console.log('New Tumblr AI visual queued successfully.');
             console.log(`Tumblr response ID: ${response?.id || response?.response?.id || 'unknown'}`);
           })().catch(err => {
             console.error(err);
