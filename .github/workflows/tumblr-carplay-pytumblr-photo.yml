@@ -1,0 +1,119 @@
+name: Tumblr CarPlay PyTumblr Photo Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-carplay-pytumblr-photo.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install official PyTumblr client
+        run: pip install --quiet PyTumblr
+      - name: Upload real photo post and verify queue
+        shell: bash
+        run: |
+          set +e
+          mkdir -p data/runtime
+          python - <<'PY'
+          import json, os, traceback
+          import pytumblr
+
+          title = 'Will a Wireless CarPlay Adapter Work in Your Car?'
+          image_path = 'images/social/carplay-ai-01.jpg'
+          destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=pytumblr-photo-v1'
+          tags = ['wireless carplay','car accessories','car gadgets','apple carplay','buying guide','smart shopping','TrendPilot']
+          caption = f'''<h2>{title}</h2><p>Before buying, confirm that wired CarPlay already works, the USB port carries data, firmware updates are available, and the seller has a clear return route.</p><p><a href="{destination}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>'''
+          out = {'started_at': __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(), 'auth_ok': False, 'blog': None, 'image_bytes': None, 'created': None, 'verified': False, 'photos_present': False, 'deleted_old': [], 'queue_after': None, 'error': None}
+          result_path = 'data/runtime/tumblr-pytumblr-photo-result.json'
+
+          def save():
+              with open(result_path,'w',encoding='utf-8') as f:
+                  json.dump(out,f,indent=2,ensure_ascii=False)
+                  f.write('\n')
+
+          try:
+              required=['TUMBLR_CONSUMER_KEY','TUMBLR_CONSUMER_SECRET','TUMBLR_OAUTH_TOKEN','TUMBLR_OAUTH_TOKEN_SECRET']
+              missing=[k for k in required if not os.environ.get(k)]
+              if missing:
+                  raise RuntimeError('Missing secrets: '+', '.join(missing))
+              out['image_bytes']=os.path.getsize(image_path)
+              client=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
+              info=client.info()
+              if not isinstance(info,dict) or 'user' not in info:
+                  raise RuntimeError('Tumblr auth failed: '+repr(info))
+              out['auth_ok']=True
+              blogs=info.get('user',{}).get('blogs',[]) or []
+              preferred=next((b for b in blogs if str(b.get('name','')).lower()=='trendpilotchoice'),None) or next((b for b in blogs if 'trendpilotchoice' in str(b.get('url','')).lower()),None) or next((b for b in blogs if b.get('primary')),None) or (blogs[0] if blogs else None)
+              if not preferred:
+                  raise RuntimeError('No Tumblr blog resolved')
+              blog_name=preferred.get('name') or preferred.get('url')
+              out['blog']=blog_name
+
+              before=client.queue(blog_name,limit=50,offset=0)
+              old=[]
+              for p in (before.get('posts',[]) if isinstance(before,dict) else []):
+                  summary=str(p.get('summary',''))
+                  ptags=[str(t) for t in (p.get('tags') or [])]
+                  if title in summary or any(t.startswith('trendpilot-carplay-') for t in ptags):
+                      old.append(str(p.get('id')))
+
+              response=client.create_photo(blog_name,state='queue',tags=tags,format='html',caption=caption,link=destination,data=image_path)
+              new_id=str(response.get('id','')) if isinstance(response,dict) else ''
+              out['created']={'ok':bool(new_id),'id':new_id or None,'response':response}
+              if not new_id:
+                  raise RuntimeError('Tumblr returned no post id: '+repr(response))
+
+              verify=client.queue(blog_name,limit=50,offset=0)
+              posts=verify.get('posts',[]) if isinstance(verify,dict) else []
+              new_post=next((p for p in posts if str(p.get('id'))==new_id),None)
+              out['verified']=bool(new_post)
+              out['photos_present']=bool(new_post and new_post.get('photos'))
+              if not new_post or not out['photos_present']:
+                  raise RuntimeError('Photo post did not verify with photos in queue')
+
+              for pid in old:
+                  if pid and pid != new_id:
+                      client.delete_post(blog_name,pid)
+                      out['deleted_old'].append(pid)
+
+              after=client.queue(blog_name,limit=50,offset=0)
+              out['queue_after']=[{
+                  'id':str(p.get('id')),
+                  'type':p.get('type'),
+                  'summary':p.get('summary',''),
+                  'tags':p.get('tags',[]),
+                  'photos_count':len(p.get('photos') or []),
+                  'post_url':p.get('post_url')
+              } for p in (after.get('posts',[]) if isinstance(after,dict) else [])]
+          except Exception:
+              out['error']=traceback.format_exc()
+          finally:
+              save()
+          PY
+      - name: Commit result
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/tumblr-pytumblr-photo-result.json
+          git commit -m "chore: record PyTumblr photo result" || exit 0
+          git pull --rebase origin main || true
+          git push || true
