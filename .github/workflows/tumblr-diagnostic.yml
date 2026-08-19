@@ -76,3 +76,5 @@ jobs:
           git add data/runtime/tumblr-diagnostic-result.json
           git commit -m "chore: record Tumblr diagnostic result" || exit 0
           git push
+
+# diagnostic-trigger: validated-jpeg-2
