@@ -1,4 +1,4 @@
-name: Buffer Reset + Wireless CarPlay First Pin
+name: Buffer Clean Pending Posts
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  reset-and-queue:
+  clean-pending:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
@@ -20,23 +20,21 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Remove old unsent Buffer posts and queue Wireless CarPlay Pin
+      - name: Delete every unpublished Buffer post
         shell: bash
         run: |
           node <<'NODE'
           const fs = require('fs');
           const apiKey = process.env.BUFFER_API_KEY;
+          const out = 'data/runtime/buffer-cleanup-result.json';
           const result = {
             started_at: new Date().toISOString(),
             status: 'running',
-            organization: null,
             channels: [],
             deleted_unsent: [],
-            queued: null,
+            remaining_unsent: [],
             error: null
           };
-
-          const out = 'data/runtime/buffer-reset-result.json';
           fs.mkdirSync('data/runtime', { recursive: true });
           const save = () => fs.writeFileSync(out, JSON.stringify(result, null, 2) + '\n');
 
@@ -77,13 +75,28 @@ jobs:
             }
           }
 
+          async function getPending(orgId, channel) {
+            const data = await gql(
+              `query Pending($org: OrganizationId!, $channel: ChannelId!) {
+                posts(first: 50, input: {
+                  organizationId: $org,
+                  filter: { status: [draft, scheduled], channelIds: [$channel] }
+                }) {
+                  edges { node { id text status dueAt channelService } }
+                }
+              }`,
+              { org: orgId, channel: channel.id },
+              `pending ${channel.service}`,
+            );
+            return (data?.posts?.edges || []).map(edge => edge.node);
+          }
+
           (async () => {
             if (!apiKey) throw new Error('BUFFER_API_KEY is missing');
 
             const account = await gql('query { account { organizations { id name } } }', {}, 'account');
             const org = account?.account?.organizations?.[0];
             if (!org) throw new Error('No Buffer organization found');
-            result.organization = { id: org.id, name: org.name };
 
             const channelData = await gql(
               `query Channels($org: OrganizationId!) {
@@ -102,22 +115,8 @@ jobs:
               queuePaused: !!c.isQueuePaused,
             }));
 
-            // Clean every old post that has not been published yet.
-            // Sent/sending posts are intentionally preserved.
             for (const channel of channels) {
-              const pendingData = await gql(
-                `query Pending($org: OrganizationId!, $channel: ChannelId!) {
-                  posts(first: 50, input: {
-                    organizationId: $org,
-                    filter: { status: [draft, scheduled], channelIds: [$channel] }
-                  }) {
-                    edges { node { id text status dueAt channelService } }
-                  }
-                }`,
-                { org: org.id, channel: channel.id },
-                `pending ${channel.service}`,
-              );
-              const pending = (pendingData?.posts?.edges || []).map(e => e.node);
+              const pending = await getPending(org.id, channel);
               for (const post of pending) {
                 await deletePost(post.id);
                 result.deleted_unsent.push({
@@ -125,128 +124,50 @@ jobs:
                   service: channel.service,
                   status: post.status,
                   dueAt: post.dueAt || null,
-                  textPreview: String(post.text || '').replace(/\s+/g, ' ').trim().slice(0, 120),
+                  textPreview: String(post.text || '').replace(/\s+/g, ' ').trim().slice(0, 160),
                 });
               }
             }
 
-            const pinterest = channels.find(c => c.service === 'pinterest');
-            if (!pinterest) throw new Error('Pinterest is not connected in Buffer');
-
-            const boardData = await gql(
-              `query PinterestBoards($id: ChannelId!) {
-                channel(input: { id: $id }) {
-                  metadata {
-                    ... on PinterestMetadata {
-                      boards { id name serviceId url }
-                    }
-                  }
-                }
-              }`,
-              { id: pinterest.id },
-              'Pinterest boards',
-            );
-            const boards = boardData?.channel?.metadata?.boards || [];
-            if (!boards.length) throw new Error('No Pinterest boards are visible to Buffer');
-            const board = boards.find(b => /^tech\s*&\s*gadget/i.test(String(b.name || '').trim())) || boards[0];
-
-            const title = 'Will a Wireless CarPlay Adapter Work in Your Car?';
-            const text = 'Before buying a wireless CarPlay adapter, check the one thing many shoppers miss: the common wired-to-wireless type normally expects your car to support wired Apple CarPlay first. TrendPilot shows five practical checks before you order. Affiliate disclosure: TrendPilot may earn a commission from some seller links.';
-            const imageUrl = 'https://trendpilotchoice.com/images/media/carplay-compatibility.png';
-            const destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/guide/?post_id=carplay-pg01&creative_id=will-it-work-v1&utm_source=pinterest&utm_medium=organic_social&utm_campaign=wireless-carplay-pinterest-growth-v1&utm_content=will-it-work';
-
-            const input = {
-              text,
-              channelId: pinterest.id,
-              schedulingType: 'automatic',
-              mode: 'addToQueue',
-              saveToDraft: false,
-              needsApproval: false,
-              aiAssisted: false,
-              source: 'trendpilot-buffer-reset-wireless-carplay',
-              assets: [{
-                image: {
-                  url: imageUrl,
-                  metadata: {
-                    altText: 'Wireless CarPlay adapter compatibility guide explaining what to check before buying'
-                  }
-                }
-              }],
-              metadata: {
-                pinterest: {
-                  boardServiceId: board.serviceId,
-                  title,
-                  url: destination,
-                }
-              },
-            };
-
-            const created = await gql(
-              `mutation Create($input: CreatePostInput!) {
-                createPost(input: $input) {
-                  __typename
-                  ... on PostActionSuccess {
-                    post { id text dueAt status channelId channelService }
-                  }
-                  ... on MutationError { message }
-                  ... on InvalidInputError { message }
-                  ... on UnauthorizedError { message }
-                  ... on UnexpectedError { message }
-                  ... on RestProxyError { message }
-                  ... on LimitReachedError { message }
-                }
-              }`,
-              { input },
-              'create Wireless CarPlay Pin',
-            );
-
-            const payload = created?.createPost;
-            if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
-              throw new Error(`Buffer createPost failed: ${payload?.__typename || 'unknown'}: ${payload?.message || 'unknown error'}`);
+            for (const channel of channels) {
+              const pending = await getPending(org.id, channel);
+              for (const post of pending) {
+                result.remaining_unsent.push({
+                  id: post.id,
+                  service: channel.service,
+                  status: post.status,
+                  dueAt: post.dueAt || null,
+                });
+              }
             }
 
-            result.status = 'ok';
-            result.queued = {
-              id: payload.post.id,
-              status: payload.post.status,
-              dueAt: payload.post.dueAt || null,
-              board: board.name,
-              title,
-              imageUrl,
-              destination,
-            };
+            result.status = result.remaining_unsent.length === 0 ? 'ok' : 'incomplete';
             result.finished_at = new Date().toISOString();
             save();
-            console.log('BUFFER_RESET_AND_WIRELESS_CARPLAY_OK', JSON.stringify(result));
+            console.log('BUFFER_CLEANUP_RESULT', JSON.stringify(result));
+            if (result.status !== 'ok') process.exitCode = 1;
           })().catch((error) => {
             result.status = 'error';
             result.error = error?.message || String(error);
             result.finished_at = new Date().toISOString();
             save();
-            console.error('BUFFER_RESET_AND_WIRELESS_CARPLAY_FAILED', result.error);
+            console.error('BUFFER_CLEANUP_FAILED', result.error);
+            process.exitCode = 1;
           });
           NODE
 
-      - name: Persist reset result in repository
+      - name: Persist cleanup result
+        if: always()
         shell: bash
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/runtime/buffer-reset-result.json
+          git add data/runtime/buffer-cleanup-result.json
           if git diff --cached --quiet; then
-            echo "No result change to commit"
+            echo "No cleanup result change to commit"
             exit 0
           fi
-          git commit -m "Record Buffer reset and Wireless CarPlay queue result"
+          git commit -m "Record Buffer pending-post cleanup result"
           git pull --rebase origin main
           git push origin HEAD:main
-
-      - name: Enforce successful reset and queue
-        shell: bash
-        run: |
-          node <<'NODE'
-          const r = require('./data/runtime/buffer-reset-result.json');
-          console.log(JSON.stringify(r, null, 2));
-          if (r.status !== 'ok' || !r.queued?.id) process.exit(1);
-          NODE
