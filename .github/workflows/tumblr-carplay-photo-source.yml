@@ -1,0 +1,123 @@
+name: Tumblr CarPlay Photo Source Fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-carplay-photo-source.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish-photo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Tumblr client
+        run: npm install --no-save tumblr.js@5.0.1
+      - name: Create verified photo post in Tumblr queue
+        shell: bash
+        run: |
+          set +e
+          mkdir -p data/runtime
+          node <<'NODE'
+          const fs = require('fs');
+          const tumblr = require('tumblr.js');
+
+          const title = 'Will a Wireless CarPlay Adapter Work in Your Car?';
+          const imageUrl = 'https://raw.githubusercontent.com/s023007/trendpilot-ai/main/images/social/carplay-ai-01.jpg';
+          const destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=photo-v1';
+          const tags = ['wireless carplay','car accessories','car gadgets','apple carplay','buying guide','smart shopping','TrendPilot'];
+          const caption = `<h2>${title}</h2><p>Before buying, confirm that wired CarPlay already works, the USB port carries data, firmware updates are available, and the seller has a clear return route.</p><p><a href="${destination}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>`;
+
+          const out = {started_at:new Date().toISOString(),auth_ok:false,blog:null,created:null,verified:false,queue_after:null,deleted_old:[],error:null};
+          const save=()=>fs.writeFileSync('data/runtime/tumblr-photo-source-result.json',JSON.stringify(out,null,2)+'\n');
+          const required=['TUMBLR_CONSUMER_KEY','TUMBLR_CONSUMER_SECRET','TUMBLR_OAUTH_TOKEN','TUMBLR_OAUTH_TOKEN_SECRET'];
+          const missing=required.filter(k=>!process.env[k]);
+          if(missing.length){out.error='Missing secrets: '+missing.join(', ');save();process.exit(0);}
+
+          const client=tumblr.createClient({
+            consumer_key:process.env.TUMBLR_CONSUMER_KEY,
+            consumer_secret:process.env.TUMBLR_CONSUMER_SECRET,
+            token:process.env.TUMBLR_OAUTH_TOKEN,
+            token_secret:process.env.TUMBLR_OAUTH_TOKEN_SECRET
+          });
+
+          (async()=>{
+            try {
+              const info=await client.userInfo();
+              out.auth_ok=true;
+              const blogs=info?.user?.blogs||[];
+              const preferred=blogs.find(b=>String(b.name||'').toLowerCase()==='trendpilotchoice')||blogs.find(b=>String(b.url||'').toLowerCase().includes('trendpilotchoice'))||blogs.find(b=>b.primary)||blogs[0];
+              if(!preferred) throw new Error('No Tumblr blog resolved');
+              const blogName=preferred.name||preferred.url;
+              out.blog=blogName;
+
+              const before=await client.blogQueue(blogName,{limit:50,offset:0});
+              const oldCandidates=(before?.posts||[]).filter(p=>
+                String(p.summary||'').includes('Will a Wireless CarPlay Adapter Work in Your Car?') ||
+                (Array.isArray(p.tags) && p.tags.some(t=>String(t).startsWith('trendpilot-carplay-')))
+              );
+
+              const response=await client.createLegacyPost(blogName,{
+                type:'photo',
+                state:'queue',
+                source:imageUrl,
+                link:destination,
+                caption,
+                format:'html',
+                tags:tags.join(',')
+              });
+              const newId=String(response?.id||response?.response?.id||'');
+              out.created={ok:!!newId,id:newId||null,response_keys:Object.keys(response||{})};
+              if(!newId) throw new Error('Tumblr returned no post id for photo post');
+
+              const verify=await client.blogQueue(blogName,{limit:50,offset:0});
+              const newPost=(verify?.posts||[]).find(p=>String(p.id)===newId);
+              out.verified=!!newPost;
+              if(!newPost) throw new Error('New Tumblr photo post was not found in queue after creation');
+
+              for(const p of oldCandidates){
+                if(String(p.id)!==newId){
+                  await client.deletePost(blogName,String(p.id));
+                  out.deleted_old.push(String(p.id));
+                }
+              }
+
+              const after=await client.blogQueue(blogName,{limit:50,offset:0});
+              out.queue_after=(after?.posts||[]).map(p=>({
+                id:String(p.id),
+                type:p.type||null,
+                summary:p.summary||'',
+                tags:p.tags||[],
+                photos:Array.isArray(p.photos)?p.photos.map(ph=>({caption:ph.caption||'',original_size:ph.original_size||null})):null,
+                post_url:p.post_url||null
+              }));
+            } catch(e) {
+              out.error=String(e?.stack||e);
+            } finally {
+              save();
+            }
+          })();
+          NODE
+      - name: Commit result
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/tumblr-photo-source-result.json
+          git commit -m "chore: record Tumblr photo source result" || exit 0
+          git pull --rebase origin main || true
+          git push || true
