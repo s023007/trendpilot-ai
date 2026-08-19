@@ -3,13 +3,20 @@ const fs = require('fs');
 (async () => {
   const apiKey = process.env.BUFFER_API_KEY;
   const campaignFile = process.env.PINTEREST_GROWTH_CAMPAIGN || 'data/campaigns/pinterest-growth-f106-v1.json';
-  const assetBaseUrl = (process.env.PIN_ASSET_BASE_URL || 'https://trendpilotchoice.com/media/pinterest-growth/f106-pro').replace(/\/$/, '');
 
   if (!apiKey) throw new Error('BUFFER_API_KEY is missing');
 
   const campaign = JSON.parse(fs.readFileSync(campaignFile, 'utf8'));
   if (campaign.channel !== 'pinterest') throw new Error('Pinterest growth campaign must target pinterest only');
   if (!Array.isArray(campaign.pins) || campaign.pins.length < 3) throw new Error('Pinterest growth campaign must contain at least 3 creative variants');
+
+  const assetSlug = String(campaign.asset_slug || campaign.campaign_id || '').replace(/^\/+|\/+$/g, '');
+  if (!assetSlug) throw new Error('Pinterest growth campaign requires asset_slug or campaign_id');
+  const assetBaseUrl = (
+    process.env.PIN_ASSET_BASE_URL
+    || campaign.asset_base_url
+    || `https://trendpilotchoice.com/media/pinterest-growth/${assetSlug}`
+  ).replace(/\/$/, '');
 
   async function gql(query, variables = {}, label = 'Buffer GraphQL') {
     const response = await fetch('https://api.buffer.com', {
@@ -56,10 +63,12 @@ const fs = require('fs');
     home: /^smart\s+home\s*&/i,
     school: /^back\s+to\s+school/i,
     fashion: /^fashion\s*&\s*everyday/i,
+    travel: /^travel/i,
+    kitchen: /^kitchen/i,
+    camping: /^(camping|outdoor)/i,
+    beauty: /^beauty/i,
+    pets: /^(pet|pets)/i,
   };
-
-  const matcher = boardMatchers[campaign.board_key];
-  if (!matcher) throw new Error(`Unknown Pinterest board_key: ${campaign.board_key}`);
 
   const boardData = await gql(
     `query GetPinterestChannel($id: ChannelId!) {
@@ -75,9 +84,18 @@ const fs = require('fs');
     'Get Pinterest boards',
   );
   const boards = boardData?.channel?.metadata?.boards || [];
-  const board = boards.find((item) => matcher.test(String(item.name || '').trim()));
+
+  let board;
+  if (campaign.board_name) {
+    const wanted = String(campaign.board_name).trim().toLowerCase();
+    board = boards.find((item) => String(item.name || '').trim().toLowerCase() === wanted);
+  } else {
+    const matcher = boardMatchers[campaign.board_key];
+    if (!matcher) throw new Error(`Unknown Pinterest board_key: ${campaign.board_key}. Set board_name for an exact board match.`);
+    board = boards.find((item) => matcher.test(String(item.name || '').trim()));
+  }
   if (!board) {
-    throw new Error(`Pinterest board for key ${campaign.board_key} was not found. Existing boards: ${boards.map((b) => b.name).join(' | ')}`);
+    throw new Error(`Pinterest board was not found. Requested: ${campaign.board_name || campaign.board_key}. Existing boards: ${boards.map((b) => b.name).join(' | ')}`);
   }
 
   const existingData = await gql(
@@ -112,12 +130,14 @@ const fs = require('fs');
     return existing.find((post) => normalized(post.text).startsWith(needle));
   }
 
-  const orderedPins = [...campaign.pins].sort((a, b) => a.sequence - b.sequence);
+  const orderedPins = [...campaign.pins].sort((a, b) => Number(a.sequence || 0) - Number(b.sequence || 0));
   const nextPin = orderedPins.find((pin) => !alreadyExists(pin));
 
   console.log('PINTEREST_GROWTH_STATE', JSON.stringify({
     campaign: campaign.campaign_id,
+    primaryKeyword: campaign.search?.primary_keyword || null,
     board: board.name,
+    assetBaseUrl,
     totalVariants: orderedPins.length,
     alreadyPresent: orderedPins.filter((pin) => alreadyExists(pin)).map((pin) => pin.pin_id),
     next: nextPin?.pin_id || null,
@@ -126,6 +146,10 @@ const fs = require('fs');
   if (!nextPin) {
     console.log('PINTEREST_GROWTH_COMPLETE');
     return;
+  }
+
+  if (!nextPin.pin_id || !nextPin.title || !nextPin.description || !nextPin.link) {
+    throw new Error('Next Pinterest variant requires pin_id, title, description and link');
   }
 
   const imageUrl = `${assetBaseUrl}/${nextPin.pin_id}.png`;
@@ -138,7 +162,7 @@ const fs = require('fs');
     needsApproval: false,
     aiAssisted: true,
     source: 'trendpilot-github-pinterest-growth',
-    assets: [{ image: { url: imageUrl, metadata: { altText: nextPin.headline } } }],
+    assets: [{ image: { url: imageUrl, metadata: { altText: nextPin.image_alt || nextPin.headline || nextPin.title } } }],
     metadata: {
       pinterest: {
         boardServiceId: board.serviceId,
@@ -173,6 +197,8 @@ const fs = require('fs');
   console.log('PINTEREST_GROWTH_PIN_QUEUED', JSON.stringify({
     pinId: nextPin.pin_id,
     creativeId: nextPin.creative_id,
+    intent: nextPin.intent || null,
+    searchQuery: nextPin.search_query || null,
     angle: nextPin.angle,
     board: board.name,
     bufferPostId: payload.post.id,

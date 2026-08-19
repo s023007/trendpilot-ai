@@ -3,6 +3,7 @@
   "status": "ready",
   "channel": "pinterest",
   "board_key": "tech",
+  "asset_slug": "f106-pro",
   "cadence": "one_new_pin_per_run",
   "product": {
     "id": "bcba2c15f61566",
@@ -10,19 +11,35 @@
     "seller": "Geekbuying",
     "landing_page": "https://trendpilotchoice.com/item/?id=bcba2c15f61566"
   },
+  "search": {
+    "research_status": "seed_queries_not_volume_validated",
+    "primary_keyword": "FOSSiBOT F106 Pro review",
+    "secondary_keywords": [
+      "FOSSiBOT F106 Pro rugged phone",
+      "FOSSiBOT F106 Pro battery life",
+      "FOSSiBOT F106 Pro pros and cons",
+      "is FOSSiBOT F106 Pro good"
+    ],
+    "strategy": "Each Pin answers a distinct buyer-search question and sends the visitor to the TrendPilot product page first. Search-volume validation is a separate research step; no volume claim is made here."
+  },
   "goal": {
-    "primary": "outbound_clicks_to_trendpilot",
+    "primary": "qualified_search_and_pinterest_clicks_to_trendpilot",
     "secondary": ["saves", "pin_clicks", "seller_outbound_click_rate"],
-    "learning_rule": "Do not repeat one message endlessly. Test distinct buyer-intent angles, keep tracking IDs unique, and create more content from the angles that earn qualified clicks and saves."
+    "learning_rule": "Test distinct buyer-search intents, keep tracking IDs unique, and create more content from the queries and angles that earn qualified clicks and saves."
   },
   "pins": [
     {
       "sequence": 1,
       "pin_id": "f106-pg01",
       "creative_id": "who-is-it-for-v1",
+      "intent": "buyer_question",
+      "search_query": "who is FOSSiBOT F106 Pro for",
+      "badge": "Buyer question",
       "angle": "who it is really for",
       "headline": "Who Is This Rugged Phone Really For?",
       "title": "FOSSiBOT F106 Pro: Who Is This Rugged Phone Really For?",
+      "image_alt": "FOSSiBOT F106 Pro rugged phone buyer guide showing who the phone is best suited for",
+      "footer": "See who it fits — and who should skip it.",
       "description": "Not every phone needs to be slim or built for gaming. The FOSSiBOT F106 Pro makes more sense for people who care about long battery life, rugged construction and practical outdoor features. We also show the trade-offs so you can decide calmly before you buy. Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links.",
       "link": "https://trendpilotchoice.com/item/?id=bcba2c15f61566&post_id=f106-pg01&creative_id=who-is-it-for-v1&utm_source=pinterest&utm_medium=organic_social&utm_campaign=f106-pro-pinterest-growth-v1&utm_content=who-is-it-for"
     },
@@ -30,9 +47,14 @@
       "sequence": 2,
       "pin_id": "f106-pg02",
       "creative_id": "three-things-v1",
+      "intent": "before_you_buy",
+      "search_query": "FOSSiBOT F106 Pro review",
+      "badge": "Before you buy",
       "angle": "three reasons it stands out",
       "headline": "3 Things That Make This Phone Different",
-      "title": "3 Things That Make the FOSSiBOT F106 Pro Different",
+      "title": "FOSSiBOT F106 Pro Review: 3 Things That Make It Different",
+      "image_alt": "FOSSiBOT F106 Pro review highlighting three practical features before buying",
+      "footer": "Useful strengths, without hiding the trade-offs.",
       "description": "A huge 12,000mAh battery, rugged IP68/IP69K listing and practical outdoor extras give the FOSSiBOT F106 Pro a very different personality from a typical smartphone. It is not for everyone — and that is exactly why knowing the strengths and limitations matters. Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links.",
       "link": "https://trendpilotchoice.com/item/?id=bcba2c15f61566&post_id=f106-pg02&creative_id=three-things-v1&utm_source=pinterest&utm_medium=organic_social&utm_campaign=f106-pro-pinterest-growth-v1&utm_content=three-things"
     },
@@ -40,9 +62,14 @@
       "sequence": 3,
       "pin_id": "f106-pg03",
       "creative_id": "watch-outs-v1",
+      "intent": "pros_and_cons",
+      "search_query": "FOSSiBOT F106 Pro pros and cons",
+      "badge": "Honest watch-outs",
       "angle": "honest watch-outs before buying",
       "headline": "Before You Buy: Know These Trade-Offs",
-      "title": "FOSSiBOT F106 Pro: The Trade-Offs Worth Knowing First",
+      "title": "FOSSiBOT F106 Pro Pros and Cons: Trade-Offs Worth Knowing",
+      "image_alt": "FOSSiBOT F106 Pro pros and cons with key trade-offs to know before buying",
+      "footer": "Know the compromises before you spend.",
       "description": "Big battery and ruggedness sound great, but there are trade-offs. The FOSSiBOT F106 Pro is bulky, its Helio G85 is modest for demanding games, and review evidence raises display-brightness and software-support cautions. A better decision starts with seeing both sides. Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links.",
       "link": "https://trendpilotchoice.com/item/?id=bcba2c15f61566&post_id=f106-pg03&creative_id=watch-outs-v1&utm_source=pinterest&utm_medium=organic_social&utm_campaign=f106-pro-pinterest-growth-v1&utm_content=watch-outs"
     },
@@ -50,9 +77,14 @@
       "sequence": 4,
       "pin_id": "f106-pg04",
       "creative_id": "battery-life-v1",
+      "intent": "use_case",
+      "search_query": "FOSSiBOT F106 Pro battery life",
+      "badge": "Battery & endurance",
       "angle": "long days away from a charger",
       "headline": "Made for Long Days Away From a Charger",
-      "title": "A Rugged Phone for Long Days Away From a Charger",
+      "title": "FOSSiBOT F106 Pro Battery Life: Built for Long Days Away From a Charger",
+      "image_alt": "FOSSiBOT F106 Pro battery life guide for travel camping and long workdays",
+      "footer": "For long days, travel, field work and camping.",
       "description": "If battery anxiety follows you through long workdays, travel or camping, the FOSSiBOT F106 Pro takes a different approach with its very large 12,000mAh battery and rugged build. TrendPilot helps you see where that endurance helps — and what you give up for it. Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links.",
       "link": "https://trendpilotchoice.com/item/?id=bcba2c15f61566&post_id=f106-pg04&creative_id=battery-life-v1&utm_source=pinterest&utm_medium=organic_social&utm_campaign=f106-pro-pinterest-growth-v1&utm_content=battery-life"
     },
@@ -60,9 +92,14 @@
       "sequence": 5,
       "pin_id": "f106-pg05",
       "creative_id": "friendly-verdict-v1",
+      "intent": "quick_verdict",
+      "search_query": "is FOSSiBOT F106 Pro good",
+      "badge": "Quick verdict",
       "angle": "friendly buying guide",
-      "headline": "A Friendlier Way to Decide If It Fits You",
-      "title": "Is the FOSSiBOT F106 Pro Right for You? A Simple Buying Guide",
+      "headline": "Is the FOSSiBOT F106 Pro Right for You?",
+      "title": "Is the FOSSiBOT F106 Pro Good? A Simple Buying Guide",
+      "image_alt": "Is the FOSSiBOT F106 Pro good simple TrendPilot buying guide and verdict",
+      "footer": "A calmer way to decide if it feels right for you.",
       "description": "Choosing a phone can feel like comparing endless specifications. We keep this one simple: the FOSSiBOT F106 Pro is about endurance, ruggedness and outdoor usefulness more than speed or a lightweight design. See the quick verdict, review evidence and current seller price when you are ready. Ad / affiliate disclosure: TrendPilot may earn a commission if you buy through seller links.",
       "link": "https://trendpilotchoice.com/item/?id=bcba2c15f61566&post_id=f106-pg05&creative_id=friendly-verdict-v1&utm_source=pinterest&utm_medium=organic_social&utm_campaign=f106-pro-pinterest-growth-v1&utm_content=friendly-verdict"
     }
