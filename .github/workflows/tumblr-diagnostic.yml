@@ -21,15 +21,12 @@ jobs:
       TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-
       - name: Install Tumblr client
         run: npm install --no-save tumblr.js@5.0.1
-
-      - name: Diagnose Tumblr posting paths
+      - name: Diagnose Tumblr image posting
         shell: bash
         run: |
           set +e
@@ -37,103 +34,39 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const tumblr = require('tumblr.js');
-          const out = {
-            started_at: new Date().toISOString(),
-            missing_secrets: [],
-            auth_ok: false,
-            blog: null,
-            queue_before: null,
-            text_probe: null,
-            npf_image_probe: null,
-            legacy_photo_probe: null,
-            queue_after: null,
-            error: null
-          };
-          const save = () => fs.writeFileSync('data/runtime/tumblr-diagnostic-result.json', JSON.stringify(out, null, 2) + '\n');
-          const req = ['TUMBLR_CONSUMER_KEY','TUMBLR_CONSUMER_SECRET','TUMBLR_OAUTH_TOKEN','TUMBLR_OAUTH_TOKEN_SECRET'];
-          out.missing_secrets = req.filter(k => !process.env[k]);
-          if (out.missing_secrets.length) { out.error = 'missing secrets'; save(); process.exit(0); }
-
-          const client = tumblr.createClient({
-            consumer_key: process.env.TUMBLR_CONSUMER_KEY,
-            consumer_secret: process.env.TUMBLR_CONSUMER_SECRET,
-            token: process.env.TUMBLR_OAUTH_TOKEN,
-            token_secret: process.env.TUMBLR_OAUTH_TOKEN_SECRET,
-          });
-
-          const destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=diagnostic';
-          const source = 'https://raw.githubusercontent.com/s023007/trendpilot-ai/main/images/social/carplay-ai-01.jpg';
-
-          (async () => {
+          const out = { started_at:new Date().toISOString(), auth_ok:false, blog:null, image_bytes:null, image_probe:null, queue_after:null, error:null };
+          const save=()=>fs.writeFileSync('data/runtime/tumblr-diagnostic-result.json',JSON.stringify(out,null,2)+'\n');
+          const client=tumblr.createClient({consumer_key:process.env.TUMBLR_CONSUMER_KEY,consumer_secret:process.env.TUMBLR_CONSUMER_SECRET,token:process.env.TUMBLR_OAUTH_TOKEN,token_secret:process.env.TUMBLR_OAUTH_TOKEN_SECRET});
+          (async()=>{
             try {
-              const info = await client.userInfo();
-              out.auth_ok = true;
-              const blogs = info?.user?.blogs || [];
-              const preferred = blogs.find(b => String(b.name||'').toLowerCase() === 'trendpilotchoice')
-                || blogs.find(b => String(b.url||'').toLowerCase().includes('trendpilotchoice'))
-                || blogs.find(b => b.primary) || blogs[0];
-              if (!preferred) throw new Error('No Tumblr blog resolved');
-              const blogName = preferred.name || preferred.url;
-              out.blog = blogName;
-
-              const q1 = await client.blogQueue(blogName, {limit: 50, offset: 0});
-              out.queue_before = (q1?.posts || []).map(p => ({id:String(p.id), summary:p.summary||'', tags:p.tags||[]}));
-
-              try {
-                const tp = await client.createPost(blogName, {
-                  state: 'queue',
-                  tags: ['trendpilot-diagnostic-text'],
-                  content: [{type:'text', text:'TrendPilot Tumblr diagnostic probe'}]
-                });
-                const tid = String(tp?.id || tp?.response?.id || '');
-                out.text_probe = {ok: !!tid, id: tid || null, response_keys: Object.keys(tp||{})};
-                if (tid) await client.deletePost(blogName, tid);
-              } catch (e) {
-                out.text_probe = {ok:false, error:String(e?.stack || e)};
+              const info=await client.userInfo(); out.auth_ok=true;
+              const blogs=info?.user?.blogs||[];
+              const preferred=blogs.find(b=>String(b.name||'').toLowerCase()==='trendpilotchoice')||blogs.find(b=>String(b.url||'').toLowerCase().includes('trendpilotchoice'))||blogs.find(b=>b.primary)||blogs[0];
+              if(!preferred) throw new Error('No Tumblr blog resolved');
+              const blogName=preferred.name||preferred.url; out.blog=blogName;
+              out.image_bytes=fs.statSync('images/social/carplay-ai-01.jpg').size;
+              const q=await client.blogQueue(blogName,{limit:50,offset:0});
+              for(const p of (q?.posts||[])){
+                if(Array.isArray(p.tags)&&(p.tags.includes('trendpilot-carplay-ai-01')||p.tags.includes('trendpilot-npf-image-probe'))) await client.deletePost(blogName,String(p.id));
               }
-
               try {
-                const st = fs.statSync('images/social/carplay-ai-01.jpg');
-                const ip = await client.createPost(blogName, {
-                  state: 'queue',
-                  tags: ['trendpilot-carplay-ai-01','wireless carplay','car accessories','TrendPilot'],
-                  content: [
-                    {type:'image', media: fs.createReadStream('images/social/carplay-ai-01.jpg'), alt_text:'TrendPilot Wireless CarPlay image'},
-                    {type:'text', subtype:'heading1', text:'Will a Wireless CarPlay Adapter Work in Your Car?'},
-                    {type:'text', text:'Check wired CarPlay support, the USB data port, firmware updates and return terms before buying.'},
-                    {type:'link', url:destination, title:'Read the full Wireless CarPlay buying guide', description:'Five practical checks before comparing adapters.', site_name:'TrendPilot'}
+                const r=await client.createPost(blogName,{
+                  state:'queue',
+                  tags:['trendpilot-carplay-ai-01','wireless carplay','car accessories','car gadgets','apple carplay','buying guide','TrendPilot'],
+                  content:[
+                    {type:'image',media:fs.createReadStream('images/social/carplay-ai-01.jpg'),alt_text:'Wireless CarPlay buying guide image from TrendPilot'},
+                    {type:'text',subtype:'heading1',text:'Will a Wireless CarPlay Adapter Work in Your Car?'},
+                    {type:'text',text:'Before buying, confirm that wired CarPlay already works, the USB port carries data, firmware updates are available, and the seller has a clear return route.'},
+                    {type:'link',url:'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=verified-ai-01',title:'Read the full Wireless CarPlay buying guide',description:'Five practical checks before comparing adapters.',site_name:'TrendPilot'}
                   ]
                 });
-                const iid = String(ip?.id || ip?.response?.id || '');
-                out.npf_image_probe = {ok: !!iid, id: iid || null, bytes: st.size, response_keys: Object.keys(ip||{})};
-              } catch (e) {
-                let bytes = null;
-                try { bytes = fs.statSync('images/social/carplay-ai-01.jpg').size; } catch {}
-                out.npf_image_probe = {ok:false, bytes, error:String(e?.stack || e)};
-              }
-
-              try {
-                const lp = await client.createLegacyPost(blogName, {
-                  type: 'photo', state: 'queue',
-                  tags: 'trendpilot-legacy-photo-probe,wireless carplay,TrendPilot',
-                  source, link: destination,
-                  caption: '<p>TrendPilot legacy photo probe</p>'
-                });
-                const lid = String(lp?.id || lp?.response?.id || '');
-                out.legacy_photo_probe = {ok: !!lid, id: lid || null, response_keys: Object.keys(lp||{}), source};
-                if (lid) await client.deletePost(blogName, lid);
-              } catch (e) {
-                out.legacy_photo_probe = {ok:false, source, error:String(e?.stack || e)};
-              }
-
-              const q2 = await client.blogQueue(blogName, {limit: 50, offset: 0});
-              out.queue_after = (q2?.posts || []).map(p => ({id:String(p.id), summary:p.summary||'', tags:p.tags||[]}));
-            } catch (e) {
-              out.error = String(e?.stack || e);
-            } finally { save(); }
+                out.image_probe={ok:true,id:String(r?.id||r?.response?.id||''),response_keys:Object.keys(r||{})};
+              } catch(e){ out.image_probe={ok:false,error:String(e?.stack||e)}; }
+              const q2=await client.blogQueue(blogName,{limit:50,offset:0});
+              out.queue_after=(q2?.posts||[]).map(p=>({id:String(p.id),summary:p.summary||'',tags:p.tags||[]}));
+            } catch(e){out.error=String(e?.stack||e);} finally {save();}
           })();
           NODE
-
       - name: Commit diagnostic result
         if: always()
         shell: bash
