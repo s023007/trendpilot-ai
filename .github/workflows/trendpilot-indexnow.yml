@@ -1,22 +1,47 @@
 name: TrendPilot IndexNow Submit
 
 on:
+  push:
+    branches:
+      - namecheap-migration-v21
+    paths:
+      - "products/**"
+      - "sitemap.xml"
+      - "sitemap-v20-8.xml"
+      - "robots.txt"
+      - ".github/workflows/trendpilot-indexnow.yml"
+  schedule:
+    - cron: "45 2 * * *"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: trendpilot-indexnow-submit
+  cancel-in-progress: true
+
 jobs:
   submit-indexnow:
     runs-on: ubuntu-latest
+    timeout-minutes: 6
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: namecheap-migration-v21
+
+      - name: Wait briefly for Namecheap auto-deploy
+        if: github.event_name == 'push'
+        shell: bash
+        run: sleep 90
+
       - name: Submit public TrendPilot URLs to IndexNow
         shell: bash
         run: |
           python - <<'PY'
           import json
           import urllib.request
+          import urllib.error
           import xml.etree.ElementTree as ET
           from pathlib import Path
 
@@ -39,6 +64,7 @@ jobs:
           if not urls:
               raise SystemExit("No public URLs found in TrendPilot sitemaps")
 
+          # Prefer the global IndexNow endpoint. Participating engines share verified URL notifications.
           payload = json.dumps({
               "host": host,
               "key": key,
@@ -49,7 +75,7 @@ jobs:
           request = urllib.request.Request(
               "https://api.indexnow.org/indexnow",
               data=payload,
-              headers={"Content-Type": "application/json; charset=utf-8"},
+              headers={"Content-Type": "application/json; charset=utf-8", "User-Agent": "TrendPilot-IndexNow/2.0"},
               method="POST",
           )
           try:
@@ -60,3 +86,16 @@ jobs:
               print(f"IndexNow HTTP {exc.code}: {body}")
               raise
           PY
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## TrendPilot IndexNow"
+            echo
+            echo "- Host: trendpilotchoice.com"
+            echo "- Source: sitemap.xml + sitemap-v20-8.xml"
+            echo "- Trigger: search-content changes + daily safety run"
+            echo "- Purpose: fast URL discovery by IndexNow-participating search engines"
+          } >> "$GITHUB_STEP_SUMMARY"
