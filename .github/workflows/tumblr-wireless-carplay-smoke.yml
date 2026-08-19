@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/tumblr-wireless-carplay-smoke.yml"
+      - "images/social/carplay-ai-01.jpg"
   workflow_dispatch:
 
 permissions:
@@ -23,6 +24,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Verify AI image asset
+        run: |
+          test -s images/social/carplay-ai-01.jpg
+          file images/social/carplay-ai-01.jpg
+
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -31,14 +37,10 @@ jobs:
       - name: Install official Tumblr client
         run: npm install --no-save tumblr.js@5.0.1
 
-      - name: Replace queued TrendPilot test post with new AI visual
+      - name: Queue verified TrendPilot AI post
         shell: bash
         run: |
           set -euo pipefail
-          curl -fsSL \
-            "https://raw.githubusercontent.com/s023007/trendpilot-ai/main/images/social/carplay-ai-01.jpg" \
-            -o /tmp/carplay-ai-01.jpg
-
           node <<'NODE'
           const fs = require('fs');
           const tumblr = require('tumblr.js');
@@ -60,6 +62,7 @@ jobs:
           });
 
           const title = 'Will a Wireless CarPlay Adapter Work in Your Car?';
+          const marker = 'trendpilot-carplay-ai-01';
           const destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=tumblr-ai-01';
 
           function textOfPost(post) {
@@ -85,15 +88,23 @@ jobs:
             console.log(`Authenticated blog resolved: ${blogName}`);
 
             const queued = await client.blogQueue(blogName, { limit: 50, offset: 0 });
-            const oldPosts = (queued?.posts || []).filter(p => textOfPost(p).includes(title.toLowerCase()));
-            for (const p of oldPosts) {
-              await client.deletePost(blogName, String(p.id));
-              console.log(`Deleted old queued post ${p.id}`);
+            const alreadyCorrect = (queued?.posts || []).find(p =>
+              Array.isArray(p.tags) && p.tags.includes(marker)
+            );
+            if (alreadyCorrect) {
+              console.log(`Verified AI post already queued: ${alreadyCorrect.id}`);
+              return;
             }
+
+            // Capture old versions first, but do not delete them until the new post succeeds.
+            const oldPosts = (queued?.posts || []).filter(p =>
+              textOfPost(p).includes(title.toLowerCase())
+            );
 
             const response = await client.createPost(blogName, {
               state: 'queue',
               tags: [
+                marker,
                 'wireless carplay',
                 'car accessories',
                 'car gadgets',
@@ -105,7 +116,7 @@ jobs:
               content: [
                 {
                   type: 'image',
-                  media: fs.createReadStream('/tmp/carplay-ai-01.jpg'),
+                  media: fs.createReadStream('images/social/carplay-ai-01.jpg'),
                   alt_text: 'AI-generated illustration of a wireless CarPlay adapter in a modern car interior',
                 },
                 {
@@ -131,12 +142,17 @@ jobs:
               ],
             });
 
-            console.log('New Tumblr AI visual queued successfully.');
-            console.log(`Tumblr response ID: ${response?.id || response?.response?.id || 'unknown'}`);
+            const newId = response?.id || response?.response?.id;
+            if (!newId) throw new Error(`Tumblr did not return a post ID: ${JSON.stringify(response)}`);
+            console.log(`New verified AI post queued: ${newId}`);
+
+            for (const p of oldPosts) {
+              if (String(p.id) === String(newId)) continue;
+              await client.deletePost(blogName, String(p.id));
+              console.log(`Deleted old queued post ${p.id}`);
+            }
           })().catch(err => {
             console.error(err);
             process.exit(1);
           });
           NODE
-
-      # This workflow intentionally replaces the old poster-style queue item.
