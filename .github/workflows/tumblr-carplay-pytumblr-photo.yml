@@ -24,8 +24,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Install official PyTumblr client
-        run: pip install --quiet PyTumblr
+      - name: Install dependencies
+        run: pip install --quiet PyTumblr Pillow
+      - name: Re-encode campaign image as standards-compliant JPEG
+        shell: bash
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          src='images/social/carplay-ai-01.jpg'
+          dst='/tmp/carplay-valid.jpg'
+          im=Image.open(src).convert('RGB')
+          im.save(dst,'JPEG',quality=92,optimize=True,progressive=False)
+          check=Image.open(dst)
+          check.verify()
+          print('validated', dst)
+          PY
       - name: Upload real photo post and verify queue
         shell: bash
         run: |
@@ -36,8 +49,8 @@ jobs:
           import pytumblr
 
           title = 'Will a Wireless CarPlay Adapter Work in Your Car?'
-          image_path = 'images/social/carplay-ai-01.jpg'
-          destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=pytumblr-photo-v1'
+          image_path = '/tmp/carplay-valid.jpg'
+          destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=pytumblr-photo-v2'
           tags = ['wireless carplay','car accessories','car gadgets','apple carplay','buying guide','smart shopping','TrendPilot']
           caption = f'''<h2>{title}</h2><p>Before buying, confirm that wired CarPlay already works, the USB port carries data, firmware updates are available, and the seller has a clear return route.</p><p><a href="{destination}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>'''
           out = {'started_at': __import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(), 'auth_ok': False, 'blog': None, 'image_bytes': None, 'created': None, 'verified': False, 'photos_present': False, 'deleted_old': [], 'queue_after': None, 'error': None}
