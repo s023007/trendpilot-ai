@@ -1,154 +1,16 @@
-name: Pinterest Search-First Growth Loop
+name: Pinterest Search-First Growth Loop (Paused)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/pinterest-growth-loop.yml"
-  schedule:
-    - cron: '20 2 * * *'
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: pinterest-search-first-growth-loop
-  cancel-in-progress: false
-
 jobs:
-  queue-next-pin:
+  paused:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-    env:
-      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
-      NAMECHEAP_SSH_PRIVATE_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
-      PINTEREST_GROWTH_CAMPAIGN: data/campaigns/pinterest-growth-wireless-carplay-v1.json
-      PIN_CREATIVE_OUTPUT_DIR: /tmp/pinterest-growth
-      PUBLIC_SITE_ORIGIN: https://trendpilotchoice.com
-      CPANEL_HOST: 198.54.120.162
-      CPANEL_PORT: '21098'
-      CPANEL_USER: kehwgbpo
-      PRODUCTION_ROOT: /home/kehwgbpo/trendpilotchoice.com
-      SOURCE_BRANCH: namecheap-migration-v21
-
     steps:
-      - name: Checkout TrendPilot growth source
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ env.SOURCE_BRANCH }}
-
-      - name: Require Buffer and Namecheap keys
-        shell: bash
+      - name: Pinterest publishing is intentionally paused
         run: |
-          set -euo pipefail
-          test -n "${BUFFER_API_KEY:-}" || { echo "BUFFER_API_KEY is missing"; exit 1; }
-          test -n "${NAMECHEAP_SSH_PRIVATE_KEY:-}" || { echo "NAMECHEAP_SSH_PRIVATE_KEY is missing"; exit 1; }
-
-      - name: Load campaign runtime
-        shell: bash
-        run: |
-          set -euo pipefail
-          node <<'NODE'
-          const fs = require('fs');
-          const campaign = JSON.parse(fs.readFileSync(process.env.PINTEREST_GROWTH_CAMPAIGN, 'utf8'));
-          const slug = String(campaign.asset_slug || campaign.campaign_id || '').replace(/^\/+|\/+$/g, '');
-          if (!slug || !/^[a-z0-9][a-z0-9/_-]*$/i.test(slug)) throw new Error(`Unsafe or missing asset slug: ${slug}`);
-          const base = `${process.env.PUBLIC_SITE_ORIGIN.replace(/\/$/, '')}/media/pinterest-growth/${slug}`;
-          fs.appendFileSync(process.env.GITHUB_ENV, `PIN_ASSET_SLUG=${slug}\nPIN_ASSET_BASE_URL=${base}\n`);
-          console.log('PINTEREST_RUNTIME', JSON.stringify({ campaign: campaign.campaign_id, assetSlug: slug, assetBaseUrl: base }));
-          NODE
-
-      - name: Validate Pinterest search-first campaign
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --check scripts/pinterest-growth-queue.js
-          python3 -m py_compile scripts/build-pinterest-growth-creatives.py
-          node <<'NODE'
-          const fs = require('fs');
-          const campaign = JSON.parse(fs.readFileSync(process.env.PINTEREST_GROWTH_CAMPAIGN, 'utf8'));
-          if (campaign.channel !== 'pinterest') throw new Error('Growth campaign must be Pinterest-only');
-          if (!campaign.board_key && !campaign.board_name) throw new Error('Campaign requires board_key or board_name');
-          if (!campaign.search?.primary_keyword) throw new Error('Search-first campaign requires search.primary_keyword');
-          if (!Array.isArray(campaign.pins) || campaign.pins.length < 3 || campaign.pins.length > 20) throw new Error('Expected 3-20 Pinterest creative variants');
-          const ids = new Set(campaign.pins.map((p) => p.pin_id));
-          if (ids.size !== campaign.pins.length) throw new Error('Pinterest pin IDs must be unique');
-          for (const pin of campaign.pins) {
-            for (const field of ['pin_id', 'title', 'headline', 'description', 'link', 'search_query', 'image_alt']) {
-              if (!String(pin[field] || '').trim()) throw new Error(`Pin ${pin.pin_id || '?'} missing ${field}`);
-            }
-            if (!String(pin.link).startsWith('https://trendpilotchoice.com/')) throw new Error(`Pin ${pin.pin_id} must link to TrendPilot first`);
-          }
-          console.log('PINTEREST_SEARCH_FIRST_CAMPAIGN_OK', campaign.campaign_id, campaign.search.primary_keyword, campaign.pins.length);
-          NODE
-
-      - name: Build Pinterest search-first creatives
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 -m pip install --disable-pip-version-check --quiet pillow
-          python3 scripts/build-pinterest-growth-creatives.py
-          expected="$(node -p "require('./' + process.env.PINTEREST_GROWTH_CAMPAIGN).pins.length")"
-          actual="$(find "$PIN_CREATIVE_OUTPUT_DIR" -maxdepth 1 -name '*.png' | wc -l | tr -d ' ')"
-          test "$actual" -eq "$expected" || { echo "Expected $expected creatives, found $actual"; exit 1; }
-          cat "$PIN_CREATIVE_OUTPUT_DIR/manifest.json"
-
-      - name: Upload Pinterest creatives to Namecheap
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          printf '%s\n' "$NAMECHEAP_SSH_PRIVATE_KEY" > ~/.ssh/namecheap_pinterest_growth
-          chmod 600 ~/.ssh/namecheap_pinterest_growth
-          cat > ~/.ssh/config <<EOF
-          Host trendpilot-namecheap-pinterest
-            HostName $CPANEL_HOST
-            Port $CPANEL_PORT
-            User $CPANEL_USER
-            IdentityFile ~/.ssh/namecheap_pinterest_growth
-            IdentitiesOnly yes
-            BatchMode yes
-            ConnectTimeout 20
-            StrictHostKeyChecking accept-new
-            UserKnownHostsFile ~/.ssh/known_hosts
-          EOF
-          chmod 600 ~/.ssh/config
-          remote_dir="$PRODUCTION_ROOT/media/pinterest-growth/$PIN_ASSET_SLUG"
-          ssh trendpilot-namecheap-pinterest "mkdir -p '$remote_dir'"
-          scp "$PIN_CREATIVE_OUTPUT_DIR"/*.png "trendpilot-namecheap-pinterest:$remote_dir/"
-          ssh trendpilot-namecheap-pinterest "ls -lh '$remote_dir'"
-
-      - name: Verify public Pinterest creative assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          while IFS= read -r id; do
-            test -n "$id" || continue
-            ok=0
-            for attempt in {1..8}; do
-              if curl -fLsS --range 0-1023 --max-time 20 "$PIN_ASSET_BASE_URL/$id.png?v=$GITHUB_RUN_ID" -o /tmp/pin-probe && test -s /tmp/pin-probe; then
-                echo "PIN_ASSET_OK $id"
-                ok=1
-                break
-              fi
-              sleep 3
-            done
-            test "$ok" -eq 1 || { echo "Pinterest creative could not be fetched: $id"; exit 1; }
-          done < <(node -e "const c=require('./' + process.env.PINTEREST_GROWTH_CAMPAIGN); for (const p of c.pins) console.log(p.pin_id)")
-
-      - name: Queue one new Pinterest search-first Pin
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/pinterest-growth-queue.js
-
-      - name: Summary
-        if: always()
-        shell: bash
-        run: |
-          echo "### TrendPilot Pinterest Search-First Growth Loop" >> "$GITHUB_STEP_SUMMARY"
-          echo "This workflow queues at most one Pinterest creative per daily run." >> "$GITHUB_STEP_SUMMARY"
-          echo "Active campaign: Wireless CarPlay buyer-intent discovery." >> "$GITHUB_STEP_SUMMARY"
-          echo "Every Pin sends visitors to TrendPilot before any seller link." >> "$GITHUB_STEP_SUMMARY"
-          echo "Search terms are buyer-intent hypotheses until separately validated; the workflow does not claim search volume." >> "$GITHUB_STEP_SUMMARY"
+          echo "Pinterest automatic publishing is paused while TrendPilot replaces the old static/video creatives with new AI-generated visual posts."
+          echo "No Buffer post is created by this workflow."
