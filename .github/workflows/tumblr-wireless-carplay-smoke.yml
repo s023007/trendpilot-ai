@@ -1,0 +1,140 @@
+name: Tumblr Wireless CarPlay Smoke Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-wireless-carplay-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tumblr-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install official Tumblr client
+        run: npm install --no-save tumblr.js@5.0.1
+
+      - name: Queue one TrendPilot test post
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            "https://trendpilotchoice.com/images/media/carplay-compatibility.png" \
+            -o /tmp/carplay-compatibility.png
+
+          node <<'NODE'
+          const fs = require('fs');
+          const tumblr = require('tumblr.js');
+
+          const required = [
+            'TUMBLR_CONSUMER_KEY',
+            'TUMBLR_CONSUMER_SECRET',
+            'TUMBLR_OAUTH_TOKEN',
+            'TUMBLR_OAUTH_TOKEN_SECRET',
+          ];
+          const missing = required.filter(k => !process.env[k]);
+          if (missing.length) throw new Error(`Missing GitHub secrets: ${missing.join(', ')}`);
+
+          const client = tumblr.createClient({
+            consumer_key: process.env.TUMBLR_CONSUMER_KEY,
+            consumer_secret: process.env.TUMBLR_CONSUMER_SECRET,
+            token: process.env.TUMBLR_OAUTH_TOKEN,
+            token_secret: process.env.TUMBLR_OAUTH_TOKEN_SECRET,
+          });
+
+          const title = 'Will a Wireless CarPlay Adapter Work in Your Car?';
+          const destination = 'https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=tumblr-smoke-01';
+
+          function textOfPost(post) {
+            const parts = [];
+            if (post?.summary) parts.push(post.summary);
+            for (const block of (post?.content || [])) {
+              if (typeof block?.text === 'string') parts.push(block.text);
+              if (typeof block?.title === 'string') parts.push(block.title);
+            }
+            return parts.join(' ').toLowerCase();
+          }
+
+          (async () => {
+            const info = await client.userInfo();
+            const blogs = info?.user?.blogs || [];
+            if (!blogs.length) throw new Error('Authenticated Tumblr user has no blogs');
+
+            const preferred = blogs.find(b => String(b.name || '').toLowerCase() === 'trendpilotchoice')
+              || blogs.find(b => String(b.url || '').toLowerCase().includes('trendpilotchoice'))
+              || blogs.find(b => b.primary)
+              || blogs[0];
+            const blogName = preferred.name || preferred.url;
+            console.log(`Authenticated blog resolved: ${blogName}`);
+
+            const queued = await client.blogQueue(blogName, { limit: 50, offset: 0 });
+            const existing = (queued?.posts || []).find(p => textOfPost(p).includes(title.toLowerCase()));
+            if (existing) {
+              console.log(`Already queued; skipping duplicate. Post ID: ${existing.id}`);
+              return;
+            }
+
+            const response = await client.createPost(blogName, {
+              state: 'queue',
+              tags: [
+                'wireless carplay',
+                'car accessories',
+                'car gadgets',
+                'apple carplay',
+                'buying guide',
+                'smart shopping',
+                'TrendPilot',
+              ],
+              content: [
+                {
+                  type: 'image',
+                  media: fs.createReadStream('/tmp/carplay-compatibility.png'),
+                  alt_text: 'Wireless CarPlay compatibility guide illustration from TrendPilot',
+                },
+                {
+                  type: 'text',
+                  subtype: 'heading1',
+                  text: title,
+                },
+                {
+                  type: 'text',
+                  text: 'Before buying, confirm that wired CarPlay already works, the USB port carries data, firmware updates are available, and the seller has a clear return route.',
+                },
+                {
+                  type: 'link',
+                  url: destination,
+                  title: 'Read the full Wireless CarPlay buying guide',
+                  description: 'Five practical checks before comparing adapters.',
+                  site_name: 'TrendPilot',
+                },
+                {
+                  type: 'text',
+                  text: 'TrendPilot — Smarter buying. Fewer surprises.',
+                },
+              ],
+            });
+
+            console.log('Tumblr queue test created successfully.');
+            console.log(`Tumblr response ID: ${response?.id || response?.response?.id || 'unknown'}`);
+          })().catch(err => {
+            console.error(err);
+            process.exit(1);
+          });
+          NODE
