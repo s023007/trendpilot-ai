@@ -1,0 +1,147 @@
+name: Verify Wireless CarPlay Search-First Launch
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/verify-wireless-carplay-launch.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Verify live assets and ensure first Pinterest Pin exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const result = {
+            checked_at: new Date().toISOString(),
+            live: {},
+            buffer: { channels: [], existing: [], created: null },
+            status: 'running',
+            error: null,
+          };
+          const out = 'data/runtime/wireless-carplay-launch-audit.json';
+          fs.mkdirSync('data/runtime', { recursive: true });
+          const save = () => fs.writeFileSync(out, JSON.stringify(result, null, 2) + '\n');
+
+          async function probe(name, url, needle) {
+            try {
+              const r = await fetch(url, { redirect: 'follow', headers: { 'User-Agent': 'TrendPilotLaunchAudit/1.0' } });
+              const text = await r.text();
+              result.live[name] = {
+                url,
+                status: r.status,
+                ok: r.ok && (!needle || text.includes(needle)),
+                containsExpected: needle ? text.includes(needle) : true,
+                bytes: Buffer.byteLength(text),
+              };
+            } catch (e) {
+              result.live[name] = { url, status: null, ok: false, error: e.message };
+            }
+          }
+
+          async function gql(query, variables = {}, label = 'Buffer') {
+            const apiKey = process.env.BUFFER_API_KEY;
+            if (!apiKey) throw new Error('BUFFER_API_KEY is missing');
+            const response = await fetch('https://api.buffer.com', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+              body: JSON.stringify({ query, variables }),
+            });
+            const raw = await response.text();
+            let body;
+            try { body = JSON.parse(raw); } catch { throw new Error(`${label}: invalid JSON HTTP ${response.status}: ${raw.slice(0,500)}`); }
+            if (!response.ok || body.errors?.length) throw new Error(`${label}: HTTP ${response.status} ${JSON.stringify(body)}`);
+            return body.data;
+          }
+
+          (async () => {
+            const origin = process.env.PUBLIC_ORIGIN;
+            await probe('page', `${origin}/products/wireless-carplay-adapters/?audit=${Date.now()}`, 'Will a Wireless CarPlay Adapter Work in Your Car? 5 Checks Before Buying');
+            await probe('sitemap', `${origin}/sitemap.xml?audit=${Date.now()}`, `${origin}/products/wireless-carplay-adapters/`);
+            await probe('feed', `${origin}/feed.xml?audit=${Date.now()}`, 'Wireless CarPlay Adapter Guide 2026');
+            await probe('indexnow_key', `${origin}/d3f1a9c7e5b24f6081c4a9d2e7b5f310.txt?audit=${Date.now()}`, 'd3f1a9c7e5b24f6081c4a9d2e7b5f310');
+            await probe('pin_image', `${origin}/media/pinterest-growth/wireless-carplay-v1/carplay-pg01.png?audit=${Date.now()}`);
+
+            const account = await gql('query { account { organizations { id name } } }');
+            const org = account?.account?.organizations?.[0];
+            if (!org) throw new Error('No Buffer organization found');
+            const channelData = await gql(`query Channels($org: OrganizationId!) { channels(input:{organizationId:$org}) { id name displayName service isQueuePaused } }`, { org: org.id }, 'channels');
+            const channels = channelData?.channels || [];
+            result.buffer.channels = channels.map(c => ({ id: c.id, service: c.service, name: c.displayName || c.name, queuePaused: !!c.isQueuePaused }));
+            const pinterest = channels.find(c => c.service === 'pinterest');
+            if (!pinterest) throw new Error('Pinterest is not connected in Buffer');
+
+            const postsData = await gql(`query Posts($org: OrganizationId!, $channel: ChannelId!) { posts(first:50,input:{organizationId:$org,filter:{status:[draft,scheduled,sending,sent],channelIds:[$channel]}}) { edges { node { id text status dueAt channelService } } } }`, { org: org.id, channel: pinterest.id }, 'posts');
+            const posts = (postsData?.posts?.edges || []).map(e => e.node);
+            const match = posts.find(p => /wireless carplay adapter work in your car|common wired-to-wireless type/i.test(String(p.text || '')));
+            result.buffer.existing = posts.map(p => ({ id: p.id, status: p.status, dueAt: p.dueAt || null, textPreview: String(p.text || '').replace(/\s+/g,' ').trim().slice(0,160) }));
+
+            if (!match) {
+              const boardData = await gql(`query P($id: ChannelId!) { channel(input:{id:$id}) { metadata { ... on PinterestMetadata { boards { id name serviceId url } } } } }`, { id: pinterest.id }, 'boards');
+              const boards = boardData?.channel?.metadata?.boards || [];
+              const board = boards.find(b => /^tech\s*&\s*gadget/i.test(String(b.name || '').trim())) || boards[0];
+              if (!board) throw new Error('No Pinterest board is available');
+              const title = 'Will a Wireless CarPlay Adapter Work in Your Car?';
+              const text = 'Will a wireless CarPlay adapter work in your car? Start with the key compatibility check: the common wired-to-wireless type normally expects the vehicle to support wired Apple CarPlay first. TrendPilot explains five practical checks before you order.';
+              const destination = `${origin}/products/wireless-carplay-adapters/?post_id=carplay-pg01&creative_id=will-it-work-v2&utm_source=pinterest&utm_medium=organic_social&utm_campaign=wireless-carplay-pinterest-growth-v1&utm_content=will-it-work`;
+              const input = {
+                text,
+                channelId: pinterest.id,
+                schedulingType: 'automatic',
+                mode: 'addToQueue',
+                saveToDraft: false,
+                needsApproval: false,
+                aiAssisted: false,
+                source: 'trendpilot-wireless-carplay-launch-audit',
+                assets: [{ image: { url: `${origin}/media/pinterest-growth/wireless-carplay-v1/carplay-pg01.png`, metadata: { altText: 'Wireless CarPlay adapter compatibility guide explaining what to check before buying' } } }],
+                metadata: { pinterest: { boardServiceId: board.serviceId, title, url: destination } },
+              };
+              const created = await gql(`mutation Create($input: CreatePostInput!) { createPost(input:$input) { __typename ... on PostActionSuccess { post { id text status dueAt channelService } } ... on MutationError { message } ... on InvalidInputError { message } ... on UnauthorizedError { message } ... on UnexpectedError { message } ... on RestProxyError { message } ... on LimitReachedError { message } } }`, { input }, 'create pin');
+              const payload = created?.createPost;
+              if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) throw new Error(`Pinterest create failed: ${payload?.__typename || 'unknown'} ${payload?.message || ''}`);
+              result.buffer.created = { id: payload.post.id, status: payload.post.status, dueAt: payload.post.dueAt || null, board: board.name };
+            } else {
+              result.buffer.created = { skipped: true, reason: 'matching Wireless CarPlay Pin already exists', existingId: match.id, status: match.status, dueAt: match.dueAt || null };
+            }
+
+            const liveOk = Object.values(result.live).every(v => v.ok);
+            result.status = liveOk ? 'ok' : 'partial';
+            save();
+            console.log(JSON.stringify(result, null, 2));
+          })().catch((e) => {
+            result.status = 'error';
+            result.error = e?.message || String(e);
+            save();
+            console.error(e?.stack || e);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Commit audit result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/runtime/wireless-carplay-launch-audit.json || exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/wireless-carplay-launch-audit.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Record Wireless CarPlay Search-First launch audit"
+          git pull --rebase origin main
+          git push origin HEAD:main
