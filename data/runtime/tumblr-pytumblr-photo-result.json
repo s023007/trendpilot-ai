@@ -1,0 +1,26 @@
+{
+  "started_at": "2026-08-19T19:07:13.324610+00:00",
+  "auth_ok": true,
+  "blog": "trendpilotchoice",
+  "image_bytes": 8938,
+  "created": {
+    "ok": false,
+    "id": null,
+    "response": {
+      "meta": {
+        "status": 400,
+        "msg": "Bad Request"
+      },
+      "response": {
+        "errors": [
+          "Magick error: identify: Invalid JPEG file structure: SOS before SOF `/tmp/magick-R_rLwob--quCGthlLnJNyOAMu68Tj1o0' @ error/jpeg.c/JPEGErrorHandler/348.\n"
+        ]
+      }
+    }
+  },
+  "verified": false,
+  "photos_present": false,
+  "deleted_old": [],
+  "queue_after": null,
+  "error": "Traceback (most recent call last):\n  File \"<stdin>\", line 47, in <module>\nRuntimeError: Tumblr returned no post id: {'meta': {'status': 400, 'msg': 'Bad Request'}, 'response': {'errors': [\"Magick error: identify: Invalid JPEG file structure: SOS before SOF `/tmp/magick-R_rLwob--quCGthlLnJNyOAMu68Tj1o0' @ error/jpeg.c/JPEGErrorHandler/348.\\n\"]}}\n"
+}
