@@ -66,7 +66,7 @@ jobs:
           set -euo pipefail
           python scripts/sync-event-factory-candidates.py
 
-      - name: Generate premium events, growth network and visual promotion assets
+      - name: Generate premium event pages and growth network
         shell: bash
         env:
           FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
@@ -78,12 +78,22 @@ jobs:
             python scripts/build-event-factory.py
           fi
           python scripts/build-event-growth-network.py
+
+      - name: Generate branded social creatives when possible
+        continue-on-error: true
+        shell: bash
+        run: |
           python scripts/build-event-social-creatives.py
+
+      - name: Build discovery and promotion outputs
+        shell: bash
+        run: |
+          set -euo pipefail
           python scripts/build-event-sitemap.py
           python scripts/build-event-promotion-queue.py
           python -m json.tool data/event-factory/build-report.json >/dev/null
           python -m json.tool data/event-factory/growth-network.json >/dev/null
-          python -m json.tool data/event-factory/social-creatives.json >/dev/null
+          if [ -f data/event-factory/social-creatives.json ]; then python -m json.tool data/event-factory/social-creatives.json >/dev/null; fi
           python -m json.tool data/event-factory/public-urls.json >/dev/null
           python -m json.tool data/event-factory/promotion-queue.json >/dev/null
           test -s events/sitemap.xml
@@ -93,17 +103,19 @@ jobs:
         shell: bash
         run: |
           python - <<'PY'
-          import json
+          import json, pathlib
           r=json.load(open('data/event-factory/build-report.json'))
           g=json.load(open('data/event-factory/growth-network.json'))
-          s=json.load(open('data/event-factory/social-creatives.json'))
           u=json.load(open('data/event-factory/public-urls.json'))
           p=json.load(open('data/event-factory/promotion-queue.json'))
+          s={}
+          if pathlib.Path('data/event-factory/social-creatives.json').exists():
+              s=json.load(open('data/event-factory/social-creatives.json'))
           print('Published ready events:', len(r.get('published',[])))
           print('Candidate queue:', len(r.get('candidate_queue',[])))
           print('Growth network URLs:', g.get('total_urls'))
           print('Growth network counts:', g.get('counts'))
-          print('Social visual assets:', s.get('asset_count'))
+          print('Branded social visual assets:', s.get('asset_count',0))
           print('Public event/ticket URLs:', len(u.get('urls',[])))
           print('Promotion queue items:', len(p.get('items',[])))
           print('Ticket hub updated:', r.get('ticket_hub_updated'))
@@ -117,7 +129,8 @@ jobs:
           set -euo pipefail
           git config user.name 'trendpilot-event-factory-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/event-factory/events.json data/event-factory/build-report.json data/event-factory/growth-network.json data/event-factory/social-creatives.json data/event-factory/public-urls.json data/event-factory/promotion-queue.json events tickets/index.html
+          git add data/event-factory/events.json data/event-factory/build-report.json data/event-factory/growth-network.json data/event-factory/public-urls.json data/event-factory/promotion-queue.json events tickets/index.html
+          if [ -f data/event-factory/social-creatives.json ]; then git add data/event-factory/social-creatives.json; fi
           if git diff --cached --quiet; then
             echo 'No factory changes to commit.'
             exit 0
