@@ -7,6 +7,9 @@ on:
       - 'events/**'
       - 'tickets/**'
       - '.github/workflows/namecheap-content-auto-deploy.yml'
+  workflow_run:
+    workflows: ['TrendPilot Event Factory V1']
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
@@ -18,6 +21,7 @@ permissions:
 
 jobs:
   deploy-content:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     env:
