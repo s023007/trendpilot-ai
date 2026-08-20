@@ -1,0 +1,38 @@
+name: TrendPilot Event Asset Smoke Test
+
+on:
+  workflow_run:
+    workflows: ["Namecheap Content Auto Deploy"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-event-assets:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify local event images are publicly renderable
+        shell: bash
+        run: |
+          set -euo pipefail
+          origin='https://trendpilotchoice.com'
+          mapfile -t assets < <(find events -type f \( -iname '*.webp' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.svg' \) | sort)
+          test ${#assets[@]} -gt 0 || { echo 'No local event image assets found.'; exit 1; }
+          failed=0
+          for asset in "${assets[@]}"; do
+            url="$origin/$asset?assetcheck=${GITHUB_RUN_ID}"
+            headers="$(curl -sS -L -D - -o /tmp/event-asset.bin --max-time 35 "$url" || true)"
+            code="$(printf '%s\n' "$headers" | awk '/^HTTP\//{c=$2} END{print c}')"
+            ctype="$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^content-type:/{v=$0} END{sub(/^[^:]+:[[:space:]]*/,"",v); sub(/\r$/, "", v); print v}')"
+            bytes="$(wc -c </tmp/event-asset.bin 2>/dev/null || echo 0)"
+            echo "$asset -> HTTP=$code type=$ctype bytes=$bytes"
+            if [ "$code" != '200' ] || [[ "$ctype" != image/* ]] || [ "$bytes" -lt 1000 ]; then
+              echo "FAILED public image: $url"
+              failed=1
+            fi
+          done
+          test "$failed" = '0'
