@@ -12,7 +12,7 @@ permissions:
 jobs:
   audit-links:
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 7
     env:
       CJ_API_TOKEN: ${{ secrets.CJ_API_TOKEN }}
       CJ_TOKEN: ${{ secrets.CJ_TOKEN }}
@@ -24,11 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Query CJ Link Search safely
+      - name: Query and verify CJ links safely
         shell: bash
         run: |
           python3 - <<'PY'
-          import json, os, urllib.request, urllib.parse, urllib.error, xml.etree.ElementTree as ET
+          import json, os, re, html, urllib.request, urllib.parse, urllib.error, xml.etree.ElementTree as ET
           from datetime import datetime, timezone
 
           def first(*names):
@@ -49,21 +49,27 @@ jobs:
           ]
 
           def text(el, name):
-              x=el.find(name)
-              return (x.text or '').strip() if x is not None else ''
+              for variant in (name, name.replace('-',''), name.replace('-','_')):
+                  x=el.find(variant)
+                  if x is not None:
+                      return (x.text or '').strip()
+              return ''
 
-          def request_links(advertiser_id):
-              qs=urllib.parse.urlencode({
+          def request_links(advertiser_id, keywords=''):
+              params={
                   'website-id': pid,
                   'advertiser-ids': advertiser_id,
                   'records-per-page': '100',
                   'page-number': '1',
-              })
+              }
+              if keywords:
+                  params['keywords']=keywords
+              qs=urllib.parse.urlencode(params)
               url='https://link-search.api.cj.com/v2/link-search?'+qs
               req=urllib.request.Request(url, headers={
                   'Authorization':'Bearer '+token,
                   'Accept':'application/xml',
-                  'User-Agent':'TrendPilot-CJ-Ticket-Travel-Audit/1.0',
+                  'User-Agent':'TrendPilot-CJ-Ticket-Travel-Audit/1.1',
               })
               try:
                   with urllib.request.urlopen(req, timeout=60) as r:
@@ -83,7 +89,7 @@ jobs:
                       'link_name':text(el,'link-name'),
                       'link_type':text(el,'link-type'),
                       'allow_deep_linking':text(el,'allow-deep-linking'),
-                      'click_url':text(el,'click-url'),
+                      'click_url':text(el,'click-url') or text(el,'clickURL'),
                       'destination':text(el,'destination'),
                       'targeted_countries':text(el,'targeted-countries'),
                       'sale_commission':text(el,'sale-commission'),
@@ -91,11 +97,10 @@ jobs:
                       'three_month_epc':text(el,'three-month-epc'),
                   }
                   if not row['click_url']:
-                      html=text(el,'link-code-html')
-                      if html:
-                          import re, html as h
-                          m=re.search(r'href=[\"\']([^\"\']+)',html,re.I)
-                          if m: row['click_url']=h.unescape(m.group(1))
+                      code=text(el,'link-code-html')
+                      if code:
+                          m=re.search(r'href=[\"\']([^\"\']+)',code,re.I)
+                          if m: row['click_url']=html.unescape(m.group(1))
                   rows.append(row)
               return {
                   'http_status':status,
@@ -104,19 +109,35 @@ jobs:
                   'links':rows,
               }
 
+          def resolve(url):
+              req=urllib.request.Request(url,headers={
+                  'User-Agent':'Mozilla/5.0 TrendPilotAffiliateLinkVerifier/1.0',
+                  'Accept':'text/html,application/xhtml+xml',
+              })
+              try:
+                  with urllib.request.urlopen(req,timeout=35) as r:
+                      return {'http_status':r.status,'resolved_url':r.geturl(),'ok':True}
+              except urllib.error.HTTPError as e:
+                  return {'http_status':e.code,'resolved_url':e.geturl(),'ok':True,'note':'target returned HTTP error after redirect'}
+              except Exception as e:
+                  return {'http_status':None,'resolved_url':'','ok':False,'note':type(e).__name__+': '+str(e)[:180]}
+
           result={
               'generated_at':datetime.now(timezone.utc).isoformat(),
               'website_pid':pid,
               'source':'CJ Link Search API v2',
-              'advertisers':[]
+              'advertisers':[],
+              'manchester_campaign':{}
           }
+
+          all_by_id={}
           for adv in advertisers:
               audit=request_links(adv['id'])
               links=audit.get('links',[])
+              all_by_id[adv['id']]=links
               joined=[x for x in links if x.get('relationship_status','').lower()=='joined']
               deep=[x for x in joined if x.get('allow_deep_linking','').lower() in ('true','yes','1')]
               tracked=[x for x in joined if x.get('click_url')]
-              # Store a compact public-safe selection; never write the token.
               preferred=(deep or tracked or joined or links)[:10]
               result['advertisers'].append({
                   **adv,
@@ -130,12 +151,77 @@ jobs:
                   'error_preview':audit.get('error_preview','')
               })
 
+          # Search Sports Events 365 for the most specific currently supplied Manchester links.
+          sports_queries=[]
+          sports_candidates=[]
+          seen=set()
+          for kw in ('Manchester United','Manchester City','Manchester','Premier League'):
+              a=request_links('7753674',kw)
+              rows=a.get('links',[])
+              sports_queries.append({'keywords':kw,'http_status':a.get('http_status'),'records_returned':len(rows)})
+              for x in rows:
+                  key=x.get('link_id') or x.get('click_url')
+                  if key and key not in seen:
+                      seen.add(key); sports_candidates.append(x)
+          def sports_score(x):
+              s=(x.get('link_name','')+' '+x.get('destination','')).lower()
+              score=0
+              if 'manchester united' in s: score+=100
+              if 'manchester city' in s: score+=70
+              if 'manchester' in s: score+=40
+              if 'premier league' in s or 'premier-league' in s: score+=20
+              if x.get('link_type','').lower()=='text link': score+=5
+              if x.get('click_url'): score+=2
+              return score
+          sports_candidates=sorted(sports_candidates,key=sports_score,reverse=True)
+          sports_best=sports_candidates[0] if sports_candidates else None
+          if not sports_best:
+              sports_best=next((x for x in all_by_id.get('7753674',[]) if 'premier league' in (x.get('link_name','')+' '+x.get('destination','')).lower() and x.get('click_url')),None)
+
+          # Trip.com explicitly reports deep-link support. Build targeted Manchester hotel / UAE flight links.
+          trip_links=all_by_id.get('4368684',[])
+          trip_base=next((x for x in trip_links if x.get('click_url') and x.get('allow_deep_linking','').lower() in ('true','yes','1') and 'eng' in x.get('link_name','').lower()),None)
+          if not trip_base:
+              trip_base=next((x for x in trip_links if x.get('click_url') and x.get('allow_deep_linking','').lower() in ('true','yes','1')),None)
+
+          targets={
+              'hotels':'https://www.trip.com/hotels/manchester-hotels-list-722/',
+              'flights_uae':'https://ae.trip.com/flights/dubai-to-manchester/airfares-dxb-man/',
+          }
+          trip_deep={}
+          if trip_base:
+              sep='&' if '?' in trip_base['click_url'] else '?'
+              for name,target in targets.items():
+                  affiliate=trip_base['click_url']+sep+'url='+urllib.parse.quote(target,safe='')
+                  verification=resolve(affiliate)
+                  resolved=(verification.get('resolved_url') or '').lower()
+                  host=(urllib.parse.urlparse(verification.get('resolved_url') or '').hostname or '').lower()
+                  verification['landed_on_trip_domain']=host=='trip.com' or host.endswith('.trip.com')
+                  verification['target_path_hint_match']=('manchester' in resolved)
+                  trip_deep[name]={
+                      'target_url':target,
+                      'affiliate_url':affiliate,
+                      'base_link_id':trip_base.get('link_id'),
+                      'verification':verification,
+                  }
+
+          result['manchester_campaign']={
+              'sports_searches':sports_queries,
+              'sports_candidate_count':len(sports_candidates),
+              'sports_best_tracked_link':sports_best,
+              'sports_exact_match_link_found':bool(sports_best and ('manchester united' in (sports_best.get('link_name','')+' '+sports_best.get('destination','')).lower())),
+              'trip_base_link':trip_base,
+              'trip_deep_links':trip_deep,
+          }
+
           os.makedirs('data/runtime',exist_ok=True)
           with open('data/runtime/cj-ticket-travel-link-audit.json','w',encoding='utf-8') as f:
               json.dump(result,f,ensure_ascii=False,indent=2)
           print(json.dumps({
               'website_pid':pid,
-              'summary':[{k:a[k] for k in ('name','http_status','records_returned','joined_links','deep_linkable_links','tracked_links')} for a in result['advertisers']]
+              'summary':[{k:a[k] for k in ('name','http_status','records_returned','joined_links','deep_linkable_links','tracked_links')} for a in result['advertisers']],
+              'sports_best':sports_best,
+              'trip_verification':{k:v['verification'] for k,v in trip_deep.items()},
           },ensure_ascii=False,indent=2))
           PY
 
