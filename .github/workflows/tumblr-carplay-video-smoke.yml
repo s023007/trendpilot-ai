@@ -1,0 +1,137 @@
+name: Tumblr CarPlay Native Video Smoke Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-carplay-video-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install --quiet PyTumblr Pillow
+      - name: Build short vertical H.264 video from campaign creative
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from PIL import Image
+          src='images/social/carplay-ai-01.jpg'
+          dst='/tmp/carplay-video-source.jpg'
+          im=Image.open(src).convert('RGB')
+          im.save(dst,'JPEG',quality=94,optimize=True,progressive=False)
+          Image.open(dst).verify()
+          print('validated source image')
+          PY
+          ffmpeg -y -loop 1 -i /tmp/carplay-video-source.jpg \
+            -vf "scale=854:1280:in_range=full:out_range=tv,crop=720:1280:(iw-720)/2:0,zoompan=z='min(zoom+0.0007,1.055)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d=200:s=720x1280:fps=25,fade=t=in:st=0:d=0.35,fade=t=out:st=7.4:d=0.6,format=yuv420p" \
+            -t 8 -r 25 -c:v libx264 -preset medium -crf 20 -pix_fmt yuv420p -movflags +faststart -an /tmp/carplay-tumblr-test.mp4
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,pix_fmt -of json /tmp/carplay-tumblr-test.mp4
+      - name: Queue native Tumblr video and verify
+        shell: bash
+        run: |
+          set +e
+          mkdir -p data/runtime
+          python - <<'PY'
+          import json, os, traceback
+          import pytumblr
+          from datetime import datetime, timezone
+
+          marker='trendpilot-carplay-video-test-v1'
+          title='Wireless CarPlay: Will It Work in Your Car?'
+          video_path='/tmp/carplay-tumblr-test.mp4'
+          destination='https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=native-video-test-v1'
+          tags=[marker,'wireless carplay','car accessories','car gadgets','apple carplay','buying guide','TrendPilot']
+          caption=f'''<h2>{title}</h2><p>Quick compatibility check before you buy: wired CarPlay should already work in your car, and your USB port must support data.</p><p><a href="{destination}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>'''
+          out={'started_at':datetime.now(timezone.utc).isoformat(),'auth_ok':False,'blog':None,'video_bytes':None,'created':None,'verified':False,'video_present':False,'deleted_old':[],'queue_after':None,'error':None}
+          result_path='data/runtime/tumblr-native-video-test.json'
+
+          def save():
+              with open(result_path,'w',encoding='utf-8') as f:
+                  json.dump(out,f,indent=2,ensure_ascii=False)
+                  f.write('\n')
+
+          try:
+              required=['TUMBLR_CONSUMER_KEY','TUMBLR_CONSUMER_SECRET','TUMBLR_OAUTH_TOKEN','TUMBLR_OAUTH_TOKEN_SECRET']
+              missing=[k for k in required if not os.environ.get(k)]
+              if missing:
+                  raise RuntimeError('Missing secrets: '+', '.join(missing))
+              out['video_bytes']=os.path.getsize(video_path)
+              client=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
+              info=client.info()
+              if not isinstance(info,dict) or 'user' not in info:
+                  raise RuntimeError('Tumblr auth failed: '+repr(info))
+              out['auth_ok']=True
+              blogs=info.get('user',{}).get('blogs',[]) or []
+              preferred=next((b for b in blogs if str(b.get('name','')).lower()=='trendpilotchoice'),None) or next((b for b in blogs if 'trendpilotchoice' in str(b.get('url','')).lower()),None) or next((b for b in blogs if b.get('primary')),None) or (blogs[0] if blogs else None)
+              if not preferred:
+                  raise RuntimeError('No Tumblr blog resolved')
+              blog_name=preferred.get('name') or preferred.get('url')
+              out['blog']=blog_name
+
+              before=client.queue(blog_name,limit=50,offset=0)
+              old=[]
+              for p in (before.get('posts',[]) if isinstance(before,dict) else []):
+                  ptags=[str(t) for t in (p.get('tags') or [])]
+                  if marker in ptags:
+                      old.append(str(p.get('id')))
+
+              response=client.create_video(blog_name,state='queue',tags=tags,caption=caption,data=video_path)
+              new_id=str(response.get('id','')) if isinstance(response,dict) else ''
+              out['created']={'ok':bool(new_id),'id':new_id or None,'response':response}
+              if not new_id:
+                  raise RuntimeError('Tumblr returned no post id: '+repr(response))
+
+              verify=client.queue(blog_name,limit=50,offset=0)
+              posts=verify.get('posts',[]) if isinstance(verify,dict) else []
+              new_post=next((p for p in posts if str(p.get('id'))==new_id),None)
+              out['verified']=bool(new_post)
+              out['video_present']=bool(new_post and (new_post.get('type')=='video' or new_post.get('video_url') or new_post.get('player')))
+              if not new_post or not out['video_present']:
+                  raise RuntimeError('Video post did not verify as video in queue')
+
+              for pid in old:
+                  if pid and pid != new_id:
+                      client.delete_post(blog_name,pid)
+                      out['deleted_old'].append(pid)
+
+              after=client.queue(blog_name,limit=50,offset=0)
+              out['queue_after']=[{
+                  'id':str(p.get('id')),
+                  'type':p.get('type'),
+                  'summary':p.get('summary',''),
+                  'tags':p.get('tags',[]),
+                  'video_url':p.get('video_url'),
+                  'post_url':p.get('post_url')
+              } for p in (after.get('posts',[]) if isinstance(after,dict) else [])]
+          except Exception:
+              out['error']=traceback.format_exc()
+          finally:
+              save()
+          PY
+      - name: Commit result
+        if: always()
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/tumblr-native-video-test.json
+          git commit -m "chore: record Tumblr native video test" || exit 0
+          git pull --rebase origin main || true
+          git push || true
