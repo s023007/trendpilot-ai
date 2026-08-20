@@ -1,0 +1,115 @@
+name: Tumblr CarPlay Real Footage Video
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-carplay-real-footage.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish_real_video:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          pip install --quiet PyTumblr
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg curl
+
+      - name: Download licensed real-world footage from Pexels
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/tpvid data/runtime
+          urls=(
+            "https://www.pexels.com/download/video/32084013/"
+            "https://www.pexels.com/download/video/4254005/"
+            "https://www.pexels.com/download/video/36864261/"
+          )
+          i=1
+          for u in "${urls[@]}"; do
+            echo "Downloading source $i"
+            curl -fL --retry 3 --retry-delay 2 -A "Mozilla/5.0" "$u" -o "/tmp/tpvid/src${i}.mp4"
+            ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height -of json "/tmp/tpvid/src${i}.mp4"
+            i=$((i+1))
+          done
+
+      - name: Build 15-second vertical real-footage edit
+        shell: bash
+        run: |
+          set -euo pipefail
+          FONT='/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
+          for i in 1 2 3; do
+            ffmpeg -y -ss 0 -i "/tmp/tpvid/src${i}.mp4" -t 5 \
+              -vf "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,fps=30,format=yuv420p" \
+              -an -c:v libx264 -preset medium -crf 22 -movflags +faststart "/tmp/tpvid/clip${i}.mp4"
+          done
+          printf "file '/tmp/tpvid/clip1.mp4'\nfile '/tmp/tpvid/clip2.mp4'\nfile '/tmp/tpvid/clip3.mp4'\n" > /tmp/tpvid/list.txt
+          ffmpeg -y -f concat -safe 0 -i /tmp/tpvid/list.txt -c copy /tmp/tpvid/base.mp4
+          ffmpeg -y -i /tmp/tpvid/base.mp4 \
+            -vf "drawbox=x=0:y=0:w=iw:h=180:color=black@0.62:t=fill,drawtext=fontfile=${FONT}:text='Wireless CarPlay':fontcolor=white:fontsize=50:x=(w-text_w)/2:y=38,drawtext=fontfile=${FONT}:text='Check compatibility before you buy':fontcolor=white:fontsize=30:x=(w-text_w)/2:y=106,drawbox=x=0:y=h-150:w=iw:h=150:color=black@0.62:t=fill,drawtext=fontfile=${FONT}:text='TrendPilot • Smarter buying. Fewer surprises.':fontcolor=white:fontsize=25:x=(w-text_w)/2:y=h-100,format=yuv420p" \
+            -an -c:v libx264 -preset medium -crf 21 -movflags +faststart /tmp/tpvid/carplay-real.mp4
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,pix_fmt -of json /tmp/tpvid/carplay-real.mp4
+
+      - name: Upload real video to Tumblr queue and remove test video
+        shell: bash
+        run: |
+          set +e
+          python - <<'PY'
+          import json, os, traceback, time
+          from datetime import datetime, timezone
+          import pytumblr
+
+          video='/tmp/tpvid/carplay-real.mp4'
+          test_id='825425815229628416'
+          marker='trendpilot-carplay-real-footage-v1'
+          url='https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=real-footage-v1'
+          caption=f'''<h2>Wireless CarPlay: Check This Before You Buy</h2><p>Real in-car footage, used to explain the setup rather than claim a hands-on test of any specific adapter.</p><p>Before buying, confirm that wired CarPlay already works in your car and that your USB port carries data.</p><p><a href="{url}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>'''
+          tags=[marker,'wireless carplay','car infotainment','car accessories','apple carplay','buying guide','TrendPilot']
+          out={'started_at':datetime.now(timezone.utc).isoformat(),'auth_ok':False,'blog':None,'created':None,'state':None,'test_deleted':False,'error':None}
+          try:
+              c=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
+              info=c.info(); out['auth_ok']=bool(info.get('user')); blogs=info.get('user',{}).get('blogs',[])
+              b=next((x for x in blogs if str(x.get('name','')).lower()=='trendpilotchoice'),None) or next((x for x in blogs if x.get('primary')),None) or (blogs[0] if blogs else None)
+              if not b: raise RuntimeError('No Tumblr blog resolved')
+              blog=b.get('name') or b.get('url'); out['blog']=blog
+              r=c.create_video(blog,state='queue',tags=tags,caption=caption,data=video)
+              nid=str(r.get('id','')) if isinstance(r,dict) else ''
+              out['created']={'ok':bool(nid),'id':nid or None,'response':r}
+              out['state']=r.get('state') if isinstance(r,dict) else None
+              if not nid: raise RuntimeError('Tumblr returned no post id: '+repr(r))
+              try:
+                  c.delete_post(blog,test_id)
+                  out['test_deleted']=True
+              except Exception as e:
+                  out['test_delete_error']=repr(e)
+          except Exception:
+              out['error']=traceback.format_exc()
+          with open('data/runtime/tumblr-carplay-real-footage.json','w',encoding='utf-8') as f:
+              json.dump(out,f,indent=2,ensure_ascii=False); f.write('\n')
+          PY
+
+      - name: Persist result
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/tumblr-carplay-real-footage.json || true
+          git commit -m "chore: record Tumblr real-footage video result" || exit 0
+          git pull --rebase origin main || true
+          git push || true
