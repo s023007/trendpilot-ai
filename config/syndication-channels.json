@@ -1,0 +1,104 @@
+{
+  "version": 1,
+  "timezone": "Asia/Muscat",
+  "strategy": "search-first-multichannel-syndication",
+  "public_origin": "https://trendpilotchoice.com",
+  "feeds": {
+    "rss": "https://trendpilotchoice.com/feed.xml",
+    "atom": "https://trendpilotchoice.com/atom.xml",
+    "json": "https://trendpilotchoice.com/feed.json",
+    "events": "https://trendpilotchoice.com/feeds/events.xml",
+    "videos": "https://trendpilotchoice.com/feeds/videos.xml"
+  },
+  "automatic": {
+    "google_search_images": {
+      "method": "sitemap+structured-data",
+      "status": "active"
+    },
+    "bing_and_indexnow_engines": {
+      "method": "indexnow+sitemap",
+      "status": "active"
+    },
+    "pinterest": {
+      "method": "buffer-api",
+      "status": "active"
+    },
+    "tiktok": {
+      "method": "buffer-api",
+      "status": "active"
+    },
+    "youtube": {
+      "method": "buffer-api",
+      "status": "active"
+    }
+  },
+  "feed_onboarding": {
+    "flipboard": {
+      "method": "rss",
+      "feed": "https://trendpilotchoice.com/feed.xml",
+      "status": "ready-for-publisher-submission"
+    },
+    "smartnews": {
+      "method": "publisher-rss-smartformat",
+      "feed": "https://trendpilotchoice.com/feed.xml",
+      "status": "publisher-onboarding-required"
+    },
+    "feedly": {
+      "method": "rss",
+      "feed": "https://trendpilotchoice.com/feed.xml",
+      "status": "public-feed-ready"
+    },
+    "inoreader": {
+      "method": "rss",
+      "feed": "https://trendpilotchoice.com/feed.xml",
+      "status": "public-feed-ready"
+    }
+  },
+  "api_onboarding": {
+    "telegram": {
+      "method": "bot-api",
+      "required_secrets": ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHANNEL_ID"],
+      "status": "credentials-required"
+    },
+    "facebook": {
+      "method": "graph-api-or-buffer",
+      "status": "account-authorization-required"
+    },
+    "instagram": {
+      "method": "graph-api-or-buffer",
+      "status": "account-authorization-required"
+    },
+    "linkedin": {
+      "method": "linkedin-api-or-buffer",
+      "status": "account-authorization-required"
+    },
+    "x": {
+      "method": "x-api-or-buffer",
+      "status": "account-authorization-required"
+    },
+    "tumblr": {
+      "method": "tumblr-api",
+      "status": "oauth-required"
+    },
+    "reddit": {
+      "method": "oauth-api-or-manual-value-first",
+      "status": "authorization-and-community-rules-required"
+    },
+    "quora": {
+      "method": "manual-value-first",
+      "status": "no-general-public-posting-api-assumed"
+    },
+    "whatsapp": {
+      "method": "meta-cloud-api",
+      "status": "business-authorization-required"
+    }
+  },
+  "rules": {
+    "only_publish_verified_ready_events": true,
+    "do_not_duplicate_identical_copy_across_channels": true,
+    "utm_per_channel": true,
+    "affiliate_disclosure_required": true,
+    "do_not_claim_google_discover_or_news_inclusion": true,
+    "do_not_publish_to_unrelated_boards_or_communities": true
+  }
+}
