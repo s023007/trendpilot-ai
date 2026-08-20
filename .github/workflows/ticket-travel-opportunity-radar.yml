@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, re, os, pathlib
+          import json, re, pathlib
           from datetime import datetime, timezone
           from urllib.parse import urljoin, urlparse
           import requests
@@ -51,16 +51,17 @@ jobs:
               {'id':'formula-one','url':'https://sportsevents365.com/events/type/1003','geo':'GLOBAL'}
           ]
           session=requests.Session()
-          session.headers.update({'User-Agent':'TrendPilotOpportunityRadar/1.0 (+https://trendpilotchoice.com/)','Accept-Language':'en-US,en;q=0.9'})
+          session.headers.update({'User-Agent':'TrendPilotOpportunityRadar/2.0 (+https://trendpilotchoice.com/)','Accept-Language':'en-US,en;q=0.9'})
 
           priority=[x.lower() for x in policy.get('priority_terms',[])]
           date_pat=re.compile(r'\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+20\d{2}(?:\s+\d{1,2}:\d{2})?',re.I)
-          event_terms=(' vs ','grand prix','formula 1','concert','premier league','champions league','wimbledon','australian open','nfl','nba','six nations','bts','al-nassr','al hilal','al-hilal')
+          event_terms=(' vs ','grand prix','formula 1','concert','premier league','champions league','wimbledon','australian open','nfl','nba','six nations','bts','al-nassr','al hilal','al-hilal','super cup')
+          reject_title_terms=('from usd','sign up','ticket updates','show more','learn more','buy tickets','filter tickets')
 
           def clean(s): return re.sub(r'\s+',' ',s or '').strip()
 
           def parse_date(text):
-              m=date_pat.search(text)
+              m=date_pat.search(text or '')
               if not m: return None
               try:
                   d=dtparser.parse(m.group(0),fuzzy=True)
@@ -68,30 +69,69 @@ jobs:
                   return d
               except Exception: return None
 
+          def local_context(a):
+              title=clean(a.get_text(' ',strip=True))
+              if parse_date(title): return title[:700]
+              node=a
+              fallback=title
+              for _ in range(7):
+                  node=node.parent
+                  if not node: break
+                  t=clean(node.get_text(' ',strip=True))
+                  if not t: continue
+                  if len(t)<=900: fallback=t
+                  if date_pat.search(t) and len(t)<=900:
+                      return t
+              return fallback[:700]
+
+          def display_title(anchor_title, context):
+              a=clean(anchor_title)
+              low=a.lower()
+              if len(a)>=12 and not any(low.startswith(x) for x in reject_title_terms) and any(t in low for t in event_terms):
+                  return a[:260]
+              # A price/button can point at the event. Recover the event card text but trim conversion/UI tails.
+              c=clean(context)
+              for marker in (' From USD ', ' Only a few tickets', ' Coming Soon!', ' Leave us your email', ' Sign up for ticket updates'):
+                  if marker.lower() in c.lower():
+                      pos=c.lower().find(marker.lower())
+                      if pos>0: c=c[:pos]
+              return c[:300]
+
+          def audience_and_geo(blob, source_geo):
+              b=blob.lower()
+              if source_geo=='SA' or any(x in b for x in ('saudi arabia','riyadh','jeddah','dammam','al-nassr','al hilal','al-hilal')):
+                  return ['SA','AE','QA','KW','OM'],5
+              if source_geo=='GB' or any(x in b for x in ('england','manchester','london','old trafford','emirates stadium','premier league')):
+                  return ['GB','AE','SA','QA','KW','OM','IE'],5
+              if any(x in b for x in ('madrid','barcelona','spain','italy','milan','rome','paris','france','germany','munich','dortmund','netherlands')):
+                  return ['GB','EU','AE','SA'],4
+              if any(x in b for x in ('united states','new york','los angeles','las vegas','miami','nfl','nba')):
+                  return ['US'],5
+              return ['GLOBAL'],2
+
           def score_candidate(title, context, source_geo, event_date):
               blob=(title+' '+context).lower()
-              search_intent=5 if any(t in blob for t in (' vs ','grand prix','formula 1','premier league','champions league','concert','nfl','nba')) else 3
-              popularity=5 if any(t in blob for t in priority) else (4 if any(t in blob for t in ('premier league','formula 1','concert','nfl','nba')) else 3)
-              # Sports Events 365 has a verified tracked CJ category fallback; Trip.com deep links are verified.
+              has_match=' vs ' in blob
+              major=any(t in blob for t in ('grand prix','formula 1','premier league','champions league','concert','nfl','nba','australian open','wimbledon'))
+              search_intent=5 if (has_match or major) and event_date else 3
+              popularity=5 if any(t in blob for t in priority) else (4 if major else 2)
+              # Verified CJ state: Sports Events 365 has tracked category routes; Trip.com supports verified deep links.
               affiliate_readiness=4
-              if source_geo in ('GB','SA'): geo_fit=5
-              elif any(x in blob for x in ('manchester','london','madrid','barcelona','riyadh','jeddah','abu dhabi','dubai')): geo_fit=5
-              elif any(x in blob for x in ('england','spain','italy','france','germany','saudi')): geo_fit=4
-              else: geo_fit=3
-              visual=5 if any(x in blob for x in ('football','grand prix','formula 1','concert','nfl','nba','tennis')) else 4
+              markets,geo_fit=audience_and_geo(blob,source_geo)
+              visual=5 if any(x in blob for x in ('football','grand prix','formula 1','concert','nfl','nba','tennis','rugby')) else 3
               if event_date:
                   days=(event_date-now).days
-                  if 14 <= days <= 150: freshness=5
-                  elif 0 <= days < 14: freshness=3
-                  elif 150 < days <= 300: freshness=4
-                  else: freshness=2
-              else: freshness=2
+                  if days < -1: freshness=0
+                  elif days < 10: freshness=2
+                  elif days <= 120: freshness=5
+                  elif days <= 240: freshness=4
+                  else: freshness=3
+              else: freshness=1
               scores={
                   'search_intent':search_intent,'popularity':popularity,'affiliate_readiness':affiliate_readiness,
                   'geo_fit':geo_fit,'visual_potential':visual,'freshness':freshness
               }
-              total=sum(scores.values())
-              return scores,total
+              return scores,sum(scores.values()),markets
 
           found=[]; source_report=[]
           for src in sources:
@@ -100,50 +140,51 @@ jobs:
                   r.raise_for_status()
                   soup=BeautifulSoup(r.text,'html.parser')
                   seen=set(); source_count=0
-                  # Event names are commonly linked; use the surrounding card/container text to recover date/city/category.
                   for a in soup.find_all('a',href=True):
-                      title=clean(a.get_text(' ',strip=True))
-                      if len(title)<6: continue
-                      low=title.lower()
-                      parent=a
-                      for _ in range(4):
-                          if parent.parent: parent=parent.parent
-                      context=clean(parent.get_text(' ',strip=True))[:900]
-                      combined=(title+' '+context).lower()
-                      if not any(t in combined for t in event_terms): continue
-                      # Avoid navigation/category-only anchors unless surrounding text contains a dated event.
-                      event_date=parse_date(context)
-                      if not event_date and not (' vs ' in low or 'grand prix' in low or 'concert' in low): continue
-                      url=urljoin(src['url'],a['href'])
-                      key=(title.lower(),event_date.date().isoformat() if event_date else '',urlparse(url).path)
-                      if key in seen: continue
-                      seen.add(key)
-                      scores,total=score_candidate(title,context,src['geo'],event_date)
+                      href=a.get('href') or ''
+                      url=urljoin(src['url'],href)
+                      path=urlparse(url).path
+                      if not re.search(r'/event/\d+',path):
+                          continue
+                      context=local_context(a)
+                      anchor_title=clean(a.get_text(' ',strip=True))
+                      title=display_title(anchor_title,context)
+                      low=(title+' '+context).lower()
+                      if not any(t in low for t in event_terms):
+                          continue
+                      event_date=parse_date(anchor_title) or parse_date(title) or parse_date(context)
+                      if not event_date or (event_date-now).days < -1:
+                          continue
+                      event_id=re.search(r'/event/(\d+)',path).group(1)
+                      if event_id in seen: continue
+                      seen.add(event_id)
+                      scores,total,markets=score_candidate(title,context,src['geo'],event_date)
                       source_count+=1
                       found.append({
-                          'title':title[:220],
-                          'event_date':event_date.isoformat() if event_date else None,
+                          'event_id':event_id,
+                          'title':title,
+                          'event_date':event_date.isoformat(),
                           'source_url':url,
                           'source_group':src['id'],
                           'source_geo':src['geo'],
+                          'target_markets':markets,
                           'context_preview':context[:420],
                           'scores':scores,
                           'total_score':total,
-                          'recommended': total >= policy['publication_threshold'] and scores['affiliate_readiness'] >= policy['minimum_affiliate_readiness'],
+                          'recommended': total >= policy['publication_threshold'] and scores['affiliate_readiness'] >= policy['minimum_affiliate_readiness']
                       })
                   source_report.append({'id':src['id'],'url':src['url'],'http':r.status_code,'candidates':source_count})
               except Exception as e:
                   source_report.append({'id':src['id'],'url':src['url'],'error':type(e).__name__+': '+str(e)[:200],'candidates':0})
 
-          # Deduplicate the same event found on multiple source pages, preferring dated/higher-scoring rows.
+          # Same event can be listed on home + competition pages. Keep the strongest record by event ID.
           best={}
           for x in found:
-              key=re.sub(r'[^a-z0-9]+',' ',x['title'].lower()).strip()
-              old=best.get(key)
-              if old is None or (x['total_score'], bool(x['event_date'])) > (old['total_score'], bool(old['event_date'])):
-                  best[key]=x
+              old=best.get(x['event_id'])
+              if old is None or x['total_score']>old['total_score']:
+                  best[x['event_id']]=x
           rows=list(best.values())
-          rows.sort(key=lambda x:(not x['recommended'],-x['total_score'],x['event_date'] or '9999'))
+          rows.sort(key=lambda x:(not x['recommended'],-x['total_score'],x['event_date']))
           recommended=[x for x in rows if x['recommended']]
 
           result={
@@ -154,12 +195,12 @@ jobs:
               'candidate_count':len(rows),
               'recommended_count':len(recommended),
               'top_recommendations':recommended[:20],
-              'all_candidates':rows[:60],
-              'guardrail':'Radar only. No article or affiliate CTA is auto-published; current event facts and tracked routes must pass publication QA.'
+              'all_candidates':rows[:80],
+              'guardrail':'Radar only. No article or affiliate CTA is auto-published; current event facts, search demand and tracked routes must pass publication QA.'
           }
           pathlib.Path('data/runtime').mkdir(parents=True,exist_ok=True)
           pathlib.Path('data/runtime/ticket-travel-opportunities.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
-          print(json.dumps({'sources':source_report,'candidate_count':len(rows),'recommended_count':len(recommended),'top':[{'title':x['title'],'date':x['event_date'],'score':x['total_score']} for x in recommended[:10]]},ensure_ascii=False,indent=2))
+          print(json.dumps({'sources':source_report,'candidate_count':len(rows),'recommended_count':len(recommended),'top':[{'title':x['title'],'date':x['event_date'],'score':x['total_score'],'markets':x['target_markets']} for x in recommended[:10]]},ensure_ascii=False,indent=2))
           PY
 
       - name: Persist radar result
