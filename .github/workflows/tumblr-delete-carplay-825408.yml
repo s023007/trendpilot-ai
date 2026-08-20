@@ -1,0 +1,63 @@
+name: Tumblr Delete CarPlay Duplicate 825408
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-delete-carplay-825408.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  delete_duplicate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet PyTumblr
+      - name: Delete exact duplicate and verify
+        run: |
+          mkdir -p data/runtime
+          python - <<'PY'
+          import json, os, traceback
+          from datetime import datetime, timezone
+          import pytumblr
+          target='825408156548136960'
+          keep='825427406048362496'
+          out={'checked_at':datetime.now(timezone.utc).isoformat(),'blog':None,'target':target,'keep':keep,'deleted':False,'target_still_present':None,'keep_in_published':False,'keep_in_queue':False,'error':None}
+          try:
+            c=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
+            info=c.info(); blogs=info.get('user',{}).get('blogs',[])
+            b=next((x for x in blogs if str(x.get('name','')).lower()=='trendpilotchoice'),None) or next((x for x in blogs if x.get('primary')),None) or (blogs[0] if blogs else None)
+            if not b: raise RuntimeError('No Tumblr blog resolved')
+            blog=b.get('name') or b.get('url'); out['blog']=blog
+            c.delete_post(blog,target); out['deleted']=True
+            pub=(c.posts(blog,limit=20,offset=0) or {}).get('posts',[])
+            q=(c.queue(blog,limit=50,offset=0) or {}).get('posts',[])
+            out['target_still_present']=any(str(p.get('id'))==target for p in pub+q)
+            out['keep_in_published']=any(str(p.get('id'))==keep for p in pub)
+            out['keep_in_queue']=any(str(p.get('id'))==keep for p in q)
+          except Exception:
+            out['error']=traceback.format_exc()
+          with open('data/runtime/tumblr-carplay-delete-825408.json','w',encoding='utf-8') as f:
+            json.dump(out,f,indent=2); f.write('\n')
+          PY
+      - name: Persist verification
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/tumblr-carplay-delete-825408.json || true
+          git commit -m "chore: verify exact Tumblr CarPlay duplicate deletion" || exit 0
+          git pull --rebase origin main || true
+          git push || true
