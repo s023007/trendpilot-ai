@@ -6,10 +6,11 @@
 - [x] SEO/FAQ event schema added
 - [x] Search keyword seed set prepared
 - [x] Video brief prepared
-- [ ] Verify tracked Sports Events 365 event deep link
-- [ ] Verify tracked Trip.com hotel deep link
-- [ ] Verify tracked Trip.com flight deep link(s)
-- [ ] Enable commercial CTAs
-- [ ] Final QA against live fixture information
+- [x] Verify Sports Events 365 tracking: valid tracked Premier League fallback; no event-specific CJ deep link currently exposed
+- [x] Verify tracked Trip.com Manchester hotel deep link
+- [x] Verify tracked Trip.com Dubai → Manchester flight deep link
+- [x] Enable commercial CTAs with transparent labeling
+- [x] Final QA against current Premier League fixture information (13 Sep 2026, 16:30, Old Trafford)
 - [ ] Merge/deploy
+- [ ] Confirm public URL and CTA behavior
 - [ ] Submit page for indexing / discovery workflow
