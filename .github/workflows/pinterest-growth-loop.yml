@@ -40,7 +40,9 @@ jobs:
           node <<'NODE'
           const fs = require('fs');
           const apiKey = process.env.BUFFER_API_KEY;
-          const wantedBoard = String(process.env.PINTEREST_EVENT_BOARD || '').trim();
+          const configuredBoard = String(process.env.PINTEREST_EVENT_BOARD || '').trim();
+          const defaultBoard = 'Football Match & Travel Guides';
+          const wantedBoard = configuredBoard || defaultBoard;
           if (!apiKey) throw new Error('BUFFER_API_KEY is missing');
 
           const queue = JSON.parse(fs.readFileSync('data/event-factory/promotion-queue.json','utf8'));
@@ -130,9 +132,7 @@ jobs:
             );
             const boards = boardData?.channel?.metadata?.boards || [];
             const norm = s => String(s || '').trim().toLowerCase();
-            let board = wantedBoard
-              ? boards.find(b => norm(b.name) === norm(wantedBoard))
-              : null;
+            let board = boards.find(b => norm(b.name) === norm(wantedBoard));
             if (!board) {
               board = boards.find(b => /(football|soccer|sports|travel|event|ticket|match)/i.test(String(b.name || '')));
             }
