@@ -4,15 +4,16 @@ This is mandatory for new commercial event pages unless an exception is document
 
 ## First-screen rule
 - The first mobile screen must show the event promise, one short persuasive paragraph and the primary CTA before any large visual.
-- Never make the visitor wait for a remote image before seeing useful content or the buy path.
+- The first major visual should appear immediately after that purchase path; do not bury the photography deep in the page.
 
 ## Visual rule
-- Do not hotlink `<img>` assets from third-party hosts on production event pages.
-- Use local, optimized assets stored with the event page. Prefer WebP/JPEG/AVIF for realistic AI imagery and keep SVG for lightweight graphic fallback.
-- A visual must strengthen the experience or decision; decorative filler is not enough.
-- Historical or illustrative visuals must be labelled honestly and must not imply a current lineup.
-- Every major visual must have a graceful failure state: if an asset cannot render, the layout must collapse cleanly or show a lightweight fallback instead of a large blank area.
-- AI-generated sports visuals should sell the atmosphere without falsely representing a real current player, official kit, exact current lineup, or documentary photograph.
+- Major sports/event pages should normally contain at least two strong, relevant photographs: one emotional/event image and one venue/experience image.
+- Prefer real, properly licensed photography from trustworthy free-use sources such as Wikimedia Commons when it is available and genuinely relevant.
+- Local optimized assets are preferred when the production host serves them reliably. If local image serving is unreliable, an approved free-license CDN/source may be used with attribution and a multi-source fallback chain.
+- A production image must never fail to a blank rectangle. Use at least one independent fallback source for key images; if every source fails, collapse the visual cleanly.
+- Photography must strengthen desire, atmosphere or buying confidence. Decorative filler is not enough.
+- Historical photographs must be labelled as historical when needed and must not imply that they show the current lineup or current event.
+- AI imagery is optional, not the default. Use it only when it adds value that suitable real/free photography cannot provide, and label it honestly.
 
 ## Length rule
 - Localized event landing pages should normally use 5–7 meaningful content blocks, not long article-style scrolling.
@@ -29,7 +30,7 @@ This is mandatory for new commercial event pages unless an exception is document
 - Use one visually dominant CTA label across the page and repeat it only at natural decision points.
 - Never use fake scarcity, fake discounts, fake reviews or unsupported urgency.
 - Explain resale/marketplace status briefly near the purchase area; do not bury the visitor in disclaimers.
-- The page should persuade through experience, relevance and clarity rather than long explanation.
+- The page should persuade through experience, relevance, photography and clarity rather than long explanation.
 
 ## Cross-sell rule
 - Commercial event pages should include a compact “You may also like” section near the end when relevant inventory exists.
@@ -44,6 +45,7 @@ This is mandatory for new commercial event pages unless an exception is document
 - Avoid side-aligned narrow columns on mobile and avoid oversized empty image containers.
 
 ## Performance rule
-- No third-party image request may block first content paint.
-- Keep the hero visual lightweight and local.
+- The first CTA and core event facts must not depend on an image request.
+- Use responsive image sizes and lazy-load secondary photographs.
+- Preconnect/preload only the primary hero source when doing so materially improves mobile speed.
 - Avoid unnecessary scripts, font downloads and duplicated content blocks.
