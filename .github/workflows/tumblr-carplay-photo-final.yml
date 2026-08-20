@@ -1,3 +1,4 @@
+# Recheck after Tumblr transcoding delay
 name: Tumblr CarPlay Native Video Verify
 
 on:
@@ -35,7 +36,7 @@ jobs:
           import pytumblr
           target='825425815229628416'
           marker='trendpilot-carplay-video-test-v3'
-          out={'checked_at':datetime.now(timezone.utc).isoformat(),'auth_ok':False,'blog':None,'target_id':target,'found':False,'legacy_type':None,'summary':None,'tags':None,'content_types':[],'video_blocks':[],'video_url':None,'error':None}
+          out={'checked_at':datetime.now(timezone.utc).isoformat(),'auth_ok':False,'blog':None,'target_id':target,'found':False,'legacy_type':None,'summary':None,'tags':None,'content_types':[],'video_blocks':[],'video_url':None,'player_present':False,'thumbnail_url':None,'error':None}
           try:
               c=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
               info=c.info(); out['auth_ok']=bool(info.get('user')); blogs=info.get('user',{}).get('blogs',[])
@@ -45,7 +46,7 @@ jobs:
               q=c.queue(blog,limit=50,offset=0)
               p=next((p for p in q.get('posts',[]) if str(p.get('id'))==target or marker in [str(t) for t in (p.get('tags') or [])]),None)
               if p:
-                  out['found']=True; out['legacy_type']=p.get('type'); out['summary']=p.get('summary'); out['tags']=p.get('tags'); out['video_url']=p.get('video_url')
+                  out['found']=True; out['legacy_type']=p.get('type'); out['summary']=p.get('summary'); out['tags']=p.get('tags'); out['video_url']=p.get('video_url'); out['player_present']=bool(p.get('player')); out['thumbnail_url']=p.get('thumbnail_url')
                   content=p.get('content') or []
                   out['content_types']=[blk.get('type') for blk in content if isinstance(blk,dict)]
                   out['video_blocks']=[blk for blk in content if isinstance(blk,dict) and blk.get('type')=='video']
@@ -61,6 +62,6 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/runtime/tumblr-native-video-verify.json || true
-          git commit -m "chore: inspect Tumblr native video block" || exit 0
+          git commit -m "chore: recheck Tumblr native video" || exit 0
           git pull --rebase origin main || true
           git push || true
