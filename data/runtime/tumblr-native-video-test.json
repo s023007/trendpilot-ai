@@ -1,1 +1,21 @@
-{"stage":"started"}
+{
+  "started_at": "2026-08-20T00:56:39.109579+00:00",
+  "stage": "tumblr_upload",
+  "auth_ok": true,
+  "blog": "trendpilotchoice",
+  "video_bytes": 290668,
+  "created": {
+    "ok": true,
+    "id": "825425815229628416",
+    "response": {
+      "id": 825425815229628416,
+      "id_string": "825425815229628416",
+      "state": "transcoding",
+      "display_text": "Your video is still processing, please wait a few minutes for it to appear."
+    }
+  },
+  "verified": false,
+  "video_present": false,
+  "queue_after": null,
+  "error": "Traceback (most recent call last):\n  File \"<stdin>\", line 29, in <module>\nRuntimeError: Queued item did not verify as video\n"
+}
