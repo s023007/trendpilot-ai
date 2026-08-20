@@ -1,0 +1,175 @@
+name: TrendPilot Ticket + Travel Opportunity Radar
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ticket-travel-opportunity-radar.yml'
+      - 'config/ticket-travel-opportunity-policy.json'
+  schedule:
+    - cron: '25 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ticket-travel-opportunity-radar
+  cancel-in-progress: false
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Install parser
+        run: python -m pip install --quiet requests beautifulsoup4 python-dateutil
+
+      - name: Find and score current event opportunities
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, re, os, pathlib
+          from datetime import datetime, timezone
+          from urllib.parse import urljoin, urlparse
+          import requests
+          from bs4 import BeautifulSoup
+          from dateutil import parser as dtparser
+
+          policy=json.loads(pathlib.Path('config/ticket-travel-opportunity-policy.json').read_text())
+          now=datetime.now(timezone.utc)
+          sources=[
+              {'id':'top-events','url':'https://sportsevents365.com/','geo':'GLOBAL'},
+              {'id':'premier-league','url':'https://sportsevents365.com/dock/competition/premier-league','geo':'GB'},
+              {'id':'saudi-arabia','url':'https://sportsevents365.com/events/country/1143','geo':'SA'},
+              {'id':'formula-one','url':'https://sportsevents365.com/events/type/1003','geo':'GLOBAL'}
+          ]
+          session=requests.Session()
+          session.headers.update({'User-Agent':'TrendPilotOpportunityRadar/1.0 (+https://trendpilotchoice.com/)','Accept-Language':'en-US,en;q=0.9'})
+
+          priority=[x.lower() for x in policy.get('priority_terms',[])]
+          date_pat=re.compile(r'\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+20\d{2}(?:\s+\d{1,2}:\d{2})?',re.I)
+          event_terms=(' vs ','grand prix','formula 1','concert','premier league','champions league','wimbledon','australian open','nfl','nba','six nations','bts','al-nassr','al hilal','al-hilal')
+
+          def clean(s): return re.sub(r'\s+',' ',s or '').strip()
+
+          def parse_date(text):
+              m=date_pat.search(text)
+              if not m: return None
+              try:
+                  d=dtparser.parse(m.group(0),fuzzy=True)
+                  if d.tzinfo is None: d=d.replace(tzinfo=timezone.utc)
+                  return d
+              except Exception: return None
+
+          def score_candidate(title, context, source_geo, event_date):
+              blob=(title+' '+context).lower()
+              search_intent=5 if any(t in blob for t in (' vs ','grand prix','formula 1','premier league','champions league','concert','nfl','nba')) else 3
+              popularity=5 if any(t in blob for t in priority) else (4 if any(t in blob for t in ('premier league','formula 1','concert','nfl','nba')) else 3)
+              # Sports Events 365 has a verified tracked CJ category fallback; Trip.com deep links are verified.
+              affiliate_readiness=4
+              if source_geo in ('GB','SA'): geo_fit=5
+              elif any(x in blob for x in ('manchester','london','madrid','barcelona','riyadh','jeddah','abu dhabi','dubai')): geo_fit=5
+              elif any(x in blob for x in ('england','spain','italy','france','germany','saudi')): geo_fit=4
+              else: geo_fit=3
+              visual=5 if any(x in blob for x in ('football','grand prix','formula 1','concert','nfl','nba','tennis')) else 4
+              if event_date:
+                  days=(event_date-now).days
+                  if 14 <= days <= 150: freshness=5
+                  elif 0 <= days < 14: freshness=3
+                  elif 150 < days <= 300: freshness=4
+                  else: freshness=2
+              else: freshness=2
+              scores={
+                  'search_intent':search_intent,'popularity':popularity,'affiliate_readiness':affiliate_readiness,
+                  'geo_fit':geo_fit,'visual_potential':visual,'freshness':freshness
+              }
+              total=sum(scores.values())
+              return scores,total
+
+          found=[]; source_report=[]
+          for src in sources:
+              try:
+                  r=session.get(src['url'],timeout=35)
+                  r.raise_for_status()
+                  soup=BeautifulSoup(r.text,'html.parser')
+                  seen=set(); source_count=0
+                  # Event names are commonly linked; use the surrounding card/container text to recover date/city/category.
+                  for a in soup.find_all('a',href=True):
+                      title=clean(a.get_text(' ',strip=True))
+                      if len(title)<6: continue
+                      low=title.lower()
+                      parent=a
+                      for _ in range(4):
+                          if parent.parent: parent=parent.parent
+                      context=clean(parent.get_text(' ',strip=True))[:900]
+                      combined=(title+' '+context).lower()
+                      if not any(t in combined for t in event_terms): continue
+                      # Avoid navigation/category-only anchors unless surrounding text contains a dated event.
+                      event_date=parse_date(context)
+                      if not event_date and not (' vs ' in low or 'grand prix' in low or 'concert' in low): continue
+                      url=urljoin(src['url'],a['href'])
+                      key=(title.lower(),event_date.date().isoformat() if event_date else '',urlparse(url).path)
+                      if key in seen: continue
+                      seen.add(key)
+                      scores,total=score_candidate(title,context,src['geo'],event_date)
+                      source_count+=1
+                      found.append({
+                          'title':title[:220],
+                          'event_date':event_date.isoformat() if event_date else None,
+                          'source_url':url,
+                          'source_group':src['id'],
+                          'source_geo':src['geo'],
+                          'context_preview':context[:420],
+                          'scores':scores,
+                          'total_score':total,
+                          'recommended': total >= policy['publication_threshold'] and scores['affiliate_readiness'] >= policy['minimum_affiliate_readiness'],
+                      })
+                  source_report.append({'id':src['id'],'url':src['url'],'http':r.status_code,'candidates':source_count})
+              except Exception as e:
+                  source_report.append({'id':src['id'],'url':src['url'],'error':type(e).__name__+': '+str(e)[:200],'candidates':0})
+
+          # Deduplicate the same event found on multiple source pages, preferring dated/higher-scoring rows.
+          best={}
+          for x in found:
+              key=re.sub(r'[^a-z0-9]+',' ',x['title'].lower()).strip()
+              old=best.get(key)
+              if old is None or (x['total_score'], bool(x['event_date'])) > (old['total_score'], bool(old['event_date'])):
+                  best[key]=x
+          rows=list(best.values())
+          rows.sort(key=lambda x:(not x['recommended'],-x['total_score'],x['event_date'] or '9999'))
+          recommended=[x for x in rows if x['recommended']]
+
+          result={
+              'generated_at':now.isoformat(),
+              'policy_version':policy.get('version'),
+              'publication_threshold':policy['publication_threshold'],
+              'source_report':source_report,
+              'candidate_count':len(rows),
+              'recommended_count':len(recommended),
+              'top_recommendations':recommended[:20],
+              'all_candidates':rows[:60],
+              'guardrail':'Radar only. No article or affiliate CTA is auto-published; current event facts and tracked routes must pass publication QA.'
+          }
+          pathlib.Path('data/runtime').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('data/runtime/ticket-travel-opportunities.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({'sources':source_report,'candidate_count':len(rows),'recommended_count':len(recommended),'top':[{'title':x['title'],'date':x['event_date'],'score':x['total_score']} for x in recommended[:10]]},ensure_ascii=False,indent=2))
+          PY
+
+      - name: Persist radar result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-opportunity-radar-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/ticket-travel-opportunities.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: update ticket and travel opportunity radar'
+          git pull --rebase origin main
+          git push origin HEAD:main
