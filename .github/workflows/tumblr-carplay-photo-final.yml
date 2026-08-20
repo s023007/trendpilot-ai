@@ -1,4 +1,4 @@
-name: Tumblr CarPlay Native Photo Final
+name: Tumblr CarPlay Native Video Test
 
 on:
   push:
@@ -11,9 +11,9 @@ permissions:
   contents: write
 
 jobs:
-  publish:
+  video_test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     env:
       TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
       TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
@@ -24,44 +24,70 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install --quiet PyTumblr Pillow
-      - name: Queue native photo, verify, then remove old text copy
-        shell: bash
+      - name: Install dependencies
+        run: pip install --quiet PyTumblr Pillow
+      - name: Initialize diagnostic
         run: |
           mkdir -p data/runtime
+          printf '{"stage":"started"}\n' > data/runtime/tumblr-native-video-test.json
+      - name: Build 8-second vertical MP4
+        shell: bash
+        run: |
+          set -euo pipefail
           python - <<'PY'
-          import os,json,traceback
-          from datetime import datetime,timezone
           from PIL import Image
+          src='images/social/carplay-ai-01.jpg'
+          dst='/tmp/carplay-video-source.jpg'
+          im=Image.open(src).convert('RGB')
+          im.save(dst,'JPEG',quality=94,progressive=False)
+          Image.open(dst).verify()
+          PY
+          ffmpeg -y -loop 1 -i /tmp/carplay-video-source.jpg \
+            -vf "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,zoompan=z='min(zoom+0.0006,1.04)':d=200:s=720x1280:fps=25,fade=t=in:st=0:d=0.3,fade=t=out:st=7.5:d=0.5,format=yuv420p" \
+            -t 8 -r 25 -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart -an /tmp/carplay-tumblr-test.mp4
+          ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,pix_fmt -of json /tmp/carplay-tumblr-test.mp4
+      - name: Queue native Tumblr video and verify
+        shell: bash
+        run: |
+          set +e
+          python - <<'PY'
+          import json, os, traceback
+          from datetime import datetime, timezone
           import pytumblr
-          out={'started_at':datetime.now(timezone.utc).isoformat(),'auth_ok':False,'blog':None,'image_valid':False,'created':None,'verified':False,'photos_present':False,'deleted_old':[],'queue_after':None,'error':None}
-          path='data/runtime/tumblr-native-photo-final.json'
-          def save():
-              with open(path,'w') as f: json.dump(out,f,indent=2); f.write('\n')
+
+          marker='trendpilot-carplay-video-test-v2'
+          title='Wireless CarPlay: Will It Work in Your Car?'
+          video='/tmp/carplay-tumblr-test.mp4'
+          url='https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=native-video-v2'
+          tags=[marker,'wireless carplay','car accessories','car gadgets','apple carplay','buying guide','TrendPilot']
+          caption=f'<h2>{title}</h2><p>Quick compatibility check before you buy: wired CarPlay should already work in your car, and the USB port should carry data.</p><p><a href="{url}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>'
+          out={'started_at':datetime.now(timezone.utc).isoformat(),'auth_ok':False,'blog':None,'video_bytes':os.path.getsize(video) if os.path.exists(video) else None,'created':None,'verified':False,'video_present':False,'queue_after':None,'error':None}
+          path='data/runtime/tumblr-native-video-test.json'
           try:
-              src='images/social/carplay-ai-01.jpg'; dst='/tmp/carplay-native.jpg'
-              im=Image.open(src).convert('RGB'); im.save(dst,'JPEG',quality=92,progressive=False); Image.open(dst).verify(); out['image_valid']=True
               c=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
-              info=c.info(); out['auth_ok']=bool(info.get('user')); blogs=info['user'].get('blogs',[])
-              b=next((x for x in blogs if str(x.get('name','')).lower()=='trendpilotchoice'),None) or next((x for x in blogs if x.get('primary')),None) or blogs[0]
+              info=c.info(); out['auth_ok']=bool(info.get('user')); blogs=info.get('user',{}).get('blogs',[])
+              b=next((x for x in blogs if str(x.get('name','')).lower()=='trendpilotchoice'),None) or next((x for x in blogs if x.get('primary')),None) or (blogs[0] if blogs else None)
+              if not b: raise RuntimeError('No Tumblr blog resolved')
               blog=b.get('name') or b.get('url'); out['blog']=blog
-              title='Will a Wireless CarPlay Adapter Work in Your Car?'
-              before=c.queue(blog,limit=50,offset=0); old=[]
-              for p in before.get('posts',[]):
-                  if title in str(p.get('summary','')) or any(str(t).startswith('trendpilot-carplay-') for t in p.get('tags',[])): old.append(str(p.get('id')))
-              url='https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=native-photo-final'
-              cap=f'<h2>{title}</h2><p>Before buying, confirm that wired CarPlay already works, the USB port carries data, firmware updates are available, and the seller has a clear return route.</p><p><a href="{url}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>'
-              r=c.create_photo(blog,state='queue',tags=['wireless carplay','car accessories','car gadgets','apple carplay','buying guide','smart shopping','TrendPilot'],format='html',caption=cap,link=url,data=dst)
-              nid=str(r.get('id','')) if isinstance(r,dict) else ''; out['created']={'ok':bool(nid),'id':nid or None,'response':r}
-              if not nid: raise RuntimeError('No post id returned: '+repr(r))
-              q=c.queue(blog,limit=50,offset=0); np=next((p for p in q.get('posts',[]) if str(p.get('id'))==nid),None)
-              out['verified']=bool(np); out['photos_present']=bool(np and np.get('photos'))
-              if not out['photos_present']: raise RuntimeError('New queued post has no photo')
+              before=c.queue(blog,limit=50,offset=0)
+              old=[str(p.get('id')) for p in before.get('posts',[]) if marker in [str(t) for t in (p.get('tags') or [])]]
+              r=c.create_video(blog,state='queue',tags=tags,caption=caption,data=video)
+              nid=str(r.get('id','')) if isinstance(r,dict) else ''
+              out['created']={'ok':bool(nid),'id':nid or None,'response':r}
+              if not nid: raise RuntimeError('No video post id returned: '+repr(r))
+              q=c.queue(blog,limit=50,offset=0)
+              np=next((p for p in q.get('posts',[]) if str(p.get('id'))==nid),None)
+              out['verified']=bool(np)
+              out['video_present']=bool(np and (np.get('type')=='video' or np.get('video_url') or np.get('player')))
+              if not out['video_present']: raise RuntimeError('Queued item did not verify as video')
               for pid in old:
-                  if pid!=nid: c.delete_post(blog,pid); out['deleted_old'].append(pid)
-              q2=c.queue(blog,limit=50,offset=0); out['queue_after']=[{'id':str(p.get('id')),'type':p.get('type'),'summary':p.get('summary',''),'photos_count':len(p.get('photos') or []),'tags':p.get('tags',[])} for p in q2.get('posts',[])]
-          except Exception: out['error']=traceback.format_exc()
-          finally: save()
+                  if pid != nid: c.delete_post(blog,pid)
+              q2=c.queue(blog,limit=50,offset=0)
+              out['queue_after']=[{'id':str(p.get('id')),'type':p.get('type'),'summary':p.get('summary',''),'tags':p.get('tags',[]),'video_url':p.get('video_url')} for p in q2.get('posts',[])]
+          except Exception:
+              out['error']=traceback.format_exc()
+          finally:
+              with open(path,'w',encoding='utf-8') as f: json.dump(out,f,indent=2,ensure_ascii=False); f.write('\n')
           PY
       - name: Persist verification result
         if: always()
@@ -69,7 +95,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/runtime/tumblr-native-photo-final.json
-          git commit -m "chore: record final Tumblr native photo result" || exit 0
+          git add data/runtime/tumblr-native-video-test.json || true
+          git commit -m "chore: record Tumblr native video test" || exit 0
           git pull --rebase origin main || true
           git push || true
