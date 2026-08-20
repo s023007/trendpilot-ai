@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-20T06:08:27.807166+00:00",
+  "generated_at": "2026-08-20T06:09:08.354104+00:00",
   "policy_version": 2,
   "publication_threshold": 25,
   "source_report": [
@@ -7,7 +7,7 @@
       "id": "top-events",
       "url": "https://sportsevents365.com/",
       "http": 200,
-      "candidates": 22
+      "candidates": 20
     },
     {
       "id": "premier-league",
@@ -28,16 +28,24 @@
       "candidates": 6
     }
   ],
-  "candidate_count": 44,
-  "recommended_count": 44,
+  "candidate_count": 51,
+  "recommended_count": 39,
   "top_recommendations": [
     {
-      "title": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392775",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
+      "event_id": "398745",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al-Ahli Saudi FC Riyadh, Saudi Arabia - Kingdom Arena Tue, 01 Sep 2026 21:00 Not Final Date not final",
+      "event_date": "2026-09-01T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398745",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al-Ahli Saudi FC Riyadh, Saudi Arabia - Kingdom Arena Tue, 01 Sep 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 202",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -50,12 +58,22 @@
       "recommended": true
     },
     {
+      "event_id": "393001",
       "title": "Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
+      "event_date": "2026-09-06T00:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/393001",
       "source_group": "top-events",
       "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -68,48 +86,22 @@
       "recommended": true
     },
     {
-      "title": "US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/389618",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Car Racing Spanish Grand Prix | 11-13 September Formula 1 Circuito de Madring Madrid, Spain Sun, 13 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/369293",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
+      "event_id": "392968",
       "title": "Football (Soccer) Manchester United vs Manchester City English Premier League Old Trafford Manchester, England Sun, 13 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
+      "event_date": "2026-09-13T00:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/392968",
       "source_group": "top-events",
       "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "Football (Soccer) Manchester United vs Manchester City English Premier League Old Trafford Manchester, England Sun, 13 Sep 2026",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -122,680 +114,19 @@
       "recommended": true
     },
     {
-      "title": "Football (Soccer) Inter vs SS Lazio Italian Super Cup TBD TBD, TBD Tue, 22 Dec 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391307",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Tennis Australian Open | Session 27 - Men's Final Australian Open (Grand Slam) Rod Laver Arena (Main Court) Melbourne, Australia Sun, 31 Jan 2027",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/390886",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Semi-Final: FC Barcelona vs Atletico Madrid Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391305",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Semi-Final: Real Madrid vs Real Sociedad Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391306",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Tennis ABN AMRO World Tennis Tournament: Final Day | Doubles final + Singles final ATP Tour (250/500) Ahoy Rotterdam Rotterdam, Netherlands Sun, 14 Feb 2027",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391289",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 544",
-      "event_date": "2026-09-13T15:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/369293",
-      "source_group": "formula-one",
-      "source_geo": "GLOBAL",
-      "context_preview": "Formula 1 (Car Racing) Spanish Grand Prix | 11-13 September Madrid, Spain - Circuito de Madring Sun, 13 Sep 2026 15:00 From USD $ 544 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/387656",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395343",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395597",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barcelona, Spain Thu, 27 Aug 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395252",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Rugby Italy vs France Six Nations Stadio Olimpico (Roma) Rome, Italy Sat, 06 Mar 2027",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/388449",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Rugby France vs South Africa World Rugby Nations Championship Stade de France Paris, France Fri, 13 Nov 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/383977",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Rugby France vs Wales Six Nations Stade de France Paris, France Sat, 06 Feb 2027",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/388441",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Rugby France vs Fiji World Rugby Nations Championship Groupama Stadium Lyon, France Sat, 07 Nov 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/383976",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Entertainment BTS-Kallang, Singapore Concerts Singapore National Stadium Kallang, Singapore Tue, 22 Dec 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391347",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    }
-  ],
-  "all_candidates": [
-    {
-      "title": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392775",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/393001",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/389618",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Car Racing Spanish Grand Prix | 11-13 September Formula 1 Circuito de Madring Madrid, Spain Sun, 13 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/369293",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Manchester United vs Manchester City English Premier League Old Trafford Manchester, England Sun, 13 Sep 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392968",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Inter vs SS Lazio Italian Super Cup TBD TBD, TBD Tue, 22 Dec 2026",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391307",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Tennis Australian Open | Session 27 - Men's Final Australian Open (Grand Slam) Rod Laver Arena (Main Court) Melbourne, Australia Sun, 31 Jan 2027",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/390886",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Semi-Final: FC Barcelona vs Atletico Madrid Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391305",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Semi-Final: Real Madrid vs Real Sociedad Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391306",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Tennis ABN AMRO World Tennis Tournament: Final Day | Doubles final + Singles final ATP Tour (250/500) Ahoy Rotterdam Rotterdam, Netherlands Sun, 14 Feb 2027",
-      "event_date": "2026-09-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391289",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026 Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026 US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026 Car Rac",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 544",
-      "event_date": "2026-09-13T15:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/369293",
-      "source_group": "formula-one",
-      "source_geo": "GLOBAL",
-      "context_preview": "Formula 1 (Car Racing) Spanish Grand Prix | 11-13 September Madrid, Spain - Circuito de Madring Sun, 13 Sep 2026 15:00 From USD $ 544 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/387656",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395343",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395597",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barcelona, Spain Thu, 27 Aug 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395252",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Rugby Italy vs France Six Nations Stadio Olimpico (Roma) Rome, Italy Sat, 06 Mar 2027",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/388449",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Rugby France vs South Africa World Rugby Nations Championship Stade de France Paris, France Fri, 13 Nov 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/383977",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Rugby France vs Wales Six Nations Stade de France Paris, France Sat, 06 Feb 2027",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/388441",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Rugby France vs Fiji World Rugby Nations Championship Groupama Stadium Lyon, France Sat, 07 Nov 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/383976",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Entertainment BTS-Kallang, Singapore Concerts Singapore National Stadium Kallang, Singapore Tue, 22 Dec 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391347",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "Entertainment BTS-Kallang, Singapore Concerts Singapore National Stadium Kallang, Singapore Sun, 20 Dec 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391346",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "US Football Las Vegas Raiders vs Miami Dolphins NFL (US Football) Allegiant Stadium Las Vegas, NV, USA Sun, 13 Sep 2026",
-      "event_date": "2026-10-04T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/386993",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026 Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026 Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027 Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barce",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 295",
+      "event_id": "369292",
+      "title": "Formula 1 (Car Racing) Gran Premio d'Italia: 4-6 September Monza, Italy - Autodromo Nazionale Monza Sun, 06 Sep 2026 15:00",
       "event_date": "2026-09-06T15:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/369292",
       "source_group": "formula-one",
       "source_geo": "GLOBAL",
-      "context_preview": "Formula 1 (Car Racing) Gran Premio d'Italia: 4-6 September Monza, Italy - Autodromo Nazionale Monza Sun, 06 Sep 2026 15:00 From USD $ 295 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Formula 1 (Car Racing) Gran Premio d'Italia: 4-6 September Monza, Italy - Autodromo Nazionale Monza Sun, 06 Sep 2026 15:00 From USD $ 295",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -808,383 +139,1731 @@
       "recommended": true
     },
     {
-      "title": "From USD $ 218",
+      "event_id": "389618",
+      "title": "US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026",
+      "event_date": "2026-09-11T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/389618",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "US"
+      ],
+      "context_preview": "US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "369293",
+      "title": "Car Racing Spanish Grand Prix | 11-13 September Formula 1 Circuito de Madring Madrid, Spain Sun, 13 Sep 2026",
+      "event_date": "2026-09-13T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/369293",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Car Racing Spanish Grand Prix | 11-13 September Formula 1 Circuito de Madring Madrid, Spain Sun, 13 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "386993",
+      "title": "US Football Las Vegas Raiders vs Miami Dolphins NFL (US Football) Allegiant Stadium Las Vegas, NV, USA Sun, 13 Sep 2026",
+      "event_date": "2026-09-13T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/386993",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "US"
+      ],
+      "context_preview": "US Football Las Vegas Raiders vs Miami Dolphins NFL (US Football) Allegiant Stadium Las Vegas, NV, USA Sun, 13 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "395343",
+      "title": "Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026",
+      "event_date": "2026-10-25T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/395343",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "391305",
+      "title": "Football (Soccer) Semi-Final: FC Barcelona vs Atletico Madrid Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "event_date": "2027-02-02T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391305",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Football (Soccer) Semi-Final: FC Barcelona vs Atletico Madrid Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 27,
+      "recommended": true
+    },
+    {
+      "event_id": "391306",
+      "title": "Football (Soccer) Semi-Final: Real Madrid vs Real Sociedad Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "event_date": "2027-02-02T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391306",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Football (Soccer) Semi-Final: Real Madrid vs Real Sociedad Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 27,
+      "recommended": true
+    },
+    {
+      "event_id": "398732",
+      "title": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Al-Nassr FC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 21 Aug 2026 19:00 Not Final Date not final",
       "event_date": "2026-08-21T19:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/398732",
       "source_group": "saudi-arabia",
       "source_geo": "SA",
-      "context_preview": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Al-Nassr FC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 21 Aug 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 218 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Al-Nassr FC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 21 Aug 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 218",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 237",
+      "event_id": "393016",
+      "title": "English Premier League (Football (Soccer)) Arsenal vs Coventry City London, England - Emirates Stadium Fri, 21 Aug 2026 20:00",
       "event_date": "2026-08-21T20:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/393016",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Arsenal vs Coventry City London, England - Emirates Stadium Fri, 21 Aug 2026 20:00 From USD $ 237 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Arsenal vs Coventry City London, England - Emirates Stadium Fri, 21 Aug 2026 20:00 From USD $ 237",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 818",
+      "event_id": "393680",
+      "title": "English Premier League (Football (Soccer)) Hull City vs Manchester United Hull, England - MKM Stadium Sat, 22 Aug 2026 12:30",
       "event_date": "2026-08-22T12:30:00+00:00",
       "source_url": "https://sportsevents365.com/event/393680",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Hull City vs Manchester United Hull, England - MKM Stadium Sat, 22 Aug 2026 12:30 From USD $ 818 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Hull City vs Manchester United Hull, England - MKM Stadium Sat, 22 Aug 2026 12:30 From USD $ 818",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 134",
+      "event_id": "393681",
+      "title": "English Premier League (Football (Soccer)) Everton FC vs Crystal Palace Liverpool, England - Hill Dickinson Stadium Sat, 22 Aug 2026 15:00",
       "event_date": "2026-08-22T15:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/393681",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Crystal Palace Liverpool, England - Hill Dickinson Stadium Sat, 22 Aug 2026 15:00 From USD $ 134 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Crystal Palace Liverpool, England - Hill Dickinson Stadium Sat, 22 Aug 2026 15:00 From USD $ 134",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 198",
+      "event_id": "393682",
+      "title": "English Premier League (Football (Soccer)) Ipswich Town vs Sunderland AFC Ipswich, England - Portman Road Sat, 22 Aug 2026 15:00",
       "event_date": "2026-08-22T15:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/393682",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Ipswich Town vs Sunderland AFC Ipswich, England - Portman Road Sat, 22 Aug 2026 15:00 From USD $ 198 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Ipswich Town vs Sunderland AFC Ipswich, England - Portman Road Sat, 22 Aug 2026 15:00 From USD $ 198",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 1,672",
+      "event_id": "393683",
+      "title": "English Premier League (Football (Soccer)) Nottingham Forest vs Leeds United Nottingham, England - City Ground Sat, 22 Aug 2026 15:00",
       "event_date": "2026-08-22T15:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/393683",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Nottingham Forest vs Leeds United Nottingham, England - City Ground Sat, 22 Aug 2026 15:00 Only a few tickets left From USD $ 1,672 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Nottingham Forest vs Leeds United Nottingham, England - City Ground Sat, 22 Aug 2026 15:00 Only a few tickets left From USD $ 1,672",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 602",
+      "event_id": "393684",
+      "title": "English Premier League (Football (Soccer)) Brentford vs Tottenham Hotspur London, England - Brentford Community Stadium (Gtech) Sat, 22 Aug 2026 17:30",
       "event_date": "2026-08-22T17:30:00+00:00",
       "source_url": "https://sportsevents365.com/event/393684",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Brentford vs Tottenham Hotspur London, England - Brentford Community Stadium (Gtech) Sat, 22 Aug 2026 17:30 Only a few tickets left From USD $ 602 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Brentford vs Tottenham Hotspur London, England - Brentford Community Stadium (Gtech) Sat, 22 Aug 2026 17:30 Only a few tickets left From USD $ 602",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 119",
+      "event_id": "393038",
+      "title": "English Premier League (Football (Soccer)) Manchester City vs A.F.C. Bournemouth Manchester, England - Etihad Stadium Sun, 23 Aug 2026 14:00",
       "event_date": "2026-08-23T14:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/393038",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Manchester City vs A.F.C. Bournemouth Manchester, England - Etihad Stadium Sun, 23 Aug 2026 14:00 From USD $ 119 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Manchester City vs A.F.C. Bournemouth Manchester, England - Etihad Stadium Sun, 23 Aug 2026 14:00 From USD $ 119",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 164",
+      "event_id": "400170",
+      "title": "English Premier League (Football (Soccer)) Newcastle United vs Liverpool Newcastle, England - St James Park Sun, 23 Aug 2026 16:30",
       "event_date": "2026-08-23T16:30:00+00:00",
       "source_url": "https://sportsevents365.com/event/400170",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Newcastle United vs Liverpool Newcastle, England - St James Park Sun, 23 Aug 2026 16:30 Only a few tickets left From USD $ 164 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Newcastle United vs Liverpool Newcastle, England - St James Park Sun, 23 Aug 2026 16:30 Only a few tickets left From USD $ 164",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 285",
+      "event_id": "393021",
+      "title": "English Premier League (Football (Soccer)) Fulham FC vs Chelsea London, England - Craven Cottage Mon, 24 Aug 2026 20:00",
       "event_date": "2026-08-24T20:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/393021",
       "source_group": "premier-league",
       "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Fulham FC vs Chelsea London, England - Craven Cottage Mon, 24 Aug 2026 20:00 From USD $ 285 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Fulham FC vs Chelsea London, England - Craven Cottage Mon, 24 Aug 2026 20:00 From USD $ 285",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
-    },
+    }
+  ],
+  "all_candidates": [
     {
-      "title": "From USD $ 173",
-      "event_date": "2026-08-28T20:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392486",
-      "source_group": "premier-league",
-      "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Crystal Palace vs Manchester City London, England - Selhurst Park Fri, 28 Aug 2026 20:00 From USD $ 173 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 3
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 272",
-      "event_date": "2026-08-28T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/398740",
-      "source_group": "saudi-arabia",
-      "source_geo": "SA",
-      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Taawoun Riyadh, Saudi Arabia - King Saud University Fri, 28 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 272 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 3
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 316",
-      "event_date": "2026-08-29T12:30:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392996",
-      "source_group": "premier-league",
-      "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Liverpool vs Nottingham Forest Liverpool, England - Anfield Sat, 29 Aug 2026 12:30 From USD $ 316 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 3
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 784",
-      "event_date": "2026-08-29T15:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/393689",
-      "source_group": "premier-league",
-      "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) A.F.C. Bournemouth vs Everton FC Bournemouth, England - Dean Court (Vitality Stadium) Sat, 29 Aug 2026 15:00 Only a few tickets left From USD $ 784 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 3
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 156",
-      "event_date": "2026-08-29T15:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/393692",
-      "source_group": "premier-league",
-      "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Coventry City vs Hull City Coventry, England - Coventry Building Society Arena Sat, 29 Aug 2026 15:00 From USD $ 156 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 3
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 192",
-      "event_date": "2026-08-29T17:30:00+00:00",
-      "source_url": "https://sportsevents365.com/event/393087",
-      "source_group": "premier-league",
-      "source_geo": "GB",
-      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Newcastle United London, England - Tottenham Hotspur Stadium Sat, 29 Aug 2026 17:30 From USD $ 192 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 3
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "title": "From USD $ 202",
+      "event_id": "398745",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al-Ahli Saudi FC Riyadh, Saudi Arabia - Kingdom Arena Tue, 01 Sep 2026 21:00 Not Final Date not final",
       "event_date": "2026-09-01T21:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/398745",
       "source_group": "saudi-arabia",
       "source_geo": "SA",
-      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al-Ahli Saudi FC Riyadh, Saudi Arabia - Kingdom Arena Tue, 01 Sep 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 202 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al-Ahli Saudi FC Riyadh, Saudi Arabia - Kingdom Arena Tue, 01 Sep 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 202",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 5,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "393001",
+      "title": "Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026",
+      "event_date": "2026-09-06T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393001",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "392968",
+      "title": "Football (Soccer) Manchester United vs Manchester City English Premier League Old Trafford Manchester, England Sun, 13 Sep 2026",
+      "event_date": "2026-09-13T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392968",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "Football (Soccer) Manchester United vs Manchester City English Premier League Old Trafford Manchester, England Sun, 13 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "369292",
+      "title": "Formula 1 (Car Racing) Gran Premio d'Italia: 4-6 September Monza, Italy - Autodromo Nazionale Monza Sun, 06 Sep 2026 15:00",
+      "event_date": "2026-09-06T15:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/369292",
+      "source_group": "formula-one",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Formula 1 (Car Racing) Gran Premio d'Italia: 4-6 September Monza, Italy - Autodromo Nazionale Monza Sun, 06 Sep 2026 15:00 From USD $ 295",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "389618",
+      "title": "US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026",
+      "event_date": "2026-09-11T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/389618",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "US"
+      ],
+      "context_preview": "US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "369293",
+      "title": "Car Racing Spanish Grand Prix | 11-13 September Formula 1 Circuito de Madring Madrid, Spain Sun, 13 Sep 2026",
+      "event_date": "2026-09-13T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/369293",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Car Racing Spanish Grand Prix | 11-13 September Formula 1 Circuito de Madring Madrid, Spain Sun, 13 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "386993",
+      "title": "US Football Las Vegas Raiders vs Miami Dolphins NFL (US Football) Allegiant Stadium Las Vegas, NV, USA Sun, 13 Sep 2026",
+      "event_date": "2026-09-13T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/386993",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "US"
+      ],
+      "context_preview": "US Football Las Vegas Raiders vs Miami Dolphins NFL (US Football) Allegiant Stadium Las Vegas, NV, USA Sun, 13 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "395343",
+      "title": "Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026",
+      "event_date": "2026-10-25T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/395343",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Football (Soccer) FC Barcelona vs Real Madrid Spanish La Liga Camp Nou Barcelona, Spain Sun, 25 Oct 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
+      "recommended": true
+    },
+    {
+      "event_id": "391305",
+      "title": "Football (Soccer) Semi-Final: FC Barcelona vs Atletico Madrid Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "event_date": "2027-02-02T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391305",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Football (Soccer) Semi-Final: FC Barcelona vs Atletico Madrid Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 4
       },
       "total_score": 27,
       "recommended": true
     },
     {
-      "title": "From USD $ 608",
+      "event_id": "391306",
+      "title": "Football (Soccer) Semi-Final: Real Madrid vs Real Sociedad Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "event_date": "2027-02-02T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391306",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Football (Soccer) Semi-Final: Real Madrid vs Real Sociedad Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 27,
+      "recommended": true
+    },
+    {
+      "event_id": "398732",
+      "title": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Al-Nassr FC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 21 Aug 2026 19:00 Not Final Date not final",
+      "event_date": "2026-08-21T19:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398732",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Al-Nassr FC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 21 Aug 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 218",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393016",
+      "title": "English Premier League (Football (Soccer)) Arsenal vs Coventry City London, England - Emirates Stadium Fri, 21 Aug 2026 20:00",
+      "event_date": "2026-08-21T20:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393016",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Arsenal vs Coventry City London, England - Emirates Stadium Fri, 21 Aug 2026 20:00 From USD $ 237",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393680",
+      "title": "English Premier League (Football (Soccer)) Hull City vs Manchester United Hull, England - MKM Stadium Sat, 22 Aug 2026 12:30",
+      "event_date": "2026-08-22T12:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393680",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Hull City vs Manchester United Hull, England - MKM Stadium Sat, 22 Aug 2026 12:30 From USD $ 818",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393681",
+      "title": "English Premier League (Football (Soccer)) Everton FC vs Crystal Palace Liverpool, England - Hill Dickinson Stadium Sat, 22 Aug 2026 15:00",
+      "event_date": "2026-08-22T15:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393681",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Crystal Palace Liverpool, England - Hill Dickinson Stadium Sat, 22 Aug 2026 15:00 From USD $ 134",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393682",
+      "title": "English Premier League (Football (Soccer)) Ipswich Town vs Sunderland AFC Ipswich, England - Portman Road Sat, 22 Aug 2026 15:00",
+      "event_date": "2026-08-22T15:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393682",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Ipswich Town vs Sunderland AFC Ipswich, England - Portman Road Sat, 22 Aug 2026 15:00 From USD $ 198",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393683",
+      "title": "English Premier League (Football (Soccer)) Nottingham Forest vs Leeds United Nottingham, England - City Ground Sat, 22 Aug 2026 15:00",
+      "event_date": "2026-08-22T15:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393683",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Nottingham Forest vs Leeds United Nottingham, England - City Ground Sat, 22 Aug 2026 15:00 Only a few tickets left From USD $ 1,672",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393684",
+      "title": "English Premier League (Football (Soccer)) Brentford vs Tottenham Hotspur London, England - Brentford Community Stadium (Gtech) Sat, 22 Aug 2026 17:30",
+      "event_date": "2026-08-22T17:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393684",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Brentford vs Tottenham Hotspur London, England - Brentford Community Stadium (Gtech) Sat, 22 Aug 2026 17:30 Only a few tickets left From USD $ 602",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393038",
+      "title": "English Premier League (Football (Soccer)) Manchester City vs A.F.C. Bournemouth Manchester, England - Etihad Stadium Sun, 23 Aug 2026 14:00",
+      "event_date": "2026-08-23T14:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393038",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Manchester City vs A.F.C. Bournemouth Manchester, England - Etihad Stadium Sun, 23 Aug 2026 14:00 From USD $ 119",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "400170",
+      "title": "English Premier League (Football (Soccer)) Newcastle United vs Liverpool Newcastle, England - St James Park Sun, 23 Aug 2026 16:30",
+      "event_date": "2026-08-23T16:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/400170",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Newcastle United vs Liverpool Newcastle, England - St James Park Sun, 23 Aug 2026 16:30 Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393021",
+      "title": "English Premier League (Football (Soccer)) Fulham FC vs Chelsea London, England - Craven Cottage Mon, 24 Aug 2026 20:00",
+      "event_date": "2026-08-24T20:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393021",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Fulham FC vs Chelsea London, England - Craven Cottage Mon, 24 Aug 2026 20:00 From USD $ 285",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "398737",
+      "title": "Saudi Pro League (Football (Soccer)) Al Ettifaq vs Al-Nassr FC Dammam, Saudi Arabia - Prince Mohamed bin Fahd Stadium Tue, 25 Aug 2026 21:00 Not Final Date not final",
+      "event_date": "2026-08-25T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398737",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Ettifaq vs Al-Nassr FC Dammam, Saudi Arabia - Prince Mohamed bin Fahd Stadium Tue, 25 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 218",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "392486",
+      "title": "English Premier League (Football (Soccer)) Crystal Palace vs Manchester City London, England - Selhurst Park Fri, 28 Aug 2026 20:00",
+      "event_date": "2026-08-28T20:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392486",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Crystal Palace vs Manchester City London, England - Selhurst Park Fri, 28 Aug 2026 20:00 From USD $ 173",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "398739",
+      "title": "Saudi Pro League (Football (Soccer)) Al Khaleej vs Al-Hilal FC Dammam, Saudi Arabia - Prince Mohamed bin Fahd Stadium Fri, 28 Aug 2026 21:00 Not Final Date not final",
+      "event_date": "2026-08-28T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398739",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Khaleej vs Al-Hilal FC Dammam, Saudi Arabia - Prince Mohamed bin Fahd Stadium Fri, 28 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 218",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "398740",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Taawoun Riyadh, Saudi Arabia - King Saud University Fri, 28 Aug 2026 21:00 Not Final Date not final",
+      "event_date": "2026-08-28T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398740",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Taawoun Riyadh, Saudi Arabia - King Saud University Fri, 28 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 272",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "392996",
+      "title": "English Premier League (Football (Soccer)) Liverpool vs Nottingham Forest Liverpool, England - Anfield Sat, 29 Aug 2026 12:30",
+      "event_date": "2026-08-29T12:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392996",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Liverpool vs Nottingham Forest Liverpool, England - Anfield Sat, 29 Aug 2026 12:30 From USD $ 316",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393689",
+      "title": "English Premier League (Football (Soccer)) A.F.C. Bournemouth vs Everton FC Bournemouth, England - Dean Court (Vitality Stadium) Sat, 29 Aug 2026 15:00",
+      "event_date": "2026-08-29T15:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393689",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) A.F.C. Bournemouth vs Everton FC Bournemouth, England - Dean Court (Vitality Stadium) Sat, 29 Aug 2026 15:00 Only a few tickets left From USD $ 784",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393692",
+      "title": "English Premier League (Football (Soccer)) Coventry City vs Hull City Coventry, England - Coventry Building Society Arena Sat, 29 Aug 2026 15:00",
+      "event_date": "2026-08-29T15:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393692",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Coventry City vs Hull City Coventry, England - Coventry Building Society Arena Sat, 29 Aug 2026 15:00 From USD $ 156",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "393087",
+      "title": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Newcastle United London, England - Tottenham Hotspur Stadium Sat, 29 Aug 2026 17:30",
+      "event_date": "2026-08-29T17:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393087",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Newcastle United London, England - Tottenham Hotspur Stadium Sat, 29 Aug 2026 17:30 From USD $ 192",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "369294",
+      "title": "Formula 1 (Car Racing) Azerbaijan Grand Prix: 24-26 September Baku, Azerbaijan - Baku City Circuit Sat, 26 Sep 2026 15:00",
       "event_date": "2026-09-26T15:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/369294",
       "source_group": "formula-one",
       "source_geo": "GLOBAL",
-      "context_preview": "Formula 1 (Car Racing) Azerbaijan Grand Prix: 24-26 September Baku, Azerbaijan - Baku City Circuit Sat, 26 Sep 2026 15:00 From USD $ 608 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Formula 1 (Car Racing) Azerbaijan Grand Prix: 24-26 September Baku, Azerbaijan - Baku City Circuit Sat, 26 Sep 2026 15:00 From USD $ 608",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
-        "geo_fit": 3,
+        "geo_fit": 2,
         "visual_potential": 5,
         "freshness": 5
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 1,072",
+      "event_id": "400499",
+      "title": "Formula 1 (Car Racing) Kuala Lumpur, Malaysia - Sepang International Circuit Sun, 04 Oct 2026 15:00",
       "event_date": "2026-10-04T15:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/400499",
       "source_group": "formula-one",
       "source_geo": "GLOBAL",
-      "context_preview": "Formula 1 (Car Racing) Kuala Lumpur, Malaysia - Sepang International Circuit Sun, 04 Oct 2026 15:00 Only a few tickets left From USD $ 1,072 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Formula 1 (Car Racing) Kuala Lumpur, Malaysia - Sepang International Circuit Sun, 04 Oct 2026 15:00 Only a few tickets left From USD $ 1,072",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
-        "geo_fit": 3,
+        "geo_fit": 2,
         "visual_potential": 5,
         "freshness": 5
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 539",
+      "event_id": "387900",
+      "title": "Formula 1 (Car Racing) Singapore Grand Prix Singapore City, Singapore - Marina Bay Street Circuit Sun, 11 Oct 2026 19:00",
       "event_date": "2026-10-11T19:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/387900",
       "source_group": "formula-one",
       "source_geo": "GLOBAL",
-      "context_preview": "Formula 1 (Car Racing) Singapore Grand Prix Singapore City, Singapore - Marina Bay Street Circuit Sun, 11 Oct 2026 19:00 From USD $ 539 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Formula 1 (Car Racing) Singapore Grand Prix Singapore City, Singapore - Marina Bay Street Circuit Sun, 11 Oct 2026 19:00 From USD $ 539",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
-        "geo_fit": 3,
+        "geo_fit": 2,
         "visual_potential": 5,
         "freshness": 5
       },
-      "total_score": 27,
+      "total_score": 26,
       "recommended": true
     },
     {
-      "title": "From USD $ 440",
+      "event_id": "395597",
+      "title": "Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027",
+      "event_date": "2027-05-09T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/395597",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Football (Soccer) Real Madrid vs FC Barcelona Spanish La Liga El Estadio Santiago Bernabeu Madrid, Spain Sun, 09 May 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 3
+      },
+      "total_score": 26,
+      "recommended": true
+    },
+    {
+      "event_id": "369291",
+      "title": "Formula 1 (Car Racing) Dutch Grand Prix: 21-23 August Zandvoort, Netherlands - Circuit Park Zandvoort Sun, 23 Aug 2026 15:00",
       "event_date": "2026-08-23T15:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/369291",
       "source_group": "formula-one",
       "source_geo": "GLOBAL",
-      "context_preview": "Formula 1 (Car Racing) Dutch Grand Prix: 21-23 August Zandvoort, Netherlands - Circuit Park Zandvoort Sun, 23 Aug 2026 15:00 From USD $ 440 Leave us your email address and you'll be the first to know when tickets for this event becomes available I'd like to receive news, marketing offers and event updates from SportsEvents365 by email.",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Formula 1 (Car Racing) Dutch Grand Prix: 21-23 August Zandvoort, Netherlands - Circuit Park Zandvoort Sun, 23 Aug 2026 15:00 From USD $ 440",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
-        "geo_fit": 3,
+        "geo_fit": 4,
         "visual_potential": 5,
-        "freshness": 3
+        "freshness": 2
       },
       "total_score": 25,
       "recommended": true
+    },
+    {
+      "event_id": "395252",
+      "title": "Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barcelona, Spain Thu, 27 Aug 2026",
+      "event_date": "2026-08-27T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/395252",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barcelona, Spain Thu, 27 Aug 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 25,
+      "recommended": true
+    },
+    {
+      "event_id": "383976",
+      "title": "Rugby France vs Fiji World Rugby Nations Championship Groupama Stadium Lyon, France Sat, 07 Nov 2026",
+      "event_date": "2026-11-07T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/383976",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Rugby France vs Fiji World Rugby Nations Championship Groupama Stadium Lyon, France Sat, 07 Nov 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 25,
+      "recommended": true
+    },
+    {
+      "event_id": "383977",
+      "title": "Rugby France vs South Africa World Rugby Nations Championship Stade de France Paris, France Fri, 13 Nov 2026",
+      "event_date": "2026-11-13T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/383977",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Rugby France vs South Africa World Rugby Nations Championship Stade de France Paris, France Fri, 13 Nov 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 25,
+      "recommended": true
+    },
+    {
+      "event_id": "391346",
+      "title": "Entertainment BTS-Kallang, Singapore Concerts Singapore National Stadium Kallang, Singapore Sun, 20 Dec 2026",
+      "event_date": "2026-12-20T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391346",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Entertainment BTS-Kallang, Singapore Concerts Singapore National Stadium Kallang, Singapore Sun, 20 Dec 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 25,
+      "recommended": true
+    },
+    {
+      "event_id": "391347",
+      "title": "Entertainment BTS-Kallang, Singapore Concerts Singapore National Stadium Kallang, Singapore Tue, 22 Dec 2026",
+      "event_date": "2026-12-22T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391347",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Entertainment BTS-Kallang, Singapore Concerts Singapore National Stadium Kallang, Singapore Tue, 22 Dec 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 25,
+      "recommended": true
+    },
+    {
+      "event_id": "390886",
+      "title": "Tennis Australian Open | Session 27 - Men's Final Australian Open (Grand Slam) Rod Laver Arena (Main Court) Melbourne, Australia Sun, 31 Jan 2027",
+      "event_date": "2027-01-31T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/390886",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Tennis Australian Open | Session 27 - Men's Final Australian Open (Grand Slam) Rod Laver Arena (Main Court) Melbourne, Australia Sun, 31 Jan 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 25,
+      "recommended": true
+    },
+    {
+      "event_id": "388441",
+      "title": "Rugby France vs Wales Six Nations Stade de France Paris, France Sat, 06 Feb 2027",
+      "event_date": "2027-02-06T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/388441",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Rugby France vs Wales Six Nations Stade de France Paris, France Sat, 06 Feb 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "388449",
+      "title": "Rugby Italy vs France Six Nations Stadio Olimpico (Roma) Rome, Italy Sat, 06 Mar 2027",
+      "event_date": "2027-03-06T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/388449",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "context_preview": "Rugby Italy vs France Six Nations Stadio Olimpico (Roma) Rome, Italy Sat, 06 Mar 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "398731",
+      "title": "Saudi Pro League (Football (Soccer)) Al Qadsiah vs Al Ittihad Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Fri, 21 Aug 2026 21:00 Not Final Date not final",
+      "event_date": "2026-08-21T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398731",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Qadsiah vs Al Ittihad Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Fri, 21 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "398734",
+      "title": "Saudi Pro League (Football (Soccer)) Al Fateh vs Al Ettifaq Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Sat, 22 Aug 2026 18:45 Not Final Date not final",
+      "event_date": "2026-08-22T18:45:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398734",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Fateh vs Al Ettifaq Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Sat, 22 Aug 2026 18:45 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "398733",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Ahli Saudi FC vs Abha Jeddah, Saudi Arabia - King Abdullah Sports City Sat, 22 Aug 2026 21:00 Not Final Date not final",
+      "event_date": "2026-08-22T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398733",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Ahli Saudi FC vs Abha Jeddah, Saudi Arabia - King Abdullah Sports City Sat, 22 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "398735",
+      "title": "Saudi Pro League (Football (Soccer)) Al Khaleej vs Al Shabab FC (Riyadh) Dammam, Saudi Arabia - Prince Mohamed bin Fahd Stadium Sat, 22 Aug 2026 21:00 Not Final Date not final",
+      "event_date": "2026-08-22T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398735",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Khaleej vs Al Shabab FC (Riyadh) Dammam, Saudi Arabia - Prince Mohamed bin Fahd Stadium Sat, 22 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "398736",
+      "title": "Saudi Pro League (Football (Soccer)) Al Ittihad vs Al Hazem Jeddah, Saudi Arabia - King Abdullah Sports City Mon, 24 Aug 2026 21:00 Not Final Date not final",
+      "event_date": "2026-08-24T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398736",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Ittihad vs Al Hazem Jeddah, Saudi Arabia - King Abdullah Sports City Mon, 24 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "398738",
+      "title": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al Riyadh Riyadh, Saudi Arabia - Al-Shabab Club Stadium Tue, 25 Aug 2026 21:00 Not Final Date not final",
+      "event_date": "2026-08-25T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398738",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al Riyadh Riyadh, Saudi Arabia - Al-Shabab Club Stadium Tue, 25 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "398741",
+      "title": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Neom SC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 28 Aug 2026 18:50 Not Final Date not final",
+      "event_date": "2026-08-28T18:50:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398741",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Neom SC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 28 Aug 2026 18:50 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "392775",
+      "title": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026",
+      "event_date": "2026-09-05T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392775",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "387656",
+      "title": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026",
+      "event_date": "2026-10-04T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/387656",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Football (Soccer) Portugal vs Norway UEFA Nations League Estadio do Dragao Porto, Portugal Sun, 04 Oct 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "391307",
+      "title": "Football (Soccer) Inter vs SS Lazio Italian Super Cup TBD TBD, TBD Tue, 22 Dec 2026",
+      "event_date": "2026-12-22T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391307",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Football (Soccer) Inter vs SS Lazio Italian Super Cup TBD TBD, TBD Tue, 22 Dec 2026",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 4
+      },
+      "total_score": 22,
+      "recommended": false
     }
   ],
-  "guardrail": "Radar only. No article or affiliate CTA is auto-published; current event facts and tracked routes must pass publication QA."
+  "guardrail": "Radar only. No article or affiliate CTA is auto-published; current event facts, search demand and tracked routes must pass publication QA."
 }
