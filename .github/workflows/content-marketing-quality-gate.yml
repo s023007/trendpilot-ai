@@ -1,0 +1,89 @@
+name: TrendPilot Content Marketing Quality Gate
+
+on:
+  pull_request:
+    paths:
+      - 'events/**'
+      - 'docs/CONTENT-MARKETING-STANDARD.md'
+      - 'config/content-distribution-channels.json'
+      - '.github/workflows/content-marketing-quality-gate.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'events/**'
+      - 'docs/CONTENT-MARKETING-STANDARD.md'
+      - 'config/content-distribution-channels.json'
+      - '.github/workflows/content-marketing-quality-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Enforce TrendPilot commercial content standard on changed event pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git rev-parse HEAD^ >/dev/null 2>&1; then
+            git diff --name-only HEAD^ HEAD > /tmp/changed.txt
+          else
+            git ls-files > /tmp/changed.txt
+          fi
+          echo 'Changed files:'
+          cat /tmp/changed.txt
+
+          python3 - <<'PY'
+          import pathlib, re, sys
+
+          changed=[x.strip() for x in pathlib.Path('/tmp/changed.txt').read_text().splitlines() if x.strip()]
+          pages=[p for p in changed if p.startswith('events/') and p.endswith('/index.html')]
+          errors=[]
+          checked=[]
+
+          for p in pages:
+              path=pathlib.Path(p)
+              if not path.exists():
+                  continue
+              parts=path.parts
+              if len(parts) < 3:
+                  continue
+              event_dir=pathlib.Path(parts[0]) / parts[1]
+              html=path.read_text(encoding='utf-8', errors='replace')
+              low=html.lower()
+              checked.append(p)
+
+              rules={
+                  'large image preview': 'max-image-preview:large' in low,
+                  'visual storytelling': '<img ' in low,
+                  'open graph image': 'property="og:image"' in low or "property='og:image'" in low,
+                  'primary CTA': 'class="button primary' in low or "class='button primary" in low,
+                  'affiliate disclosure/link marking': 'sponsored' in low,
+              }
+              for label, ok in rules.items():
+                  if not ok:
+                      errors.append(f'{p}: missing {label}')
+
+              pack=event_dir/'distribution-pack.json'
+              if not pack.exists():
+                  errors.append(f'{p}: missing {pack} (commercial articles require a distribution pack)')
+
+          if checked:
+              standard=pathlib.Path('docs/CONTENT-MARKETING-STANDARD.md')
+              channels=pathlib.Path('config/content-distribution-channels.json')
+              if not standard.exists(): errors.append('Missing docs/CONTENT-MARKETING-STANDARD.md')
+              if not channels.exists(): errors.append('Missing config/content-distribution-channels.json')
+
+          print('Pages checked:', checked)
+          if errors:
+              print('\nQUALITY GATE FAILED')
+              for e in errors: print('-', e)
+              sys.exit(1)
+          print('TrendPilot content marketing quality gate: PASS')
+          PY
