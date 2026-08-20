@@ -1,0 +1,19 @@
+{
+  "timeZone": "Asia/Muscat",
+  "dependencies": {
+    "enabledAdvancedServices": [
+      {
+        "userSymbol": "Blogger",
+        "version": "v3",
+        "serviceId": "blogger"
+      }
+    ]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8",
+  "oauthScopes": [
+    "https://www.googleapis.com/auth/blogger",
+    "https://www.googleapis.com/auth/script.external_request",
+    "https://www.googleapis.com/auth/script.scriptapp"
+  ]
+}
