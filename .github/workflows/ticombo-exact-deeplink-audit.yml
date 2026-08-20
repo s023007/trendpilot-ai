@@ -1,0 +1,183 @@
+name: TrendPilot Ticombo Exact Deeplink Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ticombo-exact-deeplink-audit.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-ticombo-exact-deeplink-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      ADMITAD_WEBSITE_ID: '2980568'
+      TICOMBO_CAMPAIGN_ID: '142825'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Generate and verify exact Ticombo event deeplinks
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64, json, os, pathlib, urllib.parse, urllib.request, urllib.error
+          from datetime import datetime, timezone
+          from urllib.parse import urlparse
+
+          API='https://api.admitad.com'
+          wid=os.environ['ADMITAD_WEBSITE_ID']
+          cid=os.environ['TICOMBO_CAMPAIGN_ID']
+
+          def env(*names):
+              for n in names:
+                  v=(os.environ.get(n) or '').strip()
+                  if v: return v
+              return ''
+
+          client_id=env('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT')
+          secret=env('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          if not client_id or not secret:
+              raise SystemExit('Missing Admitad API credentials')
+
+          def req_json(url, method='GET', headers=None, data=None):
+              req=urllib.request.Request(url,data=data,method=method,headers={
+                  'Accept':'application/json',
+                  'User-Agent':'TrendPilot-Ticombo-Deeplink-Audit/1.0',
+                  **(headers or {})
+              })
+              with urllib.request.urlopen(req,timeout=60) as r:
+                  return json.loads(r.read().decode('utf-8','replace'))
+
+          basic=base64.b64encode(f'{client_id}:{secret}'.encode()).decode()
+          token_body=urllib.parse.urlencode({
+              'grant_type':'client_credentials',
+              'client_id':client_id,
+              'scope':'websites advcampaigns_for_website deeplink_generator'
+          }).encode()
+          token=req_json(f'{API}/token/',method='POST',headers={
+              'Authorization':f'Basic {basic}',
+              'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'
+          },data=token_body).get('access_token')
+          if not token:
+              raise SystemExit('No Admitad access token returned')
+          auth={'Authorization':f'Bearer {token}'}
+
+          program=req_json(f'{API}/advcampaigns/{cid}/website/{wid}/',headers=auth)
+          if isinstance(program,dict) and 'results' in program:
+              rows=program.get('results') or []
+              program=rows[0] if rows else {}
+          if str(program.get('connection_status') or program.get('status') or '').lower()!='active':
+              raise SystemExit('Ticombo is not active for TrendPilot ad space')
+          if not bool(program.get('allow_deeplink')):
+              raise SystemExit('Ticombo does not currently allow Admitad deeplinks')
+
+          targets=[
+              {
+                  'id':'manchester-derby-2026',
+                  'event_name':'Manchester United FC vs Manchester City FC',
+                  'event_id':'3001252536',
+                  'target_url':'https://www.ticombo.com/en/discover/event/manchester-united-fc-vs-manchester-city-fc-premier-league-3001252536',
+                  'subid':'tp_man_derby_2026'
+              },
+              {
+                  'id':'el-clasico-barcelona-2026',
+                  'event_name':'FC Barcelona vs Real Madrid CF',
+                  'event_id':'3001923791',
+                  'target_url':'https://www.ticombo.com/en/sports-tickets/football-tickets/fc-barcelona-vs-real-madrid-cf-la-liga-3001923791/bf4eee15-4842-4b43-943b-54eba646e321%3Bquantity%3D0',
+                  'subid':'tp_elclasico_2026'
+              }
+          ]
+
+          def resolve(url):
+              req=urllib.request.Request(url,headers={
+                  'User-Agent':'Mozilla/5.0 TrendPilot-Ticombo-Verifier/1.0',
+                  'Accept':'text/html,application/xhtml+xml'
+              })
+              try:
+                  with urllib.request.urlopen(req,timeout=45) as r:
+                      return {'ok':True,'http_status':r.status,'resolved_url':r.geturl()}
+              except urllib.error.HTTPError as e:
+                  return {'ok':e.code<500,'http_status':e.code,'resolved_url':e.geturl(),'note':'HTTPError after redirect'}
+              except Exception as e:
+                  return {'ok':False,'http_status':None,'resolved_url':'','note':type(e).__name__+': '+str(e)[:180]}
+
+          results={}
+          for t in targets:
+              qs=urllib.parse.urlencode([
+                  ('subid',t['subid']),
+                  ('subid1','trendpilot'),
+                  ('subid2',t['id']),
+                  ('ulp',t['target_url'])
+              ])
+              generated=req_json(f'{API}/deeplink/{wid}/advcampaign/{cid}/?{qs}',headers=auth)
+              row=(generated[0] if isinstance(generated,list) and generated else {})
+              link=row.get('link') or ''
+              check=resolve(link) if link else {'ok':False,'http_status':None,'resolved_url':'','note':'No deeplink returned'}
+              final=check.get('resolved_url') or ''
+              host=(urlparse(final).hostname or '').lower()
+              ticombo_domain=host=='ticombo.com' or host.endswith('.ticombo.com')
+              event_match=t['event_id'] in urllib.parse.unquote(final)
+              target_exact=bool(check.get('ok') and ticombo_domain and event_match)
+              results[t['id']]={
+                  **t,
+                  'affiliate_url':link,
+                  'admitad_is_affiliate_product':row.get('is_affiliate_product'),
+                  'verification':{
+                      **check,
+                      'landed_on_ticombo_domain':ticombo_domain,
+                      'event_id_match':event_match,
+                      'exact_event_verified':target_exact
+                  }
+              }
+
+          out={
+              'generated_at':datetime.now(timezone.utc).isoformat(),
+              'website_id':int(wid),
+              'ticombo_campaign_id':int(cid),
+              'program_name':program.get('name') or 'Ticombo - Global Event Tickets Many GEOs',
+              'connection_status':program.get('connection_status') or program.get('status'),
+              'allow_deeplink':bool(program.get('allow_deeplink')),
+              'results':results,
+              'all_exact_event_deeplinks_verified':all(x['verification']['exact_event_verified'] for x in results.values())
+          }
+          pathlib.Path('data/runtime').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('data/runtime/ticombo-exact-deeplink-audit.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps({
+              'program':out['program_name'],
+              'active':out['connection_status'],
+              'allow_deeplink':out['allow_deeplink'],
+              'results':{k:{'exact':v['verification']['exact_event_verified'],'http':v['verification']['http_status'],'resolved':v['verification']['resolved_url']} for k,v in results.items()},
+              'all_verified':out['all_exact_event_deeplinks_verified']
+          },ensure_ascii=False,indent=2))
+          PY
+
+      - name: Persist audit result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/runtime/ticombo-exact-deeplink-audit.json || exit 1
+          git config user.name 'trendpilot-ticombo-audit-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/ticombo-exact-deeplink-audit.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record Ticombo exact deeplink audit'
+          git pull --rebase origin main
+          git push origin HEAD:main
