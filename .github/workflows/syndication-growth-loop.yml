@@ -1,0 +1,227 @@
+name: TrendPilot Syndication Growth Loop
+
+on:
+  schedule:
+    # 06:05 Asia/Muscat
+    - cron: '5 2 * * *'
+  workflow_run:
+    workflows: ['TrendPilot Event Factory V1']
+    types: [completed]
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/syndication-growth-loop.yml'
+      - 'scripts/build-syndication-feeds.py'
+      - 'config/syndication-channels.json'
+      - 'robots.txt'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-syndication-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  build-and-publish:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+      INDEXNOW_KEY: d3f1a9c7e5b24f6081c4a9d2e7b5f310
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Build unified RSS Atom JSON and video feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 scripts/build-syndication-feeds.py
+
+      - name: Validate syndication feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          for path in ['feed.xml','atom.xml','feeds/events.xml','feeds/videos.xml']:
+              ET.parse(path)
+              assert Path(path).stat().st_size > 200
+          data=json.load(open('feed.json', encoding='utf-8'))
+          assert data['version'].startswith('https://jsonfeed.org/version/')
+          assert len(data.get('items',[])) >= 20
+          rss=Path('feed.xml').read_text(encoding='utf-8')
+          assert rss.count('<item>') >= 20
+          assert '<dc:creator>' in rss
+          assert '<media:content' in rss
+          manifest=json.load(open('data/runtime/syndication-feed-manifest.json', encoding='utf-8'))
+          assert manifest['item_count'] >= 20
+          print('SYNDICATION_FEEDS_VALID', manifest['item_count'])
+          PY
+
+      - name: Commit generated feeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-syndication-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add feed.xml atom.xml feed.json feeds data/runtime/syndication-feed-manifest.json
+          if git diff --cached --quiet; then
+            echo 'Feeds already current.'
+          else
+            git commit -m 'content: refresh public syndication feeds'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Configure Namecheap SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.' >&2; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/trendpilot_syndication
+          chmod 600 ~/.ssh/trendpilot_syndication
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-syndication
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/trendpilot_syndication
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy feeds robots and event sitemap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-syndication "mkdir -p '$STATIC_ROOT/feeds' '$STATIC_ROOT/events'"
+          scp feed.xml atom.xml feed.json robots.txt "trendpilot-syndication:$STATIC_ROOT/"
+          scp feeds/events.xml feeds/videos.xml "trendpilot-syndication:$STATIC_ROOT/feeds/"
+          scp events/sitemap.xml "trendpilot-syndication:$STATIC_ROOT/events/sitemap.xml"
+
+      - name: Verify live feed endpoints
+        id: verify
+        shell: bash
+        run: |
+          set -euo pipefail
+          for url in \
+            "$PUBLIC_ORIGIN/feed.xml" \
+            "$PUBLIC_ORIGIN/atom.xml" \
+            "$PUBLIC_ORIGIN/feed.json" \
+            "$PUBLIC_ORIGIN/feeds/events.xml" \
+            "$PUBLIC_ORIGIN/feeds/videos.xml" \
+            "$PUBLIC_ORIGIN/events/sitemap.xml" \
+            "$PUBLIC_ORIGIN/robots.txt"; do
+            code="$(curl -LsS --max-time 30 -o /tmp/syndication-check -w '%{http_code}' "$url?tp_syn=$GITHUB_RUN_ID")"
+            echo "$code $url"
+            test "$code" = '200'
+            test -s /tmp/syndication-check
+          done
+          curl -fLsS --max-time 30 "$PUBLIC_ORIGIN/feed.xml?tp_syn=$GITHUB_RUN_ID" -o /tmp/live-feed.xml
+          grep -Fq 'TrendPilot Guides &amp; Match Travel' /tmp/live-feed.xml
+          test "$(grep -c '<item>' /tmp/live-feed.xml)" -ge 20
+          echo 'LIVE_SYNDICATION_OK'
+
+      - name: Notify IndexNow for current public discovery URLs
+        id: indexnow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, xml.etree.ElementTree as ET
+          from pathlib import Path
+          urls=[]
+          try:
+              root=ET.parse('sitemap.xml').getroot()
+              ns={'s':'http://www.sitemaps.org/schemas/sitemap/0.9'}
+              urls += [x.text.strip() for x in root.findall('.//s:loc', ns) if x.text]
+          except Exception:
+              pass
+          try:
+              data=json.load(open('data/event-factory/public-urls.json', encoding='utf-8'))
+              if isinstance(data, dict):
+                  vals=data.get('urls') or data.get('public_urls') or []
+                  urls += [x if isinstance(x,str) else x.get('url','') for x in vals]
+              elif isinstance(data, list):
+                  urls += [x if isinstance(x,str) else x.get('url','') for x in data]
+          except Exception:
+              pass
+          clean=[]
+          seen=set()
+          for u in urls:
+              if u and u.startswith('https://trendpilotchoice.com/') and u not in seen:
+                  seen.add(u); clean.append(u)
+          payload={
+              'host':'trendpilotchoice.com',
+              'key':'d3f1a9c7e5b24f6081c4a9d2e7b5f310',
+              'keyLocation':'https://trendpilotchoice.com/d3f1a9c7e5b24f6081c4a9d2e7b5f310.txt',
+              'urlList':clean[:10000]
+          }
+          Path('/tmp/indexnow.json').write_text(json.dumps(payload), encoding='utf-8')
+          print('INDEXNOW_URLS', len(payload['urlList']))
+          PY
+          code="$(curl -sS --max-time 40 -o /tmp/indexnow-response.txt -w '%{http_code}' -H 'Content-Type: application/json; charset=utf-8' -d @/tmp/indexnow.json https://api.indexnow.org/indexnow || true)"
+          echo "INDEXNOW_HTTP=$code"
+          echo "indexnow_http=$code" >> "$GITHUB_OUTPUT"
+          case "$code" in 200|202) echo 'INDEXNOW_ACCEPTED' ;; *) cat /tmp/indexnow-response.txt || true ;; esac
+
+      - name: Record syndication runtime
+        if: always()
+        shell: bash
+        env:
+          INDEXNOW_HTTP: ${{ steps.indexnow.outputs.indexnow_http }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os
+          from datetime import datetime, timezone
+          from pathlib import Path
+          manifest={}
+          try: manifest=json.load(open('data/runtime/syndication-feed-manifest.json', encoding='utf-8'))
+          except Exception: pass
+          record={
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'run_id': os.environ.get('GITHUB_RUN_ID'),
+              'source_sha': os.environ.get('GITHUB_SHA'),
+              'status': 'published',
+              'feed_item_count': manifest.get('item_count'),
+              'event_item_count': manifest.get('event_item_count'),
+              'feed_urls': manifest.get('feeds',{}),
+              'indexnow_http': os.environ.get('INDEXNOW_HTTP') or None,
+              'search_distribution': ['google-sitemaps','google-images-metadata','bing-indexnow','indexnow-participating-engines'],
+              'feed_distribution_ready': ['flipboard','smartnews','feedly','inoreader'],
+              'publisher_onboarding_still_required': ['flipboard','smartnews'],
+              'connected_api_channels': ['pinterest','tiktok','youtube']
+          }
+          Path('data/runtime/syndication-growth-last.json').write_text(json.dumps(record,indent=2)+'\n', encoding='utf-8')
+          PY
+          git config user.name 'trendpilot-syndication-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/syndication-growth-last.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record syndication growth publication'
+          git pull --rebase origin main
+          git push origin HEAD:main
