@@ -1,8 +1,35 @@
 {
-  "generated_at": "2026-08-20T11:26:36.316134+00:00",
+  "generated_at": "2026-08-20T11:29:43.790800+00:00",
   "publishing_mode": "queue-only",
   "note": "This file prepares channel-specific promotion. It does not publish to external accounts without an authorized publisher/API connection.",
   "items": [
+    {
+      "priority": 1,
+      "channel": "pinterest",
+      "event": "arsenal-chelsea-2026",
+      "asset_role": "pin-1",
+      "title": "Arsenal FC vs Chelsea FC: tickets + London match-weekend guide",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=arsenal-chelsea-2026-pin-guide",
+      "status": "ready-for-creative"
+    },
+    {
+      "priority": 1,
+      "channel": "pinterest",
+      "event": "arsenal-chelsea-2026",
+      "asset_role": "pin-2",
+      "title": "How to plan a trip for Arsenal FC vs Chelsea FC",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=arsenal-chelsea-2026-pin-travel",
+      "status": "ready-for-creative"
+    },
+    {
+      "priority": 1,
+      "channel": "pinterest",
+      "event": "arsenal-chelsea-2026",
+      "asset_role": "pin-3",
+      "title": "Emirates Stadium matchday: what to book first",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=arsenal-chelsea-2026-pin-venue",
+      "status": "ready-for-creative"
+    },
     {
       "priority": 1,
       "channel": "pinterest",
@@ -60,6 +87,14 @@
     {
       "priority": 2,
       "channel": "youtube-shorts",
+      "event": "arsenal-chelsea-2026",
+      "hook": "Would you travel to see Arsenal FC vs Chelsea FC live? Start with the seat — then build the trip.",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=youtube&utm_medium=video&utm_campaign=arsenal-chelsea-2026-short",
+      "status": "ready-for-video"
+    },
+    {
+      "priority": 2,
+      "channel": "youtube-shorts",
       "event": "el-clasico-barcelona-2026",
       "hook": "Would you travel to see FC Barcelona vs Real Madrid live? Start with the seat — then build the trip.",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=youtube&utm_medium=video&utm_campaign=el-clasico-barcelona-2026-short",
@@ -76,6 +111,22 @@
     {
       "priority": 3,
       "channel": "instagram-reels",
+      "event": "arsenal-chelsea-2026",
+      "hook": "Arsenal FC vs Chelsea FC live in London: ticket first, hotel second, travel around the fixture.",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=arsenal-chelsea-2026-reel",
+      "status": "ready-for-video"
+    },
+    {
+      "priority": 3,
+      "channel": "tiktok",
+      "event": "arsenal-chelsea-2026",
+      "hook": "Arsenal FC vs Chelsea FC live in London: ticket first, hotel second, travel around the fixture.",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=arsenal-chelsea-2026-reel",
+      "status": "ready-for-video"
+    },
+    {
+      "priority": 3,
+      "channel": "instagram-reels",
       "event": "el-clasico-barcelona-2026",
       "hook": "FC Barcelona vs Real Madrid live in Barcelona: ticket first, hotel second, travel around the fixture.",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=el-clasico-barcelona-2026-reel",
@@ -104,6 +155,22 @@
       "hook": "Manchester United vs Manchester City live in Manchester: ticket first, hotel second, travel around the fixture.",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=manchester-derby-2026-reel",
       "status": "ready-for-video"
+    },
+    {
+      "priority": 4,
+      "channel": "facebook",
+      "event": "arsenal-chelsea-2026",
+      "copy": "Planning Arsenal FC vs Chelsea FC? We put tickets, match timing, hotel and travel planning in one guide.",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=facebook&utm_medium=social&utm_campaign=arsenal-chelsea-2026-event",
+      "status": "ready-for-post"
+    },
+    {
+      "priority": 4,
+      "channel": "x",
+      "event": "arsenal-chelsea-2026",
+      "copy": "Arsenal FC vs Chelsea FC — ticket route, venue and travel plan in one page.",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=x&utm_medium=social&utm_campaign=arsenal-chelsea-2026-event",
+      "status": "ready-for-post"
     },
     {
       "priority": 4,
@@ -140,6 +207,14 @@
     {
       "priority": 5,
       "channel": "reddit-quora",
+      "event": "arsenal-chelsea-2026",
+      "angle": "Practical match-weekend planning for Arsenal FC vs Chelsea FC: when to secure tickets, where to stay and how much schedule buffer to leave.",
+      "status": "manual-value-first",
+      "note": "Answer a real question or discussion; never mass-post or spam links."
+    },
+    {
+      "priority": 5,
+      "channel": "reddit-quora",
       "event": "el-clasico-barcelona-2026",
       "angle": "Practical match-weekend planning for FC Barcelona vs Real Madrid: when to secure tickets, where to stay and how much schedule buffer to leave.",
       "status": "manual-value-first",
@@ -152,6 +227,14 @@
       "angle": "Practical match-weekend planning for Manchester United vs Manchester City: when to secure tickets, where to stay and how much schedule buffer to leave.",
       "status": "manual-value-first",
       "note": "Answer a real question or discussion; never mass-post or spam links."
+    },
+    {
+      "priority": 6,
+      "channel": "email-telegram-whatsapp",
+      "event": "arsenal-chelsea-2026",
+      "subject": "Arsenal FC vs Chelsea FC: build the trip around the match, not the other way around",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/",
+      "status": "ready-for-owned-audience"
     },
     {
       "priority": 6,
