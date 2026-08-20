@@ -1,0 +1,69 @@
+{
+  "id": "manchester-derby-2026",
+  "type": "tickets-travel",
+  "status": "draft-affiliate-links-pending",
+  "event": {
+    "name": "Manchester United vs Manchester City",
+    "competition": "Premier League",
+    "date": "2026-09-13",
+    "kickoffLocal": "16:30",
+    "venue": "Old Trafford",
+    "city": "Manchester",
+    "country": "United Kingdom"
+  },
+  "audience": {
+    "primary": ["United Kingdom", "United Arab Emirates", "Saudi Arabia"],
+    "secondary": ["Qatar", "Kuwait", "Oman", "Europe"],
+    "language": ["en", "ar"],
+    "geoIntent": {
+      "UK": "ticket + stadium + local hotel",
+      "GCC": "ticket + flight + hotel + match-weekend planning",
+      "EU": "ticket + short-haul travel + hotel"
+    }
+  },
+  "affiliateSources": {
+    "tickets": {
+      "seller": "Sports Events 365",
+      "status": "active-candidate",
+      "note": "Use tracked affiliate deep link when available; never publish an untracked seller URL as the primary CTA."
+    },
+    "travel": {
+      "seller": "Trip.com Global",
+      "status": "active-candidate",
+      "note": "Use tracked affiliate deep links for Manchester hotels and relevant flight routes when available."
+    }
+  },
+  "searchIntent": {
+    "primaryKeyword": "Manchester United vs Manchester City tickets 2026",
+    "supportingKeywords": [
+      "Manchester derby tickets 2026",
+      "Manchester United vs Manchester City Old Trafford tickets",
+      "where to stay near Old Trafford for Manchester derby",
+      "Manchester derby weekend hotel",
+      "Dubai to Manchester football weekend",
+      "Saudi Arabia to Manchester football trip",
+      "Old Trafford matchday travel guide"
+    ]
+  },
+  "pagePlan": {
+    "slug": "/events/manchester-derby-2026/",
+    "title": "Manchester United vs Manchester City Tickets & Match-Weekend Guide — 13 Sep 2026",
+    "sections": [
+      "event facts",
+      "ticket options",
+      "best areas to stay",
+      "flight planning for GCC visitors",
+      "Old Trafford transport",
+      "matchday timeline",
+      "buyer checks and ticket disclaimer",
+      "FAQ"
+    ]
+  },
+  "contentRules": [
+    "Do not claim official ticket status unless the seller/source explicitly confirms it.",
+    "Disclose that reseller prices may differ from face value.",
+    "Do not hard-code flight or hotel prices because they change frequently.",
+    "Do not publish Sports Events 365 or Trip.com purchase CTAs until tracked affiliate URLs are verified.",
+    "Keep the page useful even if the visitor does not buy."
+  ]
+}
