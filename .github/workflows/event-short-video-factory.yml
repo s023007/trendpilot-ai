@@ -1,0 +1,82 @@
+name: Event Short Video Factory
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/event-short-video-factory.yml'
+      - 'data/event-factory/events.json'
+      - 'events/*/social/pin-1.jpg'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: event-short-video-factory
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Ensure FFmpeg
+        shell: bash
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -version | head -1
+
+      - name: Render vertical videos for ready events
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, pathlib, subprocess, datetime
+          registry = json.loads(pathlib.Path('data/event-factory/events.json').read_text())
+          rows=[]
+          for event in registry.get('events',[]):
+              if event.get('status') != 'ready':
+                  continue
+              slug=event['slug']
+              image=pathlib.Path('events')/slug/'social'/'pin-1.jpg'
+              output=pathlib.Path('events')/slug/'social'/'short.mp4'
+              if not image.exists():
+                  rows.append({'event':slug,'status':'missing-pin-1'})
+                  continue
+              output.parent.mkdir(parents=True,exist_ok=True)
+              cmd=[
+                  'ffmpeg','-y','-loop','1','-i',str(image),
+                  '-f','lavfi','-i','anullsrc=channel_layout=stereo:sample_rate=44100',
+                  '-vf',"scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,zoompan=z='min(zoom+0.0008,1.08)':d=250:s=1080x1920:fps=25,format=yuv420p",
+                  '-t','10','-r','25','-c:v','libx264','-preset','medium','-crf','23',
+                  '-c:a','aac','-b:a','96k','-shortest','-movflags','+faststart',str(output)
+              ]
+              subprocess.run(cmd,check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+              rows.append({'event':slug,'status':'rendered','path':str(output),'bytes':output.stat().st_size,
+                           'public_url':f'https://trendpilotchoice.com/events/{slug}/social/short.mp4'})
+          report={'generated_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'duration_seconds':10,'format':'1080x1920 h264+aac','videos':rows}
+          pathlib.Path('data/runtime').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('data/runtime/event-short-video-factory.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          PY
+
+      - name: Commit rendered videos
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-short-video-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add 'events/*/social/short.mp4' data/runtime/event-short-video-factory.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'social: render vertical event short videos'
+          git pull --rebase origin main
+          git push origin HEAD:main
