@@ -1,0 +1,1 @@
+If this branch is deployed to a preview environment before affiliate links are ready, keep the preview out of the canonical production index. Production canonical remains https://trendpilotchoice.com/events/manchester-derby-2026/.
