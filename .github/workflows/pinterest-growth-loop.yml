@@ -1,16 +1,218 @@
-name: Pinterest Search-First Growth Loop (Paused)
+name: Pinterest Event Growth Loop
 
 on:
+  schedule:
+    - cron: '35 5 * * *'
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/pinterest-growth-loop.yml'
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: pinterest-event-growth-loop
+  cancel-in-progress: false
 
 jobs:
-  paused:
+  publish-one:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+      PINTEREST_EVENT_BOARD: ${{ secrets.PINTEREST_EVENT_BOARD }}
     steps:
-      - name: Pinterest publishing is intentionally paused
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Publish one deduplicated event Pin
+        shell: bash
         run: |
-          echo "Pinterest automatic publishing is paused while TrendPilot replaces the old static/video creatives with new AI-generated visual posts."
-          echo "No Buffer post is created by this workflow."
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const apiKey = process.env.BUFFER_API_KEY;
+          const wantedBoard = String(process.env.PINTEREST_EVENT_BOARD || '').trim();
+          if (!apiKey) throw new Error('BUFFER_API_KEY is missing');
+
+          const queue = JSON.parse(fs.readFileSync('data/event-factory/promotion-queue.json','utf8'));
+          const registry = JSON.parse(fs.readFileSync('data/event-factory/events.json','utf8'));
+          const statePath = 'data/runtime/pinterest-event-growth-state.json';
+          const resultPath = 'data/runtime/pinterest-event-growth-last.json';
+          fs.mkdirSync('data/runtime', { recursive: true });
+          let state = { version: 1, published: [] };
+          try { state = JSON.parse(fs.readFileSync(statePath,'utf8')); } catch {}
+          const published = new Set((state.published || []).map(x => x.key));
+
+          const candidates = (queue.items || []).filter(x =>
+            x.channel === 'pinterest' &&
+            x.status === 'ready-to-publish' &&
+            x.image_url &&
+            x.target_url &&
+            !published.has(`${x.event}:${x.asset_role}`)
+          );
+          const result = {
+            generated_at: new Date().toISOString(),
+            status: 'starting',
+            candidate_count: candidates.length,
+            selected: null,
+            board: null,
+            buffer_post_id: null,
+            error: null
+          };
+          const save = () => {
+            fs.writeFileSync(statePath, JSON.stringify(state, null, 2) + '\n');
+            fs.writeFileSync(resultPath, JSON.stringify(result, null, 2) + '\n');
+          };
+
+          async function gql(query, variables = {}, label = 'Buffer') {
+            const response = await fetch('https://api.buffer.com', {
+              method: 'POST',
+              headers: {'Content-Type':'application/json', Authorization:`Bearer ${apiKey}`},
+              body: JSON.stringify({ query, variables }),
+            });
+            const raw = await response.text();
+            let body;
+            try { body = JSON.parse(raw); }
+            catch { throw new Error(`${label}: non-JSON HTTP ${response.status}: ${raw.slice(0,500)}`); }
+            if (!response.ok || body.errors?.length) {
+              throw new Error(`${label}: HTTP ${response.status} ${JSON.stringify(body)}`);
+            }
+            return body.data;
+          }
+
+          (async () => {
+            if (!candidates.length) {
+              result.status = 'nothing-new';
+              save();
+              console.log('No unpublished Pinterest event creative is ready.');
+              return;
+            }
+
+            const pin = candidates[0];
+            result.selected = pin;
+            const event = (registry.events || []).find(e => e.slug === pin.event) || {};
+            const account = await gql('query { account { organizations { id name } } }', {}, 'account');
+            const org = account?.account?.organizations?.[0];
+            if (!org) throw new Error('No Buffer organization found');
+
+            const channelsData = await gql(
+              `query Channels($org: OrganizationId!) {
+                channels(input: { organizationId: $org }) {
+                  id name displayName service isQueuePaused
+                }
+              }`,
+              { org: org.id },
+              'channels'
+            );
+            const pinterest = (channelsData?.channels || []).find(c => c.service === 'pinterest');
+            if (!pinterest) throw new Error('Pinterest is not connected in Buffer');
+            if (pinterest.isQueuePaused) throw new Error('Pinterest queue is paused in Buffer');
+
+            const boardData = await gql(
+              `query PinterestBoard($id: ChannelId!) {
+                channel(input: { id: $id }) {
+                  metadata {
+                    ... on PinterestMetadata { boards { id name serviceId url } }
+                  }
+                }
+              }`,
+              { id: pinterest.id },
+              'boards'
+            );
+            const boards = boardData?.channel?.metadata?.boards || [];
+            const norm = s => String(s || '').trim().toLowerCase();
+            let board = wantedBoard
+              ? boards.find(b => norm(b.name) === norm(wantedBoard))
+              : null;
+            if (!board) {
+              board = boards.find(b => /(football|soccer|sports|travel|event|ticket|match)/i.test(String(b.name || '')));
+            }
+            if (!board) {
+              result.status = 'blocked-no-event-board';
+              result.error = `No suitable event board found. Existing boards: ${boards.map(b=>b.name).join(' | ')}`;
+              save();
+              console.log(result.error);
+              return;
+            }
+            result.board = { name: board.name, serviceId: board.serviceId };
+
+            const title = String(pin.title || event.event_name || 'Match weekend guide').slice(0,100);
+            const text = `${title}. Compare the ticket route, match timing, hotel and travel plan on TrendPilot.`;
+            const alt = `${event.event_name || title} — ${event.city || ''} match and travel guide`.trim();
+
+            const data = await gql(
+              `mutation CreatePost($input: CreatePostInput!) {
+                createPost(input: $input) {
+                  __typename
+                  ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
+                  ... on MutationError { message }
+                  ... on InvalidInputError { message }
+                  ... on UnauthorizedError { message }
+                  ... on UnexpectedError { message }
+                  ... on RestProxyError { message }
+                  ... on LimitReachedError { message }
+                }
+              }`,
+              { input: {
+                text,
+                channelId: pinterest.id,
+                schedulingType: 'automatic',
+                mode: 'addToQueue',
+                saveToDraft: false,
+                needsApproval: false,
+                aiAssisted: false,
+                source: 'trendpilot-event-factory',
+                assets: [{ image: { url: pin.image_url, metadata: { altText: alt } } }],
+                metadata: { pinterest: { boardServiceId: board.serviceId, title, url: pin.target_url } },
+              }},
+              `create ${pin.event}:${pin.asset_role}`
+            );
+            const payload = data?.createPost;
+            if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
+              throw new Error(`${payload?.__typename || 'unknown'}: ${payload?.message || 'no post returned'}`);
+            }
+            const key = `${pin.event}:${pin.asset_role}`;
+            state.published = [...(state.published || []), {
+              key,
+              event: pin.event,
+              asset_role: pin.asset_role,
+              title,
+              image_url: pin.image_url,
+              target_url: pin.target_url,
+              buffer_post_id: payload.post.id,
+              status: payload.post.status,
+              dueAt: payload.post.dueAt || null,
+              published_at: new Date().toISOString()
+            }];
+            result.status = 'queued';
+            result.buffer_post_id = payload.post.id;
+            result.buffer_status = payload.post.status;
+            result.dueAt = payload.post.dueAt || null;
+            save();
+            console.log('PINTEREST_EVENT_RESULT', JSON.stringify(result));
+          })().catch(error => {
+            result.status = 'error';
+            result.error = error?.message || String(error);
+            save();
+            console.error(result.error);
+            process.exitCode = 1;
+          });
+          NODE
+
+      - name: Persist Pinterest state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-pinterest-event-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/pinterest-event-growth-state.json data/runtime/pinterest-event-growth-last.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record Pinterest event growth publication'
+          git pull --rebase origin main
+          git push origin HEAD:main
