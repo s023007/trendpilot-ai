@@ -1,7 +1,13 @@
 {
   "version": 1,
   "factory_status": "active",
-  "default_locales": ["ar", "en-gb", "de-de", "fr-fr", "es-es"],
+  "default_locales": [
+    "ar",
+    "en-gb",
+    "de-de",
+    "fr-fr",
+    "es-es"
+  ],
   "publish_policy": {
     "tier_a_requires_custom_copy": true,
     "require_two_images": true,
@@ -9,7 +15,9 @@
     "require_hotel_route": true,
     "require_verified_date": true,
     "never_claim_exact_ticket_when_unverified": true,
-    "auto_publish_statuses": ["ready"]
+    "auto_publish_statuses": [
+      "ready"
+    ]
   },
   "events": [
     {
@@ -38,12 +46,42 @@
         "hotel_url": "https://www.anrdoezrs.net/click-100655394-11947208-1751925150000?url=https%3A%2F%2Fwww.trip.com%2Fhotels%2Fmanchester-hotels-list-722%2F",
         "trip_click_base": "https://www.anrdoezrs.net/click-100655394-11947208-1751925150000?url=",
         "origins": {
-          "om": {"name_ar": "عُمان", "city_ar": "مسقط", "city_en": "Muscat", "code": "MCT"},
-          "ae": {"name_ar": "الإمارات", "city_ar": "دبي", "city_en": "Dubai", "code": "DXB"},
-          "sa": {"name_ar": "السعودية", "city_ar": "الرياض", "city_en": "Riyadh", "code": "RUH"},
-          "qa": {"name_ar": "قطر", "city_ar": "الدوحة", "city_en": "Doha", "code": "DOH"},
-          "kw": {"name_ar": "الكويت", "city_ar": "الكويت", "city_en": "Kuwait", "code": "KWI"},
-          "bh": {"name_ar": "البحرين", "city_ar": "المنامة", "city_en": "Bahrain", "code": "BAH"}
+          "om": {
+            "name_ar": "عُمان",
+            "city_ar": "مسقط",
+            "city_en": "Muscat",
+            "code": "MCT"
+          },
+          "ae": {
+            "name_ar": "الإمارات",
+            "city_ar": "دبي",
+            "city_en": "Dubai",
+            "code": "DXB"
+          },
+          "sa": {
+            "name_ar": "السعودية",
+            "city_ar": "الرياض",
+            "city_en": "Riyadh",
+            "code": "RUH"
+          },
+          "qa": {
+            "name_ar": "قطر",
+            "city_ar": "الدوحة",
+            "city_en": "Doha",
+            "code": "DOH"
+          },
+          "kw": {
+            "name_ar": "الكويت",
+            "city_ar": "الكويت",
+            "city_en": "Kuwait",
+            "code": "KWI"
+          },
+          "bh": {
+            "name_ar": "البحرين",
+            "city_ar": "المنامة",
+            "city_en": "Bahrain",
+            "code": "BAH"
+          }
         }
       },
       "images": [
@@ -111,12 +149,42 @@
         "hotel_url": "https://www.anrdoezrs.net/click-100655394-11947208-1751925150000?url=https%3A%2F%2Fwww.trip.com%2Fhotels%2Fbarcelona-hotels-list-40795%2F",
         "trip_click_base": "https://www.anrdoezrs.net/click-100655394-11947208-1751925150000?url=",
         "origins": {
-          "om": {"name_ar": "عُمان", "city_ar": "مسقط", "city_en": "Muscat", "code": "MCT"},
-          "ae": {"name_ar": "الإمارات", "city_ar": "دبي", "city_en": "Dubai", "code": "DXB"},
-          "sa": {"name_ar": "السعودية", "city_ar": "الرياض", "city_en": "Riyadh", "code": "RUH"},
-          "qa": {"name_ar": "قطر", "city_ar": "الدوحة", "city_en": "Doha", "code": "DOH"},
-          "kw": {"name_ar": "الكويت", "city_ar": "الكويت", "city_en": "Kuwait", "code": "KWI"},
-          "bh": {"name_ar": "البحرين", "city_ar": "المنامة", "city_en": "Bahrain", "code": "BAH"}
+          "om": {
+            "name_ar": "عُمان",
+            "city_ar": "مسقط",
+            "city_en": "Muscat",
+            "code": "MCT"
+          },
+          "ae": {
+            "name_ar": "الإمارات",
+            "city_ar": "دبي",
+            "city_en": "Dubai",
+            "code": "DXB"
+          },
+          "sa": {
+            "name_ar": "السعودية",
+            "city_ar": "الرياض",
+            "city_en": "Riyadh",
+            "code": "RUH"
+          },
+          "qa": {
+            "name_ar": "قطر",
+            "city_ar": "الدوحة",
+            "city_en": "Doha",
+            "code": "DOH"
+          },
+          "kw": {
+            "name_ar": "الكويت",
+            "city_ar": "الكويت",
+            "city_en": "Kuwait",
+            "code": "KWI"
+          },
+          "bh": {
+            "name_ar": "البحرين",
+            "city_ar": "المنامة",
+            "city_en": "Bahrain",
+            "code": "BAH"
+          }
         }
       },
       "images": [
@@ -154,13 +222,144 @@
     }
   ],
   "candidate_queue": [
-    {"event_id":"398745","title":"Al-Hilal FC vs Al-Ahli Saudi FC","date":"2026-09-01","score":29,"tier":"A","markets":["SA","AE","QA","KW","OM"],"status":"needs-ticket-and-image-verification"},
-    {"event_id":"393001","title":"Arsenal vs Chelsea","date":"2026-09-06","score":29,"tier":"A","markets":["GB","AE","SA","QA","KW","OM","IE"],"status":"needs-ticket-and-image-verification"},
-    {"event_id":"369292","title":"Italian Grand Prix — Monza","date":"2026-09-06","score":28,"tier":"A","markets":["GB","EU","AE","SA"],"status":"needs-ticket-and-image-verification"},
-    {"event_id":"369293","title":"Spanish Grand Prix — Madrid","date":"2026-09-13","score":28,"tier":"A","markets":["GB","EU","AE","SA"],"status":"needs-ticket-and-image-verification"},
-    {"event_id":"389618","title":"Los Angeles Rams vs San Francisco 49ers — Melbourne","date":"2026-09-11","score":28,"tier":"B","markets":["US"],"status":"needs-ticket-and-image-verification"},
-    {"event_id":"386993","title":"Las Vegas Raiders vs Miami Dolphins","date":"2026-09-13","score":28,"tier":"B","markets":["US"],"status":"needs-ticket-and-image-verification"},
-    {"event_id":"391305","title":"FC Barcelona vs Atletico Madrid — Spanish Super Cup","date":"2027-02-02","score":27,"tier":"A","markets":["GB","EU","AE","SA"],"status":"needs-ticket-and-image-verification"},
-    {"event_id":"391306","title":"Real Madrid vs Real Sociedad — Spanish Super Cup","date":"2027-02-02","score":27,"tier":"B","markets":["GB","EU","AE","SA"],"status":"needs-ticket-and-image-verification"}
-  ]
+    {
+      "event_id": "398745",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al-Ahli Saudi FC Riyadh, Saudi Arabia - Kingdom Arena Tue, 01 Sep 2026 21:00 Not Final Date not final",
+      "date": "2026-09-01",
+      "score": 29,
+      "tier": "A",
+      "markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "status": "needs-ticket-and-image-verification",
+      "source_url": "https://sportsevents365.com/event/398745",
+      "source_group": "saudi-arabia",
+      "last_seen_at": "2026-08-20T06:10:53.008007+00:00"
+    },
+    {
+      "event_id": "393001",
+      "title": "Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026",
+      "date": "2026-09-06",
+      "score": 29,
+      "tier": "A",
+      "markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "status": "needs-ticket-and-image-verification",
+      "source_url": "https://sportsevents365.com/event/393001",
+      "source_group": "top-events",
+      "last_seen_at": "2026-08-20T06:10:53.008007+00:00"
+    },
+    {
+      "event_id": "369292",
+      "title": "Formula 1 (Car Racing) Gran Premio d'Italia: 4-6 September Monza, Italy - Autodromo Nazionale Monza Sun, 06 Sep 2026 15:00",
+      "date": "2026-09-06",
+      "score": 28,
+      "tier": "A",
+      "markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "status": "needs-ticket-and-image-verification",
+      "source_url": "https://sportsevents365.com/event/369292",
+      "source_group": "formula-one",
+      "last_seen_at": "2026-08-20T06:10:53.008007+00:00"
+    },
+    {
+      "event_id": "389618",
+      "title": "US Football NFL Australia: Los Angeles Rams vs San Francisco 49ers NFL (US Football) Melbourne Cricket Ground Melbourne, Australia Fri, 11 Sep 2026",
+      "date": "2026-09-11",
+      "score": 28,
+      "tier": "A",
+      "markets": [
+        "US"
+      ],
+      "status": "needs-ticket-and-image-verification",
+      "source_url": "https://sportsevents365.com/event/389618",
+      "source_group": "top-events",
+      "last_seen_at": "2026-08-20T06:10:53.008007+00:00"
+    },
+    {
+      "event_id": "369293",
+      "title": "Car Racing Spanish Grand Prix | 11-13 September Formula 1 Circuito de Madring Madrid, Spain Sun, 13 Sep 2026",
+      "date": "2026-09-13",
+      "score": 28,
+      "tier": "A",
+      "markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "status": "needs-ticket-and-image-verification",
+      "source_url": "https://sportsevents365.com/event/369293",
+      "source_group": "top-events",
+      "last_seen_at": "2026-08-20T06:10:53.008007+00:00"
+    },
+    {
+      "event_id": "386993",
+      "title": "US Football Las Vegas Raiders vs Miami Dolphins NFL (US Football) Allegiant Stadium Las Vegas, NV, USA Sun, 13 Sep 2026",
+      "date": "2026-09-13",
+      "score": 28,
+      "tier": "A",
+      "markets": [
+        "US"
+      ],
+      "status": "needs-ticket-and-image-verification",
+      "source_url": "https://sportsevents365.com/event/386993",
+      "source_group": "top-events",
+      "last_seen_at": "2026-08-20T06:10:53.008007+00:00"
+    },
+    {
+      "event_id": "391305",
+      "title": "Football (Soccer) Semi-Final: FC Barcelona vs Atletico Madrid Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "date": "2027-02-02",
+      "score": 27,
+      "tier": "B",
+      "markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "status": "needs-ticket-and-image-verification",
+      "source_url": "https://sportsevents365.com/event/391305",
+      "source_group": "top-events",
+      "last_seen_at": "2026-08-20T06:10:53.008007+00:00"
+    },
+    {
+      "event_id": "391306",
+      "title": "Football (Soccer) Semi-Final: Real Madrid vs Real Sociedad Spanish Super Cup Ataturk Olympic Stadium Istanbul, Turkey Tue, 02 Feb 2027",
+      "date": "2027-02-02",
+      "score": 27,
+      "tier": "B",
+      "markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA"
+      ],
+      "status": "needs-ticket-and-image-verification",
+      "source_url": "https://sportsevents365.com/event/391306",
+      "source_group": "top-events",
+      "last_seen_at": "2026-08-20T06:10:53.008007+00:00"
+    }
+  ],
+  "candidate_sync": {
+    "source": "data/runtime/ticket-travel-opportunities.json",
+    "synced_at": "2026-08-20T11:16:54.261610+00:00",
+    "count": 8
+  }
 }
