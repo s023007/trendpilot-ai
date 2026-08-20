@@ -1,11 +1,18 @@
 const TP_BLOGGER = {
   feedUrl: 'https://trendpilotchoice.com/feed.xml',
-  blogUrl: 'https://trendpilotchoice.blogspot.com/',
-  maxPerRun: 3,
-  stateKey: 'TREND_PILOT_BLOGGER_SEEN_V2',
+  postingEmailProperty: 'BLOGGER_POST_EMAIL',
+  firstRunBatch: 3,
+  routineBatch: 1,
+  stateKey: 'TREND_PILOT_BLOGGER_SEEN_V3',
 };
 
 function syncTrendPilotToBlogger() {
+  const props = PropertiesService.getScriptProperties();
+  const postingEmail = String(props.getProperty(TP_BLOGGER.postingEmailProperty) || '').trim();
+  if (!postingEmail || !/@blogger\.com$/i.test(postingEmail)) {
+    throw new Error('Missing BLOGGER_POST_EMAIL script property. Add the full secret Blogger posting email in Project settings > Script properties.');
+  }
+
   const response = UrlFetchApp.fetch(TP_BLOGGER.feedUrl, {
     muteHttpExceptions: false,
     followRedirects: true,
@@ -17,42 +24,30 @@ function syncTrendPilotToBlogger() {
   const items = channel.getChildren('item').map(readRssItem_).filter(Boolean);
   items.sort((a, b) => b.published.getTime() - a.published.getTime());
 
-  const blog = bloggerApi_(
-    'https://www.googleapis.com/blogger/v3/blogs/byurl?url=' + encodeURIComponent(TP_BLOGGER.blogUrl),
-    { method: 'get' }
-  );
-  if (!blog || !blog.id) throw new Error('Blogger blog not found: ' + TP_BLOGGER.blogUrl);
-
-  const props = PropertiesService.getScriptProperties();
   const stored = props.getProperty(TP_BLOGGER.stateKey);
   const seen = new Set(stored ? JSON.parse(stored) : []);
   const firstRun = !stored;
-
+  const maxPerRun = firstRun ? TP_BLOGGER.firstRunBatch : TP_BLOGGER.routineBatch;
   const candidates = items.filter(item => !seen.has(item.guid));
-  const batch = candidates.slice(0, TP_BLOGGER.maxPerRun);
+  const batch = candidates.slice(0, maxPerRun);
   const published = [];
 
   for (const item of batch) {
-    const post = {
-      kind: 'blogger#post',
-      title: item.title,
-      content: buildPostHtml_(item),
-      labels: [item.category || 'TrendPilot', 'TrendPilot Choice'],
-    };
-    const created = bloggerApi_(
-      `https://www.googleapis.com/blogger/v3/blogs/${encodeURIComponent(blog.id)}/posts?isDraft=false`,
-      {
-        method: 'post',
-        contentType: 'application/json; charset=utf-8',
-        payload: JSON.stringify(post),
-      }
-    );
-    published.push({ guid: item.guid, bloggerPostId: created.id, title: item.title, url: created.url || null });
+    const html = buildPostHtml_(item);
+    MailApp.sendEmail({
+      to: postingEmail,
+      subject: item.title,
+      htmlBody: html,
+      body: stripTags_(html),
+      name: 'TrendPilot Choice',
+    });
     seen.add(item.guid);
+    published.push({ guid: item.guid, title: item.title, source: item.link });
+    Utilities.sleep(1200);
   }
 
-  // First authorization/run: publish only the newest batch, then mark the current
-  // historical feed as seen so Blogger is not flooded with old material.
+  // First run: publish the newest few items only, then mark older current feed items
+  // as seen so the new Blogger account is not flooded with historical posts.
   if (firstRun) items.forEach(item => seen.add(item.guid));
 
   props.setProperty(TP_BLOGGER.stateKey, JSON.stringify(Array.from(seen).slice(-500)));
@@ -69,30 +64,14 @@ function installTrendPilotBloggerTrigger() {
     .filter(t => t.getHandlerFunction() === 'syncTrendPilotToBlogger')
     .forEach(t => ScriptApp.deleteTrigger(t));
 
+  // Three checks per day. If there is no new RSS item, nothing is posted.
   ScriptApp.newTrigger('syncTrendPilotToBlogger')
     .timeBased()
-    .everyHours(1)
+    .everyHours(8)
     .create();
 
-  // Run once now so Google asks for authorization and the connection is verified.
+  // Run once now: publishes up to three newest current RSS items and verifies the connection.
   syncTrendPilotToBlogger();
-}
-
-function bloggerApi_(url, options) {
-  const token = ScriptApp.getOAuthToken();
-  const params = Object.assign({}, options || {}, {
-    headers: Object.assign({}, (options && options.headers) || {}, {
-      Authorization: 'Bearer ' + token,
-    }),
-    muteHttpExceptions: true,
-  });
-  const response = UrlFetchApp.fetch(url, params);
-  const code = response.getResponseCode();
-  const text = response.getContentText();
-  if (code < 200 || code >= 300) {
-    throw new Error(`Blogger API HTTP ${code}: ${text.slice(0, 1000)}`);
-  }
-  return text ? JSON.parse(text) : {};
 }
 
 function readRssItem_(item) {
@@ -124,11 +103,15 @@ function readRssItem_(item) {
 function buildPostHtml_(item) {
   const title = escapeHtml_(item.title);
   const url = escapeHtml_(item.link);
+  const category = escapeHtml_(item.category || 'TrendPilot');
   const summary = escapeHtml_(stripTags_(item.description)).slice(0, 900);
-  const image = item.image ? `<p><a href="${url}"><img src="${escapeHtml_(item.image)}" alt="${title}" style="max-width:100%;height:auto"></a></p>` : '';
+  const image = item.image
+    ? `<p><a href="${url}"><img src="${escapeHtml_(item.image)}" alt="${title}" style="max-width:100%;height:auto"></a></p>`
+    : '';
 
   return [
     image,
+    `<p><small>${category}</small></p>`,
     `<p>${summary}</p>`,
     `<p><strong><a href="${url}">Read the complete guide on TrendPilot Choice →</a></strong></p>`,
     '<p><small>Originally published on TrendPilot Choice. Product availability, prices, tickets and travel details can change; verify current details before purchasing or booking.</small></p>',
