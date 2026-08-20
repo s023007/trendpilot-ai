@@ -1,0 +1,116 @@
+name: Tumblr CarPlay Remove All Legacy Posts
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-carplay-remove-all-legacy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet PyTumblr
+      - name: Remove every legacy Wireless CarPlay post except the real-footage video
+        run: |
+          mkdir -p data/runtime
+          python - <<'PY'
+          import json, os, traceback
+          from datetime import datetime, timezone
+          import pytumblr
+
+          keep='825427406048362496'
+          marker='trendpilot-carplay-real-footage-v1'
+          out={'checked_at':datetime.now(timezone.utc).isoformat(),'blog':None,'keep':keep,'before':[],'deleted':[],'after':[],'error':None}
+
+          def is_carplay(p):
+              text=' '.join(str(p.get(k,'')) for k in ['summary','caption','body','title']).lower()
+              tags=[str(t).lower() for t in (p.get('tags') or [])]
+              return ('carplay' in text) or any('carplay' in t for t in tags)
+
+          try:
+              c=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
+              info=c.info(); blogs=info.get('user',{}).get('blogs',[])
+              b=next((x for x in blogs if str(x.get('name','')).lower()=='trendpilotchoice'),None) or next((x for x in blogs if x.get('primary')),None) or (blogs[0] if blogs else None)
+              if not b: raise RuntimeError('No Tumblr blog resolved')
+              blog=b.get('name') or b.get('url'); out['blog']=blog
+
+              found=[]
+              # scan published posts broadly enough to catch old live image versions
+              for offset in range(0,400,20):
+                  r=c.posts(blog,limit=20,offset=offset) or {}; ps=r.get('posts',[]) or []
+                  for p in ps:
+                      if is_carplay(p): found.append(('published',p))
+                  if len(ps)<20: break
+              # scan queue too
+              for offset in range(0,400,50):
+                  r=c.queue(blog,limit=50,offset=offset) or {}; ps=r.get('posts',[]) or []
+                  for p in ps:
+                      if is_carplay(p): found.append(('queue',p))
+                  if len(ps)<50: break
+
+              uniq={}
+              for loc,p in found: uniq[str(p.get('id'))]=(loc,p)
+              found=list(uniq.values())
+              out['before']=[{'id':str(p.get('id')),'location':loc,'type':p.get('type'),'summary':p.get('summary'),'tags':p.get('tags')} for loc,p in found]
+
+              # Keep only the real-footage campaign item. Delete every other CarPlay post, published or queued.
+              for loc,p in found:
+                  pid=str(p.get('id'))
+                  tags=[str(t) for t in (p.get('tags') or [])]
+                  if pid==keep or marker in tags:
+                      continue
+                  try:
+                      c.delete_post(blog,pid)
+                      out['deleted'].append(pid)
+                  except Exception as e:
+                      out.setdefault('delete_errors',[]).append({'id':pid,'error':repr(e)})
+
+              # verify current state
+              final=[]
+              for offset in range(0,200,20):
+                  r=c.posts(blog,limit=20,offset=offset) or {}; ps=r.get('posts',[]) or []
+                  for p in ps:
+                      if is_carplay(p): final.append(('published',p))
+                  if len(ps)<20: break
+              for offset in range(0,200,50):
+                  r=c.queue(blog,limit=50,offset=offset) or {}; ps=r.get('posts',[]) or []
+                  for p in ps:
+                      if is_carplay(p): final.append(('queue',p))
+                  if len(ps)<50: break
+              u={}
+              for loc,p in final: u[str(p.get('id'))]=(loc,p)
+              final=list(u.values())
+              out['after']=[{'id':str(p.get('id')),'location':loc,'type':p.get('type'),'summary':p.get('summary'),'tags':p.get('tags')} for loc,p in final]
+              bad=[x for x in out['after'] if x['id']!=keep and marker not in (x.get('tags') or [])]
+              if bad:
+                  raise RuntimeError('Legacy CarPlay posts still remain: '+json.dumps(bad))
+          except Exception:
+              out['error']=traceback.format_exc()
+
+          with open('data/runtime/tumblr-carplay-remove-all-legacy.json','w',encoding='utf-8') as f:
+              json.dump(out,f,indent=2,ensure_ascii=False); f.write('\n')
+          PY
+      - name: Persist cleanup verification
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/tumblr-carplay-remove-all-legacy.json || true
+          git commit -m "chore: verify Tumblr legacy CarPlay cleanup" || exit 0
+          git pull --rebase origin main || true
+          git push || true
