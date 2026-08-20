@@ -5,6 +5,7 @@ on:
     paths:
       - 'events/**'
       - 'docs/CONTENT-MARKETING-STANDARD.md'
+      - 'docs/EVENT-MOBILE-CONVERSION-STANDARD.md'
       - 'config/content-distribution-channels.json'
       - '.github/workflows/content-marketing-quality-gate.yml'
   push:
@@ -12,6 +13,7 @@ on:
     paths:
       - 'events/**'
       - 'docs/CONTENT-MARKETING-STANDARD.md'
+      - 'docs/EVENT-MOBILE-CONVERSION-STANDARD.md'
       - 'config/content-distribution-channels.json'
       - '.github/workflows/content-marketing-quality-gate.yml'
   workflow_dispatch:
@@ -70,22 +72,51 @@ jobs:
                   if not ok:
                       errors.append(f'{p}: missing {label}')
 
+              # The first mobile screen must show the CTA before a large visual.
               first_img=low.find('<img ')
               cta_candidates=[x for x in (low.find('class="button primary'), low.find("class='button primary")) if x >= 0]
               first_cta=min(cta_candidates) if cta_candidates else -1
-              if first_img >= 0 and first_cta >= 0 and first_img < first_cta:
-                  errors.append(f'{p}: first visual appears before the primary CTA in DOM; mobile pages must deliver hook/copy/CTA before a heavy hero image')
+              if first_img >= 0 and (first_cta < 0 or first_img < first_cta):
+                  errors.append(f'{p}: primary CTA must appear before the first image in DOM')
 
-              if first_img >= 0:
-                  end=low.find('>', first_img)
-                  first_tag=low[first_img:end+1 if end >= 0 else first_img+400]
-                  if 'decoding="async"' not in first_tag and "decoding='async'" not in first_tag and 'loading="lazy"' not in first_tag and "loading='lazy'" not in first_tag:
-                      errors.append(f'{p}: first image must use async decoding or lazy loading so it does not block the mobile buyer journey')
+              # Do not hotlink production event images from third-party hosts.
+              img_srcs=re.findall(r'<img\b[^>]*\bsrc=["\']([^"\']+)["\']',html,re.I)
+              remote=[s for s in img_srcs if re.match(r'^https?://',s,re.I)]
+              if remote:
+                  errors.append(f'{p}: third-party image hotlinks are not allowed: {remote}')
+              local=[s for s in img_srcs if not re.match(r'^(?:https?://|data:)',s,re.I)]
+              if not local:
+                  errors.append(f'{p}: at least one local event visual is required')
+              for src in local:
+                  clean=src.split('#',1)[0].split('?',1)[0]
+                  asset=(path.parent/clean).resolve()
+                  try:
+                      asset.relative_to(pathlib.Path.cwd().resolve())
+                  except ValueError:
+                      errors.append(f'{p}: local image escapes repository: {src}')
+                      continue
+                  if not asset.exists():
+                      errors.append(f'{p}: referenced local image does not exist: {src}')
+
+              # Localized event pages are concise conversion landings by default.
+              if len(parts) >= 4 and 'data-longform-approved' not in low:
+                  section_count=len(re.findall(r'<section\b',low))
+                  if section_count > 7:
+                      errors.append(f'{p}: {section_count} sections is too long for localized mobile landing (max 7)')
+
+              # Arabic rendering safety for mixed RTL/LTR content.
+              if '/ar/' in p.replace('\\','/'):
+                  if not re.search(r'<html[^>]*lang=["\']ar["\'][^>]*dir=["\']rtl["\']',low):
+                      errors.append(f'{p}: Arabic page must declare lang="ar" dir="rtl"')
+                  mixed_terms=('Ticombo','Manchester United','Manchester City','Old Trafford')
+                  if any(term in html for term in mixed_terms) and not ('class="latin"' in low or 'dir="ltr"' in low or '<bdi' in low):
+                      errors.append(f'{p}: mixed Latin names must be directionally isolated')
 
               pack=event_dir/'distribution-pack.json'
               if not pack.exists():
                   errors.append(f'{p}: missing {pack} (commercial articles require a distribution pack)')
 
+          # CSS must not force the hero image ahead of sales copy on mobile.
           for p in changed:
               if not p.startswith('events/') or not p.endswith('.css'):
                   continue
@@ -94,13 +125,12 @@ jobs:
                   continue
               css=path.read_text(encoding='utf-8', errors='replace').lower()
               if re.search(r'\.hero-media\s*\{[^}]*order\s*:\s*-1', css, re.S):
-                  errors.append(f'{p}: hero-media uses order:-1; this can make a slow image occupy the first mobile screen before sales copy')
+                  errors.append(f'{p}: hero-media uses order:-1; sales copy and CTA must appear first on mobile')
 
           if checked:
-              standard=pathlib.Path('docs/CONTENT-MARKETING-STANDARD.md')
-              channels=pathlib.Path('config/content-distribution-channels.json')
-              if not standard.exists(): errors.append('Missing docs/CONTENT-MARKETING-STANDARD.md')
-              if not channels.exists(): errors.append('Missing config/content-distribution-channels.json')
+              required=[pathlib.Path('docs/CONTENT-MARKETING-STANDARD.md'),pathlib.Path('docs/EVENT-MOBILE-CONVERSION-STANDARD.md'),pathlib.Path('config/content-distribution-channels.json')]
+              for req in required:
+                  if not req.exists(): errors.append(f'Missing {req}')
 
           print('Pages checked:', checked)
           if errors:
