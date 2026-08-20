@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "policy": {
+    "search_is_one_channel_not_the_whole_strategy": true,
+    "native_copy_per_channel": true,
+    "no_identical_mass_spam": true,
+    "require_channel_tracking": true,
+    "require_distribution_pack_for_commercial_articles": true
+  },
+  "channels": [
+    {"id":"google","label":"Google Search / Discover","medium":"organic","asset":"localized landing page + large preview image","publish_mode":"indexing"},
+    {"id":"bing","label":"Bing / IndexNow","medium":"organic","asset":"localized landing page","publish_mode":"indexing"},
+    {"id":"pinterest","label":"Pinterest","medium":"social","asset":"vertical image pin 2:3 + title + description","publish_mode":"account_required"},
+    {"id":"youtube_shorts","label":"YouTube Shorts","medium":"video","asset":"9:16 short video 15-45s + description link","publish_mode":"account_required"},
+    {"id":"instagram_reels","label":"Instagram Reels","medium":"video","asset":"9:16 reel + caption","publish_mode":"account_required"},
+    {"id":"tiktok","label":"TikTok","medium":"video","asset":"9:16 short video + caption","publish_mode":"account_required"},
+    {"id":"facebook","label":"Facebook","medium":"social","asset":"large-link image + short hook","publish_mode":"account_required"},
+    {"id":"x","label":"X","medium":"social","asset":"image + short hook + link","publish_mode":"account_required"},
+    {"id":"reddit","label":"Reddit","medium":"community","asset":"value-first post/comment; link only where allowed","publish_mode":"manual_or_account_required"},
+    {"id":"quora","label":"Quora","medium":"community","asset":"answer-first response with useful source link","publish_mode":"manual_or_account_required"},
+    {"id":"linkedin","label":"LinkedIn","medium":"social","asset":"professional angle + image + link when relevant","publish_mode":"account_required"},
+    {"id":"medium","label":"Medium / syndication","medium":"syndication","asset":"excerpt or adapted article + canonical link","publish_mode":"account_required"},
+    {"id":"rss","label":"RSS / feed readers / Flipboard-compatible discovery","medium":"feed","asset":"RSS item","publish_mode":"site_generated"},
+    {"id":"telegram","label":"Telegram","medium":"messaging","asset":"short share card + link","publish_mode":"account_required"},
+    {"id":"whatsapp","label":"WhatsApp","medium":"messaging","asset":"share text + Open Graph preview","publish_mode":"visitor_share_or_account_required"},
+    {"id":"email","label":"Email / newsletter","medium":"email","asset":"subject + image + CTA","publish_mode":"account_required"}
+  ]
+}
