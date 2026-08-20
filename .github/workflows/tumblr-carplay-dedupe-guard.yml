@@ -1,0 +1,157 @@
+name: Tumblr CarPlay Strict Dedupe Guard
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-carplay-dedupe-guard.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet PyTumblr
+      - name: Keep only the real-footage CarPlay post
+        shell: bash
+        run: |
+          mkdir -p data/runtime
+          python - <<'PY'
+          import json, os, traceback
+          from datetime import datetime, timezone
+          import pytumblr
+
+          KEEP='825427406048362496'
+          ARTICLE_SLUG='wireless-carplay-adapters'
+          out={
+            'checked_at': datetime.now(timezone.utc).isoformat(),
+            'blog': None,
+            'keep': KEEP,
+            'before_matches': [],
+            'deleted': [],
+            'delete_errors': [],
+            'after_matches': [],
+            'keep_present_after': False,
+            'error': None,
+          }
+
+          def is_match(p):
+            tags=[str(t).lower() for t in (p.get('tags') or [])]
+            fields=' '.join(str(p.get(k,'') or '') for k in ['summary','caption','body','title','post_url']).lower()
+            # Include common CarPlay campaign markers and article URL.
+            return (
+              ARTICLE_SLUG in fields or
+              'wireless carplay' in fields or
+              any('wireless carplay' in t for t in tags) or
+              any(t.startswith('trendpilot-carplay') for t in tags)
+            )
+
+          def collect_published(c, blog):
+            items=[]
+            for offset in range(0, 400, 20):
+              r=c.posts(blog, limit=20, offset=offset) or {}
+              ps=r.get('posts',[]) or []
+              items.extend(ps)
+              if len(ps) < 20:
+                break
+            return items
+
+          def collect_queue(c, blog):
+            items=[]
+            for offset in range(0, 400, 50):
+              r=c.queue(blog, limit=50, offset=offset) or {}
+              ps=r.get('posts',[]) or []
+              items.extend(ps)
+              if len(ps) < 50:
+                break
+            return items
+
+          try:
+            c=pytumblr.TumblrRestClient(
+              os.environ['TUMBLR_CONSUMER_KEY'],
+              os.environ['TUMBLR_CONSUMER_SECRET'],
+              os.environ['TUMBLR_OAUTH_TOKEN'],
+              os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
+            info=c.info(); blogs=info.get('user',{}).get('blogs',[]) or []
+            b=next((x for x in blogs if str(x.get('name','')).lower()=='trendpilotchoice'),None) or next((x for x in blogs if x.get('primary')),None) or (blogs[0] if blogs else None)
+            if not b: raise RuntimeError('No Tumblr blog resolved')
+            blog=b.get('name') or b.get('url'); out['blog']=blog
+
+            published=collect_published(c, blog)
+            queued=collect_queue(c, blog)
+            seen={}
+            for location, ps in [('published', published), ('queue', queued)]:
+              for p in ps:
+                pid=str(p.get('id'))
+                if not pid or pid in seen:
+                  continue
+                if is_match(p):
+                  seen[pid]=location
+                  out['before_matches'].append({
+                    'id':pid,
+                    'location':location,
+                    'type':p.get('type'),
+                    'summary':p.get('summary',''),
+                    'tags':p.get('tags',[]),
+                    'post_url':p.get('post_url')
+                  })
+
+            # Delete every matching CarPlay post except the chosen real-footage post.
+            for item in out['before_matches']:
+              pid=item['id']
+              if pid == KEEP:
+                continue
+              try:
+                c.delete_post(blog, pid)
+                out['deleted'].append(pid)
+              except Exception as e:
+                out['delete_errors'].append({'id':pid,'error':repr(e)})
+
+            # Verify from Tumblr after deletions.
+            published2=collect_published(c, blog)
+            queued2=collect_queue(c, blog)
+            seen2=set()
+            for location, ps in [('published', published2), ('queue', queued2)]:
+              for p in ps:
+                pid=str(p.get('id'))
+                if not pid or pid in seen2:
+                  continue
+                if is_match(p):
+                  seen2.add(pid)
+                  out['after_matches'].append({
+                    'id':pid,
+                    'location':location,
+                    'type':p.get('type'),
+                    'summary':p.get('summary',''),
+                    'tags':p.get('tags',[]),
+                    'post_url':p.get('post_url')
+                  })
+            out['keep_present_after']=any(x['id']==KEEP for x in out['after_matches'])
+          except Exception:
+            out['error']=traceback.format_exc()
+
+          with open('data/runtime/tumblr-carplay-dedupe-guard.json','w',encoding='utf-8') as f:
+            json.dump(out,f,indent=2,ensure_ascii=False); f.write('\n')
+          PY
+      - name: Persist result
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/tumblr-carplay-dedupe-guard.json || true
+          git commit -m "chore: record strict Tumblr CarPlay dedupe" || exit 0
+          git pull --rebase origin main || true
+          git push || true
