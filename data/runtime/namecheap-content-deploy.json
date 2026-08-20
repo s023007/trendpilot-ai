@@ -1,10 +1,29 @@
 {
-  "generated_at": "2026-08-20T06:14:48.801894+00:00",
-  "run_id": "32338755653",
-  "source_sha": "56f9745ec6d004f4bd8ecf6071937c06c7c8af17",
-  "campaign_url": "https://trendpilotchoice.com/events/manchester-derby-2026/",
-  "public_verified": false,
-  "tickets_internal_link_verified": false,
-  "indexnow_http": null,
-  "indexnow_accepted": false
+  "generated_at": "2026-08-20T06:16:47.834383+00:00",
+  "run_id": "32338903878",
+  "source_sha": "186f693fa246d2d6b68f4a425b402c5752049d5b",
+  "tickets": {
+    "url": "https://trendpilotchoice.com/tickets/",
+    "http": 200,
+    "public_verified": true
+  },
+  "events": {
+    "el-clasico-barcelona-2026": {
+      "url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/",
+      "http": 200,
+      "public_verified": true,
+      "tickets_internal_link_verified": true,
+      "error": ""
+    },
+    "manchester-derby-2026": {
+      "url": "https://trendpilotchoice.com/events/manchester-derby-2026/",
+      "http": 200,
+      "public_verified": true,
+      "tickets_internal_link_verified": true,
+      "error": ""
+    }
+  },
+  "all_public_verified": true,
+  "indexnow_http": 200,
+  "indexnow_accepted": true
 }
