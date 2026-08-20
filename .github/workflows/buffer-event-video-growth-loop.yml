@@ -1,0 +1,167 @@
+name: Buffer Event Video Growth Loop
+
+on:
+  schedule:
+    # Asia/Muscat: TikTok 12:30 + 19:30, YouTube 20:30
+    - cron: '30 8 * * *'
+    - cron: '30 15 * * *'
+    - cron: '30 16 * * *'
+  workflow_run:
+    workflows: ['Namecheap Content Auto Deploy']
+    types: [completed]
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/buffer-event-video-growth-loop.yml'
+      - 'config/social-daily-schedule.json'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: buffer-event-video-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  publish-video:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Queue event videos to connected channels
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const apiKey = process.env.BUFFER_API_KEY;
+          if (!apiKey) throw new Error('BUFFER_API_KEY is missing');
+          const registry = JSON.parse(fs.readFileSync('data/event-factory/events.json','utf8'));
+          const schedule = JSON.parse(fs.readFileSync('config/social-daily-schedule.json','utf8'));
+          const statePath = 'data/runtime/buffer-event-video-growth-state.json';
+          const resultPath = 'data/runtime/buffer-event-video-growth-last.json';
+          fs.mkdirSync('data/runtime',{recursive:true});
+          let state={version:1,published:[]};
+          try { state=JSON.parse(fs.readFileSync(statePath,'utf8')); } catch {}
+          const published=new Set((state.published||[]).map(x=>x.key));
+          const ready=(registry.events||[]).filter(e=>e.status==='ready' && fs.existsSync(path.join('events',e.slug,'social','short.mp4')));
+          const result={generated_at:new Date().toISOString(),event_name:process.env.GITHUB_EVENT_NAME||null,status:'starting',channels:[],posts:[],error:null};
+          const save=()=>{
+            fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');
+            fs.writeFileSync(resultPath,JSON.stringify(result,null,2)+'\n');
+          };
+
+          async function gql(query,variables={},label='Buffer'){
+            const response=await fetch('https://api.buffer.com',{
+              method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},
+              body:JSON.stringify({query,variables})
+            });
+            const raw=await response.text();
+            let body; try{body=JSON.parse(raw)}catch{throw new Error(`${label}: non-JSON HTTP ${response.status}: ${raw.slice(0,300)}`)}
+            if(!response.ok||body.errors?.length) throw new Error(`${label}: HTTP ${response.status} ${JSON.stringify(body)}`);
+            return body.data;
+          }
+
+          async function publicVideoOkay(url){
+            try{
+              const r=await fetch(url,{method:'HEAD',redirect:'follow'});
+              const type=String(r.headers.get('content-type')||'').toLowerCase();
+              return r.ok && (type.includes('video') || url.endsWith('.mp4'));
+            }catch{return false}
+          }
+
+          function targetServices(){
+            if(process.env.GITHUB_EVENT_NAME!=='schedule') return ['tiktok','youtube'];
+            const h=new Date().getUTCHours();
+            if(h===8||h===15) return ['tiktok'];
+            if(h===16) return ['youtube'];
+            return [];
+          }
+
+          (async()=>{
+            if(!ready.length){result.status='blocked-no-videos';save();return;}
+            const account=await gql('query { account { organizations { id name } } }',{},'account');
+            const org=account?.account?.organizations?.[0];
+            if(!org) throw new Error('No Buffer organization found');
+            const channelsData=await gql(`query Channels($org: OrganizationId!) { channels(input:{organizationId:$org}) { id name displayName service isQueuePaused } }`,{org:org.id},'channels');
+            const channels=channelsData?.channels||[];
+            result.channels=channels.map(c=>({service:c.service,name:c.displayName||c.name,paused:c.isQueuePaused}));
+            const services=targetServices();
+            if(!services.length){result.status='no-slot';save();return;}
+
+            for(const service of services){
+              const cfg=schedule.channels?.[service]||{};
+              if(cfg.enabled===false) continue;
+              const channel=channels.find(c=>String(c.service).toLowerCase()===service);
+              if(!channel){result.posts.push({service,status:'not-connected'});continue;}
+              if(channel.isQueuePaused){result.posts.push({service,status:'queue-paused'});continue;}
+              const event=ready.find(e=>!published.has(`${service}:${e.slug}:short`));
+              if(!event){result.posts.push({service,status:'nothing-new'});continue;}
+              const videoUrl=`https://trendpilotchoice.com/events/${event.slug}/social/short.mp4`;
+              if(!(await publicVideoOkay(videoUrl))){result.posts.push({service,event:event.slug,status:'video-not-public',video_url:videoUrl});continue;}
+              const targetUrl=`https://trendpilotchoice.com/events/${event.slug}/?utm_source=${service}&utm_medium=video&utm_campaign=${event.slug}-short`;
+              const title=String(`${event.event_name} — match & travel guide`).slice(0,95);
+              const text=`${event.event_name}: tickets, match timing, hotel and travel guide. ${targetUrl}`;
+              const metadata=service==='youtube'
+                ? {youtube:{title,categoryId:String(schedule.channels?.youtube?.category_id||'17'),madeForKids:false,privacy:'public',notifySubscribers:true,embeddable:true,license:'youtube',isAiGenerated:false}}
+                : {tiktok:{isAiGenerated:false}};
+              const mode=process.env.GITHUB_EVENT_NAME==='schedule'?'shareNow':'addToQueue';
+              const data=await gql(
+                `mutation CreatePost($input: CreatePostInput!) {
+                  createPost(input:$input) {
+                    __typename
+                    ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
+                    ... on MutationError { message }
+                    ... on InvalidInputError { message }
+                    ... on UnauthorizedError { message }
+                    ... on UnexpectedError { message }
+                    ... on RestProxyError { message }
+                    ... on LimitReachedError { message }
+                  }
+                }`,
+                {input:{
+                  text,channelId:channel.id,schedulingType:'automatic',mode,
+                  saveToDraft:false,needsApproval:false,aiAssisted:false,source:'trendpilot-event-factory',
+                  assets:[{video:{url:videoUrl,metadata:{thumbnailOffset:1000}}}],metadata
+                }},
+                `create-${service}-${event.slug}`
+              );
+              const payload=data?.createPost;
+              if(!payload||payload.__typename!=='PostActionSuccess'||!payload.post?.id){
+                result.posts.push({service,event:event.slug,status:'error',error:payload?.message||payload?.__typename||'no post returned'});
+                continue;
+              }
+              const record={key:`${service}:${event.slug}:short`,service,event:event.slug,title,target_url:targetUrl,video_url:videoUrl,buffer_post_id:payload.post.id,status:payload.post.status,dueAt:payload.post.dueAt||null,mode,queued_at:new Date().toISOString()};
+              state.published=[...(state.published||[]),record];
+              published.add(record.key);
+              result.posts.push(record);
+            }
+            result.status=result.posts.some(p=>p.buffer_post_id)?'queued':(result.posts.some(p=>p.status==='error')?'error':'nothing-new');
+            save();
+            console.log('BUFFER_EVENT_VIDEO_RESULT',JSON.stringify(result));
+          })().catch(error=>{
+            result.status='error';result.error=error?.message||String(error);save();console.error(result.error);process.exitCode=1;
+          });
+          NODE
+
+      - name: Persist video growth state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-video-growth-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/buffer-event-video-growth-state.json data/runtime/buffer-event-video-growth-last.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record Buffer event video growth publication'
+          git pull --rebase origin main
+          git push origin HEAD:main
