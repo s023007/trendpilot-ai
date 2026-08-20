@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 675" role="img" aria-labelledby="title desc">
+<title id="title">Manchester Derby at Old Trafford</title><desc id="desc">Stylised match poster with a red player and a sky-blue player facing each other under stadium lights.</desc>
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#050914"/><stop offset=".55" stop-color="#0b1325"/><stop offset="1" stop-color="#04070d"/></linearGradient>
+  <radialGradient id="redGlow"><stop stop-color="#ef3340" stop-opacity=".85"/><stop offset="1" stop-color="#ef3340" stop-opacity="0"/></radialGradient>
+  <radialGradient id="blueGlow"><stop stop-color="#6cabdd" stop-opacity=".9"/><stop offset="1" stop-color="#6cabdd" stop-opacity="0"/></radialGradient>
+  <linearGradient id="pitch" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#0d6b46"/><stop offset="1" stop-color="#063924"/></linearGradient>
+  <filter id="soft"><feGaussianBlur stdDeviation="30"/></filter>
+</defs>
+<rect width="1200" height="675" fill="url(#bg)"/>
+<ellipse cx="240" cy="260" rx="330" ry="330" fill="url(#redGlow)" filter="url(#soft)" opacity=".55"/>
+<ellipse cx="960" cy="260" rx="330" ry="330" fill="url(#blueGlow)" filter="url(#soft)" opacity=".55"/>
+<!-- stadium lights -->
+<g fill="#fff" opacity=".85"><circle cx="115" cy="72" r="8"/><circle cx="145" cy="72" r="8"/><circle cx="175" cy="72" r="8"/><circle cx="1025" cy="72" r="8"/><circle cx="1055" cy="72" r="8"/><circle cx="1085" cy="72" r="8"/></g>
+<g stroke="#fff" opacity=".15"><path d="M115 80 L250 390"/><path d="M1085 80 L950 390"/></g>
+<!-- pitch -->
+<path d="M200 505 Q600 430 1000 505 L1120 675 H80 Z" fill="url(#pitch)"/>
+<path d="M600 458 V675" stroke="#d7f7e9" stroke-opacity=".45" stroke-width="4"/><ellipse cx="600" cy="532" rx="118" ry="42" fill="none" stroke="#d7f7e9" stroke-opacity=".45" stroke-width="4"/>
+<!-- crowd -->
+<g opacity=".35" fill="#f4f7fb"><circle cx="120" cy="430" r="5"/><circle cx="150" cy="418" r="5"/><circle cx="180" cy="432" r="5"/><circle cx="205" cy="414" r="5"/><circle cx="990" cy="425" r="5"/><circle cx="1020" cy="410" r="5"/><circle cx="1050" cy="430" r="5"/><circle cx="1080" cy="414" r="5"/></g>
+<!-- players -->
+<g transform="translate(290 165)"><circle cx="0" cy="0" r="42" fill="#171b22"/><path d="M-78 78 Q0 35 78 78 L58 270 Q0 306 -58 270 Z" fill="#d71920"/><path d="M-58 270 L-92 420 L-28 420 L0 300 L30 420 L92 420 L58 270 Z" fill="#171b22"/><text x="0" y="170" fill="#fff" font-size="80" font-weight="800" text-anchor="middle" font-family="Arial">7</text></g>
+<g transform="translate(910 165)"><circle cx="0" cy="0" r="42" fill="#171b22"/><path d="M-78 78 Q0 35 78 78 L58 270 Q0 306 -58 270 Z" fill="#6cabdd"/><path d="M-58 270 L-92 420 L-28 420 L0 300 L30 420 L92 420 L58 270 Z" fill="#171b22"/><text x="0" y="170" fill="#082137" font-size="80" font-weight="800" text-anchor="middle" font-family="Arial">9</text></g>
+<!-- centre ball -->
+<circle cx="600" cy="545" r="34" fill="#f8fafc"/><path d="M600 523 l14 10 -5 16 h-18 l-5-16z" fill="#111827"/><g fill="#111827"><circle cx="579" cy="552" r="6"/><circle cx="621" cy="552" r="6"/></g>
+<!-- copy -->
+<text x="600" y="88" fill="#f8fafc" font-size="54" font-weight="900" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" letter-spacing="3">MANCHESTER DERBY</text>
+<text x="600" y="132" fill="#ffd166" font-size="24" font-weight="700" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" letter-spacing="2">OLD TRAFFORD · 13 SEP 2026</text>
+<text x="600" y="230" fill="#ffffff" font-size="28" font-weight="800" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">UNITED</text>
+<text x="600" y="265" fill="#94a3b8" font-size="18" font-weight="700" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">VS</text>
+<text x="600" y="300" fill="#ffffff" font-size="28" font-weight="800" text-anchor="middle" font-family="Arial,Helvetica,sans-serif">CITY</text>
+<text x="600" y="642" fill="#dbeafe" fill-opacity=".8" font-size="15" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" letter-spacing="2">TREND PILOT · MATCH EXPERIENCE GUIDE</text>
+</svg>
