@@ -1,0 +1,174 @@
+name: TrendPilot Ticket + Travel Campaign Link Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ticket-travel-campaign-link-audit.yml'
+      - 'config/ticket-travel-campaigns.json'
+  schedule:
+    - cron: '40 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ticket-travel-campaign-link-audit
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CJ_API_TOKEN: ${{ secrets.CJ_API_TOKEN }}
+      CJ_TOKEN: ${{ secrets.CJ_TOKEN }}
+      CJ_PAT: ${{ secrets.CJ_PAT }}
+      CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+      CJ_WEBSITE_PID: ${{ secrets.CJ_WEBSITE_PID }}
+      CJ_PID: ${{ secrets.CJ_PID }}
+      CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Verify registered campaign routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, re, html, pathlib, urllib.request, urllib.parse, urllib.error, xml.etree.ElementTree as ET
+          from datetime import datetime, timezone
+
+          cfg=json.loads(pathlib.Path('config/ticket-travel-campaigns.json').read_text())
+          def first(*names):
+              for n in names:
+                  v=(os.environ.get(n) or '').strip()
+                  if v: return v
+              return ''
+          token=first('CJ_API_TOKEN','CJ_TOKEN','CJ_PAT','CJ_PERSONAL_ACCESS_TOKEN')
+          pid=first('CJ_WEBSITE_PID','CJ_PID','CJ_WEBSITE_ID') or '100655394'
+          if not token: raise SystemExit('CJ token is unavailable in GitHub Secrets')
+
+          sports_id=cfg['cj']['sports_events_365_advertiser_id']
+          trip_id=cfg['cj']['trip_com_advertiser_id']
+          trip_base_id=cfg['cj']['trip_com_base_link_id']
+
+          def text(el,name):
+              x=el.find(name)
+              return (x.text or '').strip() if x is not None else ''
+
+          def cj_links(advertiser_id):
+              qs=urllib.parse.urlencode({'website-id':pid,'advertiser-ids':advertiser_id,'records-per-page':'100','page-number':'1'})
+              req=urllib.request.Request('https://link-search.api.cj.com/v2/link-search?'+qs,headers={'Authorization':'Bearer '+token,'Accept':'application/xml','User-Agent':'TrendPilotCampaignLinkAudit/1.0'})
+              with urllib.request.urlopen(req,timeout=60) as r:
+                  raw=r.read().decode('utf-8','replace')
+              root=ET.fromstring(raw)
+              out=[]
+              for el in root.findall('.//link'):
+                  row={
+                      'advertiser_id':text(el,'advertiser-id'),
+                      'advertiser_name':text(el,'advertiser-name'),
+                      'relationship_status':text(el,'relationship-status'),
+                      'link_id':text(el,'link-id'),
+                      'link_name':text(el,'link-name'),
+                      'link_type':text(el,'link-type'),
+                      'allow_deep_linking':text(el,'allow-deep-linking'),
+                      'click_url':text(el,'click-url'),
+                      'destination':text(el,'destination'),
+                      'sale_commission':text(el,'sale-commission')
+                  }
+                  if not row['click_url']:
+                      code=text(el,'link-code-html')
+                      m=re.search(r'href=[\"\']([^\"\']+)',code,re.I) if code else None
+                      if m: row['click_url']=html.unescape(m.group(1))
+                  out.append(row)
+              return out
+
+          def resolve(url):
+              req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 TrendPilotCampaignVerifier/1.0','Accept':'text/html,application/xhtml+xml'})
+              try:
+                  with urllib.request.urlopen(req,timeout=40) as r:
+                      return {'ok':True,'http_status':r.status,'resolved_url':r.geturl()}
+              except urllib.error.HTTPError as e:
+                  return {'ok':True,'http_status':e.code,'resolved_url':e.geturl(),'note':'destination returned HTTP error after affiliate redirect'}
+              except Exception as e:
+                  return {'ok':False,'http_status':None,'resolved_url':'','note':type(e).__name__+': '+str(e)[:180]}
+
+          sports=cj_links(sports_id)
+          trip=cj_links(trip_id)
+          sports_by_id={x['link_id']:x for x in sports if x.get('link_id')}
+          trip_by_id={x['link_id']:x for x in trip if x.get('link_id')}
+          trip_base=trip_by_id.get(trip_base_id)
+          if not trip_base or not trip_base.get('click_url') or trip_base.get('allow_deep_linking','').lower() not in ('true','yes','1'):
+              raise SystemExit('Configured Trip.com base link is not a usable CJ deep link')
+
+          result={
+              'generated_at':datetime.now(timezone.utc).isoformat(),
+              'website_pid':pid,
+              'registry_version':cfg.get('version'),
+              'campaigns':{}
+          }
+
+          for campaign in cfg['campaigns']:
+              cid=campaign['id']
+              ticket=sports_by_id.get(campaign['ticket_link_id'])
+              ticket_ok=bool(ticket and ticket.get('relationship_status','').lower()=='joined' and ticket.get('click_url'))
+              ticket_verification=resolve(ticket['click_url']) if ticket_ok else {'ok':False,'note':'tracked ticket link unavailable'}
+              trip_targets={}
+              for name,target in campaign.get('trip_targets',{}).items():
+                  sep='&' if '?' in trip_base['click_url'] else '?'
+                  affiliate=trip_base['click_url']+sep+'url='+urllib.parse.quote(target['url'],safe='')
+                  check=resolve(affiliate)
+                  final=(check.get('resolved_url') or '').lower()
+                  host=(urllib.parse.urlparse(check.get('resolved_url') or '').hostname or '').lower()
+                  domain_ok=(host=='trip.com' or host.endswith('.trip.com'))
+                  hint=(target.get('match_hint') or '').lower()
+                  hint_ok=bool(hint and hint in final)
+                  ok=bool(check.get('ok') and domain_ok and hint_ok)
+                  trip_targets[name]={
+                      'target_url':target['url'],
+                      'affiliate_url':affiliate,
+                      'base_link_id':trip_base_id,
+                      'verification':{**check,'landed_on_trip_domain':domain_ok,'target_hint_match':hint_ok,'verified':ok}
+                  }
+              trip_ok=bool(trip_targets) and all(x['verification']['verified'] for x in trip_targets.values())
+              ready=ticket_ok and bool(ticket_verification.get('ok')) and trip_ok
+              result['campaigns'][cid]={
+                  'event_name':campaign['event_name'],
+                  'event_date':campaign['event_date'],
+                  'public_path':campaign['public_path'],
+                  'ticket':{
+                      'link_id':campaign['ticket_link_id'],
+                      'route_kind':campaign['ticket_route_kind'],
+                      'tracked':ticket_ok,
+                      'click_url':ticket.get('click_url','') if ticket else '',
+                      'destination':ticket.get('destination','') if ticket else '',
+                      'link_name':ticket.get('link_name','') if ticket else '',
+                      'sale_commission':ticket.get('sale_commission','') if ticket else '',
+                      'verification':ticket_verification
+                  },
+                  'trip_targets':trip_targets,
+                  'ready_for_commercial_ctas':ready,
+                  'guardrail':'Competition fallback ticket links must be labeled as competition availability, not as an exact event deep link.' if campaign['ticket_route_kind']=='competition-fallback' else ''
+              }
+
+          pathlib.Path('data/runtime').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('data/runtime/ticket-travel-campaign-links.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
+          print(json.dumps({'campaigns':{k:{'ready':v['ready_for_commercial_ctas'],'ticket_link':v['ticket']['link_name'],'trip':{n:t['verification']['verified'] for n,t in v['trip_targets'].items()}} for k,v in result['campaigns'].items()}},ensure_ascii=False,indent=2))
+          PY
+
+      - name: Persist verification result
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-campaign-link-audit-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/ticket-travel-campaign-links.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: update ticket travel campaign link verification'
+          git pull --rebase origin main
+          git push origin HEAD:main
