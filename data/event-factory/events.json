@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "factory_status": "active",
+  "default_locales": ["ar", "en-gb", "de-de", "fr-fr", "es-es"],
+  "publish_policy": {
+    "tier_a_requires_custom_copy": true,
+    "require_two_images": true,
+    "require_ticket_route": true,
+    "require_hotel_route": true,
+    "require_verified_date": true,
+    "never_claim_exact_ticket_when_unverified": true,
+    "auto_publish_statuses": ["ready"]
+  },
+  "events": [
+    {
+      "slug": "manchester-derby-2026",
+      "status": "ready",
+      "tier": "A",
+      "sport": "football",
+      "competition": "Premier League",
+      "home": "Manchester United",
+      "away": "Manchester City",
+      "event_name": "Manchester United vs Manchester City",
+      "date": "2026-09-13",
+      "time": "16:30",
+      "timezone": "Europe/London",
+      "venue": "Old Trafford",
+      "city": "Manchester",
+      "country": "GB",
+      "destination_airport": "MAN",
+      "ticket": {
+        "mode": "exact",
+        "seller": "Ticombo",
+        "verified": true,
+        "url": "https://zmgig.com/g/hn23xca4o8179d0dbedcbcf92d8d7a/?ulp=https%3A%2F%2Fwww.ticombo.com%2Fen%2Fdiscover%2Fevent%2Fmanchester-united-fc-vs-manchester-city-fc-premier-league-3001252536&subid=tp_man_derby_2026&subid1=trendpilot&subid2=manchester-derby-2026&subid3=factory"
+      },
+      "travel": {
+        "hotel_url": "https://www.anrdoezrs.net/click-100655394-11947208-1751925150000?url=https%3A%2F%2Fwww.trip.com%2Fhotels%2Fmanchester-hotels-list-722%2F",
+        "trip_click_base": "https://www.anrdoezrs.net/click-100655394-11947208-1751925150000?url=",
+        "origins": {
+          "om": {"name_ar": "عُمان", "city_ar": "مسقط", "city_en": "Muscat", "code": "MCT"},
+          "ae": {"name_ar": "الإمارات", "city_ar": "دبي", "city_en": "Dubai", "code": "DXB"},
+          "sa": {"name_ar": "السعودية", "city_ar": "الرياض", "city_en": "Riyadh", "code": "RUH"},
+          "qa": {"name_ar": "قطر", "city_ar": "الدوحة", "city_en": "Doha", "code": "DOH"},
+          "kw": {"name_ar": "الكويت", "city_ar": "الكويت", "city_en": "Kuwait", "code": "KWI"},
+          "bh": {"name_ar": "البحرين", "city_ar": "المنامة", "city_en": "Bahrain", "code": "BAH"}
+        }
+      },
+      "images": [
+        {
+          "role": "hero",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg/1280px-Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg",
+          "fallbacks": [
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Manchester_United_v_Manchester_City%2C_6_November_2021_%2821%29.jpg?width=1280",
+            "https://raw.githubusercontent.com/s023007/trendpilot-ai/main/events/manchester-derby-2026/derby-hero.jpg"
+          ],
+          "credit": "Ardfern / Wikimedia Commons",
+          "license": "CC BY-SA 4.0",
+          "historical": true
+        },
+        {
+          "role": "venue",
+          "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Old_Trafford_%28interior%29%2C_Manchester_United.jpg/1280px-Old_Trafford_%28interior%29%2C_Manchester_United.jpg",
+          "fallbacks": [
+            "https://commons.wikimedia.org/wiki/Special:Redirect/file/Old_Trafford_%28interior%29%2C_Manchester_United.jpg?width=1280",
+            "https://raw.githubusercontent.com/s023007/trendpilot-ai/main/events/manchester-derby-2026/derby-stadium.jpg"
+          ],
+          "credit": "Stacey MacNaught / Wikimedia Commons",
+          "license": "CC BY 2.0",
+          "historical": false
+        }
+      ],
+      "marketing": {
+        "ar": {
+          "hero": "ديربي مانشستر من المدرج… تجربة لا تشبه المشاهدة من الشاشة.",
+          "lead": "مانشستر يونايتد ضد مانشستر سيتي في أولد ترافورد. ابدأ بالمقعد المناسب ثم رتّب الرحلة حول المباراة.",
+          "experience_title": "مدينة كاملة تعيش المباراة… وأنت في قلبها.",
+          "experience_body": "يوم الديربي يبدأ قبل صافرة البداية. الوصول إلى أولد ترافورد وصوت المدرجات ثم كل هجمة وكل هدف — هذه هي اللحظات التي تجعل السفر للمباراة مختلفًا."
+        },
+        "en-gb": {
+          "hero": "The Manchester derby from the stands — not from a screen.",
+          "lead": "Manchester United vs Manchester City at Old Trafford. Secure the right seat first, then build the weekend around it.",
+          "experience_title": "A whole city lives this match — and you can be inside it.",
+          "experience_body": "Derby day starts long before kick-off: the walk to Old Trafford, the noise, the tension, then every attack and every goal."
+        }
+      }
+    },
+    {
+      "slug": "el-clasico-barcelona-2026",
+      "status": "ready",
+      "tier": "A",
+      "sport": "football",
+      "competition": "La Liga",
+      "home": "FC Barcelona",
+      "away": "Real Madrid",
+      "event_name": "FC Barcelona vs Real Madrid",
+      "date": "2026-10-25",
+      "time": null,
+      "timezone": "Europe/Madrid",
+      "venue": "Spotify Camp Nou",
+      "city": "Barcelona",
+      "country": "ES",
+      "destination_airport": "BCN",
+      "ticket": {
+        "mode": "competition",
+        "seller": "Sports Events 365",
+        "verified": true,
+        "url": "https://www.jdoqocy.com/click-100655394-17211516-1785895610000"
+      },
+      "travel": {
+        "hotel_url": "https://www.anrdoezrs.net/click-100655394-11947208-1751925150000?url=https%3A%2F%2Fwww.trip.com%2Fhotels%2Fbarcelona-hotels-list-40795%2F",
+        "trip_click_base": "https://www.anrdoezrs.net/click-100655394-11947208-1751925150000?url=",
+        "origins": {
+          "om": {"name_ar": "عُمان", "city_ar": "مسقط", "city_en": "Muscat", "code": "MCT"},
+          "ae": {"name_ar": "الإمارات", "city_ar": "دبي", "city_en": "Dubai", "code": "DXB"},
+          "sa": {"name_ar": "السعودية", "city_ar": "الرياض", "city_en": "Riyadh", "code": "RUH"},
+          "qa": {"name_ar": "قطر", "city_ar": "الدوحة", "city_en": "Doha", "code": "DOH"},
+          "kw": {"name_ar": "الكويت", "city_ar": "الكويت", "city_en": "Kuwait", "code": "KWI"},
+          "bh": {"name_ar": "البحرين", "city_ar": "المنامة", "city_en": "Bahrain", "code": "BAH"}
+        }
+      },
+      "images": [
+        {
+          "role": "hero",
+          "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_Nou_during_El_Clasico_October_2012.jpg?width=1280",
+          "fallbacks": [],
+          "credit": "Wikimedia Commons",
+          "license": "CC BY-SA 3.0",
+          "historical": true
+        },
+        {
+          "role": "venue",
+          "url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_nou_before_F.C._Barcelona_-_Real_Madrid_league_match_of_2012.JPG?width=1280",
+          "fallbacks": [],
+          "credit": "Wikimedia Commons",
+          "license": "CC BY-SA 3.0",
+          "historical": true
+        }
+      ],
+      "marketing": {
+        "ar": {
+          "hero": "الكلاسيكو من المدرج… ليلة كروية يصعب أن تشبه أي مباراة أخرى.",
+          "lead": "برشلونة ضد ريال مدريد في كامب نو. افحص تذاكر الدوري أولًا، ثم رتّب الرحلة والفندق حول الموعد.",
+          "experience_title": "برشلونة كلها تتغير يوم الكلاسيكو.",
+          "experience_body": "من الشوارع المحيطة بالملعب إلى لحظة دخول المدرجات، الكلاسيكو تجربة مدينة كاملة قبل أن يكون 90 دقيقة من كرة القدم."
+        },
+        "en-gb": {
+          "hero": "El Clásico from the stands — Barcelona vs Real Madrid in the city that lives it.",
+          "lead": "Start with current La Liga ticket availability, then build the Barcelona weekend around the fixture.",
+          "experience_title": "Barcelona feels different on Clásico day.",
+          "experience_body": "The atmosphere begins outside the stadium and keeps building until kick-off. It is a city-break and football experience in one."
+        }
+      }
+    }
+  ],
+  "candidate_queue": [
+    {"event_id":"398745","title":"Al-Hilal FC vs Al-Ahli Saudi FC","date":"2026-09-01","score":29,"tier":"A","markets":["SA","AE","QA","KW","OM"],"status":"needs-ticket-and-image-verification"},
+    {"event_id":"393001","title":"Arsenal vs Chelsea","date":"2026-09-06","score":29,"tier":"A","markets":["GB","AE","SA","QA","KW","OM","IE"],"status":"needs-ticket-and-image-verification"},
+    {"event_id":"369292","title":"Italian Grand Prix — Monza","date":"2026-09-06","score":28,"tier":"A","markets":["GB","EU","AE","SA"],"status":"needs-ticket-and-image-verification"},
+    {"event_id":"369293","title":"Spanish Grand Prix — Madrid","date":"2026-09-13","score":28,"tier":"A","markets":["GB","EU","AE","SA"],"status":"needs-ticket-and-image-verification"},
+    {"event_id":"389618","title":"Los Angeles Rams vs San Francisco 49ers — Melbourne","date":"2026-09-11","score":28,"tier":"B","markets":["US"],"status":"needs-ticket-and-image-verification"},
+    {"event_id":"386993","title":"Las Vegas Raiders vs Miami Dolphins","date":"2026-09-13","score":28,"tier":"B","markets":["US"],"status":"needs-ticket-and-image-verification"},
+    {"event_id":"391305","title":"FC Barcelona vs Atletico Madrid — Spanish Super Cup","date":"2027-02-02","score":27,"tier":"A","markets":["GB","EU","AE","SA"],"status":"needs-ticket-and-image-verification"},
+    {"event_id":"391306","title":"Real Madrid vs Real Sociedad — Spanish Super Cup","date":"2027-02-02","score":27,"tier":"B","markets":["GB","EU","AE","SA"],"status":"needs-ticket-and-image-verification"}
+  ]
+}
