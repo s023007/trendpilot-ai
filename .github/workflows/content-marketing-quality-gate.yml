@@ -70,9 +70,31 @@ jobs:
                   if not ok:
                       errors.append(f'{p}: missing {label}')
 
+              first_img=low.find('<img ')
+              cta_candidates=[x for x in (low.find('class="button primary'), low.find("class='button primary")) if x >= 0]
+              first_cta=min(cta_candidates) if cta_candidates else -1
+              if first_img >= 0 and first_cta >= 0 and first_img < first_cta:
+                  errors.append(f'{p}: first visual appears before the primary CTA in DOM; mobile pages must deliver hook/copy/CTA before a heavy hero image')
+
+              if first_img >= 0:
+                  end=low.find('>', first_img)
+                  first_tag=low[first_img:end+1 if end >= 0 else first_img+400]
+                  if 'decoding="async"' not in first_tag and "decoding='async'" not in first_tag and 'loading="lazy"' not in first_tag and "loading='lazy'" not in first_tag:
+                      errors.append(f'{p}: first image must use async decoding or lazy loading so it does not block the mobile buyer journey')
+
               pack=event_dir/'distribution-pack.json'
               if not pack.exists():
                   errors.append(f'{p}: missing {pack} (commercial articles require a distribution pack)')
+
+          for p in changed:
+              if not p.startswith('events/') or not p.endswith('.css'):
+                  continue
+              path=pathlib.Path(p)
+              if not path.exists():
+                  continue
+              css=path.read_text(encoding='utf-8', errors='replace').lower()
+              if re.search(r'\.hero-media\s*\{[^}]*order\s*:\s*-1', css, re.S):
+                  errors.append(f'{p}: hero-media uses order:-1; this can make a slow image occupy the first mobile screen before sales copy')
 
           if checked:
               standard=pathlib.Path('docs/CONTENT-MARKETING-STANDARD.md')
