@@ -1,0 +1,100 @@
+name: Tumblr CarPlay Remove Duplicate Photo
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/tumblr-carplay-dedupe.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet PyTumblr
+      - name: Remove older Wireless CarPlay photo duplicate and verify
+        shell: bash
+        run: |
+          mkdir -p data/runtime
+          python - <<'PY'
+          import json, os, traceback
+          from datetime import datetime, timezone
+          import pytumblr
+
+          old_photo_id='825404846490435584'
+          keep_video_id='825427406048362496'
+          out={
+            'checked_at': datetime.now(timezone.utc).isoformat(),
+            'auth_ok': False,
+            'blog': None,
+            'old_photo_id': old_photo_id,
+            'keep_video_id': keep_video_id,
+            'deleted_old_photo': False,
+            'keep_video_found': False,
+            'remaining_carplay_posts': [],
+            'error': None
+          }
+          try:
+            c=pytumblr.TumblrRestClient(
+              os.environ['TUMBLR_CONSUMER_KEY'],
+              os.environ['TUMBLR_CONSUMER_SECRET'],
+              os.environ['TUMBLR_OAUTH_TOKEN'],
+              os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
+            info=c.info(); out['auth_ok']=bool(info.get('user'))
+            blogs=info.get('user',{}).get('blogs',[])
+            b=next((x for x in blogs if str(x.get('name','')).lower()=='trendpilotchoice'),None) or next((x for x in blogs if x.get('primary')),None) or (blogs[0] if blogs else None)
+            if not b: raise RuntimeError('No Tumblr blog resolved')
+            blog=b.get('name') or b.get('url'); out['blog']=blog
+
+            # Delete only the known older photo duplicate. Never delete the real-footage video.
+            try:
+              c.delete_post(blog, old_photo_id)
+              out['deleted_old_photo']=True
+            except Exception as e:
+              out['delete_note']=repr(e)
+
+            recent=c.posts(blog,limit=20,offset=0)
+            posts=recent.get('posts',[]) if isinstance(recent,dict) else []
+            for p in posts:
+              pid=str(p.get('id'))
+              summary=str(p.get('summary',''))
+              body=' '.join(str(p.get(k,'')) for k in ['caption','body','title'])
+              tags=[str(t) for t in (p.get('tags') or [])]
+              if pid==keep_video_id:
+                out['keep_video_found']=True
+              if ('carplay' in (summary+' '+body).lower()) or any('carplay' in t.lower() for t in tags):
+                out['remaining_carplay_posts'].append({
+                  'id':pid,
+                  'type':p.get('type'),
+                  'summary':summary,
+                  'tags':tags,
+                  'post_url':p.get('post_url')
+                })
+          except Exception:
+            out['error']=traceback.format_exc()
+
+          with open('data/runtime/tumblr-carplay-dedupe.json','w',encoding='utf-8') as f:
+            json.dump(out,f,indent=2,ensure_ascii=False); f.write('\n')
+          PY
+      - name: Persist cleanup result
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/tumblr-carplay-dedupe.json || true
+          git commit -m "chore: record Tumblr CarPlay duplicate cleanup" || exit 0
+          git pull --rebase origin main || true
+          git push || true
