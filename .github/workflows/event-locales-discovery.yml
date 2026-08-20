@@ -1,0 +1,92 @@
+name: Event Locales Discovery QA
+
+on:
+  workflow_run:
+    workflows: ['Namecheap Content Auto Deploy']
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: event-locales-discovery-qa
+  cancel-in-progress: false
+
+jobs:
+  verify-and-submit:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      INDEXNOW_KEY: d3f1a9c7e5b24f6081c4a9d2e7b5f310
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Verify every Event Factory public URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime, json, pathlib, time, urllib.request, urllib.error
+          source=pathlib.Path('data/event-factory/public-urls.json')
+          data=json.loads(source.read_text())
+          rows=[]; all_ok=True
+          for url in data.get('urls',[]):
+              ok=False; status=None; error=''
+              for attempt in range(1,6):
+                  try:
+                      sep='&' if '?' in url else '?'
+                      req=urllib.request.Request(url+sep+f'localeqa={attempt}',headers={'User-Agent':'TrendPilotLocaleQA/1.0','Cache-Control':'no-cache'})
+                      with urllib.request.urlopen(req,timeout=30) as r:
+                          body=r.read(5000).decode('utf-8','replace')
+                          status=r.status
+                          ok=status==200 and '<html' in body.lower()
+                          if ok: break
+                  except urllib.error.HTTPError as exc:
+                      status=exc.code; error=str(exc)
+                  except Exception as exc:
+                      error=type(exc).__name__+': '+str(exc)
+                  time.sleep(5)
+              rows.append({'url':url,'http':status,'ok':ok,'error':error})
+              all_ok=all_ok and ok
+          report={'generated_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'count':len(rows),'all_ok':all_ok,'urls':rows}
+          pathlib.Path('data/runtime').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('data/runtime/event-locales-qa.json').write_text(json.dumps(report,indent=2)+'\n')
+          print(json.dumps(report,indent=2))
+          if not all_ok: raise SystemExit('One or more localized event pages failed public QA')
+          PY
+
+      - name: Submit every localized event URL to IndexNow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          urls=json.load(open('data/event-factory/public-urls.json')).get('urls',[])
+          key=os.environ['INDEXNOW_KEY']
+          payload={'host':'trendpilotchoice.com','key':key,'keyLocation':'https://trendpilotchoice.com/'+key+'.txt','urlList':urls}
+          pathlib.Path('/tmp/event-locales-indexnow.json').write_text(json.dumps(payload,indent=2)+'\n')
+          print('Submitting',len(urls),'localized event/ticket URLs')
+          PY
+          code="$(curl -sS -o /tmp/event-locales-indexnow-response.txt -w '%{http_code}' -H 'Content-Type: application/json; charset=utf-8' -d @/tmp/event-locales-indexnow.json https://api.indexnow.org/indexnow || true)"
+          echo "INDEXNOW_HTTP=$code"
+          if [ "$code" != '200' ] && [ "$code" != '202' ]; then
+            cat /tmp/event-locales-indexnow-response.txt || true
+            exit 1
+          fi
+
+      - name: Persist locale QA report
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-event-locale-qa-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/event-locales-qa.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record localized event discovery QA'
+          git pull --rebase origin main
+          git push origin HEAD:main
