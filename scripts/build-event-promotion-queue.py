@@ -8,9 +8,23 @@ OUT=ROOT/'data/event-factory/promotion-queue.json'
 reg=json.loads(REG.read_text(encoding='utf-8'))
 creative_map={}
 if CREATIVES.exists():
-    c=json.loads(CREATIVES.read_text(encoding='utf-8'))
-    for row in c.get('events',[]):
-        creative_map[row.get('event')]={a.get('role'):a for a in row.get('assets',[])}
+    try:
+        c=json.loads(CREATIVES.read_text(encoding='utf-8'))
+        for row in c.get('events',[]):
+            creative_map[row.get('event')]={a.get('role'):a for a in row.get('assets',[])}
+    except Exception:
+        creative_map={}
+
+def verified_photo(e, prefer_venue=False):
+    wanted='venue' if prefer_venue else 'hero'
+    for image in e.get('images',[]):
+        if image.get('role')==wanted and image.get('url'):
+            return image.get('url')
+    for image in e.get('images',[]):
+        if image.get('url'):
+            return image.get('url')
+    return None
+
 items=[]
 for e in reg.get('events',[]):
     if e.get('status')!='ready': continue
@@ -18,27 +32,32 @@ for e in reg.get('events',[]):
     if not p.exists(): continue
     pack=json.loads(p.read_text(encoding='utf-8'))
     cmap=creative_map.get(e['slug'],{})
+    hero=verified_photo(e,False)
+    venue=verified_photo(e,True) or hero
     for i,pin in enumerate(pack.get('pinterest',[]),1):
         role=f'pin-{i}'
         asset=cmap.get(role,{})
+        fallback=venue if i==3 else hero
+        image_url=asset.get('url') or fallback
         items.append({
             'priority':1,'channel':'pinterest','event':e['slug'],'asset_role':role,
             'title':pin.get('title'),'target_url':pin.get('url'),
-            'image_url':asset.get('url'),'image_path':asset.get('path'),
-            'status':'ready-to-publish' if asset.get('url') else 'ready-for-creative'
+            'image_url':image_url,'image_path':asset.get('path'),
+            'visual_mode':'branded-vertical' if asset.get('url') else 'verified-photo-fallback',
+            'status':'ready-to-publish' if image_url else 'blocked-no-image'
         })
     yt=pack.get('youtube_short') or {}
     if yt:
-        items.append({'priority':2,'channel':'youtube-shorts','event':e['slug'],'hook':yt.get('hook'),'target_url':yt.get('url'),'visual_source':(cmap.get('pin-1') or {}).get('url'),'status':'ready-for-video-production'})
+        items.append({'priority':2,'channel':'youtube-shorts','event':e['slug'],'hook':yt.get('hook'),'target_url':yt.get('url'),'visual_source':(cmap.get('pin-1') or {}).get('url') or hero,'status':'ready-for-video-production'})
     tr=pack.get('tiktok_reel') or {}
     if tr:
-        common={'event':e['slug'],'hook':tr.get('hook'),'target_url':tr.get('url'),'visual_source':(cmap.get('pin-2') or {}).get('url'),'status':'ready-for-video-production'}
+        common={'event':e['slug'],'hook':tr.get('hook'),'target_url':tr.get('url'),'visual_source':(cmap.get('pin-2') or {}).get('url') or hero,'status':'ready-for-video-production'}
         items.append({'priority':3,'channel':'instagram-reels',**common})
         items.append({'priority':3,'channel':'tiktok',**common})
     for ch in ('facebook','x'):
         x=pack.get(ch) or {}
         if x:
-            items.append({'priority':4,'channel':ch,'event':e['slug'],'copy':x.get('copy'),'target_url':x.get('url'),'image_url':(cmap.get('pin-1') or {}).get('url'),'status':'ready-for-post'})
+            items.append({'priority':4,'channel':ch,'event':e['slug'],'copy':x.get('copy'),'target_url':x.get('url'),'image_url':(cmap.get('pin-1') or {}).get('url') or hero,'status':'ready-for-post'})
     if pack.get('reddit_quora_angle'):
         items.append({'priority':5,'channel':'reddit-quora','event':e['slug'],'angle':pack['reddit_quora_angle'],'status':'manual-value-first','note':'Answer a real question or discussion; never mass-post or spam links.'})
     if pack.get('email_subject'):
@@ -53,7 +72,7 @@ items.sort(key=lambda x:(x['priority'],x.get('event',''),x['channel'],x.get('ass
 OUT.write_text(json.dumps({
     'generated_at':dt.datetime.now(dt.timezone.utc).isoformat(),
     'publishing_mode':'search-auto + pinterest-auto when authorized; other channels are asset-ready queues',
-    'note':'Search discovery is automatic. Pinterest items with image_url are eligible for the daily Buffer publisher. Video channels remain queued until a video asset/publisher is connected.',
+    'note':'Search discovery is automatic. Pinterest always prefers branded vertical artwork but may safely fall back to the verified licensed event photo, so a temporary creative-render failure cannot stop distribution.',
     'items':items
 },ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 print('promotion queue items:',len(items))
