@@ -2,10 +2,11 @@
   AddType image/webp .webp
   AddType image/svg+xml .svg
   AddType image/jpeg .jpg .jpeg
+  AddType video/mp4 .mp4
 </IfModule>
 
 <IfModule mod_headers.c>
-  <FilesMatch "\.(webp|jpg|jpeg|png|svg)$">
+  <FilesMatch "\.(webp|jpg|jpeg|png|svg|mp4)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 </IfModule>
