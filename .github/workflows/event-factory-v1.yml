@@ -7,6 +7,7 @@ on:
       - 'data/event-factory/events.json'
       - 'data/event-factory/inbox/**'
       - 'scripts/build-event-factory.py'
+      - 'scripts/build-event-growth-network.py'
       - 'scripts/build-event-sitemap.py'
       - 'scripts/build-event-promotion-queue.py'
       - 'scripts/merge-event-factory-inbox.py'
@@ -32,7 +33,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -44,7 +45,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile scripts/build-event-factory.py scripts/build-event-sitemap.py scripts/build-event-promotion-queue.py scripts/merge-event-factory-inbox.py scripts/sync-event-factory-candidates.py
+          python -m py_compile scripts/build-event-factory.py scripts/build-event-growth-network.py scripts/build-event-sitemap.py scripts/build-event-promotion-queue.py scripts/merge-event-factory-inbox.py scripts/sync-event-factory-candidates.py
           python -m json.tool data/event-factory/events.json >/dev/null
           for f in data/event-factory/inbox/*.json; do [ -e "$f" ] || continue; python -m json.tool "$f" >/dev/null; done
           test -f events/_factory/premium-v1.css
@@ -61,7 +62,7 @@ jobs:
           set -euo pipefail
           python scripts/sync-event-factory-candidates.py
 
-      - name: Generate pages, search-discovery files and promotion queue
+      - name: Generate premium events and growth network
         shell: bash
         env:
           FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
@@ -72,9 +73,11 @@ jobs:
           else
             python scripts/build-event-factory.py
           fi
+          python scripts/build-event-growth-network.py
           python scripts/build-event-sitemap.py
           python scripts/build-event-promotion-queue.py
           python -m json.tool data/event-factory/build-report.json >/dev/null
+          python -m json.tool data/event-factory/growth-network.json >/dev/null
           python -m json.tool data/event-factory/public-urls.json >/dev/null
           python -m json.tool data/event-factory/promotion-queue.json >/dev/null
           test -s events/sitemap.xml
@@ -86,10 +89,13 @@ jobs:
           python - <<'PY'
           import json
           r=json.load(open('data/event-factory/build-report.json'))
+          g=json.load(open('data/event-factory/growth-network.json'))
           u=json.load(open('data/event-factory/public-urls.json'))
           p=json.load(open('data/event-factory/promotion-queue.json'))
           print('Published ready events:', len(r.get('published',[])))
           print('Candidate queue:', len(r.get('candidate_queue',[])))
+          print('Growth network URLs:', g.get('total_urls'))
+          print('Growth network counts:', g.get('counts'))
           print('Public event/ticket URLs:', len(u.get('urls',[])))
           print('Promotion queue items:', len(p.get('items',[])))
           print('Ticket hub updated:', r.get('ticket_hub_updated'))
@@ -103,11 +109,11 @@ jobs:
           set -euo pipefail
           git config user.name 'trendpilot-event-factory-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add data/event-factory/events.json data/event-factory/build-report.json data/event-factory/public-urls.json data/event-factory/promotion-queue.json events tickets/index.html
+          git add data/event-factory/events.json data/event-factory/build-report.json data/event-factory/growth-network.json data/event-factory/public-urls.json data/event-factory/promotion-queue.json events tickets/index.html
           if git diff --cached --quiet; then
             echo 'No factory changes to commit.'
             exit 0
           fi
-          git commit -m 'content: build Event Factory V1 pages and distribution packs'
+          git commit -m 'content: build Event Factory growth network and distribution packs'
           git pull --rebase origin main
           git push origin HEAD:main
