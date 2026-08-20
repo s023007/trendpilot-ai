@@ -1,9 +1,21 @@
 {
-  "version": 1,
+  "version": 2,
   "cj": {
     "sports_events_365_advertiser_id": "7753674",
     "trip_com_advertiser_id": "4368684",
     "trip_com_base_link_id": "11947208"
+  },
+  "admitad": {
+    "website_id": "2980568",
+    "ticombo_campaign_id": "142825"
+  },
+  "ticket_route_policy": {
+    "preference": [
+      "verified-exact-event-deeplink",
+      "verified-exact-event-link",
+      "verified-competition-fallback"
+    ],
+    "never_label_fallback_as_exact": true
   },
   "campaigns": [
     {
@@ -18,6 +30,11 @@
       "ticket_link_id": "17211515",
       "ticket_link_label": "English Premier League Tickets",
       "ticket_route_kind": "competition-fallback",
+      "ticombo": {
+        "event_id": "3001252536",
+        "target_url": "https://www.ticombo.com/en/discover/event/manchester-united-fc-vs-manchester-city-fc-premier-league-3001252536",
+        "expected_route_kind": "exact-event-deeplink"
+      },
       "trip_targets": {
         "hotels": {
           "url": "https://www.trip.com/hotels/manchester-hotels-list-722/",
@@ -44,6 +61,11 @@
       "ticket_link_id": "17211516",
       "ticket_link_label": "Spanish La Liga Tickets",
       "ticket_route_kind": "competition-fallback",
+      "ticombo": {
+        "event_id": "3001923791",
+        "target_url": "https://www.ticombo.com/en/discover/event/fc-barcelona-vs-real-madrid-cf-la-liga-3001923791",
+        "expected_route_kind": "exact-event-deeplink"
+      },
       "trip_targets": {
         "hotels": {
           "url": "https://www.trip.com/hotels/barcelona-hotels-list-40795/",
