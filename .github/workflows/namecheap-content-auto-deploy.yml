@@ -23,7 +23,7 @@ jobs:
   deploy-content:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 14
     env:
       CPANEL_HOST: 198.54.120.162
       CPANEL_PORT: '21098'
@@ -40,18 +40,22 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: Require deployment key and discover event guides
+      - name: Require deployment key and read verified event registry
         shell: bash
         run: |
           set -euo pipefail
           test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
           test -d events
           test -f tickets/index.html
-          find events -mindepth 2 -maxdepth 2 -type f -name index.html -print | sort > /tmp/event-files.txt
-          test -s /tmp/event-files.txt || { echo 'No event landing pages found.'; exit 1; }
-          awk -F/ '{print $(NF-1)}' /tmp/event-files.txt > /tmp/event-slugs.txt
-          echo 'Event guides to deploy:'
-          cat /tmp/event-slugs.txt
+          test -f data/event-factory/events.json
+          python3 - <<'PY'
+          import json, pathlib
+          reg=json.load(open('data/event-factory/events.json'))
+          slugs=[x['slug'] for x in reg.get('events',[]) if x.get('status')=='ready' and x.get('slug')]
+          if not slugs: raise SystemExit('No ready Event Factory guides found')
+          pathlib.Path('/tmp/event-slugs.txt').write_text('\n'.join(slugs)+'\n')
+          print('Ready event guides:', *slugs, sep='\n- ')
+          PY
 
       - name: Configure SSH
         shell: bash
@@ -76,7 +80,7 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Publish all event and ticket content
+      - name: Publish complete event growth network and ticket hub
         shell: bash
         run: |
           set -euo pipefail
@@ -87,25 +91,25 @@ jobs:
             ssh trendpilot-namecheap "test -f '$STATIC_ROOT/events/$slug/index.html'"
           done < /tmp/event-slugs.txt
           ssh trendpilot-namecheap "test -f '$STATIC_ROOT/tickets/index.html'"
+          if [ -f events/discover/index.html ]; then ssh trendpilot-namecheap "test -f '$STATIC_ROOT/events/discover/index.html'"; fi
 
-      - name: Verify every public event and internal ticket-hub link
+      - name: Verify commercial event roots and discovery hub
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os, pathlib, subprocess, time, urllib.request, urllib.error
-
+          import json, os, pathlib, time, urllib.request, urllib.error
           origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
           run=os.environ.get('GITHUB_RUN_ID','')
           slugs=[x.strip() for x in pathlib.Path('/tmp/event-slugs.txt').read_text().splitlines() if x.strip()]
 
-          def get(url, tries=6):
+          def get(url, tries=5):
               last={'http':None,'body':'','error':''}
               for attempt in range(1,tries+1):
                   bust=('&' if '?' in url else '?')+f'deploy={run}-{attempt}'
-                  req=urllib.request.Request(url+bust,headers={'User-Agent':'TrendPilotDeploymentVerifier/2.0','Cache-Control':'no-cache'})
+                  req=urllib.request.Request(url+bust,headers={'User-Agent':'TrendPilotDeploymentVerifier/3.0','Cache-Control':'no-cache'})
                   try:
-                      with urllib.request.urlopen(req,timeout=35) as r:
+                      with urllib.request.urlopen(req,timeout=30) as r:
                           body=r.read().decode('utf-8','replace')
                           last={'http':r.status,'body':body,'error':''}
                           if r.status==200: return last
@@ -113,42 +117,38 @@ jobs:
                       last={'http':e.code,'body':e.read().decode('utf-8','replace'),'error':str(e)}
                   except Exception as e:
                       last={'http':None,'body':'','error':type(e).__name__+': '+str(e)}
-                  time.sleep(8)
+                  time.sleep(5)
               return last
 
           tickets=get(origin+'/tickets/')
           ticket_ok=tickets['http']==200 and '<html' in tickets['body'].lower()
-          events={}
-          all_ok=ticket_ok
+          events={}; all_ok=ticket_ok
           for slug in slugs:
               url=f'{origin}/events/{slug}/'
-              response=get(url)
-              body=response['body']
+              response=get(url); body=response['body']
               public_ok=response['http']==200 and '<html' in body.lower() and '<title' in body.lower()
               link=f'/events/{slug}/'
               internal_ok=ticket_ok and link in tickets['body']
-              events[slug]={
-                  'url':url,
-                  'http':response['http'],
-                  'public_verified':public_ok,
-                  'tickets_internal_link_verified':internal_ok,
-                  'error':response['error']
-              }
+              events[slug]={'url':url,'http':response['http'],'public_verified':public_ok,'tickets_internal_link_verified':internal_ok,'error':response['error']}
               all_ok=all_ok and public_ok and internal_ok
 
+          discover_url=origin+'/events/discover/'
+          discover=get(discover_url)
+          discover_ok=discover['http']==200 and '<html' in discover['body'].lower()
           result={
               'run_id':run,
               'tickets':{'url':origin+'/tickets/','http':tickets['http'],'public_verified':ticket_ok},
               'events':events,
-              'all_public_verified':all_ok
+              'discover':{'url':discover_url,'http':discover['http'],'public_verified':discover_ok,'error':discover['error']},
+              'all_public_verified':all_ok and discover_ok
           }
           pathlib.Path('/tmp/public-check.json').write_text(json.dumps(result,indent=2)+'\n')
           print(json.dumps(result,indent=2))
-          if not all_ok:
-              raise SystemExit('One or more public event pages or ticket-hub internal links failed verification.')
+          if not result['all_public_verified']:
+              raise SystemExit('Commercial event root, discovery hub, or ticket-hub verification failed.')
           PY
 
-      - name: Submit all event guides to IndexNow
+      - name: Submit complete event URL network to IndexNow
         shell: bash
         run: |
           set -euo pipefail
@@ -156,17 +156,19 @@ jobs:
           import json, os, pathlib
           origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
           key=os.environ['INDEXNOW_KEY']
-          slugs=[x.strip() for x in pathlib.Path('/tmp/event-slugs.txt').read_text().splitlines() if x.strip()]
-          urls=[f'{origin}/events/{slug}/' for slug in slugs]
-          urls.append(origin+'/tickets/')
+          source=pathlib.Path('data/event-factory/public-urls.json')
+          if source.exists():
+              urls=json.loads(source.read_text()).get('urls',[])
+          else:
+              slugs=[x.strip() for x in pathlib.Path('/tmp/event-slugs.txt').read_text().splitlines() if x.strip()]
+              urls=[f'{origin}/events/{slug}/' for slug in slugs]+[origin+'/tickets/']
           payload={'host':'trendpilotchoice.com','key':key,'keyLocation':f'{origin}/{key}.txt','urlList':urls}
           pathlib.Path('/tmp/indexnow.json').write_text(json.dumps(payload,indent=2)+'\n')
-          print(json.dumps(payload,indent=2))
+          print('Submitting',len(urls),'event-network URLs to IndexNow')
           PY
           index_code="$(curl -sS -o /tmp/indexnow-response.txt -w '%{http_code}' -H 'Content-Type: application/json; charset=utf-8' -d @/tmp/indexnow.json https://api.indexnow.org/indexnow || true)"
           echo "INDEXNOW_HTTP=$index_code"
           if [ "$index_code" != '200' ] && [ "$index_code" != '202' ]; then
-            echo 'IndexNow did not return an accepted status.'
             cat /tmp/indexnow-response.txt || true
             exit 1
           fi
@@ -183,15 +185,20 @@ jobs:
           def load(path, fallback):
               try: return json.loads(pathlib.Path(path).read_text())
               except Exception: return fallback
-          public=load('/tmp/public-check.json',{'tickets':{},'events':{},'all_public_verified':False})
+          public=load('/tmp/public-check.json',{'tickets':{},'events':{},'discover':{},'all_public_verified':False})
           try: index=pathlib.Path('/tmp/indexnow-code.txt').read_text().strip()
           except Exception: index=''
+          urls=[]
+          try: urls=json.load(open('data/event-factory/public-urls.json')).get('urls',[])
+          except Exception: pass
           result={
               'generated_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),
               'run_id':os.environ.get('GITHUB_RUN_ID',''),
               'source_sha':os.environ.get('GITHUB_SHA',''),
               'tickets':public.get('tickets',{}),
               'events':public.get('events',{}),
+              'discover':public.get('discover',{}),
+              'network_url_count':len(urls),
               'all_public_verified':bool(public.get('all_public_verified')),
               'indexnow_http':int(index) if index.isdigit() else None,
               'indexnow_accepted':index in ('200','202')
