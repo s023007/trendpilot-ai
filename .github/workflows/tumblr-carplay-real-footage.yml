@@ -8,6 +8,10 @@ on:
       - ".github/workflows/tumblr-carplay-real-footage.yml"
   workflow_dispatch:
 
+concurrency:
+  group: tumblr-carplay-real-footage-v1
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -67,7 +71,7 @@ jobs:
             -an -c:v libx264 -preset medium -crf 21 -movflags +faststart /tmp/tpvid/carplay-real.mp4
           ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,pix_fmt -of json /tmp/tpvid/carplay-real.mp4
 
-      - name: Upload real video to Tumblr queue and remove test video
+      - name: Idempotent upload to Tumblr queue
         shell: bash
         run: |
           set +e
@@ -77,30 +81,92 @@ jobs:
           import pytumblr
 
           video='/tmp/tpvid/carplay-real.mp4'
-          test_id='825425815229628416'
           marker='trendpilot-carplay-real-footage-v1'
+          test_id='825425815229628416'
           url='https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=real-footage-v1'
           caption=f'''<h2>Wireless CarPlay: Check This Before You Buy</h2><p>Real in-car footage, used to explain the setup rather than claim a hands-on test of any specific adapter.</p><p>Before buying, confirm that wired CarPlay already works in your car and that your USB port carries data.</p><p><a href="{url}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>'''
           tags=[marker,'wireless carplay','car infotainment','car accessories','apple carplay','buying guide','TrendPilot']
-          out={'started_at':datetime.now(timezone.utc).isoformat(),'auth_ok':False,'blog':None,'created':None,'state':None,'test_deleted':False,'error':None}
+          out={
+            'started_at':datetime.now(timezone.utc).isoformat(),
+            'auth_ok':False,'blog':None,'created':None,'state':None,
+            'existing_before':[],'kept_id':None,'deleted_duplicates':[],
+            'test_deleted':False,'error':None
+          }
+
+          def collect(c, blog):
+            found=[]
+            for location, getter, step in [
+              ('published', lambda o: c.posts(blog,limit=20,offset=o), 20),
+              ('queue', lambda o: c.queue(blog,limit=50,offset=o), 50),
+            ]:
+              for offset in range(0,400,step):
+                r=getter(offset) or {}; ps=r.get('posts',[]) or []
+                for p in ps:
+                  if marker in [str(t) for t in (p.get('tags') or [])]:
+                    found.append((location,p))
+                if len(ps)<step: break
+            # dedupe same id if API surfaces it twice
+            uniq={}
+            for loc,p in found:
+              uniq[str(p.get('id'))]=(loc,p)
+            return list(uniq.values())
+
           try:
               c=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
               info=c.info(); out['auth_ok']=bool(info.get('user')); blogs=info.get('user',{}).get('blogs',[])
               b=next((x for x in blogs if str(x.get('name','')).lower()=='trendpilotchoice'),None) or next((x for x in blogs if x.get('primary')),None) or (blogs[0] if blogs else None)
               if not b: raise RuntimeError('No Tumblr blog resolved')
               blog=b.get('name') or b.get('url'); out['blog']=blog
-              r=c.create_video(blog,state='queue',tags=tags,caption=caption,data=video)
-              nid=str(r.get('id','')) if isinstance(r,dict) else ''
-              out['created']={'ok':bool(nid),'id':nid or None,'response':r}
-              out['state']=r.get('state') if isinstance(r,dict) else None
-              if not nid: raise RuntimeError('Tumblr returned no post id: '+repr(r))
+
+              existing=collect(c,blog)
+              out['existing_before']=[{'id':str(p.get('id')),'location':loc,'summary':p.get('summary','')} for loc,p in existing]
+
+              # If this campaign already exists, reuse one copy instead of creating another.
+              if existing:
+                  # Prefer published if already live; otherwise keep the oldest queue item.
+                  ordered=sorted(existing,key=lambda x:(0 if x[0]=='published' else 1, int(str(x[1].get('id')))))
+                  keep_loc, keep_post=ordered[0]
+                  keep_id=str(keep_post.get('id'))
+                  out['kept_id']=keep_id
+                  out['created']={'ok':False,'skipped':'existing campaign post found'}
+                  for loc,p in ordered[1:]:
+                      pid=str(p.get('id'))
+                      try:
+                          c.delete_post(blog,pid); out['deleted_duplicates'].append(pid)
+                      except Exception as e:
+                          out.setdefault('delete_errors',[]).append({'id':pid,'error':repr(e)})
+              else:
+                  r=c.create_video(blog,state='queue',tags=tags,caption=caption,data=video)
+                  nid=str(r.get('id','')) if isinstance(r,dict) else ''
+                  out['created']={'ok':bool(nid),'id':nid or None,'response':r}
+                  out['state']=r.get('state') if isinstance(r,dict) else None
+                  if not nid: raise RuntimeError('Tumblr returned no post id: '+repr(r))
+                  out['kept_id']=nid
+
+              # Remove the old synthetic test if it still exists; ignore if already gone.
               try:
-                  c.delete_post(blog,test_id)
-                  out['test_deleted']=True
-              except Exception as e:
-                  out['test_delete_error']=repr(e)
+                  c.delete_post(blog,test_id); out['test_deleted']=True
+              except Exception:
+                  pass
+
+              # Final invariant: one campaign marker only.
+              final=collect(c,blog)
+              if len(final)>1:
+                  keep=out['kept_id'] or str(final[0][1].get('id'))
+                  for loc,p in final:
+                      pid=str(p.get('id'))
+                      if pid==keep: continue
+                      try:
+                          c.delete_post(blog,pid); out['deleted_duplicates'].append(pid)
+                      except Exception as e:
+                          out.setdefault('delete_errors',[]).append({'id':pid,'error':repr(e)})
+              final2=collect(c,blog)
+              out['final_posts']=[{'id':str(p.get('id')),'location':loc,'summary':p.get('summary','')} for loc,p in final2]
+              if len(final2)!=1:
+                  raise RuntimeError('Idempotency invariant failed; expected exactly one campaign post, got '+str(len(final2)))
           except Exception:
               out['error']=traceback.format_exc()
+
           with open('data/runtime/tumblr-carplay-real-footage.json','w',encoding='utf-8') as f:
               json.dump(out,f,indent=2,ensure_ascii=False); f.write('\n')
           PY
