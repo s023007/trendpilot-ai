@@ -1,3 +1,4 @@
+# Trigger real-footage Tumblr video build
 name: Tumblr CarPlay Real Footage Video
 
 on:
@@ -71,7 +72,7 @@ jobs:
         run: |
           set +e
           python - <<'PY'
-          import json, os, traceback, time
+          import json, os, traceback
           from datetime import datetime, timezone
           import pytumblr
 
