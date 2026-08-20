@@ -20,7 +20,7 @@ concurrency:
 jobs:
   radar:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -47,15 +47,20 @@ jobs:
           sources=[
               {'id':'top-events','url':'https://sportsevents365.com/','geo':'GLOBAL'},
               {'id':'premier-league','url':'https://sportsevents365.com/dock/competition/premier-league','geo':'GB'},
+              {'id':'la-liga','url':'https://sportsevents365.com/dock/competition/la-liga','geo':'EU'},
+              {'id':'champions-league','url':'https://sportsevents365.com/dock/competition/champions-league','geo':'GLOBAL'},
+              {'id':'serie-a','url':'https://sportsevents365.com/dock/competition/serie-a','geo':'EU'},
+              {'id':'bundesliga','url':'https://sportsevents365.com/dock/competition/bundesliga','geo':'EU'},
+              {'id':'ligue-1','url':'https://sportsevents365.com/dock/competition/french-ligue-1','geo':'EU'},
               {'id':'saudi-arabia','url':'https://sportsevents365.com/events/country/1143','geo':'SA'},
               {'id':'formula-one','url':'https://sportsevents365.com/events/type/1003','geo':'GLOBAL'}
           ]
           session=requests.Session()
-          session.headers.update({'User-Agent':'TrendPilotOpportunityRadar/2.0 (+https://trendpilotchoice.com/)','Accept-Language':'en-US,en;q=0.9'})
+          session.headers.update({'User-Agent':'TrendPilotOpportunityRadar/3.0 (+https://trendpilotchoice.com/)','Accept-Language':'en-US,en;q=0.9'})
 
           priority=[x.lower() for x in policy.get('priority_terms',[])]
           date_pat=re.compile(r'\b(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun),?\s+\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+20\d{2}(?:\s+\d{1,2}:\d{2})?',re.I)
-          event_terms=(' vs ','grand prix','formula 1','concert','premier league','champions league','wimbledon','australian open','nfl','nba','six nations','bts','al-nassr','al hilal','al-hilal','super cup')
+          event_terms=(' vs ','grand prix','formula 1','premier league','la liga','serie a','bundesliga','ligue 1','champions league','wimbledon','australian open','nfl','nba','six nations','bts','al-nassr','al hilal','al-hilal','super cup')
           reject_title_terms=('from usd','sign up','ticket updates','show more','learn more','buy tickets','filter tickets')
 
           def clean(s): return re.sub(r'\s+',' ',s or '').strip()
@@ -89,7 +94,6 @@ jobs:
               low=a.lower()
               if len(a)>=12 and not any(low.startswith(x) for x in reject_title_terms) and any(t in low for t in event_terms):
                   return a[:260]
-              # A price/button can point at the event. Recover the event card text but trim conversion/UI tails.
               c=clean(context)
               for marker in (' From USD ', ' Only a few tickets', ' Coming Soon!', ' Leave us your email', ' Sign up for ticket updates'):
                   if marker.lower() in c.lower():
@@ -103,8 +107,8 @@ jobs:
                   return ['SA','AE','QA','KW','OM'],5
               if source_geo=='GB' or any(x in b for x in ('england','manchester','london','old trafford','emirates stadium','premier league')):
                   return ['GB','AE','SA','QA','KW','OM','IE'],5
-              if any(x in b for x in ('madrid','barcelona','spain','italy','milan','rome','paris','france','germany','munich','dortmund','netherlands')):
-                  return ['GB','EU','AE','SA'],4
+              if source_geo=='EU' or any(x in b for x in ('madrid','barcelona','spain','italy','milan','rome','paris','france','germany','munich','dortmund','netherlands')):
+                  return ['GB','EU','AE','SA','QA','KW','OM'],4
               if any(x in b for x in ('united states','new york','los angeles','las vegas','miami','nfl','nba')):
                   return ['US'],5
               return ['GLOBAL'],2
@@ -112,10 +116,9 @@ jobs:
           def score_candidate(title, context, source_geo, event_date):
               blob=(title+' '+context).lower()
               has_match=' vs ' in blob
-              major=any(t in blob for t in ('grand prix','formula 1','premier league','champions league','concert','nfl','nba','australian open','wimbledon'))
+              major=any(t in blob for t in ('grand prix','formula 1','premier league','la liga','serie a','bundesliga','ligue 1','champions league','concert','nfl','nba','australian open','wimbledon'))
               search_intent=5 if (has_match or major) and event_date else 3
               popularity=5 if any(t in blob for t in priority) else (4 if major else 2)
-              # Verified CJ state: Sports Events 365 has tracked category routes; Trip.com supports verified deep links.
               affiliate_readiness=4
               markets,geo_fit=audience_and_geo(blob,source_geo)
               visual=5 if any(x in blob for x in ('football','grand prix','formula 1','concert','nfl','nba','tennis','rugby')) else 3
@@ -177,7 +180,6 @@ jobs:
               except Exception as e:
                   source_report.append({'id':src['id'],'url':src['url'],'error':type(e).__name__+': '+str(e)[:200],'candidates':0})
 
-          # Same event can be listed on home + competition pages. Keep the strongest record by event ID.
           best={}
           for x in found:
               old=best.get(x['event_id'])
@@ -194,13 +196,13 @@ jobs:
               'source_report':source_report,
               'candidate_count':len(rows),
               'recommended_count':len(recommended),
-              'top_recommendations':recommended[:20],
-              'all_candidates':rows[:80],
+              'top_recommendations':recommended[:30],
+              'all_candidates':rows[:160],
               'guardrail':'Radar only. No article or affiliate CTA is auto-published; current event facts, search demand and tracked routes must pass publication QA.'
           }
           pathlib.Path('data/runtime').mkdir(parents=True,exist_ok=True)
           pathlib.Path('data/runtime/ticket-travel-opportunities.json').write_text(json.dumps(result,ensure_ascii=False,indent=2)+'\n')
-          print(json.dumps({'sources':source_report,'candidate_count':len(rows),'recommended_count':len(recommended),'top':[{'title':x['title'],'date':x['event_date'],'score':x['total_score'],'markets':x['target_markets']} for x in recommended[:10]]},ensure_ascii=False,indent=2))
+          print(json.dumps({'sources':source_report,'candidate_count':len(rows),'recommended_count':len(recommended),'top':[{'title':x['title'],'date':x['event_date'],'score':x['total_score'],'markets':x['target_markets']} for x in recommended[:15]]},ensure_ascii=False,indent=2))
           PY
 
       - name: Persist radar result
