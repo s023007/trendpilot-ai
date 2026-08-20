@@ -1,0 +1,1 @@
+This branch intentionally keeps affiliate CTAs disabled until tracked deep links are resolved from the existing TrendPilot partner configuration or generated through the relevant network. The event page is otherwise structured for search-first QA.
