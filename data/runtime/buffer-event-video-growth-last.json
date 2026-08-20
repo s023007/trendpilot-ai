@@ -1,13 +1,8 @@
 {
-  "generated_at": "2026-08-20T15:33:51.441Z",
-  "event_name": "push",
-  "status": "nothing-new",
+  "generated_at": "2026-08-20T15:35:35.885Z",
+  "event_name": "workflow_run",
+  "status": "queued",
   "channels": [
-    {
-      "service": "pinterest",
-      "name": "trendpilotchoice",
-      "paused": false
-    },
     {
       "service": "youtube",
       "name": "Trendpilotchoice",
@@ -17,20 +12,39 @@
       "service": "tiktok",
       "name": "trendpilot.ai",
       "paused": false
+    },
+    {
+      "service": "pinterest",
+      "name": "trendpilotchoice",
+      "paused": false
     }
   ],
   "posts": [
     {
+      "key": "tiktok:manchester-derby-2026:short",
       "service": "tiktok",
       "event": "manchester-derby-2026",
-      "status": "video-not-public",
-      "video_url": "https://trendpilotchoice.com/events/manchester-derby-2026/social/short.mp4"
+      "title": "Manchester United vs Manchester City — match & travel guide",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=manchester-derby-2026-short",
+      "video_url": "https://trendpilotchoice.com/events/manchester-derby-2026/social/short.mp4",
+      "buffer_post_id": "6a871ece5ba8c13d7b704346",
+      "status": "scheduled",
+      "dueAt": "2026-08-20T17:39:00.000Z",
+      "mode": "addToQueue",
+      "queued_at": "2026-08-20T15:35:43.157Z"
     },
     {
+      "key": "youtube:manchester-derby-2026:short",
       "service": "youtube",
       "event": "manchester-derby-2026",
-      "status": "video-not-public",
-      "video_url": "https://trendpilotchoice.com/events/manchester-derby-2026/social/short.mp4"
+      "title": "Manchester United vs Manchester City — match & travel guide",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=youtube&utm_medium=video&utm_campaign=manchester-derby-2026-short",
+      "video_url": "https://trendpilotchoice.com/events/manchester-derby-2026/social/short.mp4",
+      "buffer_post_id": "6a871ed012bf3aa4640c30d4",
+      "status": "scheduled",
+      "dueAt": "2026-08-20T16:07:00.000Z",
+      "mode": "addToQueue",
+      "queued_at": "2026-08-20T15:35:45.095Z"
     }
   ],
   "error": null
