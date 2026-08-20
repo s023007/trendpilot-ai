@@ -2,7 +2,7 @@ const TP_BLOGGER = {
   feedUrl: 'https://trendpilotchoice.com/feed.xml',
   blogUrl: 'https://trendpilotchoice.blogspot.com/',
   maxPerRun: 3,
-  stateKey: 'TREND_PILOT_BLOGGER_SEEN_V1',
+  stateKey: 'TREND_PILOT_BLOGGER_SEEN_V2',
 };
 
 function syncTrendPilotToBlogger() {
@@ -17,7 +17,10 @@ function syncTrendPilotToBlogger() {
   const items = channel.getChildren('item').map(readRssItem_).filter(Boolean);
   items.sort((a, b) => b.published.getTime() - a.published.getTime());
 
-  const blog = Blogger.Blogs.getByUrl(TP_BLOGGER.blogUrl);
+  const blog = bloggerApi_(
+    'https://www.googleapis.com/blogger/v3/blogs/byurl?url=' + encodeURIComponent(TP_BLOGGER.blogUrl),
+    { method: 'get' }
+  );
   if (!blog || !blog.id) throw new Error('Blogger blog not found: ' + TP_BLOGGER.blogUrl);
 
   const props = PropertiesService.getScriptProperties();
@@ -32,18 +35,24 @@ function syncTrendPilotToBlogger() {
   for (const item of batch) {
     const post = {
       kind: 'blogger#post',
-      blog: { id: blog.id },
       title: item.title,
       content: buildPostHtml_(item),
       labels: [item.category || 'TrendPilot', 'TrendPilot Choice'],
     };
-    const created = Blogger.Posts.insert(post, blog.id, { isDraft: false, fetchBody: false });
-    published.push({ guid: item.guid, bloggerPostId: created.id, title: item.title });
+    const created = bloggerApi_(
+      `https://www.googleapis.com/blogger/v3/blogs/${encodeURIComponent(blog.id)}/posts?isDraft=false`,
+      {
+        method: 'post',
+        contentType: 'application/json; charset=utf-8',
+        payload: JSON.stringify(post),
+      }
+    );
+    published.push({ guid: item.guid, bloggerPostId: created.id, title: item.title, url: created.url || null });
     seen.add(item.guid);
   }
 
-  // On the first authorization/run, avoid flooding Blogger with the whole historical feed.
-  // Publish only the newest batch, then consider the rest of the current feed already seen.
+  // First authorization/run: publish only the newest batch, then mark the current
+  // historical feed as seen so Blogger is not flooded with old material.
   if (firstRun) items.forEach(item => seen.add(item.guid));
 
   props.setProperty(TP_BLOGGER.stateKey, JSON.stringify(Array.from(seen).slice(-500)));
@@ -69,6 +78,23 @@ function installTrendPilotBloggerTrigger() {
   syncTrendPilotToBlogger();
 }
 
+function bloggerApi_(url, options) {
+  const token = ScriptApp.getOAuthToken();
+  const params = Object.assign({}, options || {}, {
+    headers: Object.assign({}, (options && options.headers) || {}, {
+      Authorization: 'Bearer ' + token,
+    }),
+    muteHttpExceptions: true,
+  });
+  const response = UrlFetchApp.fetch(url, params);
+  const code = response.getResponseCode();
+  const text = response.getContentText();
+  if (code < 200 || code >= 300) {
+    throw new Error(`Blogger API HTTP ${code}: ${text.slice(0, 1000)}`);
+  }
+  return text ? JSON.parse(text) : {};
+}
+
 function readRssItem_(item) {
   const title = text_(item, 'title');
   const link = text_(item, 'link');
@@ -80,7 +106,8 @@ function readRssItem_(item) {
   const description = text_(item, 'description');
   const mediaNs = XmlService.getNamespace('media', 'http://search.yahoo.com/mrss/');
   const media = item.getChild('content', mediaNs);
-  const image = media ? (media.getAttribute('url') || {}).getValue?.() || '' : '';
+  const imageAttr = media ? media.getAttribute('url') : null;
+  const image = imageAttr ? imageAttr.getValue() : '';
 
   const parsedDate = pubRaw ? new Date(pubRaw) : new Date();
   return {
@@ -103,7 +130,7 @@ function buildPostHtml_(item) {
   return [
     image,
     `<p>${summary}</p>`,
-    `<p><strong><a href="${url}" rel="canonical">Read the complete guide on TrendPilot Choice →</a></strong></p>`,
+    `<p><strong><a href="${url}">Read the complete guide on TrendPilot Choice →</a></strong></p>`,
     '<p><small>Originally published on TrendPilot Choice. Product availability, prices, tickets and travel details can change; verify current details before purchasing or booking.</small></p>',
   ].join('\n');
 }
