@@ -1,8 +1,836 @@
 {
-  "generated_at": "2026-08-20T11:46:42.630901+00:00",
-  "publishing_mode": "queue-only",
-  "note": "This file prepares channel-specific promotion. It does not publish to external accounts without an authorized publisher/API connection.",
+  "generated_at": "2026-08-20T11:55:43.010798+00:00",
+  "publishing_mode": "search-auto + pinterest-auto when authorized; other channels are asset-ready queues",
+  "note": "Search discovery is automatic. Pinterest always prefers branded vertical artwork but may safely fall back to the verified licensed event photo, so a temporary creative-render failure cannot stop distribution.",
   "items": [
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-bahrain/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-bahrain/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-kuwait/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-kuwait/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-oman/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-oman/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-qatar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-qatar/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-saudi-arabia/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-saudi-arabia/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-uae/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/from-uae/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/discover/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/discover/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/discover/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/discover/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/discover/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/discover/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-bahrain/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-bahrain/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-kuwait/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-kuwait/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-oman/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-oman/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-qatar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-qatar/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-saudi-arabia/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-saudi-arabia/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-uae/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/from-uae/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/bundesliga/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/bundesliga/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/bundesliga/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/bundesliga/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/bundesliga/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/bundesliga/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/champions-league/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/champions-league/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/champions-league/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/champions-league/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/champions-league/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/champions-league/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/la-liga/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/la-liga/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/la-liga/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/la-liga/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/la-liga/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/la-liga/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/ligue-1/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/ligue-1/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/ligue-1/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/ligue-1/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/ligue-1/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/ligue-1/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/premier-league/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/premier-league/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/premier-league/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/premier-league/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/premier-league/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/premier-league/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/saudi-pro-league/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/saudi-pro-league/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/saudi-pro-league/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/saudi-pro-league/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/saudi-pro-league/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/saudi-pro-league/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/serie-a/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/serie-a/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/serie-a/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/serie-a/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/serie-a/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/leagues/serie-a/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-bahrain/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-bahrain/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-kuwait/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-kuwait/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-oman/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-oman/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-qatar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-qatar/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-saudi-arabia/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-saudi-arabia/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-uae/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/from-uae/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/arsenal-fc/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/arsenal-fc/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/arsenal-fc/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/arsenal-fc/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/arsenal-fc/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/arsenal-fc/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/chelsea-fc/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/chelsea-fc/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/chelsea-fc/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/chelsea-fc/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/chelsea-fc/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/chelsea-fc/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/fc-barcelona/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/fc-barcelona/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/fc-barcelona/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/fc-barcelona/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/fc-barcelona/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/fc-barcelona/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-city/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-city/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-city/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-city/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-city/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-city/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-united/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-united/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-united/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-united/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-united/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/manchester-united/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/real-madrid/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/real-madrid/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/real-madrid/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/real-madrid/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/real-madrid/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/teams/real-madrid/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/emirates-stadium-hotels/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/emirates-stadium-hotels/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/emirates-stadium-hotels/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/emirates-stadium-hotels/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/emirates-stadium-hotels/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/emirates-stadium-hotels/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/old-trafford-hotels/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/old-trafford-hotels/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/old-trafford-hotels/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/old-trafford-hotels/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/old-trafford-hotels/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/old-trafford-hotels/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/spotify-camp-nou-hotels/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/spotify-camp-nou-hotels/ar/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/spotify-camp-nou-hotels/de-de/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/spotify-camp-nou-hotels/en-gb/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/spotify-camp-nou-hotels/es-es/",
+      "status": "sitemap+indexnow"
+    },
+    {
+      "priority": 0,
+      "channel": "search-discovery",
+      "target_url": "https://trendpilotchoice.com/events/venues/spotify-camp-nou-hotels/fr-fr/",
+      "status": "sitemap+indexnow"
+    },
     {
       "priority": 1,
       "channel": "pinterest",
@@ -10,7 +838,10 @@
       "asset_role": "pin-1",
       "title": "Arsenal FC vs Chelsea FC: tickets + London match-weekend guide",
       "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=arsenal-chelsea-2026-pin-guide",
-      "status": "ready-for-creative"
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Arsenal_v_Chelsea_02_%287100409981%29.jpg?width=1280",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 1,
@@ -19,7 +850,10 @@
       "asset_role": "pin-2",
       "title": "How to plan a trip for Arsenal FC vs Chelsea FC",
       "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=arsenal-chelsea-2026-pin-travel",
-      "status": "ready-for-creative"
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Arsenal_v_Chelsea_02_%287100409981%29.jpg?width=1280",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 1,
@@ -28,7 +862,10 @@
       "asset_role": "pin-3",
       "title": "Emirates Stadium matchday: what to book first",
       "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=arsenal-chelsea-2026-pin-venue",
-      "status": "ready-for-creative"
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Emirates_Stadium_Arsenal.jpg?width=1280",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 1,
@@ -37,7 +874,10 @@
       "asset_role": "pin-1",
       "title": "FC Barcelona vs Real Madrid: tickets + Barcelona match-weekend guide",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=el-clasico-barcelona-2026-pin-guide",
-      "status": "ready-for-creative"
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_Nou_during_El_Clasico_October_2012.jpg?width=1280",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 1,
@@ -46,7 +886,10 @@
       "asset_role": "pin-2",
       "title": "How to plan a trip for FC Barcelona vs Real Madrid",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=el-clasico-barcelona-2026-pin-travel",
-      "status": "ready-for-creative"
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_Nou_during_El_Clasico_October_2012.jpg?width=1280",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 1,
@@ -55,7 +898,10 @@
       "asset_role": "pin-3",
       "title": "Spotify Camp Nou matchday: what to book first",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=el-clasico-barcelona-2026-pin-venue",
-      "status": "ready-for-creative"
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_nou_before_F.C._Barcelona_-_Real_Madrid_league_match_of_2012.JPG?width=1280",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 1,
@@ -64,7 +910,10 @@
       "asset_role": "pin-1",
       "title": "Manchester United vs Manchester City: tickets + Manchester match-weekend guide",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=manchester-derby-2026-pin-guide",
-      "status": "ready-for-creative"
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg/1280px-Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 1,
@@ -73,7 +922,10 @@
       "asset_role": "pin-2",
       "title": "How to plan a trip for Manchester United vs Manchester City",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=manchester-derby-2026-pin-travel",
-      "status": "ready-for-creative"
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg/1280px-Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 1,
@@ -82,7 +934,10 @@
       "asset_role": "pin-3",
       "title": "Old Trafford matchday: what to book first",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=pinterest&utm_medium=social&utm_campaign=manchester-derby-2026-pin-venue",
-      "status": "ready-for-creative"
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Old_Trafford_%28interior%29%2C_Manchester_United.jpg/1280px-Old_Trafford_%28interior%29%2C_Manchester_United.jpg",
+      "image_path": null,
+      "visual_mode": "verified-photo-fallback",
+      "status": "ready-to-publish"
     },
     {
       "priority": 2,
@@ -90,7 +945,8 @@
       "event": "arsenal-chelsea-2026",
       "hook": "Would you travel to see Arsenal FC vs Chelsea FC live? Start with the seat — then build the trip.",
       "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=youtube&utm_medium=video&utm_campaign=arsenal-chelsea-2026-short",
-      "status": "ready-for-video"
+      "visual_source": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Arsenal_v_Chelsea_02_%287100409981%29.jpg?width=1280",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 2,
@@ -98,7 +954,8 @@
       "event": "el-clasico-barcelona-2026",
       "hook": "Would you travel to see FC Barcelona vs Real Madrid live? Start with the seat — then build the trip.",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=youtube&utm_medium=video&utm_campaign=el-clasico-barcelona-2026-short",
-      "status": "ready-for-video"
+      "visual_source": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_Nou_during_El_Clasico_October_2012.jpg?width=1280",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 2,
@@ -106,7 +963,8 @@
       "event": "manchester-derby-2026",
       "hook": "Would you travel to see Manchester United vs Manchester City live? Start with the seat — then build the trip.",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=youtube&utm_medium=video&utm_campaign=manchester-derby-2026-short",
-      "status": "ready-for-video"
+      "visual_source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg/1280px-Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 3,
@@ -114,7 +972,8 @@
       "event": "arsenal-chelsea-2026",
       "hook": "Arsenal FC vs Chelsea FC live in London: ticket first, hotel second, travel around the fixture.",
       "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=arsenal-chelsea-2026-reel",
-      "status": "ready-for-video"
+      "visual_source": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Arsenal_v_Chelsea_02_%287100409981%29.jpg?width=1280",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 3,
@@ -122,7 +981,8 @@
       "event": "arsenal-chelsea-2026",
       "hook": "Arsenal FC vs Chelsea FC live in London: ticket first, hotel second, travel around the fixture.",
       "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=arsenal-chelsea-2026-reel",
-      "status": "ready-for-video"
+      "visual_source": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Arsenal_v_Chelsea_02_%287100409981%29.jpg?width=1280",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 3,
@@ -130,7 +990,8 @@
       "event": "el-clasico-barcelona-2026",
       "hook": "FC Barcelona vs Real Madrid live in Barcelona: ticket first, hotel second, travel around the fixture.",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=el-clasico-barcelona-2026-reel",
-      "status": "ready-for-video"
+      "visual_source": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_Nou_during_El_Clasico_October_2012.jpg?width=1280",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 3,
@@ -138,7 +999,8 @@
       "event": "el-clasico-barcelona-2026",
       "hook": "FC Barcelona vs Real Madrid live in Barcelona: ticket first, hotel second, travel around the fixture.",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=el-clasico-barcelona-2026-reel",
-      "status": "ready-for-video"
+      "visual_source": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_Nou_during_El_Clasico_October_2012.jpg?width=1280",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 3,
@@ -146,7 +1008,8 @@
       "event": "manchester-derby-2026",
       "hook": "Manchester United vs Manchester City live in Manchester: ticket first, hotel second, travel around the fixture.",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=manchester-derby-2026-reel",
-      "status": "ready-for-video"
+      "visual_source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg/1280px-Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 3,
@@ -154,7 +1017,8 @@
       "event": "manchester-derby-2026",
       "hook": "Manchester United vs Manchester City live in Manchester: ticket first, hotel second, travel around the fixture.",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=tiktok&utm_medium=video&utm_campaign=manchester-derby-2026-reel",
-      "status": "ready-for-video"
+      "visual_source": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg/1280px-Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg",
+      "status": "ready-for-video-production"
     },
     {
       "priority": 4,
@@ -162,6 +1026,7 @@
       "event": "arsenal-chelsea-2026",
       "copy": "Planning Arsenal FC vs Chelsea FC? We put tickets, match timing, hotel and travel planning in one guide.",
       "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=facebook&utm_medium=social&utm_campaign=arsenal-chelsea-2026-event",
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Arsenal_v_Chelsea_02_%287100409981%29.jpg?width=1280",
       "status": "ready-for-post"
     },
     {
@@ -170,6 +1035,7 @@
       "event": "arsenal-chelsea-2026",
       "copy": "Arsenal FC vs Chelsea FC — ticket route, venue and travel plan in one page.",
       "target_url": "https://trendpilotchoice.com/events/arsenal-chelsea-2026/?utm_source=x&utm_medium=social&utm_campaign=arsenal-chelsea-2026-event",
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Arsenal_v_Chelsea_02_%287100409981%29.jpg?width=1280",
       "status": "ready-for-post"
     },
     {
@@ -178,6 +1044,7 @@
       "event": "el-clasico-barcelona-2026",
       "copy": "Planning FC Barcelona vs Real Madrid? We put tickets, match timing, hotel and travel planning in one guide.",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=facebook&utm_medium=social&utm_campaign=el-clasico-barcelona-2026-event",
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_Nou_during_El_Clasico_October_2012.jpg?width=1280",
       "status": "ready-for-post"
     },
     {
@@ -186,6 +1053,7 @@
       "event": "el-clasico-barcelona-2026",
       "copy": "FC Barcelona vs Real Madrid — ticket route, venue and travel plan in one page.",
       "target_url": "https://trendpilotchoice.com/events/el-clasico-barcelona-2026/?utm_source=x&utm_medium=social&utm_campaign=el-clasico-barcelona-2026-event",
+      "image_url": "https://commons.wikimedia.org/wiki/Special:Redirect/file/Camp_Nou_during_El_Clasico_October_2012.jpg?width=1280",
       "status": "ready-for-post"
     },
     {
@@ -194,6 +1062,7 @@
       "event": "manchester-derby-2026",
       "copy": "Planning Manchester United vs Manchester City? We put tickets, match timing, hotel and travel planning in one guide.",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=facebook&utm_medium=social&utm_campaign=manchester-derby-2026-event",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg/1280px-Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg",
       "status": "ready-for-post"
     },
     {
@@ -202,6 +1071,7 @@
       "event": "manchester-derby-2026",
       "copy": "Manchester United vs Manchester City — ticket route, venue and travel plan in one page.",
       "target_url": "https://trendpilotchoice.com/events/manchester-derby-2026/?utm_source=x&utm_medium=social&utm_campaign=manchester-derby-2026-event",
+      "image_url": "https://upload.wikimedia.org/wikipedia/commons/thumb/f/f3/Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg/1280px-Manchester_United_v_Manchester_City,_6_November_2021_%2821%29.jpg",
       "status": "ready-for-post"
     },
     {
