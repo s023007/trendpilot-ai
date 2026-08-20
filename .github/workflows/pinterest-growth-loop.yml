@@ -2,7 +2,11 @@ name: Pinterest Event Growth Loop
 
 on:
   schedule:
-    - cron: '35 5 * * *'
+    # Asia/Muscat: 08:15, 13:15, 18:15, 21:15
+    - cron: '15 4 * * *'
+    - cron: '15 9 * * *'
+    - cron: '15 14 * * *'
+    - cron: '15 17 * * *'
   workflow_run:
     workflows: ['TrendPilot Event Factory V1']
     types: [completed]
@@ -11,6 +15,7 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/pinterest-growth-loop.yml'
+      - 'config/social-daily-schedule.json'
 
 permissions:
   contents: write
@@ -20,10 +25,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  publish-one:
+  publish-pins:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     env:
       BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
       PINTEREST_EVENT_BOARD: ${{ secrets.PINTEREST_EVENT_BOARD }}
@@ -33,7 +38,7 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: Publish one deduplicated event Pin
+      - name: Queue deduplicated event Pins
         shell: bash
         run: |
           set -euo pipefail
@@ -47,27 +52,36 @@ jobs:
 
           const queue = JSON.parse(fs.readFileSync('data/event-factory/promotion-queue.json','utf8'));
           const registry = JSON.parse(fs.readFileSync('data/event-factory/events.json','utf8'));
+          const schedule = JSON.parse(fs.readFileSync('config/social-daily-schedule.json','utf8'));
           const statePath = 'data/runtime/pinterest-event-growth-state.json';
           const resultPath = 'data/runtime/pinterest-event-growth-last.json';
           fs.mkdirSync('data/runtime', { recursive: true });
-          let state = { version: 1, published: [] };
+          let state = { version: 2, published: [] };
           try { state = JSON.parse(fs.readFileSync(statePath,'utf8')); } catch {}
           const published = new Set((state.published || []).map(x => x.key));
+          const readySlugs = new Set((registry.events || []).filter(e => e.status === 'ready').map(e => e.slug));
 
           const candidates = (queue.items || []).filter(x =>
             x.channel === 'pinterest' &&
             x.status === 'ready-to-publish' &&
             x.image_url &&
             x.target_url &&
+            readySlugs.has(x.event) &&
             !published.has(`${x.event}:${x.asset_role}`)
           );
+          const cfg = schedule.channels?.pinterest || {};
+          const isScheduledRun = process.env.GITHUB_EVENT_NAME === 'schedule';
+          const maxPins = Math.max(1, Number(isScheduledRun ? cfg.scheduled_batch_size : cfg.burst_on_manual_or_config_change) || 1);
+          const batch = candidates.slice(0, maxPins);
           const result = {
             generated_at: new Date().toISOString(),
             status: 'starting',
+            event_name: process.env.GITHUB_EVENT_NAME || null,
             candidate_count: candidates.length,
-            selected: null,
+            requested_batch_size: maxPins,
+            queued_count: 0,
             board: null,
-            buffer_post_id: null,
+            posts: [],
             error: null
           };
           const save = () => {
@@ -86,9 +100,7 @@ jobs:
             let body;
             try { body = JSON.parse(raw); }
             catch { throw new Error(`${label}: non-JSON HTTP ${response.status}: ${raw.slice(0,500)}`); }
-            if (!response.ok || body.errors?.length) {
-              throw new Error(`${label}: HTTP ${response.status} ${JSON.stringify(body)}`);
-            }
+            if (!response.ok || body.errors?.length) throw new Error(`${label}: HTTP ${response.status} ${JSON.stringify(body)}`);
             return body.data;
           }
 
@@ -98,9 +110,7 @@ jobs:
               const boardData = await gql(
                 `query PinterestBoard($id: ChannelId!) {
                   channel(input: { id: $id }) {
-                    metadata {
-                      ... on PinterestMetadata { boards { id name serviceId url } }
-                    }
+                    metadata { ... on PinterestMetadata { boards { id name serviceId url } } }
                   }
                 }`,
                 { id: pinterestId },
@@ -112,31 +122,23 @@ jobs:
               if (exact) return { board: exact, boards, attempt };
               const semantic = boards.find(b => /(football|soccer|sports|travel|event|ticket|match)/i.test(String(b.name || '')));
               if (semantic) return { board: semantic, boards, attempt };
-              if (attempt < 5) await sleep(15000);
+              if (attempt < 5) await sleep(10000);
             }
             return { board: null, boards, attempt: 5 };
           }
 
           (async () => {
-            if (!candidates.length) {
+            if (!batch.length) {
               result.status = 'nothing-new';
               save();
-              console.log('No unpublished Pinterest event creative is ready.');
               return;
             }
-
-            const pin = candidates[0];
-            result.selected = pin;
-            const event = (registry.events || []).find(e => e.slug === pin.event) || {};
             const account = await gql('query { account { organizations { id name } } }', {}, 'account');
             const org = account?.account?.organizations?.[0];
             if (!org) throw new Error('No Buffer organization found');
-
             const channelsData = await gql(
               `query Channels($org: OrganizationId!) {
-                channels(input: { organizationId: $org }) {
-                  id name displayName service isQueuePaused
-                }
+                channels(input: { organizationId: $org }) { id name displayName service isQueuePaused }
               }`,
               { org: org.id },
               'channels'
@@ -149,65 +151,69 @@ jobs:
             const board = lookup.board;
             if (!board) {
               result.status = 'blocked-no-event-board';
-              result.error = `Buffer still cannot see '${wantedBoard}' after ${lookup.attempt} checks. Existing boards: ${lookup.boards.map(b=>b.name).join(' | ')}`;
+              result.error = `Buffer cannot see '${wantedBoard}'. Existing boards: ${lookup.boards.map(b=>b.name).join(' | ')}`;
               save();
-              console.log(result.error);
               return;
             }
             result.board = { name: board.name, serviceId: board.serviceId, discovered_on_attempt: lookup.attempt };
 
-            const title = String(pin.title || event.event_name || 'Match weekend guide').slice(0,100);
-            const text = `${title}. Compare the ticket route, match timing, hotel and travel plan on TrendPilot.`;
-            const alt = `${event.event_name || title} — ${event.city || ''} match and travel guide`.trim();
-
-            const data = await gql(
-              `mutation CreatePost($input: CreatePostInput!) {
-                createPost(input: $input) {
-                  __typename
-                  ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
-                  ... on MutationError { message }
-                  ... on InvalidInputError { message }
-                  ... on UnauthorizedError { message }
-                  ... on UnexpectedError { message }
-                  ... on RestProxyError { message }
-                  ... on LimitReachedError { message }
-                }
-              }`,
-              { input: {
-                text,
-                channelId: pinterest.id,
-                schedulingType: 'automatic',
-                mode: 'addToQueue',
-                saveToDraft: false,
-                needsApproval: false,
-                aiAssisted: false,
-                source: 'trendpilot-event-factory',
-                assets: [{ image: { url: pin.image_url, metadata: { altText: alt } } }],
-                metadata: { pinterest: { boardServiceId: board.serviceId, title, url: pin.target_url } },
-              }},
-              `create ${pin.event}:${pin.asset_role}`
-            );
-            const payload = data?.createPost;
-            if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
-              throw new Error(`${payload?.__typename || 'unknown'}: ${payload?.message || 'no post returned'}`);
+            for (const pin of batch) {
+              const event = (registry.events || []).find(e => e.slug === pin.event) || {};
+              const title = String(pin.title || event.event_name || 'Match weekend guide').slice(0,100);
+              const text = `${title}. Compare tickets, match timing, hotel and travel options on TrendPilot.`;
+              const alt = `${event.event_name || title} — ${event.city || ''} match and travel guide`.trim();
+              const data = await gql(
+                `mutation CreatePost($input: CreatePostInput!) {
+                  createPost(input: $input) {
+                    __typename
+                    ... on PostActionSuccess { post { id text dueAt status channelId channelService } }
+                    ... on MutationError { message }
+                    ... on InvalidInputError { message }
+                    ... on UnauthorizedError { message }
+                    ... on UnexpectedError { message }
+                    ... on RestProxyError { message }
+                    ... on LimitReachedError { message }
+                  }
+                }`,
+                { input: {
+                  text,
+                  channelId: pinterest.id,
+                  schedulingType: 'automatic',
+                  mode: 'addToQueue',
+                  saveToDraft: false,
+                  needsApproval: false,
+                  aiAssisted: false,
+                  source: 'trendpilot-event-factory',
+                  assets: [{ image: { url: pin.image_url, metadata: { altText: alt } } }],
+                  metadata: { pinterest: { boardServiceId: board.serviceId, title, url: pin.target_url } },
+                }},
+                `create ${pin.event}:${pin.asset_role}`
+              );
+              const payload = data?.createPost;
+              if (!payload || payload.__typename !== 'PostActionSuccess' || !payload.post?.id) {
+                result.posts.push({event: pin.event, asset_role: pin.asset_role, status: 'error', error: payload?.message || payload?.__typename || 'no post returned'});
+                continue;
+              }
+              const key = `${pin.event}:${pin.asset_role}`;
+              const record = {
+                key,
+                event: pin.event,
+                asset_role: pin.asset_role,
+                title,
+                image_url: pin.image_url,
+                target_url: pin.target_url,
+                buffer_post_id: payload.post.id,
+                status: payload.post.status,
+                dueAt: payload.post.dueAt || null,
+                queued_at: new Date().toISOString()
+              };
+              state.published = [...(state.published || []), record];
+              published.add(key);
+              result.posts.push(record);
+              result.queued_count += 1;
             }
-            const key = `${pin.event}:${pin.asset_role}`;
-            state.published = [...(state.published || []), {
-              key,
-              event: pin.event,
-              asset_role: pin.asset_role,
-              title,
-              image_url: pin.image_url,
-              target_url: pin.target_url,
-              buffer_post_id: payload.post.id,
-              status: payload.post.status,
-              dueAt: payload.post.dueAt || null,
-              published_at: new Date().toISOString()
-            }];
-            result.status = 'queued';
-            result.buffer_post_id = payload.post.id;
-            result.buffer_status = payload.post.status;
-            result.dueAt = payload.post.dueAt || null;
+            result.status = result.queued_count ? 'queued' : 'error';
+            if (!result.queued_count) result.error = 'Buffer did not accept any Pin in this batch.';
             save();
             console.log('PINTEREST_EVENT_RESULT', JSON.stringify(result));
           })().catch(error => {
@@ -231,5 +237,3 @@ jobs:
           git commit -m 'chore: record Pinterest event growth publication'
           git pull --rebase origin main
           git push origin HEAD:main
-
-# manual board recheck after full Buffer reconnect: 2026-08-20T15:14Z
