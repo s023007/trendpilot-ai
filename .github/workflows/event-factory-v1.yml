@@ -11,6 +11,7 @@ on:
       - 'scripts/build-event-social-creatives.py'
       - 'scripts/build-event-sitemap.py'
       - 'scripts/build-event-promotion-queue.py'
+      - 'scripts/apply-event-locale-routing.py'
       - 'scripts/merge-event-factory-inbox.py'
       - 'scripts/sync-event-factory-candidates.py'
       - 'events/_factory/**'
@@ -49,10 +50,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile scripts/build-event-factory.py scripts/build-event-growth-network.py scripts/build-event-social-creatives.py scripts/build-event-sitemap.py scripts/build-event-promotion-queue.py scripts/merge-event-factory-inbox.py scripts/sync-event-factory-candidates.py
+          python -m py_compile scripts/build-event-factory.py scripts/build-event-growth-network.py scripts/build-event-social-creatives.py scripts/build-event-sitemap.py scripts/build-event-promotion-queue.py scripts/apply-event-locale-routing.py scripts/merge-event-factory-inbox.py scripts/sync-event-factory-candidates.py
           python -m json.tool data/event-factory/events.json >/dev/null
           for f in data/event-factory/inbox/*.json; do [ -e "$f" ] || continue; python -m json.tool "$f" >/dev/null; done
           test -f events/_factory/premium-v1.css
+          test -f events/_factory/locale-router-v1.js
 
       - name: Merge verified event inbox
         shell: bash
@@ -66,7 +68,7 @@ jobs:
           set -euo pipefail
           python scripts/sync-event-factory-candidates.py
 
-      - name: Generate premium event pages and growth network
+      - name: Generate premium event pages, growth network and locale routing
         shell: bash
         env:
           FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
@@ -78,6 +80,7 @@ jobs:
             python scripts/build-event-factory.py
           fi
           python scripts/build-event-growth-network.py
+          python scripts/apply-event-locale-routing.py
 
       - name: Generate branded social creatives when possible
         continue-on-error: true
@@ -135,6 +138,6 @@ jobs:
             echo 'No factory changes to commit.'
             exit 0
           fi
-          git commit -m 'content: build Event Factory growth network and visual distribution packs'
+          git commit -m 'content: build Event Factory localized growth network and distribution packs'
           git pull --rebase origin main
           git push origin HEAD:main
