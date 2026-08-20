@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "publication_threshold": 22,
+  "minimum_affiliate_readiness": 3,
+  "audiences": [
+    {
+      "id": "uk-europe-tickets",
+      "priority": 1,
+      "markets": ["GB", "IE", "DE", "FR", "ES", "IT", "NL"],
+      "focus": ["Premier League", "Champions League", "Formula 1", "concerts", "tennis"],
+      "intent": ["tickets", "where to stay", "stadium", "venue", "weekend guide"]
+    },
+    {
+      "id": "gcc-football-travel",
+      "priority": 1,
+      "markets": ["AE", "SA"],
+      "secondary_markets": ["QA", "KW", "OM"],
+      "focus": ["Premier League", "Champions League", "Formula 1", "major concerts"],
+      "intent": ["ticket + hotel + flight", "football weekend", "event travel"]
+    },
+    {
+      "id": "us-events-products",
+      "priority": 2,
+      "markets": ["US"],
+      "focus": ["NFL", "NBA", "major concerts", "TikTok Shop US trend products"],
+      "intent": ["event tickets", "viral products", "problem-solving products"]
+    }
+  ],
+  "weights": {
+    "search_intent": 5,
+    "popularity": 5,
+    "affiliate_readiness": 5,
+    "geo_fit": 5,
+    "visual_potential": 5,
+    "freshness": 5
+  },
+  "priority_terms": [
+    "Manchester United", "Manchester City", "Arsenal", "Liverpool", "Chelsea",
+    "Real Madrid", "Barcelona", "Champions League", "Premier League",
+    "Formula 1", "Grand Prix", "BTS", "Taylor Swift", "Wimbledon", "Australian Open",
+    "Al-Nassr", "Al Hilal", "Al-Hilal"
+  ],
+  "rules": {
+    "never_invent_event_date": true,
+    "never_invent_ticket_price": true,
+    "require_current_event_source": true,
+    "require_tracked_affiliate_route_before_commercial_cta": true,
+    "allow_generic_ticket_fallback_only_when_labeled": true,
+    "prefer_live_partner_price_over_static_article_price": true,
+    "do_not_auto_publish": true
+  }
+}
