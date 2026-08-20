@@ -5,9 +5,11 @@ on:
     branches: [main]
     paths:
       - 'data/event-factory/events.json'
+      - 'data/event-factory/inbox/**'
       - 'scripts/build-event-factory.py'
       - 'scripts/build-event-sitemap.py'
       - 'scripts/build-event-promotion-queue.py'
+      - 'scripts/merge-event-factory-inbox.py'
       - 'scripts/sync-event-factory-candidates.py'
       - 'events/_factory/**'
       - '.github/workflows/event-factory-v1.yml'
@@ -42,9 +44,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          python -m py_compile scripts/build-event-factory.py scripts/build-event-sitemap.py scripts/build-event-promotion-queue.py scripts/sync-event-factory-candidates.py
+          python -m py_compile scripts/build-event-factory.py scripts/build-event-sitemap.py scripts/build-event-promotion-queue.py scripts/merge-event-factory-inbox.py scripts/sync-event-factory-candidates.py
           python -m json.tool data/event-factory/events.json >/dev/null
+          for f in data/event-factory/inbox/*.json; do [ -e "$f" ] || continue; python -m json.tool "$f" >/dev/null; done
           test -f events/_factory/premium-v1.css
+
+      - name: Merge verified event inbox
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/merge-event-factory-inbox.py
 
       - name: Refresh candidate queue from opportunity radar
         shell: bash
