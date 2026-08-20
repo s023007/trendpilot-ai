@@ -25,7 +25,10 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install dependencies
-        run: pip install --quiet PyTumblr Pillow
+        run: |
+          pip install --quiet PyTumblr Pillow
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
       - name: Initialize diagnostic
         run: |
           mkdir -p data/runtime
@@ -36,16 +39,22 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from PIL import Image
+          import json
           src='images/social/carplay-ai-01.jpg'
           dst='/tmp/carplay-video-source.jpg'
           im=Image.open(src).convert('RGB')
           im.save(dst,'JPEG',quality=94,progressive=False)
           Image.open(dst).verify()
+          with open('data/runtime/tumblr-native-video-test.json','w') as f: json.dump({'stage':'image_valid'},f)
           PY
           ffmpeg -y -loop 1 -i /tmp/carplay-video-source.jpg \
             -vf "scale=720:1280:force_original_aspect_ratio=increase,crop=720:1280,zoompan=z='min(zoom+0.0006,1.04)':d=200:s=720x1280:fps=25,fade=t=in:st=0:d=0.3,fade=t=out:st=7.5:d=0.5,format=yuv420p" \
             -t 8 -r 25 -c:v libx264 -preset medium -crf 21 -pix_fmt yuv420p -movflags +faststart -an /tmp/carplay-tumblr-test.mp4
           ffprobe -v error -show_entries format=duration,size -show_entries stream=codec_name,width,height,pix_fmt -of json /tmp/carplay-tumblr-test.mp4
+          python - <<'PY'
+          import json,os
+          with open('data/runtime/tumblr-native-video-test.json','w') as f: json.dump({'stage':'video_built','video_bytes':os.path.getsize('/tmp/carplay-tumblr-test.mp4')},f)
+          PY
       - name: Queue native Tumblr video and verify
         shell: bash
         run: |
@@ -55,13 +64,13 @@ jobs:
           from datetime import datetime, timezone
           import pytumblr
 
-          marker='trendpilot-carplay-video-test-v2'
+          marker='trendpilot-carplay-video-test-v3'
           title='Wireless CarPlay: Will It Work in Your Car?'
           video='/tmp/carplay-tumblr-test.mp4'
-          url='https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=native-video-v2'
+          url='https://trendpilotchoice.com/products/wireless-carplay-adapters/?utm_source=tumblr&utm_medium=organic&utm_campaign=wireless-carplay-search-first&utm_content=native-video-v3'
           tags=[marker,'wireless carplay','car accessories','car gadgets','apple carplay','buying guide','TrendPilot']
           caption=f'<h2>{title}</h2><p>Quick compatibility check before you buy: wired CarPlay should already work in your car, and the USB port should carry data.</p><p><a href="{url}"><strong>Read the full Wireless CarPlay buying guide</strong></a></p><p>TrendPilot — Smarter buying. Fewer surprises.</p>'
-          out={'started_at':datetime.now(timezone.utc).isoformat(),'auth_ok':False,'blog':None,'video_bytes':os.path.getsize(video) if os.path.exists(video) else None,'created':None,'verified':False,'video_present':False,'queue_after':None,'error':None}
+          out={'started_at':datetime.now(timezone.utc).isoformat(),'stage':'tumblr_upload','auth_ok':False,'blog':None,'video_bytes':os.path.getsize(video) if os.path.exists(video) else None,'created':None,'verified':False,'video_present':False,'queue_after':None,'error':None}
           path='data/runtime/tumblr-native-video-test.json'
           try:
               c=pytumblr.TumblrRestClient(os.environ['TUMBLR_CONSUMER_KEY'],os.environ['TUMBLR_CONSUMER_SECRET'],os.environ['TUMBLR_OAUTH_TOKEN'],os.environ['TUMBLR_OAUTH_TOKEN_SECRET'])
@@ -84,6 +93,7 @@ jobs:
                   if pid != nid: c.delete_post(blog,pid)
               q2=c.queue(blog,limit=50,offset=0)
               out['queue_after']=[{'id':str(p.get('id')),'type':p.get('type'),'summary':p.get('summary',''),'tags':p.get('tags',[]),'video_url':p.get('video_url')} for p in q2.get('posts',[])]
+              out['stage']='done'
           except Exception:
               out['error']=traceback.format_exc()
           finally:
