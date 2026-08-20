@@ -1,0 +1,93 @@
+name: TrendPilot Event Factory V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'data/event-factory/events.json'
+      - 'scripts/build-event-factory.py'
+      - 'scripts/sync-event-factory-candidates.py'
+      - 'events/_factory/**'
+      - '.github/workflows/event-factory-v1.yml'
+  schedule:
+    - cron: '10 4 * * *'
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Rebuild even existing localized pages'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-event-factory-v1
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Validate factory scripts and registry
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m py_compile scripts/build-event-factory.py scripts/sync-event-factory-candidates.py
+          python -m json.tool data/event-factory/events.json >/dev/null
+          test -f events/_factory/premium-v1.css
+
+      - name: Refresh candidate queue from opportunity radar
+        shell: bash
+        run: |
+          set -euo pipefail
+          python scripts/sync-event-factory-candidates.py
+
+      - name: Generate event pages, distribution packs and ticket-hub cards
+        shell: bash
+        env:
+          FORCE_REBUILD: ${{ github.event.inputs.force_rebuild || 'false' }}
+        run: |
+          set -euo pipefail
+          if [ "$FORCE_REBUILD" = 'true' ]; then
+            python scripts/build-event-factory.py --force
+          else
+            python scripts/build-event-factory.py
+          fi
+          python -m json.tool data/event-factory/build-report.json >/dev/null
+          git diff --check
+
+      - name: Factory summary
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('data/event-factory/build-report.json'))
+          print('Published ready events:', len(r.get('published',[])))
+          print('Candidate queue:', len(r.get('candidate_queue',[])))
+          print('Ticket hub updated:', r.get('ticket_hub_updated'))
+          for x in r.get('published',[]):
+              print('-', x['slug'], 'created:', len(x.get('created',[])))
+          PY
+
+      - name: Commit generated content
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-event-factory-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/event-factory/events.json data/event-factory/build-report.json events tickets/index.html
+          if git diff --cached --quiet; then
+            echo 'No factory changes to commit.'
+            exit 0
+          fi
+          git commit -m 'content: build Event Factory V1 pages and distribution packs'
+          git pull --rebase origin main
+          git push origin HEAD:main
