@@ -1,3 +1,4 @@
+# Trigger duplicate cleanup
 name: Tumblr CarPlay Remove Duplicate Photo
 
 on:
@@ -59,7 +60,6 @@ jobs:
             if not b: raise RuntimeError('No Tumblr blog resolved')
             blog=b.get('name') or b.get('url'); out['blog']=blog
 
-            # Delete only the known older photo duplicate. Never delete the real-footage video.
             try:
               c.delete_post(blog, old_photo_id)
               out['deleted_old_photo']=True
