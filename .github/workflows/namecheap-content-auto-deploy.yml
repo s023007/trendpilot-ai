@@ -1,0 +1,156 @@
+name: Namecheap Content Auto Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'events/**'
+      - 'tickets/**'
+      - '.github/workflows/namecheap-content-auto-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: namecheap-content-auto-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  deploy-content:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      INDEXNOW_KEY: d3f1a9c7e5b24f6081c4a9d2e7b5f310
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Require deployment key and campaign files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
+          test -f events/manchester-derby-2026/index.html
+          test -f tickets/index.html
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish event and ticket content
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/events' '$STATIC_ROOT/tickets'"
+          tar -czf - events tickets | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+          ssh trendpilot-namecheap "test -f '$STATIC_ROOT/events/manchester-derby-2026/index.html'"
+          ssh trendpilot-namecheap "grep -Fq 'Check Premier League ticket availability' '$STATIC_ROOT/events/manchester-derby-2026/index.html'"
+          ssh trendpilot-namecheap "grep -Fq 'Manchester United vs Manchester City — tickets, hotels & travel' '$STATIC_ROOT/tickets/index.html'"
+
+      - name: Verify public campaign
+        shell: bash
+        run: |
+          set -euo pipefail
+          ok=false
+          code=0
+          for attempt in 1 2 3 4 5 6; do
+            code="$(curl -LsS -o /tmp/event.html -w '%{http_code}' "$PUBLIC_ORIGIN/events/manchester-derby-2026/?deploy=$GITHUB_RUN_ID-$attempt" || true)"
+            if [ "$code" = '200' ] && grep -Fq 'Manchester United vs Manchester City: plan the whole match weekend' /tmp/event.html && grep -Fq 'Check Premier League ticket availability' /tmp/event.html; then
+              ok=true
+              break
+            fi
+            sleep 10
+          done
+          test "$ok" = true || { echo "Public event verification failed (HTTP $code)."; exit 1; }
+          ticket_code="$(curl -LsS -o /tmp/tickets.html -w '%{http_code}' "$PUBLIC_ORIGIN/tickets/?deploy=$GITHUB_RUN_ID" || true)"
+          test "$ticket_code" = '200'
+          grep -Fq '/events/manchester-derby-2026/' /tmp/tickets.html
+          printf 'EVENT_HTTP=%s\nTICKETS_HTTP=%s\n' "$code" "$ticket_code" > /tmp/public-check.txt
+
+      - name: Submit event discovery to IndexNow
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/indexnow.json <<EOF
+          {
+            "host": "trendpilotchoice.com",
+            "key": "$INDEXNOW_KEY",
+            "keyLocation": "$PUBLIC_ORIGIN/$INDEXNOW_KEY.txt",
+            "urlList": [
+              "$PUBLIC_ORIGIN/events/manchester-derby-2026/",
+              "$PUBLIC_ORIGIN/tickets/"
+            ]
+          }
+          EOF
+          index_code="$(curl -sS -o /tmp/indexnow-response.txt -w '%{http_code}' -H 'Content-Type: application/json; charset=utf-8' -d @/tmp/indexnow.json https://api.indexnow.org/indexnow || true)"
+          echo "INDEXNOW_HTTP=$index_code"
+          if [ "$index_code" != '200' ] && [ "$index_code" != '202' ]; then
+            echo 'IndexNow did not return an accepted status.'
+            cat /tmp/indexnow-response.txt || true
+            exit 1
+          fi
+          printf '%s' "$index_code" > /tmp/indexnow-code.txt
+
+      - name: Record deployment result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/runtime
+          python3 - <<'PY'
+          import json, os, pathlib, datetime
+          def read(p):
+              try: return pathlib.Path(p).read_text().strip()
+              except Exception: return ''
+          public=read('/tmp/public-check.txt')
+          index=read('/tmp/indexnow-code.txt')
+          result={
+              'generated_at': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+              'run_id': os.environ.get('GITHUB_RUN_ID',''),
+              'source_sha': os.environ.get('GITHUB_SHA',''),
+              'campaign_url': 'https://trendpilotchoice.com/events/manchester-derby-2026/',
+              'public_verified': 'EVENT_HTTP=200' in public,
+              'tickets_internal_link_verified': 'TICKETS_HTTP=200' in public,
+              'indexnow_http': int(index) if index.isdigit() else None,
+              'indexnow_accepted': index in ('200','202')
+          }
+          pathlib.Path('data/runtime/namecheap-content-deploy.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          PY
+          git config user.name 'trendpilot-content-deploy-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/namecheap-content-deploy.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record Namecheap content deployment'
+          git pull --rebase origin main
+          git push origin HEAD:main
