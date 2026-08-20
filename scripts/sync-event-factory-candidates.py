@@ -16,10 +16,9 @@ for x in radar.get('top_recommendations',[])[:30]:
     title=str(x.get('title') or '').strip()
     if not eid or not title: continue
     if eid in ready_ids: continue
-    # Avoid obvious duplicates of already-published fixtures.
     low=title.lower()
     if any(name and name in low for name in ready_titles): continue
-    item=old.get(eid,{})
+    item=dict(old.get(eid,{}))
     item.update({
         'event_id':eid,
         'title':title,
@@ -30,11 +29,15 @@ for x in radar.get('top_recommendations',[])[:30]:
         'source_url':x.get('source_url'),
         'source_group':x.get('source_group'),
         'status':item.get('status') or 'needs-ticket-and-image-verification',
-        'last_seen_at':radar.get('generated_at') or dt.datetime.now(dt.timezone.utc).isoformat()
+        'last_seen_at':radar.get('generated_at') or ''
     })
     rows.append(item)
 rows.sort(key=lambda x:(-(x.get('score') or 0),x.get('date') or '9999'))
-reg['candidate_queue']=rows[:30]
-reg['candidate_sync']={'source':'data/runtime/ticket-travel-opportunities.json','synced_at':dt.datetime.now(dt.timezone.utc).isoformat(),'count':len(reg['candidate_queue'])}
-REG.write_text(json.dumps(reg,ensure_ascii=False,indent=2)+'\n')
-print(json.dumps(reg['candidate_sync'],ensure_ascii=False,indent=2))
+new_queue=rows[:30]
+old_queue=reg.get('candidate_queue',[])
+changed=new_queue!=old_queue
+reg['candidate_queue']=new_queue
+if changed:
+    reg['candidate_sync']={'source':'data/runtime/ticket-travel-opportunities.json','synced_at':dt.datetime.now(dt.timezone.utc).isoformat(),'count':len(new_queue)}
+    REG.write_text(json.dumps(reg,ensure_ascii=False,indent=2)+'\n')
+print(json.dumps({'changed':changed,'count':len(new_queue),'radar_generated_at':radar.get('generated_at')},ensure_ascii=False,indent=2))
