@@ -1,0 +1,51 @@
+name: Raindrop Growth Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 13:40 Oman (UTC+4). One bookmark/day while measuring referral value.
+    - cron: '40 9 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: raindrop-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      RAINDROP_ACCESS_TOKEN: ${{ secrets.RAINDROP_ACCESS_TOKEN }}
+      RAINDROP_COLLECTION_TITLE: Football Match & Travel Guides
+      TRENDPILOT_FEED_URL: https://trendpilotchoice.com/feed.xml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require Raindrop access token
+        run: |
+          if [ -z "$RAINDROP_ACCESS_TOKEN" ]; then
+            echo "RAINDROP_ACCESS_TOKEN secret is missing."
+            exit 1
+          fi
+
+      - name: Publish one new football or match-travel bookmark
+        run: python3 scripts/publish-raindrop.py
+
+      - name: Record publication state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/raindrop-growth-state.json data/runtime/raindrop-growth-last.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No Raindrop runtime changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: record Raindrop growth publication"
+          git push
