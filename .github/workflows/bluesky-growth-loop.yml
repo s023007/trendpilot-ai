@@ -1,0 +1,51 @@
+name: Bluesky Growth Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 10:40 and 19:40 Oman (UTC+4)
+    - cron: '40 6,15 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bluesky-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BLUESKY_HANDLE: trendpilotchoice.bsky.social
+      BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
+      TRENDPILOT_FEED_URL: https://trendpilotchoice.com/feed.xml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require Bluesky app password
+        run: |
+          if [ -z "$BLUESKY_APP_PASSWORD" ]; then
+            echo "BLUESKY_APP_PASSWORD secret is missing."
+            exit 1
+          fi
+
+      - name: Publish one new TrendPilot item
+        run: python3 scripts/publish-bluesky.py
+
+      - name: Record publication state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/bluesky-growth-state.json data/runtime/bluesky-growth-last.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No Bluesky runtime changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: record Bluesky growth publication"
+          git push
