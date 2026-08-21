@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
-      BIBSONOMY_USERNAME: ${{ secrets.BIBSONOMY_USERNAME }}
+      BIBSONOMY_USERNAME: trendpilot
       BIBSONOMY_API_KEY: ${{ secrets.BIBSONOMY_API_KEY }}
       TRENDPILOT_FEED_URL: https://trendpilotchoice.com/feed.xml
     steps:
@@ -33,12 +33,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Require BibSonomy credentials
+      - name: Require BibSonomy API key
         run: |
-          if [ -z "$BIBSONOMY_USERNAME" ]; then
-            echo "BIBSONOMY_USERNAME secret is missing."
-            exit 1
-          fi
           if [ -z "$BIBSONOMY_API_KEY" ]; then
             echo "BIBSONOMY_API_KEY secret is missing."
             exit 1
@@ -60,4 +56,4 @@ jobs:
           git commit -m "chore: record BibSonomy growth publication"
           git push
 
-# First live verification trigger: 2026-08-21
+# Live verification trigger: 2026-08-21
