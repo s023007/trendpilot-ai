@@ -2,6 +2,10 @@ name: Bluesky Growth Loop
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bluesky-growth-loop.yml'
   schedule:
     # 10:40 and 19:40 Oman (UTC+4)
     - cron: '40 6,15 * * *'
