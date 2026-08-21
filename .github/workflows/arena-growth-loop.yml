@@ -1,0 +1,51 @@
+name: Are.na Growth Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 13:10 Oman (UTC+4). One block/day preserves the free 200-block allowance for testing.
+    - cron: '10 9 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: arena-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ARENA_ACCESS_TOKEN: ${{ secrets.ARENA_ACCESS_TOKEN }}
+      ARENA_CHANNEL_SLUG: football-match-travel-guides
+      TRENDPILOT_FEED_URL: https://trendpilotchoice.com/feed.xml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require Are.na access token
+        run: |
+          if [ -z "$ARENA_ACCESS_TOKEN" ]; then
+            echo "ARENA_ACCESS_TOKEN secret is missing."
+            exit 1
+          fi
+
+      - name: Publish one new football or match-travel item
+        run: python3 scripts/publish-arena.py
+
+      - name: Record publication state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/arena-growth-state.json data/runtime/arena-growth-last.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No Are.na runtime changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: record Are.na growth publication"
+          git push
