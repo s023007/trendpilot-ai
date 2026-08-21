@@ -1,0 +1,61 @@
+name: BibSonomy Growth Loop
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bibsonomy-growth-loop.yml'
+      - 'scripts/publish-bibsonomy.py'
+  schedule:
+    # 14:10 Oman (UTC+4). One public bookmark/day while measuring referral value.
+    - cron: '10 10 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: bibsonomy-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      BIBSONOMY_USERNAME: ${{ secrets.BIBSONOMY_USERNAME }}
+      BIBSONOMY_API_KEY: ${{ secrets.BIBSONOMY_API_KEY }}
+      TRENDPILOT_FEED_URL: https://trendpilotchoice.com/feed.xml
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Require BibSonomy credentials
+        run: |
+          if [ -z "$BIBSONOMY_USERNAME" ]; then
+            echo "BIBSONOMY_USERNAME secret is missing."
+            exit 1
+          fi
+          if [ -z "$BIBSONOMY_API_KEY" ]; then
+            echo "BIBSONOMY_API_KEY secret is missing."
+            exit 1
+          fi
+
+      - name: Publish one new football or match-travel bookmark
+        run: python3 scripts/publish-bibsonomy.py
+
+      - name: Record publication state
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/runtime/bibsonomy-growth-state.json data/runtime/bibsonomy-growth-last.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No BibSonomy runtime changes to commit."
+            exit 0
+          fi
+          git commit -m "chore: record BibSonomy growth publication"
+          git push
