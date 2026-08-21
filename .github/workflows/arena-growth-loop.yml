@@ -2,6 +2,11 @@ name: Are.na Growth Loop
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/arena-growth-loop.yml'
   schedule:
     # 13:10 Oman (UTC+4). One block/day preserves the free 200-block allowance for testing.
     - cron: '10 9 * * *'
