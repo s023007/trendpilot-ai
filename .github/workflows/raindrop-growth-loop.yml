@@ -2,6 +2,9 @@ name: Raindrop Growth Loop
 
 on:
   workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/raindrop-growth-loop.yml'
   schedule:
     # 13:40 Oman (UTC+4). One bookmark/day while measuring referral value.
     - cron: '40 9 * * *'
