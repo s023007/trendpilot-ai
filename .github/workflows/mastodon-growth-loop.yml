@@ -2,6 +2,10 @@ name: Mastodon Growth Loop
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mastodon-growth-loop.yml'
   schedule:
     # 11:20 and 20:20 Oman (UTC+4)
     - cron: '20 7,16 * * *'
