@@ -1,0 +1,57 @@
+name: Tumblr TrendPilot Growth Loop
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '5 7 * * *'
+  push:
+    branches: [main]
+    paths:
+      - 'feed.xml'
+      - 'scripts/tumblr-growth-publisher.py'
+      - '.github/workflows/tumblr-growth-loop.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tumblr-trendpilot-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      TUMBLR_CONSUMER_KEY: ${{ secrets.TUMBLR_CONSUMER_KEY }}
+      TUMBLR_CONSUMER_SECRET: ${{ secrets.TUMBLR_CONSUMER_SECRET }}
+      TUMBLR_OAUTH_TOKEN: ${{ secrets.TUMBLR_OAUTH_TOKEN }}
+      TUMBLR_OAUTH_TOKEN_SECRET: ${{ secrets.TUMBLR_OAUTH_TOKEN_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Tumblr publisher dependencies
+        run: pip install --quiet PyTumblr Pillow
+
+      - name: Queue one new internal-first TrendPilot post
+        run: python3 scripts/tumblr-growth-publisher.py
+
+      - name: Persist Tumblr publication state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-tumblr-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -f data/runtime/tumblr-growth-state.json data/runtime/tumblr-growth-last.json 2>/dev/null || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record Tumblr growth publication'
+          git pull --rebase origin main
+          git push origin HEAD:main
