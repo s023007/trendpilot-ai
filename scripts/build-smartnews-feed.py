@@ -10,7 +10,7 @@ from pathlib import Path
 SRC = Path("feed.xml")
 OUT = Path("smartnews.xml")
 SITE = "https://trendpilotchoice.com"
-LOGO = SITE + "/images/smartnews-logo.svg"
+LOGO = SITE + "/images/smartnews-logo.png"
 USER_AGENT = "TrendPilotChoice-SmartNewsFeed/1.0"
 MAX_BYTES = 900_000
 MAX_ITEMS = 30
@@ -52,7 +52,6 @@ def short_summary(v, title):
     v = clean_text(v)
     if title and v.lower().startswith(title.lower()):
         v = v[len(title):].lstrip(" —:-|")
-    # Avoid repeating title later in the summary.
     if title:
         v = re.sub(re.escape(title), " ", v, flags=re.I)
     v = " ".join(v.split())
