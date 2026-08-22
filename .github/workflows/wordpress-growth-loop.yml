@@ -1,0 +1,179 @@
+name: WordPress TrendPilot Growth Loop
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wordpress-trendpilot-growth-loop
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      WORDPRESS_CLIENT_ID: '146357'
+      WORDPRESS_CLIENT_SECRET: ${{ secrets.WORDPRESS_CLIENT_SECRET }}
+      WORDPRESS_USERNAME: ${{ secrets.WORDPRESS_USERNAME }}
+      WORDPRESS_APP_PASSWORD: ${{ secrets.WORDPRESS_APP_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Publish one new TrendPilot feed item
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import json, os, re, html, urllib.parse, urllib.request
+          import xml.etree.ElementTree as ET
+          from datetime import datetime, timezone
+          from email.utils import parsedate_to_datetime
+          from pathlib import Path
+
+          client_id = os.environ.get('WORDPRESS_CLIENT_ID','').strip()
+          client_secret = os.environ.get('WORDPRESS_CLIENT_SECRET','').strip()
+          username = os.environ.get('WORDPRESS_USERNAME','').strip()
+          app_password = os.environ.get('WORDPRESS_APP_PASSWORD','').strip()
+          missing = [k for k,v in {
+              'WORDPRESS_CLIENT_ID': client_id,
+              'WORDPRESS_CLIENT_SECRET': client_secret,
+              'WORDPRESS_USERNAME': username,
+              'WORDPRESS_APP_PASSWORD': app_password,
+          }.items() if not v]
+          if missing:
+              raise SystemExit('Missing GitHub secrets/settings: ' + ', '.join(missing))
+
+          state_path = Path('data/runtime/wordpress-growth-state.json')
+          result_path = Path('data/runtime/wordpress-growth-last.json')
+          state_path.parent.mkdir(parents=True, exist_ok=True)
+          try:
+              state = json.loads(state_path.read_text())
+          except Exception:
+              state = {'version': 1, 'published': []}
+          published = {str(x.get('guid')) for x in state.get('published', []) if x.get('guid')}
+
+          token_body = urllib.parse.urlencode({
+              'client_id': client_id,
+              'client_secret': client_secret,
+              'grant_type': 'password',
+              'username': username,
+              'password': app_password,
+          }).encode()
+          req = urllib.request.Request('https://public-api.wordpress.com/oauth2/token', data=token_body, method='POST')
+          req.add_header('Content-Type','application/x-www-form-urlencoded')
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  token_data = json.loads(r.read().decode())
+          except Exception as exc:
+              raise SystemExit(f'WordPress token exchange failed: {exc}')
+          token = token_data.get('access_token')
+          blog_id = token_data.get('blog_id')
+          blog_url = token_data.get('blog_url')
+          if not token or not blog_id:
+              raise SystemExit('WordPress token response did not include access_token/blog_id')
+
+          root = ET.parse('feed.xml').getroot()
+          channel = root.find('channel')
+          items = []
+          for item in channel.findall('item'):
+              title = (item.findtext('title') or '').strip()
+              link = (item.findtext('link') or '').strip()
+              guid = (item.findtext('guid') or link).strip()
+              desc = (item.findtext('description') or '').strip()
+              pub_raw = (item.findtext('pubDate') or '').strip()
+              category = (item.findtext('category') or 'TrendPilot Guides').strip()
+              try:
+                  pub_dt = parsedate_to_datetime(pub_raw)
+                  if pub_dt.tzinfo is None:
+                      pub_dt = pub_dt.replace(tzinfo=timezone.utc)
+              except Exception:
+                  pub_dt = datetime.min.replace(tzinfo=timezone.utc)
+              if title and link and guid and guid not in published:
+                  items.append((pub_dt, {'title': title, 'link': link, 'guid': guid, 'description': desc, 'category': category}))
+
+          result = {
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'status': 'nothing-new',
+              'blog_id': str(blog_id),
+              'blog_url': blog_url,
+              'selected': None,
+              'wordpress_post': None,
+              'error': None,
+          }
+          if not items:
+              result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+              print(json.dumps(result, ensure_ascii=False))
+              raise SystemExit(0)
+
+          items.sort(key=lambda x: x[0], reverse=True)
+          item = items[0][1]
+
+          text = html.unescape(re.sub(r'<[^>]+>', ' ', item['description']))
+          text = re.sub(r'\bSkip to content\b', ' ', text, flags=re.I)
+          text = re.sub(r'\s+', ' ', text).strip()
+          if len(text) > 620:
+              text = text[:620].rsplit(' ',1)[0].rstrip(' ,;:-') + '…'
+
+          parsed = urllib.parse.urlsplit(item['link'])
+          q = dict(urllib.parse.parse_qsl(parsed.query, keep_blank_values=True))
+          q.update({'utm_source':'wordpress','utm_medium':'referral','utm_campaign':'trendpilot_syndication'})
+          tracked_link = urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urllib.parse.urlencode(q), parsed.fragment))
+
+          post_title = item['title']
+          body = (
+              f'<p>{html.escape(text)}</p>'
+              f'<p><strong>Read the complete guide on TrendPilot Choice:</strong><br>'
+              f'<a href="{html.escape(tracked_link, quote=True)}">{html.escape(item["title"])}</a></p>'
+              f'<p><em>Short TrendPilot summary. Product details, prices, ticket availability and schedules may change; check the full guide for the latest information.</em></p>'
+          )
+
+          payload = json.dumps({'title': post_title, 'content': body, 'status': 'publish'}).encode()
+          post_url = f'https://public-api.wordpress.com/wp/v2/sites/{blog_id}/posts'
+          req = urllib.request.Request(post_url, data=payload, method='POST')
+          req.add_header('Authorization', f'Bearer {token}')
+          req.add_header('Content-Type', 'application/json')
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  post = json.loads(r.read().decode())
+          except Exception as exc:
+              result['status'] = 'error'
+              result['error'] = f'WordPress publish failed: {exc}'
+              result['selected'] = item
+              result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+              raise SystemExit(result['error'])
+
+          record = {
+              'guid': item['guid'],
+              'source_url': item['link'],
+              'tracked_url': tracked_link,
+              'title': item['title'],
+              'category': item['category'],
+              'wordpress_post_id': post.get('id'),
+              'wordpress_url': post.get('link'),
+              'published_at': datetime.now(timezone.utc).isoformat(),
+          }
+          state.setdefault('published', []).append(record)
+          state_path.write_text(json.dumps(state, indent=2, ensure_ascii=False) + '\n')
+          result.update({'status':'published','selected':item,'wordpress_post':record})
+          result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+          print('WORDPRESS_RESULT', json.dumps(result, ensure_ascii=False))
+          PY
+
+      - name: Persist WordPress publication state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-wordpress-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/wordpress-growth-state.json data/runtime/wordpress-growth-last.json 2>/dev/null || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record WordPress growth publication'
+          git pull --rebase origin main
+          git push origin HEAD:main
