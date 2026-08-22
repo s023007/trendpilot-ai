@@ -1,0 +1,57 @@
+name: TrendPilot Product Category Hubs
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build-product-category-hubs.py'
+      - '.github/workflows/product-category-hubs.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: trendpilot-product-category-hubs
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Generate category hubs
+        run: python3 scripts/build-product-category-hubs.py
+
+      - name: Validate generated routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for slug in phones-tablets computers-laptops audio cameras home-kitchen fashion beauty-fragrance automotive sports-outdoors pet-supplies tools-workshop 3d-printing; do
+            test -f "products/$slug/index.html"
+            grep -q 'Seller is the final step\|seller is the final step\|seller options' "products/$slug/index.html"
+            grep -q 'action="/find/"' "products/$slug/index.html"
+          done
+          grep -q '/products/phones-tablets/' products/index.html
+          grep -q '/products/fashion/' products/index.html
+          grep -q '/products/home-kitchen/' products/index.html
+
+      - name: Commit generated product hubs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-shopper-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add products
+          if git diff --cached --quiet; then
+            echo 'No product hub changes.'
+            exit 0
+          fi
+          git commit -m 'chore: generate product category hubs'
+          git pull --rebase origin main
+          git push origin HEAD:main
