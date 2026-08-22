@@ -1,0 +1,103 @@
+name: Namecheap Shopper Hub Auto Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'products/**'
+      - 'index.html'
+      - '.github/workflows/namecheap-shopper-hub-auto-deploy.yml'
+
+concurrency:
+  group: namecheap-shopper-hub-auto-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Validate shopper hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f products/index.html
+          grep -q 'Shop by department' products/index.html
+          grep -q 'Seller comes last' products/index.html
+          grep -q '/products/wireless-carplay-adapters/' products/index.html
+          grep -q 'action="/find/"' products/index.html
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish shopper hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/products'"
+          tar -czf - products | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+          if [ -f index.html ]; then
+            scp index.html "trendpilot-namecheap:$STATIC_ROOT/index.html"
+          fi
+
+      - name: Verify live product hub
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, time, urllib.request
+          origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
+          run=os.environ.get('GITHUB_RUN_ID','')
+          url=f'{origin}/products/?deploy={run}'
+          last=''
+          for attempt in range(1,6):
+              req=urllib.request.Request(url+f'-{attempt}',headers={'User-Agent':'TrendPilotShopperDeploy/1.0','Cache-Control':'no-cache'})
+              try:
+                  with urllib.request.urlopen(req,timeout=25) as r:
+                      body=r.read().decode('utf-8','replace')
+                      last=body
+                      if r.status==200 and 'Shop by department' in body and 'Seller comes last' in body:
+                          print('SHOPPER_HUB_PUBLIC_OK')
+                          raise SystemExit(0)
+              except Exception as exc:
+                  print('Attempt',attempt,'failed:',exc)
+              time.sleep(4)
+          raise SystemExit('Public product hub verification failed')
+          PY
