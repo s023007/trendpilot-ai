@@ -1,6 +1,6 @@
 name: Namecheap Shopper Hub Auto Deploy
 
-# category-hub-verification: 2026-08-22T06:45+04:00
+# category-hub-seo-verification: 2026-08-22T06:48+04:00
 on:
   workflow_dispatch:
   push:
@@ -8,6 +8,7 @@ on:
     paths:
       - 'products/**'
       - 'index.html'
+      - 'sitemap.xml'
       - '.github/workflows/namecheap-shopper-hub-auto-deploy.yml'
 
 concurrency:
@@ -20,13 +21,14 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 12
     env:
       CPANEL_HOST: 198.54.120.162
       CPANEL_PORT: '21098'
       CPANEL_USER: kehwgbpo
       STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
       PUBLIC_ORIGIN: https://trendpilotchoice.com
+      INDEXNOW_KEY: d3f1a9c7e5b24f6081c4a9d2e7b5f310
       DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
     steps:
       - uses: actions/checkout@v4
@@ -34,21 +36,26 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: Validate shopper hub
+      - name: Validate shopper hub and SEO discovery
         shell: bash
         run: |
           set -euo pipefail
           test -f products/index.html
+          test -f products/sitemap.xml
+          test -f sitemap.xml
           grep -q 'Shop by department' products/index.html
           grep -q 'Seller comes last' products/index.html
           grep -q '/products/wireless-carplay-adapters/' products/index.html
           grep -q 'action="/find/"' products/index.html
           grep -q 'Browse all products & categories' index.html
           grep -q 'Stay on TrendPilot first' index.html
+          grep -q 'https://trendpilotchoice.com/products/sitemap.xml' sitemap.xml
+          grep -q 'https://trendpilotchoice.com/events/sitemap.xml' sitemap.xml
           for slug in phones-tablets computers-laptops audio cameras home-kitchen fashion beauty-fragrance automotive sports-outdoors pet-supplies tools-workshop 3d-printing; do
             test -f "products/$slug/index.html"
             grep -q 'Popular starting points' "products/$slug/index.html"
             grep -q 'seller is the final step' "products/$slug/index.html"
+            grep -q "https://trendpilotchoice.com/products/$slug/" products/sitemap.xml
           done
 
       - name: Configure SSH
@@ -75,15 +82,15 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Publish homepage and shopper hub
+      - name: Publish homepage product hubs and sitemaps
         shell: bash
         run: |
           set -euo pipefail
           ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/products'"
           tar -czf - products | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
-          scp index.html "trendpilot-namecheap:$STATIC_ROOT/index.html"
+          scp index.html sitemap.xml "trendpilot-namecheap:$STATIC_ROOT/"
 
-      - name: Verify live homepage and product hubs
+      - name: Verify live homepage product hubs and sitemaps
         shell: bash
         run: |
           set -euo pipefail
@@ -96,7 +103,7 @@ jobs:
               url=origin+path
               last={'http':None,'ok':False,'error':''}
               for attempt in range(1,6):
-                  req=urllib.request.Request(url+('?' if '?' not in url else '&')+f'deploy={run}-{attempt}',headers={'User-Agent':'TrendPilotShopperDeploy/3.0','Cache-Control':'no-cache'})
+                  req=urllib.request.Request(url+('?' if '?' not in url else '&')+f'deploy={run}-{attempt}',headers={'User-Agent':'TrendPilotShopperDeploy/4.0','Cache-Control':'no-cache'})
                   try:
                       with urllib.request.urlopen(req,timeout=25) as r:
                           body=r.read().decode('utf-8','replace')
@@ -111,6 +118,8 @@ jobs:
 
           homepage=verify('/', ['Browse all products & categories','Stay on TrendPilot first','Seller comes last'])
           products=verify('/products/', ['Shop by department','Seller comes last','Search helper','/products/fashion/'])
+          root_sitemap=verify('/sitemap.xml',['<sitemapindex','/products/sitemap.xml','/events/sitemap.xml'])
+          product_sitemap=verify('/products/sitemap.xml',['<urlset','/products/fashion/','/products/phones-tablets/'])
           slugs=['phones-tablets','computers-laptops','audio','cameras','home-kitchen','fashion','beauty-fragrance','automotive','sports-outdoors','pet-supplies','tools-workshop','3d-printing']
           categories={slug:verify(f'/products/{slug}/',['Popular starting points','seller is the final step','action="/find/"']) for slug in slugs}
           categories_ok=all(x.get('ok') for x in categories.values())
@@ -120,15 +129,39 @@ jobs:
               'source_sha':os.environ.get('GITHUB_SHA',''),
               'homepage':homepage,
               'products':products,
+              'root_sitemap':root_sitemap,
+              'product_sitemap':product_sitemap,
               'categories':categories,
               'category_count':len(categories),
-              'all_public_verified':bool(homepage.get('ok') and products.get('ok') and categories_ok),
+              'all_public_verified':bool(homepage.get('ok') and products.get('ok') and root_sitemap.get('ok') and product_sitemap.get('ok') and categories_ok),
           }
           pathlib.Path('/tmp/shopper-deploy.json').write_text(json.dumps(result,indent=2)+'\n')
           print(json.dumps(result,indent=2))
           if not result['all_public_verified']:
-              raise SystemExit('Public homepage/product/category-hub verification failed')
+              raise SystemExit('Public homepage/product/category/sitemap verification failed')
           PY
+
+      - name: Submit product hubs to IndexNow
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, pathlib
+          origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
+          key=os.environ['INDEXNOW_KEY']
+          slugs=['phones-tablets','computers-laptops','audio','cameras','home-kitchen','fashion','beauty-fragrance','automotive','sports-outdoors','pet-supplies','tools-workshop','3d-printing']
+          urls=[origin+'/products/', origin+'/products/wireless-carplay-adapters/']+[f'{origin}/products/{slug}/' for slug in slugs]
+          payload={'host':'trendpilotchoice.com','key':key,'keyLocation':f'{origin}/{key}.txt','urlList':urls}
+          pathlib.Path('/tmp/indexnow-products.json').write_text(json.dumps(payload,indent=2)+'\n')
+          print('Submitting',len(urls),'product URLs to IndexNow')
+          PY
+          code="$(curl -sS -o /tmp/indexnow-products-response.txt -w '%{http_code}' -H 'Content-Type: application/json; charset=utf-8' -d @/tmp/indexnow-products.json https://api.indexnow.org/indexnow || true)"
+          echo "INDEXNOW_HTTP=$code"
+          if [ "$code" != '200' ] && [ "$code" != '202' ]; then
+            cat /tmp/indexnow-products-response.txt || true
+            exit 1
+          fi
+          printf '%s' "$code" > /tmp/indexnow-products-code.txt
 
       - name: Record verified shopper deployment
         shell: bash
@@ -136,6 +169,16 @@ jobs:
           set -euo pipefail
           mkdir -p data/runtime
           cp /tmp/shopper-deploy.json data/runtime/namecheap-shopper-hub-deploy.json
+          python3 - <<'PY'
+          import json, pathlib
+          p=pathlib.Path('data/runtime/namecheap-shopper-hub-deploy.json')
+          d=json.loads(p.read_text())
+          try: code=pathlib.Path('/tmp/indexnow-products-code.txt').read_text().strip()
+          except Exception: code=''
+          d['indexnow_http']=int(code) if code.isdigit() else None
+          d['indexnow_accepted']=code in ('200','202')
+          p.write_text(json.dumps(d,indent=2)+'\n')
+          PY
           git config user.name 'trendpilot-shopper-deploy-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add data/runtime/namecheap-shopper-hub-deploy.json
