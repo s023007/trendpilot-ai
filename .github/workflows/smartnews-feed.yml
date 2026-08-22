@@ -1,0 +1,52 @@
+name: SmartNews Feed
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'feed.xml'
+      - 'scripts/build-smartnews-feed.py'
+      - 'images/smartnews-logo.svg'
+      - '.github/workflows/smartnews-feed.yml'
+  schedule:
+    - cron: '15 */6 * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: smartnews-feed
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build SmartFormat feed
+        run: python3 scripts/build-smartnews-feed.py
+
+      - name: Validate XML structure
+        run: python3 - <<'PY'
+          import xml.etree.ElementTree as ET
+          ET.parse('smartnews.xml')
+          print('smartnews.xml is well-formed XML')
+          PY
+
+      - name: Commit generated feed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add smartnews.xml
+          if git diff --cached --quiet; then
+            echo "No SmartNews feed changes."
+            exit 0
+          fi
+          git commit -m "chore: refresh SmartNews feed"
+          git push
