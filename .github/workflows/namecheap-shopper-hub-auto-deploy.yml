@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   deploy:
@@ -42,6 +42,8 @@ jobs:
           grep -q 'Seller comes last' products/index.html
           grep -q '/products/wireless-carplay-adapters/' products/index.html
           grep -q 'action="/find/"' products/index.html
+          grep -q 'Browse all products & categories' index.html
+          grep -q 'Stay on TrendPilot first' index.html
 
       - name: Configure SSH
         shell: bash
@@ -67,37 +69,66 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Publish shopper hub
+      - name: Publish homepage and shopper hub
         shell: bash
         run: |
           set -euo pipefail
           ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/products'"
           tar -czf - products | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
-          if [ -f index.html ]; then
-            scp index.html "trendpilot-namecheap:$STATIC_ROOT/index.html"
-          fi
+          scp index.html "trendpilot-namecheap:$STATIC_ROOT/index.html"
 
-      - name: Verify live product hub
+      - name: Verify live homepage and product hub
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os, time, urllib.request
+          import json, os, pathlib, time, urllib.request
           origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
           run=os.environ.get('GITHUB_RUN_ID','')
-          url=f'{origin}/products/?deploy={run}'
-          last=''
-          for attempt in range(1,6):
-              req=urllib.request.Request(url+f'-{attempt}',headers={'User-Agent':'TrendPilotShopperDeploy/1.0','Cache-Control':'no-cache'})
-              try:
-                  with urllib.request.urlopen(req,timeout=25) as r:
-                      body=r.read().decode('utf-8','replace')
-                      last=body
-                      if r.status==200 and 'Shop by department' in body and 'Seller comes last' in body:
-                          print('SHOPPER_HUB_PUBLIC_OK')
-                          raise SystemExit(0)
-              except Exception as exc:
-                  print('Attempt',attempt,'failed:',exc)
-              time.sleep(4)
-          raise SystemExit('Public product hub verification failed')
+
+          def verify(path, markers):
+              url=origin+path
+              last={'http':None,'error':''}
+              for attempt in range(1,6):
+                  req=urllib.request.Request(url+('?' if '?' not in url else '&')+f'deploy={run}-{attempt}',headers={'User-Agent':'TrendPilotShopperDeploy/2.0','Cache-Control':'no-cache'})
+                  try:
+                      with urllib.request.urlopen(req,timeout=25) as r:
+                          body=r.read().decode('utf-8','replace')
+                          ok=r.status==200 and all(marker in body for marker in markers)
+                          last={'http':r.status,'ok':ok,'error':''}
+                          if ok:
+                              return last
+                  except Exception as exc:
+                      last={'http':None,'ok':False,'error':type(exc).__name__+': '+str(exc)}
+                  time.sleep(4)
+              return last
+
+          homepage=verify('/', ['Browse all products & categories','Stay on TrendPilot first','Seller comes last'])
+          products=verify('/products/', ['Shop by department','Seller comes last','Search helper'])
+          result={
+              'generated_at':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat(),
+              'run_id':run,
+              'source_sha':os.environ.get('GITHUB_SHA',''),
+              'homepage':homepage,
+              'products':products,
+              'all_public_verified':bool(homepage.get('ok') and products.get('ok')),
+          }
+          pathlib.Path('/tmp/shopper-deploy.json').write_text(json.dumps(result,indent=2)+'\n')
+          print(json.dumps(result,indent=2))
+          if not result['all_public_verified']:
+              raise SystemExit('Public homepage/product-hub verification failed')
           PY
+
+      - name: Record verified shopper deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p data/runtime
+          cp /tmp/shopper-deploy.json data/runtime/namecheap-shopper-hub-deploy.json
+          git config user.name 'trendpilot-shopper-deploy-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/namecheap-shopper-hub-deploy.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record shopper hub deployment'
+          git pull --rebase origin main
+          git push origin HEAD:main
