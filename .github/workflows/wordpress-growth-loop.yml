@@ -44,14 +44,6 @@ jobs:
           client_secret = os.environ.get('WORDPRESS_CLIENT_SECRET','').strip()
           username = os.environ.get('WORDPRESS_USERNAME','').strip()
           app_password = os.environ.get('WORDPRESS_APP_PASSWORD','').strip()
-          missing = [k for k,v in {
-              'WORDPRESS_CLIENT_ID': client_id,
-              'WORDPRESS_CLIENT_SECRET': client_secret,
-              'WORDPRESS_USERNAME': username,
-              'WORDPRESS_APP_PASSWORD': app_password,
-          }.items() if not v]
-          if missing:
-              raise SystemExit('Missing GitHub secrets/settings: ' + ', '.join(missing))
 
           state_path = Path('data/runtime/wordpress-growth-state.json')
           result_path = Path('data/runtime/wordpress-growth-last.json')
@@ -61,6 +53,29 @@ jobs:
           except Exception:
               state = {'version': 1, 'published': []}
           published = {str(x.get('guid')) for x in state.get('published', []) if x.get('guid')}
+
+          result = {
+              'generated_at': datetime.now(timezone.utc).isoformat(),
+              'status': 'starting',
+              'blog_id': None,
+              'blog_url': None,
+              'selected': None,
+              'wordpress_post': None,
+              'error': None,
+          }
+          result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+
+          missing = [k for k,v in {
+              'WORDPRESS_CLIENT_ID': client_id,
+              'WORDPRESS_CLIENT_SECRET': client_secret,
+              'WORDPRESS_USERNAME': username,
+              'WORDPRESS_APP_PASSWORD': app_password,
+          }.items() if not v]
+          if missing:
+              result['status'] = 'error'
+              result['error'] = 'Missing GitHub secrets/settings: ' + ', '.join(missing)
+              result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+              raise SystemExit(result['error'])
 
           token_body = urllib.parse.urlencode({
               'client_id': client_id,
@@ -75,12 +90,18 @@ jobs:
               with urllib.request.urlopen(req, timeout=30) as r:
                   token_data = json.loads(r.read().decode())
           except Exception as exc:
-              raise SystemExit(f'WordPress token exchange failed: {exc}')
+              result['status'] = 'error'
+              result['error'] = f'WordPress token exchange failed: {exc}'
+              result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+              raise SystemExit(result['error'])
           token = token_data.get('access_token')
           blog_id = token_data.get('blog_id')
           blog_url = token_data.get('blog_url')
           if not token or not blog_id:
-              raise SystemExit('WordPress token response did not include access_token/blog_id')
+              result['status'] = 'error'
+              result['error'] = 'WordPress token response did not include access_token/blog_id'
+              result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+              raise SystemExit(result['error'])
 
           root = ET.parse('feed.xml').getroot()
           channel = root.find('channel')
