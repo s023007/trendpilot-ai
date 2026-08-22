@@ -9,6 +9,9 @@ on:
       - 'scripts/build-smartnews-feed.py'
       - '.github/workflows/smartnews-feed.yml'
       - '.github/workflows/namecheap-smartnews-auto-deploy.yml'
+  workflow_run:
+    workflows: ['SmartNews Feed']
+    types: [completed]
   workflow_dispatch:
 
 concurrency:
@@ -20,6 +23,7 @@ permissions:
 
 jobs:
   deploy-smartnews:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 8
     env:
