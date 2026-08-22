@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/build-product-category-hubs.py'
+      - 'scripts/register-product-category-hubs.py'
       - '.github/workflows/product-category-hubs.yml'
 
 permissions:
@@ -26,9 +27,11 @@ jobs:
           fetch-depth: 2
 
       - name: Generate category hubs
-        run: python3 scripts/build-product-category-hubs.py
+        run: |
+          python3 scripts/build-product-category-hubs.py
+          python3 scripts/register-product-category-hubs.py
 
-      - name: Validate generated routes
+      - name: Validate generated routes and sitemap
         shell: bash
         run: |
           set -euo pipefail
@@ -36,10 +39,15 @@ jobs:
             test -f "products/$slug/index.html"
             grep -q 'Seller is the final step\|seller is the final step\|seller options' "products/$slug/index.html"
             grep -q 'action="/find/"' "products/$slug/index.html"
+            grep -q "https://trendpilotchoice.com/products/$slug/" sitemap.xml
           done
           grep -q '/products/phones-tablets/' products/index.html
           grep -q '/products/fashion/' products/index.html
           grep -q '/products/home-kitchen/' products/index.html
+          if grep -q '<loc>https://trendpilotchoice.com/find/</loc>' sitemap.xml; then
+            echo 'Generic /find/ must not remain in the SEO sitemap.'
+            exit 1
+          fi
 
       - name: Commit generated product hubs
         shell: bash
@@ -47,9 +55,9 @@ jobs:
           set -euo pipefail
           git config user.name 'trendpilot-shopper-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add products
+          git add products sitemap.xml
           if git diff --cached --quiet; then
-            echo 'No product hub changes.'
+            echo 'No product hub or sitemap changes.'
             exit 0
           fi
           git commit -m 'chore: generate product category hubs'
