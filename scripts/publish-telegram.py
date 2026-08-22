@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
+import email.utils
 import html
 import json
 import os
+import re
 import sys
 import urllib.parse
 import urllib.request
@@ -14,12 +16,31 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
 CHANNEL = os.getenv("TELEGRAM_CHANNEL", "@TrendPilotChoice").strip()
 STATE_PATH = Path(os.getenv("TELEGRAM_STATE_PATH", "data/runtime/telegram-growth-state.json"))
 LAST_PATH = Path(os.getenv("TELEGRAM_LAST_PATH", "data/runtime/telegram-growth-last.json"))
-USER_AGENT = "TrendPilotChoice-TelegramPublisher/1.0"
+TREND_GEOS = [x.strip().upper() for x in os.getenv("TELEGRAM_TREND_GEOS", "US,GB,CA,AU,IN,AE").split(",") if x.strip()]
+USER_AGENT = "TrendPilotChoice-TelegramPublisher/2.0"
+
+BOILERPLATE = (
+    "Skip to content",
+    "Clear comparisons. Real products. Fewer buying mistakes.",
+    "Search the catalogue",
+    "TrendPilot Choice",
+)
+
+STOP_WORDS = {
+    "the", "and", "for", "with", "from", "this", "that", "your", "you", "are",
+    "best", "guide", "buying", "2026", "a", "an", "to", "of", "in", "on", "is",
+}
+
+HIGH_INTENT = {
+    "best": 5, "review": 5, "buying": 5, "comparison": 5, "compare": 5,
+    "price": 4, "deal": 4, "discount": 4, "vs": 4, "adapter": 2, "phone": 2,
+    "laptop": 2, "headphones": 2, "carplay": 3, "wireless": 2, "smartwatch": 2,
+}
 
 
 def fetch_bytes(url):
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
-    with urllib.request.urlopen(req, timeout=30) as resp:
+    with urllib.request.urlopen(req, timeout=25) as resp:
         return resp.read(), resp.headers.get_content_type()
 
 
@@ -29,17 +50,33 @@ def text(el, name):
 
 
 def strip_html(value):
-    out = []
-    inside = False
-    for ch in value or "":
-        if ch == "<":
-            inside = True
-            out.append(" ")
-        elif ch == ">":
-            inside = False
-        elif not inside:
-            out.append(ch)
-    return " ".join("".join(out).split())
+    value = html.unescape(value or "")
+    value = re.sub(r"<[^>]+>", " ", value)
+    return " ".join(value.split())
+
+
+def clean_description(value, title=""):
+    value = strip_html(value)
+    for phrase in BOILERPLATE:
+        value = value.replace(phrase, " ")
+    if title:
+        value = value.replace(title, " ")
+    value = re.sub(r"\s+", " ", value).strip(" -–—|")
+    sentences = re.split(r"(?<=[.!?])\s+", value)
+    useful = []
+    seen = set()
+    for sentence in sentences:
+        sentence = sentence.strip()
+        key = sentence.lower()
+        if not sentence or len(sentence) < 20 or key in seen:
+            continue
+        if any(p.lower() in key for p in ("skip to content", "search the catalogue")):
+            continue
+        seen.add(key)
+        useful.append(sentence)
+        if len(" ".join(useful)) >= 260 or len(useful) >= 2:
+            break
+    return " ".join(useful).strip()
 
 
 def parse_feed():
@@ -54,7 +91,7 @@ def parse_feed():
         title = text(item, "title")
         link = text(item, "link")
         guid = text(item, "guid") or link
-        description = strip_html(text(item, "description"))
+        raw_description = text(item, "description")
         category = text(item, "category") or "TrendPilot Choice"
         image = ""
         media = item.find(media_ns + "content")
@@ -71,7 +108,7 @@ def parse_feed():
             "title": title,
             "link": link,
             "guid": guid,
-            "description": description,
+            "description": clean_description(raw_description, title),
             "category": category,
             "image": image,
             "pubDate": pub,
@@ -85,7 +122,7 @@ def load_state():
             return json.loads(STATE_PATH.read_text(encoding="utf-8"))
         except Exception:
             pass
-    return {"published_guids": []}
+    return {"published_guids": [], "published_count": 0}
 
 
 def save_json(path, data):
@@ -93,14 +130,20 @@ def save_json(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def with_utm(url):
+def slug_token(value, limit=60):
+    value = re.sub(r"[^a-zA-Z0-9]+", "-", value or "").strip("-").lower()
+    return value[:limit] or "post"
+
+
+def with_utm(url, title=""):
     parsed = urllib.parse.urlsplit(url)
     q = urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
     keys = {k for k, _ in q}
     additions = {
         "utm_source": "telegram",
         "utm_medium": "social",
-        "utm_campaign": "telegram-auto",
+        "utm_campaign": "telegram-growth",
+        "utm_content": slug_token(title),
     }
     for k, v in additions.items():
         if k not in keys:
@@ -113,6 +156,73 @@ def trim(value, limit):
     if len(value) <= limit:
         return value
     return value[: max(0, limit - 1)].rstrip() + "…"
+
+
+def normalize_words(value):
+    return {
+        w for w in re.findall(r"[a-z0-9]+", (value or "").lower())
+        if len(w) >= 3 and w not in STOP_WORDS
+    }
+
+
+def fetch_google_trends():
+    trends = []
+    for geo in TREND_GEOS:
+        url = f"https://trends.google.com/trending/rss?geo={urllib.parse.quote(geo)}"
+        try:
+            body, _ = fetch_bytes(url)
+            root = ET.fromstring(body)
+            for item in root.findall(".//item"):
+                title = text(item, "title")
+                if title:
+                    trends.append({"geo": geo, "query": title, "words": normalize_words(title)})
+        except Exception:
+            continue
+    return trends
+
+
+def parse_pubdate(value):
+    try:
+        dt = email.utils.parsedate_to_datetime(value)
+        if dt is None:
+            return None
+        return dt.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def search_score(item, trends):
+    blob = f'{item["title"]} {item.get("description","")} {item.get("category","")}'.lower()
+    score = 0
+    for key, weight in HIGH_INTENT.items():
+        if re.search(rf"\b{re.escape(key)}\b", blob):
+            score += weight
+    item_words = normalize_words(blob)
+    trend_matches = []
+    for trend in trends:
+        overlap = item_words & trend["words"]
+        if len(overlap) >= 2 or (len(trend["words"]) == 1 and overlap):
+            strength = len(overlap)
+            score += 20 + (strength * 6)
+            trend_matches.append({"geo": trend["geo"], "query": trend["query"]})
+    pub = parse_pubdate(item.get("pubDate") or "")
+    if pub:
+        age_days = max(0, (datetime.now(timezone.utc) - pub).days)
+        score += max(0, 10 - min(age_days, 10))
+    return score, trend_matches[:5]
+
+
+def select_item(items, seen, trends):
+    unseen = [item for item in items if item["guid"] not in seen]
+    if not unseen:
+        return None, 0, []
+    ranked = []
+    for idx, item in enumerate(unseen):
+        score, matches = search_score(item, trends)
+        ranked.append((score, -idx, item, matches))
+    ranked.sort(key=lambda x: (x[0], x[1]), reverse=True)
+    score, _, item, matches = ranked[0]
+    return item, score, matches
 
 
 def telegram_api(method, payload):
@@ -136,71 +246,188 @@ def telegram_api(method, payload):
     return data.get("result") or {}
 
 
-def build_caption(item, target, max_len=1000):
-    title = html.escape(trim(item["title"], 240))
-    desc = html.escape(trim(item.get("description") or item.get("category") or "", 420))
-    link = html.escape(target, quote=True)
-    parts = [f"<b>{title}</b>"]
-    if desc:
-        parts.append(desc)
-    parts.append(f'<a href="{link}">Read the full guide on TrendPilot Choice →</a>')
+def topic_label(title):
+    t = (title or "").lower()
+    if "carplay" in t:
+        return "wireless CarPlay adapter"
+    if "iphone" in t:
+        return "iPhone"
+    if "phone" in t:
+        return "phone"
+    if "laptop" in t:
+        return "laptop"
+    if "headphone" in t or "earbud" in t:
+        return "headphones"
+    if "perfume" in t or "fragrance" in t:
+        return "fragrance"
+    if "watch" in t:
+        return "smartwatch"
+    cleaned = re.sub(r"\b(best|buying|guide|review|2026|comparison)\b", " ", title or "", flags=re.I)
+    return trim(" ".join(cleaned.split()), 70) or "this product"
+
+
+def build_hook(item):
+    t = (item.get("title") or "").lower()
+    topic = topic_label(item.get("title") or "")
+    if "carplay" in t:
+        return "🚗 Going wireless sounds easy — but one compatibility mistake can make the adapter useless."
+    if "phone" in t or "iphone" in t:
+        return f"📱 Before you spend on a {topic}, there’s one question that matters more than the spec sheet."
+    if "laptop" in t:
+        return "💻 A cheap laptop can become expensive fast if you choose the wrong compromise."
+    if "headphone" in t or "earbud" in t:
+        return "🎧 Great sound on paper means nothing if comfort, battery and connection let you down."
+    if "perfume" in t or "fragrance" in t:
+        return "✨ The best fragrance isn’t the loudest one — it’s the one people remember."
+    return f"⚠️ Before you spend money on {topic}, check what actually matters — not just the headline price."
+
+
+def build_tags(item):
+    blob = f'{item.get("title","")} {item.get("category","")}'.lower()
+    tags = []
+    candidates = [
+        ("carplay", "#CarPlay"), ("wireless", "#Wireless"), ("adapter", "#CarTech"),
+        ("iphone", "#iPhone"), ("phone", "#Smartphone"), ("laptop", "#Laptop"),
+        ("headphone", "#Headphones"), ("earbud", "#Earbuds"), ("perfume", "#Fragrance"),
+        ("smartwatch", "#Smartwatch"), ("deal", "#Deals"), ("comparison", "#Comparison"),
+    ]
+    for needle, tag in candidates:
+        if needle in blob and tag not in tags:
+            tags.append(tag)
+        if len(tags) >= 3:
+            break
+    if not tags:
+        tags = ["#BuyingGuide", "#TrendPilotChoice"]
+    elif "#TrendPilotChoice" not in tags and len(tags) < 3:
+        tags.append("#TrendPilotChoice")
+    return " ".join(tags[:3])
+
+
+def build_question(item):
+    t = (item.get("title") or "").lower()
+    if "carplay" in t:
+        return "💬 What matters most to you: compatibility, fast reconnect, or price?"
+    if "phone" in t or "iphone" in t:
+        return "💬 Which matters more to you: camera, battery, or price?"
+    if "laptop" in t:
+        return "💬 Your priority: battery, performance, portability, or price?"
+    if "headphone" in t or "earbud" in t:
+        return "💬 What wins for you: sound, comfort, ANC, or battery?"
+    return "💬 What would make you choose it — or skip it?"
+
+
+def build_caption(item, target, max_len=980):
+    title = html.escape(trim(item["title"], 180))
+    hook = html.escape(build_hook(item))
+    summary = html.escape(trim(item.get("description") or item.get("category") or "", 240))
+    question = html.escape(build_question(item))
+    tags = build_tags(item)
+    parts = [
+        f"<b>{hook}</b>",
+        f"🎯 <b>{title}</b>",
+    ]
+    if summary:
+        parts.append(f"✅ <b>Quick take:</b> {summary}")
+    parts.append(question)
+    parts.append("👍 Useful? React.  🔥 Want more like this?")
+    parts.append(tags)
     caption = "\n\n".join(parts)
     if len(caption) > max_len:
-        desc = html.escape(trim(item.get("description") or "", 220))
-        parts = [f"<b>{title}</b>"]
-        if desc:
-            parts.append(desc)
-        parts.append(f'<a href="{link}">Read the full guide on TrendPilot Choice →</a>')
+        summary = html.escape(trim(item.get("description") or "", 120))
+        parts = [f"<b>{hook}</b>", f"🎯 <b>{title}</b>"]
+        if summary:
+            parts.append(f"✅ <b>Quick take:</b> {summary}")
+        parts.extend([question, "👍 Useful? React.  🔥 Want more like this?", tags])
         caption = "\n\n".join(parts)
     return caption[:max_len]
 
 
-def publish(item):
-    target = with_utm(item["link"])
+def inline_keyboard(target):
+    return json.dumps({
+        "inline_keyboard": [[
+            {"text": "🔎 See the full guide", "url": target}
+        ]]
+    }, ensure_ascii=False)
+
+
+def maybe_send_poll(item, published_count):
+    if published_count % 3 != 0:
+        return None
+    t = (item.get("title") or "").lower()
+    if "carplay" in t:
+        question = "What matters most in a wireless CarPlay adapter?"
+        options = ["Compatibility", "Fast reconnect", "Price", "Warranty/returns"]
+    elif "phone" in t or "iphone" in t:
+        question = "What matters most when you choose a phone?"
+        options = ["Camera", "Battery", "Performance", "Price"]
+    else:
+        question = "What matters most when you buy tech?"
+        options = ["Reliability", "Features", "Price", "Reviews"]
+    return telegram_api("sendPoll", {
+        "chat_id": CHANNEL,
+        "question": question,
+        "options": json.dumps(options, ensure_ascii=False),
+        "is_anonymous": "true",
+        "allows_multiple_answers": "false",
+    })
+
+
+def publish(item, published_count):
+    target = with_utm(item["link"], item.get("title") or "")
     caption = build_caption(item, target)
+    payload_common = {
+        "chat_id": CHANNEL,
+        "parse_mode": "HTML",
+        "reply_markup": inline_keyboard(target),
+    }
 
     if item.get("image"):
         try:
             result = telegram_api(
                 "sendPhoto",
                 {
-                    "chat_id": CHANNEL,
+                    **payload_common,
                     "photo": item["image"],
                     "caption": caption,
-                    "parse_mode": "HTML",
                 },
             )
-            return result, target, "photo"
+            poll = maybe_send_poll(item, published_count + 1)
+            return result, target, "photo", poll
         except Exception:
             pass
 
-    message = build_caption(item, target, max_len=3500)
     result = telegram_api(
         "sendMessage",
         {
-            "chat_id": CHANNEL,
-            "text": message,
-            "parse_mode": "HTML",
+            **payload_common,
+            "text": caption,
             "disable_web_page_preview": "false",
         },
     )
-    return result, target, "message"
+    poll = maybe_send_poll(item, published_count + 1)
+    return result, target, "message", poll
 
 
 def main():
     generated_at = datetime.now(timezone.utc).isoformat()
     state = load_state()
     seen = set(state.get("published_guids") or [])
+    published_count = int(state.get("published_count") or 0)
     items = parse_feed()
-    selected = next((item for item in items if item["guid"] not in seen), None)
+    trends = fetch_google_trends()
+    selected, selected_score, trend_matches = select_item(items, seen, trends)
 
     result = {
         "generated_at": generated_at,
         "channel": CHANNEL,
         "feed_url": FEED_URL,
         "feed_items": len(items),
+        "trend_queries_loaded": len(trends),
+        "trend_geos": TREND_GEOS,
         "status": "no-new-item",
         "selected": selected,
+        "selected_search_score": selected_score,
+        "trend_matches": trend_matches,
     }
 
     if selected is None:
@@ -209,9 +436,10 @@ def main():
         return 0
 
     try:
-        created, target, mode = publish(selected)
+        created, target, mode, poll = publish(selected, published_count)
         seen.add(selected["guid"])
         state["published_guids"] = list(seen)[-1000:]
+        state["published_count"] = published_count + 1
         state["updated_at"] = generated_at
         save_json(STATE_PATH, state)
         result.update({
@@ -219,6 +447,7 @@ def main():
             "message_id": created.get("message_id"),
             "target_url": target,
             "mode": mode,
+            "poll_message_id": (poll or {}).get("message_id") if poll else None,
         })
         save_json(LAST_PATH, result)
         print(json.dumps(result, ensure_ascii=False))
