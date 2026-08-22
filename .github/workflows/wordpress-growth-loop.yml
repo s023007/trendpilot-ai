@@ -1,6 +1,6 @@
 name: WordPress TrendPilot Growth Loop
 
-# verification-trigger: 2026-08-22T05:46+04:00
+# endpoint-fix-trigger: 2026-08-22T05:58+04:00
 on:
   workflow_dispatch:
   push:
@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           python3 <<'PY'
-          import json, os, re, html, urllib.parse, urllib.request
+          import json, os, re, html, urllib.parse, urllib.request, urllib.error
           import xml.etree.ElementTree as ET
           from datetime import datetime, timezone
           from email.utils import parsedate_to_datetime
@@ -90,11 +90,18 @@ jobs:
           try:
               with urllib.request.urlopen(req, timeout=30) as r:
                   token_data = json.loads(r.read().decode())
+          except urllib.error.HTTPError as exc:
+              body = exc.read().decode('utf-8', 'replace')[:1200]
+              result['status'] = 'error'
+              result['error'] = f'WordPress token exchange failed: HTTP {exc.code}: {body}'
+              result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+              raise SystemExit(result['error'])
           except Exception as exc:
               result['status'] = 'error'
               result['error'] = f'WordPress token exchange failed: {exc}'
               result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
               raise SystemExit(result['error'])
+
           token = token_data.get('access_token')
           blog_id = token_data.get('blog_id')
           blog_url = token_data.get('blog_url')
@@ -159,14 +166,26 @@ jobs:
               f'<p><em>Short TrendPilot summary. Product details, prices, ticket availability and schedules may change; check the full guide for the latest information.</em></p>'
           )
 
-          payload = json.dumps({'title': post_title, 'content': body, 'status': 'publish'}).encode()
-          post_url = f'https://public-api.wordpress.com/wp/v2/sites/{blog_id}/posts'
+          payload = urllib.parse.urlencode({
+              'title': post_title,
+              'content': body,
+              'status': 'publish',
+              'categories': item['category'],
+          }).encode()
+          post_url = f'https://public-api.wordpress.com/rest/v1.1/sites/{blog_id}/posts/new'
           req = urllib.request.Request(post_url, data=payload, method='POST')
           req.add_header('Authorization', f'Bearer {token}')
-          req.add_header('Content-Type', 'application/json')
+          req.add_header('Content-Type', 'application/x-www-form-urlencoded')
           try:
               with urllib.request.urlopen(req, timeout=30) as r:
                   post = json.loads(r.read().decode())
+          except urllib.error.HTTPError as exc:
+              body = exc.read().decode('utf-8', 'replace')[:1600]
+              result['status'] = 'error'
+              result['error'] = f'WordPress publish failed: HTTP {exc.code}: {body}'
+              result['selected'] = item
+              result_path.write_text(json.dumps(result, indent=2, ensure_ascii=False) + '\n')
+              raise SystemExit(result['error'])
           except Exception as exc:
               result['status'] = 'error'
               result['error'] = f'WordPress publish failed: {exc}'
@@ -180,8 +199,8 @@ jobs:
               'tracked_url': tracked_link,
               'title': item['title'],
               'category': item['category'],
-              'wordpress_post_id': post.get('id'),
-              'wordpress_url': post.get('link'),
+              'wordpress_post_id': post.get('ID') or post.get('id'),
+              'wordpress_url': post.get('URL') or post.get('link'),
               'published_at': datetime.now(timezone.utc).isoformat(),
           }
           state.setdefault('published', []).append(record)
