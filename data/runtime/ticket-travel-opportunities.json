@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-21T04:06:43.038842+00:00",
+  "generated_at": "2026-08-22T04:00:41.031279+00:00",
   "policy_version": 3,
   "publication_threshold": 27,
   "source_report": [
@@ -25,13 +25,13 @@
       "id": "champions-league",
       "url": "https://sportsevents365.com/dock/competition/champions-league",
       "http": 200,
-      "candidates": 5
+      "candidates": 6
     },
     {
       "id": "serie-a",
       "url": "https://sportsevents365.com/dock/competition/serie-a",
       "http": 200,
-      "candidates": 9
+      "candidates": 7
     },
     {
       "id": "bundesliga",
@@ -49,7 +49,7 @@
       "id": "saudi-arabia",
       "url": "https://sportsevents365.com/events/country/1143",
       "http": 200,
-      "candidates": 12
+      "candidates": 11
     },
     {
       "id": "formula-one",
@@ -58,8 +58,8 @@
       "candidates": 6
     }
   ],
-  "candidate_count": 100,
-  "recommended_count": 16,
+  "candidate_count": 97,
+  "recommended_count": 17,
   "top_recommendations": [
     {
       "event_id": "398745",
@@ -76,6 +76,32 @@
         "OM"
       ],
       "context_preview": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al-Ahli Saudi FC Riyadh, Saudi Arabia - Kingdom Arena Tue, 01 Sep 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 202",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "398747",
+      "title": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al-Hilal FC Riyadh, Saudi Arabia - Al-Shabab Club Stadium Fri, 04 Sep 2026 21:00 Not Final Date not final",
+      "event_date": "2026-09-04T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398747",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al-Hilal FC Riyadh, Saudi Arabia - Al-Shabab Club Stadium Fri, 04 Sep 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 202",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -524,6 +550,32 @@
       "recommended": true
     },
     {
+      "event_id": "398747",
+      "title": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al-Hilal FC Riyadh, Saudi Arabia - Al-Shabab Club Stadium Fri, 04 Sep 2026 21:00 Not Final Date not final",
+      "event_date": "2026-09-04T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398747",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al-Hilal FC Riyadh, Saudi Arabia - Al-Shabab Club Stadium Fri, 04 Sep 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 202",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
       "event_id": "393001",
       "title": "Football (Soccer) Arsenal vs Chelsea English Premier League Emirates Stadium London, England Sun, 06 Sep 2026",
       "event_date": "2026-09-06T00:00:00+00:00",
@@ -932,60 +984,6 @@
       "recommended": true
     },
     {
-      "event_id": "398732",
-      "title": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Al-Nassr FC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 21 Aug 2026 19:00 Not Final Date not final",
-      "event_date": "2026-08-21T19:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/398732",
-      "source_group": "saudi-arabia",
-      "source_geo": "SA",
-      "target_markets": [
-        "SA",
-        "AE",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Saudi Pro League (Football (Soccer)) Al Riyadh vs Al-Nassr FC Riyadh, Saudi Arabia - Prince Faisal bin Fahd Sports City Fri, 21 Aug 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 218",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 26,
-      "recommended": false
-    },
-    {
-      "event_id": "393016",
-      "title": "English Premier League (Football (Soccer)) Arsenal vs Coventry City London, England - Emirates Stadium Fri, 21 Aug 2026 20:00",
-      "event_date": "2026-08-21T20:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/393016",
-      "source_group": "premier-league",
-      "source_geo": "GB",
-      "target_markets": [
-        "GB",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM",
-        "IE"
-      ],
-      "context_preview": "English Premier League (Football (Soccer)) Arsenal vs Coventry City London, England - Emirates Stadium Fri, 21 Aug 2026 20:00 From USD $ 347",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 26,
-      "recommended": false
-    },
-    {
       "event_id": "393680",
       "title": "English Premier League (Football (Soccer)) Hull City vs Manchester United Hull, England - MKM Stadium Sat, 22 Aug 2026 12:30",
       "event_date": "2026-08-22T12:30:00+00:00",
@@ -1001,7 +999,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Hull City vs Manchester United Hull, England - MKM Stadium Sat, 22 Aug 2026 12:30 From USD $ 820",
+      "context_preview": "English Premier League (Football (Soccer)) Hull City vs Manchester United Hull, England - MKM Stadium Sat, 22 Aug 2026 12:30 Only a few tickets left From USD $ 1,814",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1029,7 +1027,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Crystal Palace Liverpool, England - Hill Dickinson Stadium Sat, 22 Aug 2026 15:00 From USD $ 135",
+      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Crystal Palace Liverpool, England - Hill Dickinson Stadium Sat, 22 Aug 2026 15:00 From USD $ 200",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1057,7 +1055,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Ipswich Town vs Sunderland AFC Ipswich, England - Portman Road Sat, 22 Aug 2026 15:00 From USD $ 164",
+      "context_preview": "English Premier League (Football (Soccer)) Ipswich Town vs Sunderland AFC Ipswich, England - Portman Road Sat, 22 Aug 2026 15:00 Only a few tickets left From USD $ 164",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1085,7 +1083,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Nottingham Forest vs Leeds United Nottingham, England - City Ground Sat, 22 Aug 2026 15:00 Only a few tickets left From USD $ 238",
+      "context_preview": "English Premier League (Football (Soccer)) Nottingham Forest vs Leeds United Nottingham, England - City Ground Sat, 22 Aug 2026 15:00 Only a few tickets left From USD $ 160",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1141,7 +1139,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Manchester City vs A.F.C. Bournemouth Manchester, England - Etihad Stadium Sun, 23 Aug 2026 14:00 From USD $ 119",
+      "context_preview": "English Premier League (Football (Soccer)) Manchester City vs A.F.C. Bournemouth Manchester, England - Etihad Stadium Sun, 23 Aug 2026 14:00 From USD $ 125",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1251,7 +1249,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Crystal Palace vs Manchester City London, England - Selhurst Park Fri, 28 Aug 2026 20:00 From USD $ 174",
+      "context_preview": "English Premier League (Football (Soccer)) Crystal Palace vs Manchester City London, England - Selhurst Park Fri, 28 Aug 2026 20:00 From USD $ 250",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1331,7 +1329,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Liverpool vs Nottingham Forest Liverpool, England - Anfield Sat, 29 Aug 2026 12:30 From USD $ 317",
+      "context_preview": "English Premier League (Football (Soccer)) Liverpool vs Nottingham Forest Liverpool, England - Anfield Sat, 29 Aug 2026 12:30 From USD $ 352",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1359,7 +1357,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) A.F.C. Bournemouth vs Everton FC Bournemouth, England - Dean Court (Vitality Stadium) Sat, 29 Aug 2026 15:00 Only a few tickets left From USD $ 785",
+      "context_preview": "English Premier League (Football (Soccer)) A.F.C. Bournemouth vs Everton FC Bournemouth, England - Dean Court (Vitality Stadium) Sat, 29 Aug 2026 15:00 Only a few tickets left From USD $ 784",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1415,7 +1413,35 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Newcastle United London, England - Tottenham Hotspur Stadium Sat, 29 Aug 2026 17:30 From USD $ 192",
+      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Newcastle United London, England - Tottenham Hotspur Stadium Sat, 29 Aug 2026 17:30 From USD $ 248",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
+      "event_id": "393070",
+      "title": "English Premier League (Football (Soccer)) Leeds United vs Brentford Leeds, England - Elland Road Sun, 30 Aug 2026 14:00",
+      "event_date": "2026-08-30T14:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393070",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Leeds United vs Brentford Leeds, England - Elland Road Sun, 30 Aug 2026 14:00 From USD $ 300",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1481,7 +1507,7 @@
       "target_markets": [
         "GLOBAL"
       ],
-      "context_preview": "Formula 1 (Car Racing) Singapore Grand Prix Singapore City, Singapore - Marina Bay Street Circuit Sun, 11 Oct 2026 19:00 From USD $ 540",
+      "context_preview": "Formula 1 (Car Racing) Singapore Grand Prix Singapore City, Singapore - Marina Bay Street Circuit Sun, 11 Oct 2026 19:00 From USD $ 539",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1559,7 +1585,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Champions League Final: To be decided vs To be decided Madrid, Spain - Estadio Metropolitano Madrid Sat, 05 Jun 2027 21:00 Not Final Date not final From USD $ 7,576",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Champions League Final: To be decided vs To be decided Madrid, Spain - Estadio Metropolitano Madrid Sat, 05 Jun 2027 21:00 Not Final Date not final From USD $ 7,571",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1587,7 +1613,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) RCD Espanyol vs Real Madrid Barcelona, Spain - RCDE Stadium Sat, 22 Aug 2026 21:30 From USD $ 231",
+      "context_preview": "Spanish La Liga (Football (Soccer)) RCD Espanyol vs Real Madrid Barcelona, Spain - RCDE Stadium Sat, 22 Aug 2026 21:30 From USD $ 323",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1699,7 +1725,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Play-Off Round: Lyon vs Fenerbahce SK Lyon, France - Groupama Stadium Wed, 26 Aug 2026 21:00 Only a few tickets left From USD $ 505",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Play-Off Round: Lyon vs Fenerbahce SK Lyon, France - Groupama Stadium Wed, 26 Aug 2026 21:00 Only a few tickets left From USD $ 328",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1713,11 +1739,11 @@
     },
     {
       "event_id": "395252",
-      "title": "Spanish La Liga (Football (Soccer)) FC Barcelona vs Athletic Club Bilbao Barcelona, Spain - Camp Nou Thu, 27 Aug 2026 21:00",
-      "event_date": "2026-08-27T21:00:00+00:00",
+      "title": "Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barcelona, Spain Thu, 27 Aug 2026",
+      "event_date": "2026-08-27T00:00:00+00:00",
       "source_url": "https://sportsevents365.com/event/395252",
-      "source_group": "la-liga",
-      "source_geo": "EU",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
       "target_markets": [
         "GB",
         "EU",
@@ -1727,7 +1753,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) FC Barcelona vs Athletic Club Bilbao Barcelona, Spain - Camp Nou Thu, 27 Aug 2026 21:00 From USD $ 146",
+      "context_preview": "Football (Soccer) FC Barcelona vs Athletic Club Bilbao Spanish La Liga Camp Nou Barcelona, Spain Thu, 27 Aug 2026",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1840,62 +1866,6 @@
       "recommended": false
     },
     {
-      "event_id": "392156",
-      "title": "French Ligue 1 (Football (Soccer)) Olympique de Marseille ( OM ) vs RC Strasbourg Marseille, France - Stade Velodrome Fri, 21 Aug 2026 20:45",
-      "event_date": "2026-08-21T20:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392156",
-      "source_group": "ligue-1",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Olympique de Marseille ( OM ) vs RC Strasbourg Marseille, France - Stade Velodrome Fri, 21 Aug 2026 20:45 Only a few tickets left From USD $ 75",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 24,
-      "recommended": false
-    },
-    {
-      "event_id": "395262",
-      "title": "Spanish La Liga (Football (Soccer)) Real Betis Balompie vs Real Sociedad Seville, Spain - Estadio Benito Villamarin Fri, 21 Aug 2026 21:00",
-      "event_date": "2026-08-21T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395262",
-      "source_group": "la-liga",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Real Betis Balompie vs Real Sociedad Seville, Spain - Estadio Benito Villamarin Fri, 21 Aug 2026 21:00 Only a few tickets left From USD $ 122",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 24,
-      "recommended": false
-    },
-    {
       "event_id": "392155",
       "title": "French Ligue 1 (Football (Soccer)) RC Lens vs AJ Auxerre Lens, France - Stade Felix Bollaert Sat, 22 Aug 2026 17:15",
       "event_date": "2026-08-22T17:15:00+00:00",
@@ -1911,7 +1881,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) RC Lens vs AJ Auxerre Lens, France - Stade Felix Bollaert Sat, 22 Aug 2026 17:15 Only a few tickets left From USD $ 70",
+      "context_preview": "French Ligue 1 (Football (Soccer)) RC Lens vs AJ Auxerre Lens, France - Stade Felix Bollaert Sat, 22 Aug 2026 17:15 Only a few tickets left From USD $ 95",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1939,7 +1909,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Inter vs A.C. Monza Milan, Italy - Stadio San Siro (Giuseppe Meazza) Sat, 22 Aug 2026 18:30 From USD $ 65",
+      "context_preview": "Italian Serie A (Football (Soccer)) Inter vs A.C. Monza Milan, Italy - Stadio San Siro (Giuseppe Meazza) Sat, 22 Aug 2026 18:30 From USD $ 70",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2023,7 +1993,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Toulouse FC ( TFC ) vs Lyon Toulouse, France - Stadium Municipal Sat, 22 Aug 2026 20:45 From USD $ 36",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Toulouse FC ( TFC ) vs Lyon Toulouse, France - Stadium Municipal Sat, 22 Aug 2026 20:45 Only a few tickets left From USD $ 50",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2051,7 +2021,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Troyes vs Paris FC Troyes, France - Stade de l'Aube Sat, 22 Aug 2026 20:45 From USD $ 46",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Troyes vs Paris FC Troyes, France - Stade de l'Aube Sat, 22 Aug 2026 20:45 Only a few tickets left From USD $ 43",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2079,7 +2049,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Angers SCO vs Lille LOSC Angers, France - Stade Raymond Kopa Sun, 23 Aug 2026 15:00 From USD $ 46",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Angers SCO vs Lille LOSC Angers, France - Stade Raymond Kopa Sun, 23 Aug 2026 15:00 Only a few tickets left From USD $ 45",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2135,35 +2105,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Le Havre vs AS Monaco ( ASM ) Le Havre, France - Stade Océane Sun, 23 Aug 2026 17:15 From USD $ 74",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 24,
-      "recommended": false
-    },
-    {
-      "event_id": "391520",
-      "title": "Italian Serie A (Football (Soccer)) Atalanta BC vs Sassuolo Bergamo, Italy - Stadio di Bergamo (Gewiss Stadium) Sun, 23 Aug 2026 20:45",
-      "event_date": "2026-08-23T20:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391520",
-      "source_group": "serie-a",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Atalanta BC vs Sassuolo Bergamo, Italy - Stadio di Bergamo (Gewiss Stadium) Sun, 23 Aug 2026 20:45 Only a few tickets left From USD $ 69",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Le Havre vs AS Monaco ( ASM ) Le Havre, France - Stade Océane Sun, 23 Aug 2026 17:15 Only a few tickets left From USD $ 56",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2219,7 +2161,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Paris SG Rennes, France - Roazhon Park Sun, 23 Aug 2026 20:45 Only a few tickets left From USD $ 140",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Paris SG Rennes, France - Roazhon Park Sun, 23 Aug 2026 20:45 Only a few tickets left From USD $ 184",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2247,7 +2189,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Bologna FC vs SS Lazio Bologna, Italy - Stadio Renato DallAra Mon, 24 Aug 2026 18:30 From USD $ 70",
+      "context_preview": "Italian Serie A (Football (Soccer)) Bologna FC vs SS Lazio Bologna, Italy - Stadio Renato DallAra Mon, 24 Aug 2026 18:30 Only a few tickets left From USD $ 95",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2275,7 +2217,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) AS Roma vs ACF Fiorentina Rome, Italy - Stadio Olimpico (Roma) Mon, 24 Aug 2026 20:45 Only a few tickets left From USD $ 91",
+      "context_preview": "Italian Serie A (Football (Soccer)) AS Roma vs ACF Fiorentina Rome, Italy - Stadio Olimpico (Roma) Mon, 24 Aug 2026 20:45 Only a few tickets left From USD $ 95",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2443,7 +2385,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) FSV Mainz vs SC Paderborn Mainz, Germany - Mewa Arena (ex Opel arena) Sat, 29 Aug 2026 15:30 Only a few tickets left From USD $ 412",
+      "context_preview": "German Bundesliga (Football (Soccer)) FSV Mainz vs SC Paderborn Mainz, Germany - Mewa Arena (ex Opel arena) Sat, 29 Aug 2026 15:30 Only a few tickets left From USD $ 411",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2499,7 +2441,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Union Berlin vs Eintracht Frankfurt Berlin, Germany - Stadion An der Alten Försterei Sat, 29 Aug 2026 15:30 Only a few tickets left From USD $ 218",
+      "context_preview": "German Bundesliga (Football (Soccer)) Union Berlin vs Eintracht Frankfurt Berlin, Germany - Stadion An der Alten Försterei Sat, 29 Aug 2026 15:30 Only a few tickets left From USD $ 217",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2540,34 +2482,6 @@
       "recommended": false
     },
     {
-      "event_id": "391536",
-      "title": "Italian Serie A (Football (Soccer)) A.C. Monza vs Udinese Monza, Italy - U-Power Stadium (Stadio Brianteo) Sat, 29 Aug 2026 18:30",
-      "event_date": "2026-08-29T18:30:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391536",
-      "source_group": "serie-a",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Italian Serie A (Football (Soccer)) A.C. Monza vs Udinese Monza, Italy - U-Power Stadium (Stadio Brianteo) Sat, 29 Aug 2026 18:30 Only a few tickets left From USD $ 99",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 24,
-      "recommended": false
-    },
-    {
       "event_id": "395671",
       "title": "German Bundesliga (Football (Soccer)) Borussia Dortmund vs Hamburg SV Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Sat, 29 Aug 2026 18:30",
       "event_date": "2026-08-29T18:30:00+00:00",
@@ -2583,7 +2497,35 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Dortmund vs Hamburg SV Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Sat, 29 Aug 2026 18:30 From USD $ 223",
+      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Dortmund vs Hamburg SV Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Sat, 29 Aug 2026 18:30 From USD $ 236",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "395278",
+      "title": "Spanish La Liga (Football (Soccer)) Real Sociedad vs RCD Espanyol San Sebastian, Spain - Estadio Anoeta (Reale Arena) Sat, 29 Aug 2026 19:00",
+      "event_date": "2026-08-29T19:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/395278",
+      "source_group": "la-liga",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Spanish La Liga (Football (Soccer)) Real Sociedad vs RCD Espanyol San Sebastian, Spain - Estadio Anoeta (Reale Arena) Sat, 29 Aug 2026 19:00 From USD $ 100",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2695,7 +2637,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Lyon vs Le Havre Lyon, France - Groupama Stadium Sat, 29 Aug 2026 20:45 From USD $ 65",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Lyon vs Le Havre Lyon, France - Groupama Stadium Sat, 29 Aug 2026 20:45 Only a few tickets left From USD $ 75",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2752,6 +2694,34 @@
         "OM"
       ],
       "context_preview": "German Bundesliga (Football (Soccer)) SC Freiburg vs Werder Bremen Freiburg, Germany - Europa-Park Stadion Sun, 30 Aug 2026 15:30 From USD $ 77",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "392168",
+      "title": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Le Mans Rennes, France - Roazhon Park Sun, 30 Aug 2026 17:15",
+      "event_date": "2026-08-30T17:15:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392168",
+      "source_group": "ligue-1",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Le Mans Rennes, France - Roazhon Park Sun, 30 Aug 2026 17:15 Only a few tickets left From USD $ 56",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2845,32 +2815,6 @@
         "freshness": 4
       },
       "total_score": 24,
-      "recommended": false
-    },
-    {
-      "event_id": "398731",
-      "title": "Saudi Pro League (Football (Soccer)) Al Qadsiah vs Al Ittihad Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Fri, 21 Aug 2026 21:00 Not Final Date not final",
-      "event_date": "2026-08-21T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/398731",
-      "source_group": "saudi-arabia",
-      "source_geo": "SA",
-      "target_markets": [
-        "SA",
-        "AE",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Saudi Pro League (Football (Soccer)) Al Qadsiah vs Al Ittihad Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Fri, 21 Aug 2026 21:00 Not Final Date not final Only a few tickets left From USD $ 164",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 2,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 23,
       "recommended": false
     },
     {
@@ -3022,6 +2966,28 @@
       "recommended": false
     },
     {
+      "event_id": "400295",
+      "title": "UEFA Champions League (Football (Soccer)) Play-Off Round: FK Bodo/Glimt vs NEC Nijmegen Bodo, Norway - Aspmyra Stadion Tue, 25 Aug 2026 21:00",
+      "event_date": "2026-08-25T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/400295",
+      "source_group": "champions-league",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "UEFA Champions League (Football (Soccer)) Play-Off Round: FK Bodo/Glimt vs NEC Nijmegen Bodo, Norway - Aspmyra Stadion Tue, 25 Aug 2026 21:00 Only a few tickets left From USD $ 99",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
       "event_id": "398738",
       "title": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al Riyadh Riyadh, Saudi Arabia - Al-Shabab Club Stadium Tue, 25 Aug 2026 21:00 Not Final Date not final",
       "event_date": "2026-08-25T21:00:00+00:00",
@@ -3106,28 +3072,6 @@
         "GLOBAL"
       ],
       "context_preview": "Football (Soccer) Crvena Zvezda ( Red Star Belgrade ) vs Partizan Belgrade Serbian League Stadion Rajko Mitic (Marakana) Belgrade, Serbia Sat, 05 Sep 2026",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 2,
-        "affiliate_readiness": 4,
-        "geo_fit": 2,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 23,
-      "recommended": false
-    },
-    {
-      "event_id": "387655",
-      "title": "Football (Soccer) Portugal vs Wales UEFA Nations League Est&aacute;dio Jos&eacute; Alvalade Lisbon, Portugal Thu, 24 Sep 2026",
-      "event_date": "2026-09-24T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/387655",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GLOBAL"
-      ],
-      "context_preview": "Football (Soccer) Portugal vs Wales UEFA Nations League Est&aacute;dio Jos&eacute; Alvalade Lisbon, Portugal Thu, 24 Sep 2026",
       "scores": {
         "search_intent": 5,
         "popularity": 2,
