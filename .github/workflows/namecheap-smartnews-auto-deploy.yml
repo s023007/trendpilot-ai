@@ -25,7 +25,7 @@ jobs:
   deploy-smartnews:
     if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     env:
       CPANEL_HOST: 198.54.120.162
       CPANEL_PORT: '21098'
@@ -58,6 +58,25 @@ jobs:
           print('SmartNews feed items:', len(items))
           PY
 
+      - name: Render SmartNews 700x100 PNG logo
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq librsvg2-bin
+          rsvg-convert -w 700 -h 100 images/smartnews-logo.svg -o /tmp/smartnews-logo.png
+          test -s /tmp/smartnews-logo.png
+          python3 - <<'PY'
+          import struct
+          data=open('/tmp/smartnews-logo.png','rb').read(24)
+          if data[:8] != b'\x89PNG\r\n\x1a\n':
+              raise SystemExit('Rendered SmartNews logo is not a PNG')
+          w,h=struct.unpack('>II',data[16:24])
+          if (w,h)!=(700,100):
+              raise SystemExit(f'Unexpected PNG dimensions: {w}x{h}')
+          print('SmartNews PNG logo:',w,'x',h)
+          PY
+
       - name: Configure SSH
         shell: bash
         run: |
@@ -81,44 +100,67 @@ jobs:
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Publish SmartNews feed and logo
+      - name: Publish SmartNews feed and PNG logo
         shell: bash
         run: |
           set -euo pipefail
           ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/images'"
-          tar -czf - smartnews.xml images/smartnews-logo.svg | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
-          ssh trendpilot-namecheap "test -s '$STATIC_ROOT/smartnews.xml' && test -s '$STATIC_ROOT/images/smartnews-logo.svg'"
+          cat smartnews.xml | ssh trendpilot-namecheap "cat > '$STATIC_ROOT/smartnews.xml'"
+          cat /tmp/smartnews-logo.png | ssh trendpilot-namecheap "cat > '$STATIC_ROOT/images/smartnews-logo.png'"
+          ssh trendpilot-namecheap "test -s '$STATIC_ROOT/smartnews.xml' && test -s '$STATIC_ROOT/images/smartnews-logo.png'"
 
-      - name: Verify public SmartNews URL
+      - name: Verify public SmartNews feed and logo
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import os, time, urllib.request, urllib.error, xml.etree.ElementTree as ET
+          import os, time, urllib.request, urllib.error, xml.etree.ElementTree as ET, struct
           origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
           run=os.environ.get('GITHUB_RUN_ID','')
-          url=origin+'/smartnews.xml'
-          last=None
-          for attempt in range(1,7):
-              req=urllib.request.Request(
-                  url+f'?deploy={run}-{attempt}',
-                  headers={'User-Agent':'TrendPilotSmartNewsVerifier/1.0','Cache-Control':'no-cache'}
-              )
-              try:
-                  with urllib.request.urlopen(req,timeout=25) as r:
-                      body=r.read()
-                      last=(r.status,body)
-                      if r.status==200:
-                          root=ET.fromstring(body)
-                          items=root.findall('./channel/item')
-                          if root.tag=='rss' and items:
-                              print('PUBLIC_SMARTNEWS_OK', url, 'items=', len(items))
-                              raise SystemExit(0)
-              except urllib.error.HTTPError as e:
-                  last=(e.code,b'')
-                  print('Attempt',attempt,'HTTP',e.code)
-              except Exception as e:
-                  print('Attempt',attempt,type(e).__name__,str(e))
-              time.sleep(5)
-          raise SystemExit(f'Public SmartNews feed verification failed: {last}')
+          feed_url=origin+'/smartnews.xml'
+          logo_url=origin+'/images/smartnews-logo.png'
+
+          def fetch(url, attempts=7):
+              last=None
+              for attempt in range(1,attempts+1):
+                  sep='&' if '?' in url else '?'
+                  req=urllib.request.Request(
+                      url+sep+f'deploy={run}-{attempt}',
+                      headers={'User-Agent':'TrendPilotSmartNewsVerifier/2.0','Cache-Control':'no-cache'}
+                  )
+                  try:
+                      with urllib.request.urlopen(req,timeout=25) as r:
+                          body=r.read()
+                          last=(r.status,r.headers.get('Content-Type',''),body)
+                          if r.status==200:
+                              return last
+                  except urllib.error.HTTPError as e:
+                      last=(e.code,e.headers.get('Content-Type',''),b'')
+                      print('Attempt',attempt,url,'HTTP',e.code)
+                  except Exception as e:
+                      print('Attempt',attempt,url,type(e).__name__,str(e))
+                  time.sleep(5)
+              return last
+
+          feed=fetch(feed_url)
+          if not feed or feed[0] != 200:
+              raise SystemExit(f'Public SmartNews feed verification failed: {feed}')
+          root=ET.fromstring(feed[2])
+          items=root.findall('./channel/item')
+          ns={'snf':'http://www.smartnews.be/snf'}
+          logo_node=root.find('./channel/snf:logo/url',ns)
+          if root.tag!='rss' or not items or logo_node is None or logo_node.text != logo_url:
+              raise SystemExit('Public SmartNews feed structure/logo URL is not ready')
+
+          logo=fetch(logo_url)
+          if not logo or logo[0] != 200:
+              raise SystemExit(f'Public SmartNews logo verification failed: {logo}')
+          body=logo[2]
+          if body[:8] != b'\x89PNG\r\n\x1a\n':
+              raise SystemExit('Public SmartNews logo is not a PNG')
+          w,h=struct.unpack('>II',body[16:24])
+          if (w,h)!=(700,100):
+              raise SystemExit(f'Public SmartNews logo dimensions are {w}x{h}, expected 700x100')
+          print('PUBLIC_SMARTNEWS_OK',feed_url,'items=',len(items))
+          print('PUBLIC_SMARTNEWS_LOGO_OK',logo_url,'dimensions=',f'{w}x{h}')
           PY
