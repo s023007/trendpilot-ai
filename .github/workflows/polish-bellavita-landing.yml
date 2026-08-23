@@ -1,0 +1,174 @@
+name: Polish BellaVita Paid Landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/polish-bellavita-landing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: polish-bellavita-paid-landing
+  cancel-in-progress: false
+
+jobs:
+  polish-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Polish conversion copy and move video near top
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          path=Path('offers/bellavita-her-n-more/index.html')
+          s=path.read_text(encoding='utf-8')
+
+          replacements={
+            '<div class="signal"><b>4.3★</b> TikTok Shop rating</div>':'<div class="signal"><b>4.3★</b> shopper rating</div>',
+            'Loading verified seller link…':'Loading current offer…',
+            'Affiliate disclosure: TrendPilot Choice may earn a commission if you buy through our seller link, at no extra cost to you. Price, stock, shipping and returns are confirmed on TikTok Shop. Marketplace signals above were checked Aug 23, 2026 and can change.':'Disclosure: We may earn from qualifying purchases, at no extra cost to you. Price, stock, shipping and return terms are confirmed on the seller page. Shopper signals above were checked Aug 23, 2026 and can change.',
+            'TikTok Shop’s current listing shows roughly eighty-five thousand sales for this variation.':'The current seller listing shows roughly eighty-five thousand sales for this variation.',
+            'Check the current seller, delivery terms and return eligibility on TikTok Shop when you open the offer.':'Check the current seller, delivery terms and return eligibility on the seller page when you open the offer.',
+            'Why does the price on TikTok sometimes differ from TrendPilot?':'Why can the price change after I click?',
+            'TikTok Shop pricing, coupons, flash promotions and availability can change quickly. TrendPilot shows partner-catalog information when available, but the seller page is the source of truth for the final price at checkout.':'Seller pricing, coupons, short promotions and availability can change quickly. TrendPilot shows the latest verified catalog information we have, but the seller page is the source of truth for the final checkout price.',
+            'Shipping and return eligibility depend on the current TikTok Shop listing, destination and order conditions. Confirm those details on TikTok before purchasing, especially because some buyers have reported packaging/leakage issues.':'Shipping and return eligibility depend on the current seller listing, destination and order conditions. Confirm those details on the seller page before purchasing, especially because some buyers have reported packaging/leakage issues.',
+            'Open the exact tracked TikTok Shop offer to confirm today’s price, stock, shipping and return terms. No forced redirect. You decide whether to continue.':'Check the seller page for today’s price, stock, shipping and return terms. Take a final look, then decide if this set feels right for you.',
+            'See today’s TikTok price →':'Check today’s price & availability →',
+            'Price & availability confirmed on TikTok Shop':'Final price & availability are shown on the seller page',
+            'Independent buying guidance • Affiliate links may earn us a commission':'Independent buying guidance • Some links help support TrendPilot Choice',
+            'Loading verified offer…':'Loading current offer…',
+            'Verified exact CJ product link • ':'Current offer verified • ',
+            'catalog status: ':'status: ',
+            'We disabled the seller button because the exact tracked offer could not be verified. We would rather lose a click than send you through an unverified affiliate route.':'We disabled the button because the current seller offer could not be verified. We would rather hide the link than send you to an uncertain destination.'
+          }
+          for old,new in replacements.items():
+            if old not in s:
+              print('NOTE replacement anchor not found:',old[:90])
+            s=s.replace(old,new)
+
+          video_block='''        <div class="video-card">\n          <div class="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/0QFP_97csOE" title="Official BellaVita women mini perfume gift-set video" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>\n          <div class="video-copy"><h3>See the mini-set idea in motion</h3><p>This is an official BellaVita video demonstrating the brand’s women’s mini perfume gift-set concept and four of the scents. <strong>It is not exact footage of the 8-bottle Her N’More package shown on this page.</strong> Her N’More contains 8 × 20ml bottles.</p></div>\n        </div>'''
+
+          if video_block not in s:
+            raise SystemExit('Expected video block not found')
+          s=s.replace(video_block,'',1)
+
+          # The old proof/video two-column section becomes a normal full-width proof section.
+          s=s.replace('<div class="wrap decision">\n        <div>\n          <div class="section-kicker">Real buying signals</div>',
+                      '<div class="wrap">\n        <div>\n          <div class="section-kicker">Real buying signals</div>',1)
+
+          early_video='''</section>\n\n    <section class="video-top" aria-label="BellaVita mini perfume video">\n      <div class="wrap">\n        <div class="video-card">\n          <div class="video-frame"><iframe src="https://www.youtube-nocookie.com/embed/0QFP_97csOE" title="Official BellaVita women mini perfume gift-set video" loading="eager" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>\n          <div class="video-copy"><h3>See the mini-perfume idea in motion</h3><p>A quick official BellaVita look at the mini-fragrance concept and four scents. Her N’More itself contains 8 × 20ml bottles, giving you more room to explore your favorites.</p></div>\n        </div>\n      </div>\n    </section>\n\n    <section id="why">'''
+          anchor='</section>\n\n    <section id="why">'
+          if anchor not in s:
+            raise SystemExit('Hero-to-why anchor not found')
+          s=s.replace(anchor,early_video,1)
+
+          css='.video-top{padding-top:8px;padding-bottom:22px}.video-top .video-card{max-width:880px;margin:0 auto}.video-top .video-copy{padding:17px 20px}'
+          if css not in s:
+            s=s.replace('  </style>',f'    {css}\n  </style>',1)
+
+          # Visible checkout language should stay retailer-neutral; internal analytics seller keys remain intact.
+          forbidden_visible=[
+            'Affiliate disclosure:',
+            'Verified exact CJ product link',
+            'See today’s TikTok price',
+            'Price & availability confirmed on TikTok Shop',
+            'TikTok Shop rating'
+          ]
+          for phrase in forbidden_visible:
+            if phrase in s:
+              raise SystemExit('Old visible phrase still present: '+phrase)
+
+          # Commercial safety: preserve the dynamic exact-offer loader and tracking click handler.
+          for required in ['./product-data.json','affiliate_outbound','class="cta js-buy"','youtube-nocookie.com/embed/0QFP_97csOE']:
+            if required not in s:
+              raise SystemExit('Required landing functionality missing: '+required)
+
+          path.write_text(s,encoding='utf-8')
+          print('Landing copy polish PASS')
+          PY
+
+      - name: Commit polished landing
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add offers/bellavita-her-n-more/index.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: simplify BellaVita landing copy and surface video earlier'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy polished offer page
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "mkdir -p '$STATIC_ROOT/offers/bellavita-her-n-more'"
+          scp offers/bellavita-her-n-more/index.html trendpilot-namecheap:"$STATIC_ROOT/offers/bellavita-her-n-more/index.html"
+          scp offers/bellavita-her-n-more/product-data.json trendpilot-namecheap:"$STATIC_ROOT/offers/bellavita-her-n-more/product-data.json"
+
+      - name: Verify public page
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import time, urllib.request
+          url='https://trendpilotchoice.com/offers/bellavita-her-n-more/?verify=copy-polish'
+          last=''
+          for i in range(6):
+            try:
+              req=urllib.request.Request(url+str(i),headers={'User-Agent':'TrendPilotLandingVerifier/1.0','Cache-Control':'no-cache'})
+              with urllib.request.urlopen(req,timeout=25) as r:
+                body=r.read().decode('utf-8','replace')
+              if r.status==200 and 'Check today’s price & availability' in body and 'video-top' in body and 'Verified exact CJ product link' not in body and 'See today’s TikTok price' not in body:
+                print('PUBLIC LANDING VERIFIED')
+                raise SystemExit(0)
+              last=f'HTTP {r.status}; expected markers missing'
+            except Exception as e:
+              last=str(e)
+            time.sleep(4)
+          raise SystemExit('Public landing verification failed: '+last)
+          PY
