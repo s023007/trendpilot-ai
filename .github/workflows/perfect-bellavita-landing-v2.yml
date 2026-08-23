@@ -1,0 +1,169 @@
+name: Final BellaVita Landing Polish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/perfect-bellavita-landing-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  polish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Rewrite landing for cleaner mobile conversion
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          p=Path('offers/bellavita-her-n-more/index.html')
+          s=p.read_text()
+
+          reps={
+            'Explore BellaVita Her N’More: 8 x 20ml mini perfumes for scent discovery, mood matching and gifting. See current TikTok Shop price, availability and buyer signals before you decide.':'Explore BellaVita Her N’More: eight 20ml mini perfumes for scent discovery, mood matching and gifting. See what is inside, buyer signals and current seller availability before you decide.',
+            'A practical scent wardrobe: 8 x 20ml BellaVita fragrances, current marketplace signals, what to know before buying, and a verified seller link.':'Eight mini BellaVita fragrances in one discovery set — see what is inside, who it suits, buyer signals and current availability.',
+            '✦ TrendPilot Choice • Scent discovery pick':'✦ 8-piece fragrance discovery set',
+            'Your scent can change with your mood. <em>Your bottle should let you.</em>':'Eight scents. One set. <em>Find the one that feels like you.</em>',
+            'BellaVita Her N’More puts eight 20ml fragrances in one set, so you can explore, switch, layer and discover what actually feels like <strong>you</strong> before committing to a shelf full of full-size bottles.':'BellaVita Her N’More gives you eight 20ml fragrances to try, rotate and explore — a simpler way to discover what you genuinely enjoy before choosing a larger bottle.',
+            'Eight little choices. One much easier way to find your signature scent.':'A mini fragrance wardrobe for different moods, plans and days.',
+            'Why this set works':'See why it stands out',
+            'Disclosure: We may earn from qualifying purchases, at no extra cost to you. Price, stock, shipping and return terms are confirmed on the seller page. Shopper signals above were checked Aug 23, 2026 and can change.':'Disclosure: Shopping links on this page are sponsored. Your purchase price is not increased. Ratings, sales and availability can change.',
+            'Verifying the exact product image…':'Loading the product image…',
+            'We only show the image tied to our tracked CJ product record.':'Showing the product image matched to this exact set.',
+            'Partner catalog price':'Recent catalog price',
+            'Confirm final price on TikTok':'Final price shown after you click',
+            'See the mini-perfume idea in motion':'See the mini set in under a minute',
+            'A quick official BellaVita look at the mini-fragrance concept and four scents. Her N’More itself contains 8 × 20ml bottles, giving you more room to explore your favorites.':'A quick official BellaVita look at the mini-fragrance idea. Her N’More expands that concept to 8 × 20ml bottles, giving you more scents to explore.',
+            'Why it is easy to want':'Why this set makes sense',
+            'It solves the most annoying perfume problem: choosing just one.':'Why choose one scent before you know your favorite?',
+            'A full bottle is a commitment. A scent wardrobe lets you learn what you reach for on real days — work days, date nights, weekends and those “I want to feel different today” moments.':'Try several scents across real days and moods first. The one you keep reaching for is usually the one worth buying bigger later.',
+            'Variety without eight full bottles':'Try more without eight full bottles',
+            'Eight 20ml fragrances give you room to explore without buying eight large bottles first.':'Eight 20ml bottles give you variety without eight full-size commitments.',
+            'Made for rotation':'Easy to rotate',
+            'Smaller bottles are easier to keep in a bag, on a desk or in your travel routine.':'Smaller bottles are easy to keep in a bag, on a desk or in a travel kit.',
+            'A gift that feels abundant':'A more exciting gift',
+            'Opening a set of eight creates more discovery than unwrapping one scent someone else chose for you.':'Eight scents make the unboxing feel more playful than one blind-picked bottle.',
+            'Built for scent experimenting':'Made for experimenting',
+            'Try each fragrance alone first, then explore combinations once you know what you enjoy.':'Wear them solo first, then try simple layering once you know what you like.',
+            'Eight fragrances, not eight mystery labels.':'Eight scents, clearly listed.',
+            'The current Her N’More listing identifies these eight 20ml fragrances. We do not invent note pyramids that are not supplied for this exact set.':'Her N’More currently lists these eight 20ml fragrances, so you know exactly what is included before you check the offer.',
+            'Pick a moment, then start exploring':'Pick a mood and start there',
+            'BellaVita’s official mini-set video gives four useful mood cues. Tap one to see the brand’s suggested starting scent.':'Tap a mood for a simple starting point inspired by BellaVita’s official mini-set video.',
+            'Choose a moment above — there is no “correct” perfume, only a useful place to start.':'Choose a mood above. There is no perfect answer — just an easy place to begin.',
+            'Real buying signals':'What buyers are telling us',
+            'Popularity is useful. Blind hype is not.':'Strong demand — with one thing to know.',
+            'The set has substantial marketplace proof, which lowers the “is anyone actually buying this?” uncertainty. But we still want you to know the downside before you click.':'The current listing shows substantial sales and review volume. That is useful reassurance, but it is not a reason to ignore the negatives.',
+            'units shown as sold':'shown as sold',
+            'One honest catch before you buy':'Worth knowing before you order',
+            'Some recent verified-purchase reviews mention leaking bottles or packaging/condition issues. That does not describe every order, but it is worth knowing. Check the current seller, delivery terms and return eligibility on the seller page when you open the offer.':'Some recent verified-purchase reviews mention leakage or packaging issues. It does not affect every order, but check the current return terms before buying.',
+            'Who this makes sense for':'A good fit if…',
+            'Probably a good fit if…':'This set may suit you if…',
+            'When to skip it':'Skip it if…',
+            'Probably not the best fit if…':'You may prefer something else if…',
+            'You need a guaranteed final price shown on this page — TikTok promotions can change.':'You need a guaranteed checkout price shown on this page — seller promotions can change.',
+            'Questions that stop people from clicking':'Before you decide',
+            'Clear answers before the seller page.':'Quick answers to the last few questions.',
+            'The decision':'Ready to explore?',
+            'Want eight chances to find the scent you keep reaching for?':'See whether this eight-scent set is right for you.',
+            'Check the seller page for today’s price, stock, shipping and return terms. Take a final look, then decide if this set feels right for you.':'Check today’s price, availability, delivery and return terms in one place before you decide.',
+            'Verifying exact CJ product tracking…':'Checking the current offer…',
+            'Independent buying guidance • Some links help support TrendPilot Choice':'Independent product guidance',
+            "a.textContent='Check today’s price & availability →'":"a.textContent='Check price & availability →'",
+            "a.textContent='Offer link is refreshing — please check back shortly'":"a.textContent='Offer is refreshing — please check back shortly'"
+          }
+          for a,b in reps.items(): s=s.replace(a,b)
+
+          # Remove the big fixed CTA and its CSS.
+          s=re.sub(r'\.sticky\{display:none;position:fixed.*?\.sticky small\{display:block;text-align:center;color:var\(--muted\);margin-top:5px\}', '', s, count=1)
+          s=s.replace(',.sticky{display:block}','')
+          s=re.sub(r'\n\s*<div class="sticky">.*?</div>\n','\n',s,count=1)
+          s=s.replace('footer{padding:34px 0 92px;','footer{padding:34px 0 44px;')
+
+          # Remove the redundant dark emotional section using the exact current block.
+          block='''
+    <section>
+      <div class="wrap">
+        <div class="emotion">
+          <div>
+            <h2>Perfume is not just what people smell. It is <em>how you decide to show up.</em></h2>
+            <p>Some mornings call for light and effortless. Some nights deserve something bolder. The appeal of Her N’More is not “own more perfume.” It is having a small wardrobe of choices instead of asking one bottle to fit every version of you.</p>
+          </div>
+          <div class="quote">“I don’t need one forever scent. I want to discover the one I keep reaching for.”</div>
+        </div>
+      </div>
+    </section>
+'''
+          if block not in s: raise SystemExit('Expected emotion block missing')
+          s=s.replace(block,'\n',1)
+
+          # Better mobile layout: cards readable, buttons inline rather than floating.
+          old='@media(max-width:480px){.wrap{width:min(100% - 22px,1120px)}.benefits,.scents,.moment-grid{grid-template-columns:1fr 1fr}.benefit,.scent{padding:15px}.product-stage{min-height:330px;border-radius:24px}.price-float{right:12px;bottom:12px}.signals{gap:6px}.signal{font-size:.8rem;padding:7px 9px}}'
+          new='@media(max-width:600px){.wrap{width:min(100% - 22px,1120px)}.benefits{grid-template-columns:1fr}.scents,.moment-grid{grid-template-columns:1fr 1fr}.benefit,.scent{padding:16px}.product-stage{min-height:325px;border-radius:24px}.price-float{right:12px;bottom:12px}.signals{gap:6px}.signal{font-size:.8rem;padding:7px 9px}.section-title{font-size:clamp(1.72rem,8.2vw,2.15rem);line-height:1.08}.hero h1{font-size:clamp(2.15rem,10.2vw,3.4rem);line-height:1.01}.cta{width:100%;min-height:50px}.cta.secondary{margin-left:0!important;margin-top:8px}.video-copy{padding:16px}.final-cta{padding:30px 20px}}'
+          if old not in s: raise SystemExit('Mobile CSS anchor missing')
+          s=s.replace(old,new,1)
+
+          # Add one calm mid-page CTA after the mood interaction.
+          anchor='<div id="momentAnswer">Choose a mood above. There is no perfect answer — just an easy place to begin.</div>'
+          if anchor not in s: raise SystemExit('Mood anchor missing')
+          s=s.replace(anchor,anchor+'\n        <div style="margin-top:18px"><a class="cta js-buy" href="#" aria-disabled="true" rel="sponsored nofollow noopener" target="_blank">Loading current offer…</a></div>',1)
+
+          # Replace visible technical status text.
+          old_status="status.textContent=`Current offer verified • ${d.availability?('status: '+d.availability.replaceAll('_',' ')):'check current stock on TikTok'} • refreshed ${new Date(d.fetchedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;"
+          new_status="status.textContent=`Offer checked ${new Date(d.fetchedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})} • final price and availability are shown after you click.`;"
+          if old_status not in s: raise SystemExit('Status anchor missing')
+          s=s.replace(old_status,new_status,1)
+
+          if 'class="sticky"' in s or '.sticky{' in s: raise SystemExit('Sticky remains')
+          if 'tracked CJ' in s or 'Verifying exact CJ' in s: raise SystemExit('Visible technical wording remains')
+          p.write_text(s)
+          print('FINAL LANDING POLISH PASS')
+          PY
+
+      - name: Commit
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add offers/bellavita-her-n-more/index.html
+          git commit -m 'feat: finalize BellaVita mobile landing page'
+          git pull --rebase origin main
+          git push origin HEAD:main
+
+      - name: Deploy
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/key
+          chmod 600 ~/.ssh/key
+          ssh -i ~/.ssh/key -o StrictHostKeyChecking=accept-new -p "$CPANEL_PORT" "$CPANEL_USER@$CPANEL_HOST" "mkdir -p '$STATIC_ROOT/offers/bellavita-her-n-more'"
+          scp -i ~/.ssh/key -o StrictHostKeyChecking=accept-new -P "$CPANEL_PORT" offers/bellavita-her-n-more/index.html "$CPANEL_USER@$CPANEL_HOST:$STATIC_ROOT/offers/bellavita-her-n-more/index.html"
+          scp -i ~/.ssh/key -o StrictHostKeyChecking=accept-new -P "$CPANEL_PORT" offers/bellavita-her-n-more/product-data.json "$CPANEL_USER@$CPANEL_HOST:$STATIC_ROOT/offers/bellavita-her-n-more/product-data.json"
+
+      - name: Verify live
+        run: |
+          python3 - <<'PY'
+          import time,urllib.request
+          u='https://trendpilotchoice.com/offers/bellavita-her-n-more/?qa=final'
+          for i in range(8):
+            try:
+              with urllib.request.urlopen(u+str(i),timeout=25) as r: b=r.read().decode('utf-8','replace')
+              ok=('Eight scents. One set.' in b and 'class="sticky"' not in b and 'Check price & availability' in b and 'See the mini set in under a minute' in b)
+              if ok:
+                print('LIVE FINAL QA PASS'); raise SystemExit(0)
+            except Exception as e: print(e)
+            time.sleep(4)
+          raise SystemExit('live QA failed')
+          PY
