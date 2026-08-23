@@ -1,0 +1,157 @@
+name: TrendPilot Traffic Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/traffic-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      DOMAIN: trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Aggregate web traffic (privacy-safe)
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          DOMAIN="trendpilotchoice.com"
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+
+          # Collect readable cPanel access logs for the domain, including rotations.
+          candidates=()
+          for p in \
+            "$HOME/access-logs/$DOMAIN" \
+            "$HOME/access-logs/$DOMAIN-ssl_log" \
+            "$HOME/logs/$DOMAIN" \
+            "$HOME/logs/$DOMAIN-ssl_log"; do
+            [ -r "$p" ] && candidates+=("$p")
+          done
+          while IFS= read -r f; do candidates+=("$f"); done < <(find "$HOME/access-logs" "$HOME/logs" -maxdepth 1 -type f \( -name "$DOMAIN*" -o -name "*$DOMAIN*" \) -readable 2>/dev/null | sort -u || true)
+
+          # De-duplicate paths.
+          printf '%s\n' "${candidates[@]:-}" | awk 'NF && !seen[$0]++' > "$tmp/files"
+          if [ ! -s "$tmp/files" ]; then
+            echo "TRAFFIC_AUDIT_ERROR=no_readable_access_logs_found"
+            echo "HOME=$HOME"
+            ls -la "$HOME" || true
+            ls -la "$HOME/access-logs" 2>/dev/null || true
+            exit 2
+          fi
+
+          while IFS= read -r f; do
+            case "$f" in
+              *.gz) gzip -cd -- "$f" >> "$tmp/all.log" || true ;;
+              *) cat -- "$f" >> "$tmp/all.log" || true ;;
+            esac
+          done < "$tmp/files"
+
+          python3 - "$tmp/all.log" <<'PY'
+          import sys,re,datetime,collections,urllib.parse,json
+          path=sys.argv[1]
+          now=datetime.datetime.now(datetime.timezone.utc)
+          cut24=now-datetime.timedelta(hours=24)
+          cut7=now-datetime.timedelta(days=7)
+          cut14=now-datetime.timedelta(days=14)
+          bot_re=re.compile(r'(bot|spider|crawler|slurp|bingpreview|facebookexternalhit|whatsapp|telegrambot|discordbot|linkedinbot|pinterestbot|applebot|bytespider|semrush|ahrefs|mj12bot|dotbot|petalbot|yandex)',re.I)
+          asset_re=re.compile(r'\.(?:css|js|mjs|png|jpe?g|gif|webp|svg|ico|woff2?|ttf|map|xml|txt|json|pdf|zip)(?:\?|$)',re.I)
+          log_re=re.compile(r'^(\S+) \S+ \S+ \[([^\]]+)\] "(\S+) ([^ ]+)(?: HTTP/[^\"]+)?" (\d{3}) (\S+) "([^\"]*)" "([^\"]*)"')
+          def parse_dt(s):
+              try:return datetime.datetime.strptime(s,'%d/%b/%Y:%H:%M:%S %z')
+              except:return None
+          def ref_domain(r):
+              if not r or r=='-': return '(direct/unknown)'
+              try:
+                  h=urllib.parse.urlparse(r).hostname or ''
+                  h=h.lower().removeprefix('www.')
+                  return h or '(direct/unknown)'
+              except:return '(direct/unknown)'
+          data={w:{'req':0,'human_pageviews':0,'human_ips':set(),'bots':0,'pages':collections.Counter(),'refs':collections.Counter(),'statuses':collections.Counter()} for w in ('24h','7d','prev7d')}
+          channel_domains=['t.me','telegram.me','bsky.app','mastodon.social','threads.net','linkedin.com','x.com','twitter.com','pinterest.com','facebook.com','reddit.com','dev.to','medium.com','flipboard.com','google.com','bing.com','duckduckgo.com','yahoo.com']
+          channels={w:collections.Counter() for w in data}
+          newest=None; oldest=None
+          with open(path,'r',errors='replace') as fh:
+              for line in fh:
+                  m=log_re.match(line)
+                  if not m: continue
+                  ip,ds,method,url,status,size,ref,ua=m.groups()
+                  dt=parse_dt(ds)
+                  if not dt: continue
+                  newest=dt if newest is None or dt>newest else newest
+                  oldest=dt if oldest is None or dt<oldest else oldest
+                  wins=[]
+                  if dt>=cut24: wins.append('24h')
+                  if dt>=cut7: wins.append('7d')
+                  elif cut14<=dt<cut7: wins.append('prev7d')
+                  if not wins: continue
+                  isbot=bool(bot_re.search(ua))
+                  u=urllib.parse.urlsplit(url).path or '/'
+                  ispage=(method in ('GET','HEAD') and status.startswith(('2','3')) and not asset_re.search(u))
+                  rd=ref_domain(ref)
+                  for w in wins:
+                      d=data[w]; d['req']+=1; d['statuses'][status]+=1
+                      if isbot: d['bots']+=1
+                      elif ispage:
+                          d['human_pageviews']+=1; d['human_ips'].add(ip); d['pages'][u]+=1; d['refs'][rd]+=1
+                          for dom in channel_domains:
+                              if rd==dom or rd.endswith('.'+dom): channels[w][dom]+=1
+          print('TRAFFIC_AUDIT_VERSION=1')
+          print('LOG_OLDEST_UTC='+ (oldest.isoformat() if oldest else 'none'))
+          print('LOG_NEWEST_UTC='+ (newest.isoformat() if newest else 'none'))
+          for w in ('24h','7d','prev7d'):
+              d=data[w]
+              print(f'WINDOW={w}')
+              print(f'  REQUESTS={d["req"]}')
+              print(f'  HUMAN_PAGEVIEWS={d["human_pageviews"]}')
+              print(f'  APPROX_UNIQUE_VISITORS={len(d["human_ips"])}')
+              print(f'  BOT_REQUESTS={d["bots"]}')
+              print('  TOP_PAGES='+json.dumps(d['pages'].most_common(12),ensure_ascii=False))
+              print('  TOP_REFERRERS='+json.dumps(d['refs'].most_common(15),ensure_ascii=False))
+              print('  CHANNEL_REFERRALS='+json.dumps(channels[w].most_common(),ensure_ascii=False))
+          # Simple week-over-week deltas for human pageviews and visitors.
+          p7=data['7d']['human_pageviews']; pprev=data['prev7d']['human_pageviews']
+          v7=len(data['7d']['human_ips']); vprev=len(data['prev7d']['human_ips'])
+          def delta(a,b):
+              if b==0: return 'NA' if a else '0.0%'
+              return f'{((a-b)/b)*100:.1f}%'
+          print('WOW_PAGEVIEWS_DELTA='+delta(p7,pprev))
+          print('WOW_VISITORS_DELTA='+delta(v7,vprev))
+          PY
+          REMOTE
