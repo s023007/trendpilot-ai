@@ -17,90 +17,58 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Resolve exact tracked BellaVita offer from CJ
-        env:
-          CJ_API_TOKEN_PRIMARY: ${{ secrets.CJ_API_TOKEN_PRIMARY }}
-          CJ_API_TOKEN_ALT1: ${{ secrets.CJ_API_TOKEN_ALT1 }}
-          CJ_API_TOKEN_ALT2: ${{ secrets.CJ_API_TOKEN_ALT2 }}
-          CJ_API_TOKEN_ALT3: ${{ secrets.CJ_API_TOKEN_ALT3 }}
-          CJ_COMPANY_ID_PRIMARY: ${{ secrets.CJ_COMPANY_ID_PRIMARY }}
-          CJ_COMPANY_ID_ALT1: ${{ secrets.CJ_COMPANY_ID_ALT1 }}
-          CJ_COMPANY_ID_ALT2: ${{ secrets.CJ_COMPANY_ID_ALT2 }}
-          CJ_WEBSITE_PID_PRIMARY: ${{ secrets.CJ_WEBSITE_PID_PRIMARY }}
-          CJ_WEBSITE_PID_ALT1: ${{ secrets.CJ_WEBSITE_PID_ALT1 }}
-          CJ_WEBSITE_PID_ALT2: ${{ secrets.CJ_WEBSITE_PID_ALT2 }}
+      - name: Resolve exact tracked BellaVita offer from committed qualified catalog
         run: |
           set -euo pipefail
           mkdir -p offers/bellavita-her-n-more
           node <<'NODE'
           const fs=require('fs');
-          const first=(...xs)=>xs.find(x=>String(x||'').trim())||'';
-          const token=first(process.env.CJ_API_TOKEN_PRIMARY,process.env.CJ_API_TOKEN_ALT1,process.env.CJ_API_TOKEN_ALT2,process.env.CJ_API_TOKEN_ALT3);
-          if(!token) throw new Error('Missing CJ API token');
-          const companyId=first(process.env.CJ_COMPANY_ID_PRIMARY,process.env.CJ_COMPANY_ID_ALT1,process.env.CJ_COMPANY_ID_ALT2,'5917965');
-          const pid=first(process.env.CJ_WEBSITE_PID_PRIMARY,process.env.CJ_WEBSITE_PID_ALT1,process.env.CJ_WEBSITE_PID_ALT2,'100655394');
-          const advertiserId='7563286';
-          const adId='17099898';
-          const terms=["BellaVita Luxury's Her N'More",'BellaVita Her N More','Her N More','BellaVita Luxury'];
           const clean=v=>String(v??'').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim();
+          const norm=s=>clean(s).toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim();
           const trackingHosts=/(?:^|\.)(?:anrdoezrs\.net|apmebf\.com|awltovhc\.com|commission-junction\.com|dpbolvw\.net|emjcd\.com|ftjcfx\.com|jdoqocy\.com|kqzyfj\.com|lduhtrp\.net|qksrv\.net|tkqlhce\.com)$/i;
           const tracked=v=>{try{return trackingHosts.test(new URL(clean(v)).hostname)}catch{return false}};
-          async function query(term){
-            const gql=`query PaidPerfumeAudit { shoppingProducts(companyId: ${JSON.stringify(companyId)}, adIds: [${adId}], keywords: [${JSON.stringify(term)}], limit: 100) { totalCount count resultList { advertiserId advertiserName catalogId id title description link imageLink brand availability condition price { amount currency } linkCode(pid: ${JSON.stringify(pid)}) { clickUrl } } } }`;
-            const r=await fetch('https://ads.api.cj.com/query',{method:'POST',headers:{authorization:`Bearer ${token}`,'content-type':'application/json',accept:'application/json','user-agent':'TrendPilot-Paid-Perfume-Audit/1.0'},body:JSON.stringify({query:gql})});
-            const raw=await r.text();
-            let p; try{p=JSON.parse(raw)}catch{throw new Error(`CJ non-JSON HTTP ${r.status}`)}
-            if(!r.ok) throw new Error(`CJ HTTP ${r.status}`);
-            if(p.errors?.length) throw new Error(p.errors.map(x=>x.message).join(' | '));
-            return p?.data?.shoppingProducts?.resultList||[];
-          }
-          const norm=s=>clean(s).toLowerCase().replace(/[’']/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-          (async()=>{
-            const all=[];
-            for(const term of terms){
-              for(const row of await query(term)){
-                if(clean(row.advertiserId)!==advertiserId) continue;
-                const key=`${row.catalogId}|${row.id}`;
-                if(!all.some(x=>`${x.catalogId}|${x.id}`===key)) all.push(row);
-              }
-            }
-            const candidates=all.map(row=>{
-              const title=clean(row.title), n=norm(title);
-              let score=0;
-              if(n.includes('her n more')||n.includes('her nmore')) score+=100;
-              if(n.includes('bella vita')||n.includes('bellavita')) score+=30;
-              if(n.includes('8')&&n.includes('20ml')) score+=20;
-              if(n.includes('perfume')&&n.includes('gift')) score+=10;
-              if(clean(row.brand).toLowerCase().includes('bella')) score+=10;
-              return {row,score};
-            }).filter(x=>tracked(x.row?.linkCode?.clickUrl)&&clean(x.row.imageLink));
-            candidates.sort((a,b)=>b.score-a.score);
-            if(!candidates.length||candidates[0].score<100) throw new Error(`Exact Her N More tracked offer not found; candidates=${candidates.length}`);
-            const row=candidates[0].row;
-            const out={
-              schemaVersion:'paid-campaign-product-v1',
-              campaign:'TP-PIN-US-PERFUME-01',
-              fetchedAt:new Date().toISOString(),
-              advertiserId,
-              adId,
-              seller:'TikTok Shop US',
-              sellerProductId:clean(row.id),
-              catalogId:clean(row.catalogId),
-              title:clean(row.title),
-              brand:clean(row.brand)||'BellaVita Luxury',
-              description:clean(row.description),
-              price:Number(row?.price?.amount||0)||null,
-              currency:clean(row?.price?.currency)||'USD',
-              availability:clean(row.availability),
-              condition:clean(row.condition),
-              imageUrl:clean(row.imageLink),
-              affiliateUrl:clean(row.linkCode.clickUrl),
-              destinationUrl:clean(row.link),
-              trackingPolicy:'exact CJ linkCode.clickUrl; do not modify'
-            };
-            fs.writeFileSync('offers/bellavita-her-n-more/product-data.json',JSON.stringify(out,null,2)+'\n');
-            console.log(JSON.stringify({...out,affiliateUrl:'[tracked URL recorded]',destinationUrl:'[destination recorded]'},null,2));
-          })().catch(e=>{console.error(e);process.exit(1)});
+          const sourcePath='data/source-ingestion-v19/tiktok-shop-us-live-catalog.json';
+          if(!fs.existsSync(sourcePath)) throw new Error('Committed TikTok Shop source catalog missing');
+          const source=JSON.parse(fs.readFileSync(sourcePath,'utf8'));
+          const rows=Array.isArray(source.products)?source.products:[];
+          const scored=rows.map(row=>{
+            const n=norm(row.title);
+            let score=0;
+            if(n.includes('her n more')||n.includes('her nmore')) score+=120;
+            if(n.includes('bella vita')||n.includes('bellavita')) score+=30;
+            if(n.includes('8')&&n.includes('20ml')) score+=20;
+            if(n.includes('perfume')&&n.includes('gift')) score+=10;
+            if(norm(row.brand).includes('bellavita')) score+=10;
+            return {row,score};
+          }).filter(x=>x.score>=120&&tracked(x.row.affiliateUrl)&&/^https?:/i.test(clean(x.row.imageUrl||x.row.image)));
+          scored.sort((a,b)=>b.score-a.score);
+          if(!scored.length) throw new Error('Exact Her N More tracked offer not found in committed TikTok source catalog');
+          const row=scored[0].row;
+          const out={
+            schemaVersion:'paid-campaign-product-v1',
+            campaign:'TP-PIN-US-PERFUME-01',
+            fetchedAt:new Date().toISOString(),
+            sourceCatalogGeneratedAt:source.generatedAt||'',
+            advertiserId:clean(row.advertiserId)||'7563286',
+            adId:'17099898',
+            seller:'TikTok Shop US',
+            sellerProductId:clean(row.sourceProductId||row.id),
+            catalogId:clean(row.catalogId),
+            title:clean(row.title),
+            brand:clean(row.brand)||'BellaVita Luxury',
+            description:clean(row.description),
+            price:Number(row.price||0)||null,
+            currency:clean(row.currency)||'USD',
+            availability:clean(row.availability),
+            condition:clean(row.condition),
+            imageUrl:clean(row.imageUrl||row.image),
+            affiliateUrl:clean(row.affiliateUrl),
+            destinationUrl:clean(row.destinationUrl),
+            trackingPolicy:'exact committed CJ affiliateUrl from qualified TikTok Shop catalog; do not modify',
+            priceFreshnessNote:'Partner-catalog snapshot; final current price and stock must be confirmed on TikTok Shop.'
+          };
+          fs.writeFileSync('offers/bellavita-her-n-more/product-data.json',JSON.stringify(out,null,2)+'\n');
+          console.log(JSON.stringify({...out,affiliateUrl:'[tracked URL recorded]',destinationUrl:'[destination recorded]'},null,2));
           NODE
 
       - name: Validate safe campaign product data
@@ -111,8 +79,9 @@ jobs:
           if(!/Her N.?More/i.test(d.title)) throw new Error('Wrong product title');
           if(!/^https?:/.test(d.imageUrl)) throw new Error('Missing image');
           if(!/^https?:/.test(d.affiliateUrl)) throw new Error('Missing tracked URL');
-          if(!/(jdoqocy|kqzyfj|dpbolvw|tkqlhce|anrdoezrs|emjcd|qksrv|apmebf|awltovhc|ftjcfx|lduhtrp)\.com/i.test(new URL(d.affiliateUrl).hostname)) throw new Error('Non-CJ tracking host');
-          console.log('Exact paid-campaign product data validated.');
+          const host=new URL(d.affiliateUrl).hostname;
+          if(!/(jdoqocy|kqzyfj|dpbolvw|tkqlhce|anrdoezrs|emjcd|qksrv|apmebf|awltovhc|ftjcfx|lduhtrp)\.(?:com|net)$/i.test(host)) throw new Error('Non-CJ tracking host: '+host);
+          console.log('Exact paid-campaign product data validated:',d.title,d.price,d.currency,d.availability,host);
           NODE
 
       - name: Commit exact safe product data
@@ -126,4 +95,5 @@ jobs:
             exit 0
           fi
           git commit -m 'data: refresh BellaVita paid campaign offer'
+          git pull --rebase origin main
           git push origin HEAD:main
