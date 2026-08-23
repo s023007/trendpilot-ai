@@ -1,0 +1,133 @@
+name: Namecheap Offers Auto Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'offers/**'
+      - '.github/workflows/namecheap-offers-auto-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: namecheap-offers-auto-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-offers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Commercial readiness gate
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f offers/bellavita-her-n-more/index.html
+          if [ ! -f offers/bellavita-her-n-more/product-data.json ]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Exact CJ product data has not landed yet; skip deployment rather than publish an unmonetized CTA.'
+            exit 0
+          fi
+          node <<'NODE'
+          const d=require('./offers/bellavita-her-n-more/product-data.json');
+          if(!/Her N.?More/i.test(d.title||'')) throw new Error('Wrong product');
+          if(!/^https?:/.test(d.imageUrl||'')) throw new Error('Missing exact image');
+          const u=new URL(d.affiliateUrl||'');
+          if(!/(jdoqocy|kqzyfj|dpbolvw|tkqlhce|anrdoezrs|emjcd|qksrv|apmebf|awltovhc|ftjcfx|lduhtrp)\.com$/i.test(u.hostname)) throw new Error('Unverified CJ tracking host');
+          console.log('Commercial readiness PASS:',d.title,d.price,d.currency,d.availability);
+          NODE
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+
+      - name: Configure SSH
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy paid offer pages
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/offers'"
+          tar -czf - offers | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+          ssh trendpilot-namecheap "test -f '$STATIC_ROOT/offers/bellavita-her-n-more/index.html'"
+          ssh trendpilot-namecheap "test -f '$STATIC_ROOT/offers/bellavita-her-n-more/product-data.json'"
+
+      - name: Verify live landing and tracked product data
+        if: steps.gate.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, time, urllib.request
+          origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
+          run=os.environ.get('GITHUB_RUN_ID','')
+          def get(path,tries=5):
+              last=None
+              for i in range(tries):
+                  req=urllib.request.Request(origin+path+('?' if '?' not in path else '&')+f'deploy={run}-{i}',headers={'User-Agent':'TrendPilotOffersVerifier/1.0','Cache-Control':'no-cache'})
+                  try:
+                      with urllib.request.urlopen(req,timeout=30) as r:
+                          body=r.read().decode('utf-8','replace')
+                          if r.status==200:return body
+                  except Exception as e:last=e
+                  time.sleep(4)
+              raise SystemExit(f'Public verification failed for {path}: {last}')
+          html=get('/offers/bellavita-her-n-more/')
+          if 'Your scent can change with your mood' not in html or 'See today' not in html:
+              raise SystemExit('Landing page signature missing')
+          raw=get('/offers/bellavita-her-n-more/product-data.json')
+          d=json.loads(raw)
+          if 'Her N' not in d.get('title',''):raise SystemExit('Wrong live product JSON')
+          host=urllib.parse.urlparse(d.get('affiliateUrl','')).hostname or ''
+          allowed=('jdoqocy.com','kqzyfj.com','dpbolvw.net','tkqlhce.com','anrdoezrs.net','emjcd.com','qksrv.net','apmebf.com','awltovhc.com','ftjcfx.com','lduhtrp.net')
+          if not any(host==x or host.endswith('.'+x) for x in allowed):raise SystemExit('Live tracked host failed')
+          print(json.dumps({'landing':origin+'/offers/bellavita-her-n-more/','title':d.get('title'),'price':d.get('price'),'currency':d.get('currency'),'availability':d.get('availability'),'fetchedAt':d.get('fetchedAt'),'trackingHost':host},indent=2))
+          PY
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Paid offer deployment" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Commercial gate: **${{ steps.gate.outputs.ready || 'false' }}**" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Landing: https://trendpilotchoice.com/offers/bellavita-her-n-more/" >> "$GITHUB_STEP_SUMMARY"
+          if [ "${{ steps.gate.outputs.ready }}" != 'true' ]; then
+            echo '- Deployment intentionally skipped until exact CJ product-data.json exists.' >> "$GITHUB_STEP_SUMMARY"
+          fi
