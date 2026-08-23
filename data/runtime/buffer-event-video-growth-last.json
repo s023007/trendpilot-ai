@@ -1,13 +1,8 @@
 {
-  "generated_at": "2026-08-23T04:49:42.756Z",
-  "event_name": "workflow_run",
+  "generated_at": "2026-08-23T08:57:36.611Z",
+  "event_name": "schedule",
   "status": "nothing-new",
   "channels": [
-    {
-      "service": "pinterest",
-      "name": "trendpilotchoice",
-      "paused": false
-    },
     {
       "service": "youtube",
       "name": "Trendpilotchoice",
@@ -17,15 +12,16 @@
       "service": "tiktok",
       "name": "trendpilot.ai",
       "paused": false
+    },
+    {
+      "service": "pinterest",
+      "name": "trendpilotchoice",
+      "paused": false
     }
   ],
   "posts": [
     {
       "service": "tiktok",
-      "status": "nothing-new"
-    },
-    {
-      "service": "youtube",
       "status": "nothing-new"
     }
   ],
