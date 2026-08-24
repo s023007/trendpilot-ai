@@ -1,0 +1,135 @@
+name: BellaVita Correct Signature Pin v2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bellavita-correct-signature-pin-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Freeze Canva creative as a stable site asset
+        shell: bash
+        env:
+          CANVA_URL: "https://media.canva.com/v2/document-image/hash:-1237386637/height:547/id:DAHTJLHm_ig/type:B/width:365?brand=BAGXuDAhsfg&csig=AAAAAAAAAAAAAAAAAAAAAIYlaDiaJlqIH9BHabzKTwBXrVj3LciOgEN6SpeJhFJS&disableexport=T&exp=1787567638&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FHm_ig%2FDAHTJLHm_ig%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUH4GDRW44L%252F20260823%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260823T203054Z%26X-Amz-Expires%3D50584%26X-Amz-Signature%3D2fb89ab53fe893c6f21dea7b1153b08e84c9191f1e948064bc89a3a9947b1de9%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DMon%252C%252024%2520Aug%25202026%252010%253A33%253A58%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAALuG2Xq3U7X2KVpSJl9uxLTdLjidLUkl3vNIdcCYLnw&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1"
+        run: |
+          set -euo pipefail
+          mkdir -p offers/bellavita-her-n-more/assets
+          curl -fL --retry 3 --retry-delay 2 "$CANVA_URL" -o offers/bellavita-her-n-more/assets/signature-scent-canva.png
+          test -s offers/bellavita-her-n-more/assets/signature-scent-canva.png
+          file offers/bellavita-her-n-more/assets/signature-scent-canva.png
+          file --mime-type -b offers/bellavita-her-n-more/assets/signature-scent-canva.png | grep -q '^image/'
+
+          git config user.name 'trendpilot-bellavita-buffer-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add offers/bellavita-her-n-more/assets/signature-scent-canva.png
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: freeze BellaVita signature Canva creative'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Wait for stable image on TrendPilot Choice
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE_URL='https://trendpilotchoice.com/offers/bellavita-her-n-more/assets/signature-scent-canva.png'
+          LOCAL='offers/bellavita-her-n-more/assets/signature-scent-canva.png'
+          LOCAL_HASH=$(sha256sum "$LOCAL" | awk '{print $1}')
+          ok=0
+          for i in $(seq 1 42); do
+            code=$(curl -L -sS -o /tmp/signature.png -w '%{http_code}' "$IMAGE_URL" || true)
+            if [ "$code" = '200' ] && [ -s /tmp/signature.png ]; then
+              remote_hash=$(sha256sum /tmp/signature.png | awk '{print $1}')
+              mime=$(file --mime-type -b /tmp/signature.png || true)
+              if [ "$remote_hash" = "$LOCAL_HASH" ] && [[ "$mime" == image/* ]]; then
+                ok=1
+                break
+              fi
+            fi
+            sleep 10
+          done
+          if [ "$ok" != '1' ]; then
+            echo 'Stable Canva creative did not deploy in time.' >&2
+            exit 1
+          fi
+
+      - name: Publish correct Signature Scent Pin through Buffer
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const apiKey=process.env.BUFFER_API_KEY;
+          if(!apiKey) throw new Error('BUFFER_API_KEY is missing');
+          const statePath='data/runtime/bellavita-signature-correct-v2.json';
+          fs.mkdirSync('data/runtime',{recursive:true});
+          let state={version:2,published:false,attempts:[]};
+          try{state=JSON.parse(fs.readFileSync(statePath,'utf8'))}catch{}
+          if(state.published&&state.buffer_post_id&&state.buffer_status==='sent'){
+            console.log('Already sent',state.buffer_post_id); process.exit(0);
+          }
+          const targetBoard='Perfume & Beauty Finds';
+          const title='Find the scent that feels like you';
+          const text='Eight mini perfumes in one discovery set. Explore different scents for different moods and discover which one feels most like you.';
+          const targetUrl='https://trendpilotchoice.com/offers/bellavita-her-n-more/?utm_source=pinterest&utm_medium=organic_social&utm_campaign=TP-PIN-US-PERFUME-01&utm_content=signature_scent_designed';
+          const imageUrl='https://trendpilotchoice.com/offers/bellavita-her-n-more/assets/signature-scent-canva.png';
+          async function gql(query,variables={}){
+            const r=await fetch('https://api.buffer.com',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},body:JSON.stringify({query,variables})});
+            const raw=await r.text(); let body; try{body=JSON.parse(raw)}catch{throw new Error(`Buffer non-JSON ${r.status}: ${raw.slice(0,300)}`)}
+            if(!r.ok||body.errors?.length) throw new Error(`Buffer ${r.status}: ${JSON.stringify(body)}`);
+            return body.data;
+          }
+          (async()=>{
+            const account=await gql('query { account { organizations { id name } } }');
+            let channel=null;
+            for(const org of account?.account?.organizations||[]){
+              const d=await gql(`query Channels($org: OrganizationId!) { channels(input:{organizationId:$org}) { id name displayName service isQueuePaused } }`,{org:org.id});
+              channel=(d?.channels||[]).find(c=>String(c.service).toLowerCase()==='pinterest'); if(channel) break;
+            }
+            if(!channel) throw new Error('Pinterest is not connected in Buffer');
+            if(channel.isQueuePaused) throw new Error('Pinterest queue is paused in Buffer');
+            const detail=await gql(`query Pinterest($id: ChannelId!) { channel(input:{id:$id}) { id metadata { ... on PinterestMetadata { boards { id name serviceId url } } } } }`,{id:channel.id});
+            const boards=detail?.channel?.metadata?.boards||[];
+            const board=boards.find(b=>String(b.name).trim().toLowerCase()===targetBoard.toLowerCase());
+            if(!board) throw new Error(`Board not found: ${targetBoard}`);
+            const data=await gql(`mutation CreatePost($input: CreatePostInput!) { createPost(input:$input) { __typename ... on PostActionSuccess { post { id text dueAt status channelId channelService } } ... on MutationError { message } ... on InvalidInputError { message } ... on UnauthorizedError { message } ... on UnexpectedError { message } ... on RestProxyError { message } ... on LimitReachedError { message } } }`,{input:{text,channelId:channel.id,schedulingType:'automatic',mode:'shareNow',saveToDraft:false,needsApproval:false,aiAssisted:false,source:'trendpilot-bellavita-signature-v2',assets:[{image:{url:imageUrl,metadata:{altText:'BellaVita Her N More — Find the scent that feels like you, 8 mini perfumes, 20ml each'}}}],metadata:{pinterest:{boardServiceId:board.serviceId,title,url:targetUrl}}}});
+            const p=data?.createPost;
+            if(!p||p.__typename!=='PostActionSuccess'||!p.post?.id) throw new Error(p?.message||p?.__typename||'Buffer returned no post ID');
+            state={version:2,published:p.post.status==='sent',published_at:new Date().toISOString(),buffer_post_id:p.post.id,buffer_status:p.post.status,dueAt:p.post.dueAt||null,board:{name:board.name,serviceId:board.serviceId,url:board.url||null},title,text,target_url:targetUrl,image_url:imageUrl,creative:'signature_scent_designed',campaign:'TP-PIN-US-PERFUME-01',attempts:state.attempts||[]};
+            fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');
+            console.log('BELLA_VITA_SIGNATURE_V2_RESULT',JSON.stringify(state));
+            if(p.post.status==='error') throw new Error('Buffer created the post but Pinterest returned error status');
+          })().catch(err=>{
+            state.attempts=[...(state.attempts||[]),{at:new Date().toISOString(),status:'error',error:err?.message||String(err)}];
+            fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');
+            console.error(err?.message||String(err)); process.exitCode=1;
+          });
+          NODE
+
+      - name: Persist publication state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-bellavita-buffer-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git pull --rebase origin main
+          git add data/runtime/bellavita-signature-correct-v2.json || true
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record corrected BellaVita signature Pin'
+          git push origin HEAD:main
