@@ -1,4 +1,4 @@
-name: BellaVita Signature Direct Raw
+name: BellaVita Signature Canva Real
 
 on:
   push:
@@ -23,27 +23,16 @@ jobs:
           ref: main
           fetch-depth: 2
 
-      - name: Cancel older in-progress signature workflow
-        env:
-          GH_TOKEN: ${{ github.token }}
+      - name: Verify actual Canva creative is reachable
         shell: bash
         run: |
           set -euo pipefail
-          ids=$(gh run list --repo "${{ github.repository }}" --workflow bellavita-correct-signature-pin-v2.yml --status in_progress --json databaseId --jq '.[].databaseId' || true)
-          for id in $ids; do
-            gh run cancel "$id" --repo "${{ github.repository }}" || true
-          done
+          IMAGE_URL='https://s3.amazonaws.com/document-export.canva.com/JabQo/DAHTKfJabQo/1/thumbnail/0001.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQYCGKMUH4GDRW44L%2F20260823%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260823T165831Z&X-Amz-Expires=63903&X-Amz-Signature=f628f544b3eb5719454a1c90aa49009c545d904ee515bca3f352e773e83332bb&X-Amz-SignedHeaders=host&response-expires=Mon%2C%2024%20Aug%202026%2010%3A43%3A34%20GMT'
+          curl -fL --retry 5 --retry-delay 2 "$IMAGE_URL" -o /tmp/bellavita-canva-real.png
+          test -s /tmp/bellavita-canva-real.png
+          file --mime-type -b /tmp/bellavita-canva-real.png | grep -q '^image/'
 
-      - name: Verify frozen creative is publicly reachable
-        shell: bash
-        run: |
-          set -euo pipefail
-          IMAGE_URL='https://raw.githubusercontent.com/s023007/trendpilot-ai/main/offers/bellavita-her-n-more/assets/signature-scent-canva.png'
-          curl -fL --retry 5 --retry-delay 2 "$IMAGE_URL" -o /tmp/signature-scent-canva.png
-          test -s /tmp/signature-scent-canva.png
-          file --mime-type -b /tmp/signature-scent-canva.png | grep -q '^image/'
-
-      - name: Publish corrected signature Pin
+      - name: Publish actual designed BellaVita Pin
         shell: bash
         run: |
           set -euo pipefail
@@ -51,7 +40,7 @@ jobs:
           const fs=require('fs');
           const apiKey=process.env.BUFFER_API_KEY;
           if(!apiKey) throw new Error('BUFFER_API_KEY is missing');
-          const statePath='data/runtime/bellavita-signature-direct-raw.json';
+          const statePath='data/runtime/bellavita-signature-canva-real.json';
           fs.mkdirSync('data/runtime',{recursive:true});
           let state={version:1,published:false,attempts:[]};
           try{state=JSON.parse(fs.readFileSync(statePath,'utf8'))}catch{}
@@ -59,10 +48,10 @@ jobs:
             console.log('Already sent',state.buffer_post_id); process.exit(0);
           }
           const targetBoard='Perfume & Beauty Finds';
-          const title='Find the scent that feels like you';
-          const text='Eight mini perfumes in one discovery set. Explore different scents for different moods and discover which one feels most like you.';
-          const targetUrl='https://trendpilotchoice.com/offers/bellavita-her-n-more/?utm_source=pinterest&utm_medium=organic_social&utm_campaign=TP-PIN-US-PERFUME-01&utm_content=signature_scent_designed_v2';
-          const imageUrl='https://raw.githubusercontent.com/s023007/trendpilot-ai/main/offers/bellavita-her-n-more/assets/signature-scent-canva.png';
+          const title='Which scent feels like you? 8 minis to try';
+          const text='Eight mini perfumes in one discovery set. Explore different scents for different moods and find the one that feels most like you.';
+          const targetUrl='https://trendpilotchoice.com/offers/bellavita-her-n-more/?utm_source=pinterest&utm_medium=organic_social&utm_campaign=TP-PIN-US-PERFUME-01&utm_content=signature_scent_canva_real_v3';
+          const imageUrl='https://s3.amazonaws.com/document-export.canva.com/JabQo/DAHTKfJabQo/1/thumbnail/0001.png?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAQYCGKMUH4GDRW44L%2F20260823%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20260823T165831Z&X-Amz-Expires=63903&X-Amz-Signature=f628f544b3eb5719454a1c90aa49009c545d904ee515bca3f352e773e83332bb&X-Amz-SignedHeaders=host&response-expires=Mon%2C%2024%20Aug%202026%2010%3A43%3A34%20GMT';
           async function gql(query,variables={}){
             const r=await fetch('https://api.buffer.com',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},body:JSON.stringify({query,variables})});
             const raw=await r.text(); let body; try{body=JSON.parse(raw)}catch{throw new Error(`Buffer non-JSON ${r.status}: ${raw.slice(0,300)}`)}
@@ -82,12 +71,12 @@ jobs:
             const boards=detail?.channel?.metadata?.boards||[];
             const board=boards.find(b=>String(b.name).trim().toLowerCase()===targetBoard.toLowerCase());
             if(!board) throw new Error(`Board not found: ${targetBoard}`);
-            const data=await gql(`mutation CreatePost($input: CreatePostInput!) { createPost(input:$input) { __typename ... on PostActionSuccess { post { id text dueAt status channelId channelService } } ... on MutationError { message } ... on InvalidInputError { message } ... on UnauthorizedError { message } ... on UnexpectedError { message } ... on RestProxyError { message } ... on LimitReachedError { message } } }`,{input:{text,channelId:channel.id,schedulingType:'automatic',mode:'shareNow',saveToDraft:false,needsApproval:false,aiAssisted:false,source:'trendpilot-bellavita-signature-direct-raw',assets:[{image:{url:imageUrl,metadata:{altText:'BellaVita Her N More — Find the scent that feels like you. Eight mini perfumes, 20ml each.'}}}],metadata:{pinterest:{boardServiceId:board.serviceId,title,url:targetUrl}}}});
+            const data=await gql(`mutation CreatePost($input: CreatePostInput!) { createPost(input:$input) { __typename ... on PostActionSuccess { post { id text dueAt status channelId channelService } } ... on MutationError { message } ... on InvalidInputError { message } ... on UnauthorizedError { message } ... on UnexpectedError { message } ... on RestProxyError { message } ... on LimitReachedError { message } } }`,{input:{text,channelId:channel.id,schedulingType:'automatic',mode:'shareNow',saveToDraft:false,needsApproval:false,aiAssisted:false,source:'trendpilot-bellavita-signature-canva-real',assets:[{image:{url:imageUrl,metadata:{altText:'BellaVita Her N More — Find the scent that feels like you. Eight mini perfumes in a designed Pinterest creative.'}}}],metadata:{pinterest:{boardServiceId:board.serviceId,title,url:targetUrl}}}});
             const p=data?.createPost;
             if(!p||p.__typename!=='PostActionSuccess'||!p.post?.id) throw new Error(p?.message||p?.__typename||'Buffer returned no post ID');
-            state={version:1,published:p.post.status==='sent',published_at:new Date().toISOString(),buffer_post_id:p.post.id,buffer_status:p.post.status,dueAt:p.post.dueAt||null,board:{name:board.name,serviceId:board.serviceId,url:board.url||null},title,text,target_url:targetUrl,image_url:imageUrl,creative:'signature_scent_designed_v2',campaign:'TP-PIN-US-PERFUME-01',attempts:state.attempts||[]};
+            state={version:1,published:p.post.status==='sent',published_at:new Date().toISOString(),buffer_post_id:p.post.id,buffer_status:p.post.status,dueAt:p.post.dueAt||null,board:{name:board.name,serviceId:board.serviceId,url:board.url||null},title,text,target_url:targetUrl,image_url:imageUrl,creative:'signature_scent_canva_real_v3',canva_design_id:'DAHTKfJabQo',campaign:'TP-PIN-US-PERFUME-01',attempts:state.attempts||[]};
             fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');
-            console.log('BELLA_VITA_SIGNATURE_DIRECT_RAW_RESULT',JSON.stringify(state));
+            console.log('BELLA_VITA_SIGNATURE_CANVA_REAL_RESULT',JSON.stringify(state));
             if(p.post.status==='error') throw new Error('Pinterest returned error status');
           })().catch(err=>{
             state.attempts=[...(state.attempts||[]),{at:new Date().toISOString(),status:'error',error:err?.message||String(err)}];
@@ -96,7 +85,7 @@ jobs:
           });
           NODE
 
-      - name: Persist corrected publication state
+      - name: Persist Canva publication state
         if: always()
         shell: bash
         run: |
@@ -104,7 +93,7 @@ jobs:
           git config user.name 'trendpilot-bellavita-buffer-bot'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git pull --rebase origin main
-          git add data/runtime/bellavita-signature-direct-raw.json || true
+          git add data/runtime/bellavita-signature-canva-real.json || true
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m 'chore: record BellaVita signature direct-raw publication'
+          git commit -m 'chore: record BellaVita actual Canva publication'
           git push origin HEAD:main
