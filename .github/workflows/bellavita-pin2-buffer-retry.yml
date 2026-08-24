@@ -1,0 +1,21 @@
+name: BellaVita Pin 2 Buffer Board Retry
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retry exact-board BellaVita publisher
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run bellavita-pin2-perfume-board.yml --repo "${{ github.repository }}" --ref main
