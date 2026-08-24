@@ -1,0 +1,93 @@
+name: BellaVita Pin 2 to Perfume Board
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bellavita-pin2-perfume-board.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Publish BellaVita moods Pin to Perfume & Beauty Finds
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const statePath='data/runtime/bellavita-pin2-perfume-board.json';
+          fs.mkdirSync('data/runtime',{recursive:true});
+          let state={version:1,published:false,attempts:[]};
+          try{state=JSON.parse(fs.readFileSync(statePath,'utf8'))}catch{}
+          if(state.published&&state.buffer_post_id){console.log('Already sent',state.buffer_post_id);process.exit(0)}
+          const apiKey=process.env.BUFFER_API_KEY;
+          if(!apiKey) throw new Error('BUFFER_API_KEY is missing');
+          const product=JSON.parse(fs.readFileSync('offers/bellavita-her-n-more/product-data.json','utf8'));
+          const targetBoard='Perfume & Beauty Finds';
+          const title='8 scents for different moods';
+          const text='Eight mini perfumes, eight different moods. Explore the BellaVita Her N’More discovery set and compare what is included before you buy.';
+          const targetUrl='https://trendpilotchoice.com/offers/bellavita-her-n-more/?utm_source=pinterest&utm_medium=organic_social&utm_campaign=TP-PIN-US-PERFUME-01&utm_content=8_scents_8_moods';
+          const creativePrimary='https://media.canva.com/v2/document-image/hash:-1283563370/height:547/id:DAHTJBhqUEs/type:B/width:365?brand=BAGXuDAhsfg&csig=AAAAAAAAAAAAAAAAAAAAACZp5_uu5ZvOyXmSYt7dF3UF0Pv9uQxZxs65FkCo4azW&disableexport=T&exp=1787554555&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FhqUEs%2FDAHTJBhqUEs%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUH4GDRW44L%252F20260823%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260823T193622Z%26X-Amz-Expires%3D40773%26X-Amz-Signature%3Df2c84ff9fd58ce04299568e1b65abf20398e2e26a6e8743f6ad40e5da74476e9%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DMon%252C%252024%2520Aug%25202026%252006%253A55%253A55%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAGilL6tErUl32Tk9v_WtY7WxYncZ3KUF0fKynsi-d3n1&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1';
+          async function gql(query,variables={}){
+            const r=await fetch('https://api.buffer.com',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},body:JSON.stringify({query,variables})});
+            const raw=await r.text(); let body; try{body=JSON.parse(raw)}catch{throw new Error(`Buffer non-JSON ${r.status}: ${raw.slice(0,300)}`)}
+            if(!r.ok||body.errors?.length) throw new Error(`Buffer ${r.status}: ${JSON.stringify(body)}`);
+            return body.data;
+          }
+          async function imageOkay(url){try{const r=await fetch(url,{method:'GET',redirect:'follow'});const t=String(r.headers.get('content-type')||'').toLowerCase();return r.ok&&t.startsWith('image/')}catch{return false}}
+          (async()=>{
+            const account=await gql('query { account { organizations { id name } } }');
+            let channel=null;
+            for(const org of account?.account?.organizations||[]){
+              const d=await gql(`query Channels($org: OrganizationId!) { channels(input:{organizationId:$org}) { id name displayName service isQueuePaused } }`,{org:org.id});
+              channel=(d?.channels||[]).find(c=>String(c.service).toLowerCase()==='pinterest'); if(channel) break;
+            }
+            if(!channel) throw new Error('Pinterest is not connected in Buffer');
+            if(channel.isQueuePaused) throw new Error('Pinterest queue is paused in Buffer');
+            const detail=await gql(`query Pinterest($id: ChannelId!) { channel(input:{id:$id}) { id name displayName metadata { ... on PinterestMetadata { boards { id name serviceId url } } } } }`,{id:channel.id});
+            const boards=detail?.channel?.metadata?.boards||[];
+            const board=boards.find(b=>String(b.name).trim().toLowerCase()===targetBoard.toLowerCase());
+            if(!board){
+              state.attempts.push({at:new Date().toISOString(),status:'blocked-board-not-visible',available_boards:boards.map(b=>b.name)});
+              fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');
+              console.log('Target board not yet visible in Buffer:',targetBoard);
+              return;
+            }
+            const primaryOk=await imageOkay(creativePrimary);
+            const imageUrl=primaryOk?creativePrimary:product.imageUrl;
+            if(!(await imageOkay(imageUrl))) throw new Error('Creative and product fallback image both unavailable');
+            const data=await gql(`mutation CreatePost($input: CreatePostInput!) { createPost(input:$input) { __typename ... on PostActionSuccess { post { id text dueAt status channelId channelService } } ... on MutationError { message } ... on InvalidInputError { message } ... on UnauthorizedError { message } ... on UnexpectedError { message } ... on RestProxyError { message } ... on LimitReachedError { message } } }`,{input:{text,channelId:channel.id,schedulingType:'automatic',mode:'shareNow',saveToDraft:false,needsApproval:false,aiAssisted:false,source:'trendpilot-bellavita-pin2',assets:[{image:{url:imageUrl,metadata:{altText:'BellaVita Her N More discovery set — eight mini perfumes for different moods'}}}],metadata:{pinterest:{boardServiceId:board.serviceId,title,url:targetUrl}}}});
+            const p=data?.createPost;
+            if(!p||p.__typename!=='PostActionSuccess'||!p.post?.id) throw new Error(p?.message||p?.__typename||'Buffer returned no post ID');
+            state={version:1,published:true,published_at:new Date().toISOString(),buffer_post_id:p.post.id,buffer_status:p.post.status,dueAt:p.post.dueAt||null,board:{name:board.name,serviceId:board.serviceId,url:board.url||null},title,text,target_url:targetUrl,image_url:imageUrl,used_canva_creative:primaryOk,creative:'8_scents_8_moods',campaign:'TP-PIN-US-PERFUME-01',attempts:[...(state.attempts||[])]};
+            fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');
+            console.log('BELLA_VITA_PIN2_RESULT',JSON.stringify(state));
+          })().catch(err=>{state.attempts=[...(state.attempts||[]),{at:new Date().toISOString(),status:'error',error:err?.message||String(err)}];fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');console.error(err?.message||String(err));process.exitCode=1});
+          NODE
+
+      - name: Persist Pin 2 publication state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-bellavita-buffer-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ ! -f data/runtime/bellavita-pin2-perfume-board.json ]; then exit 0; fi
+          git add data/runtime/bellavita-pin2-perfume-board.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record BellaVita pin 2 publication'
+          git pull --rebase origin main
+          git push origin HEAD:main
