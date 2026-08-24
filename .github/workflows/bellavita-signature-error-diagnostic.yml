@@ -1,0 +1,56 @@
+name: BellaVita Signature Error Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bellavita-signature-error-diagnostic.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+      - name: Inspect failed Buffer post
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const apiKey=process.env.BUFFER_API_KEY;
+          const postId='6a8c0a9ceb530dcb04661368';
+          async function gql(query,variables={}){
+            const r=await fetch('https://api.buffer.com',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},body:JSON.stringify({query,variables})});
+            const raw=await r.text(); let body; try{body=JSON.parse(raw)}catch{throw new Error(raw)}
+            if(body.errors?.length) throw new Error(JSON.stringify(body.errors));
+            return body.data;
+          }
+          (async()=>{
+            const data=await gql(`query Post($id: PostId!) { post(input:{id:$id}) { id status externalLink sentAt error { message rawError supportUrl } assets { id mimeType source thumbnail } metadata { ... on PinterestPostMetadata { title url board { name serviceId url } } } } }`,{id:postId});
+            fs.mkdirSync('data/runtime',{recursive:true});
+            fs.writeFileSync('data/runtime/bellavita-signature-error-diagnostic.json',JSON.stringify({checked_at:new Date().toISOString(),post:data.post},null,2)+'\n');
+            console.log(JSON.stringify(data.post,null,2));
+          })().catch(e=>{console.error(e.message||String(e));process.exitCode=1});
+          NODE
+      - name: Persist diagnostic
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-buffer-diagnostic-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ ! -f data/runtime/bellavita-signature-error-diagnostic.json ]; then exit 0; fi
+          git add data/runtime/bellavita-signature-error-diagnostic.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record BellaVita signature publishing error'
+          git pull --rebase origin main
+          git push origin HEAD:main
