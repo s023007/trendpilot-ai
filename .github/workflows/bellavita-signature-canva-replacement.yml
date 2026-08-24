@@ -1,0 +1,94 @@
+name: BellaVita Signature Canva Replacement
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/bellavita-signature-canva-replacement.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      BUFFER_API_KEY: ${{ secrets.BUFFER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Publish corrected BellaVita signature Pin with Canva creative
+        shell: bash
+        run: |
+          set -euo pipefail
+          node <<'NODE'
+          const fs=require('fs');
+          const statePath='data/runtime/bellavita-signature-canva-replacement.json';
+          fs.mkdirSync('data/runtime',{recursive:true});
+          let state={version:1,published:false,attempts:[]};
+          try{state=JSON.parse(fs.readFileSync(statePath,'utf8'))}catch{}
+          if(state.published&&state.buffer_post_id){console.log('Already sent',state.buffer_post_id);process.exit(0)}
+          const apiKey=process.env.BUFFER_API_KEY;
+          if(!apiKey) throw new Error('BUFFER_API_KEY is missing');
+          const targetBoard='Perfume & Beauty Finds';
+          const title='Find the scent that feels like you';
+          const text='Eight mini perfumes in one discovery set. Explore different scents for different moods, discover what feels most like you, and check current price and availability on TrendPilot Choice.';
+          const targetUrl='https://trendpilotchoice.com/offers/bellavita-her-n-more/?utm_source=pinterest&utm_medium=organic_social&utm_campaign=TP-PIN-US-PERFUME-01&utm_content=signature_scent_canva';
+          const creativeUrl='https://media.canva.com/v2/document-image/hash:-1237386637/height:547/id:DAHTJLHm_ig/type:B/width:365?brand=BAGXuDAhsfg&csig=AAAAAAAAAAAAAAAAAAAAANWzBjRkZxcCczAMhhO1Sj8O5vD1np1YtEdv8izdqO9n&disableexport=T&exp=1787566191&fallback=https%3A%2F%2Fs3.amazonaws.com%2Fdocument-export.canva.com%2FHm_ig%2FDAHTJLHm_ig%2F1%2Fthumbnail%2F0001.png%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Credential%3DAKIAQYCGKMUH4GDRW44L%252F20260823%252Fus-east-1%252Fs3%252Faws4_request%26X-Amz-Date%3D20260823T203054Z%26X-Amz-Expires%3D49137%26X-Amz-Signature%3Db28770aaa9469b036a9883667988dbdf1ced28aa40bf32534cc0ad651a527c48%26X-Amz-SignedHeaders%3Dhost%26response-expires%3DMon%252C%252024%2520Aug%25202026%252010%253A09%253A51%2520GMT&osig=AAAAAAAAAAAAAAAAAAAAAPD-TXpe5M5infSd7W-gNJMvKphTfQR3DpAhweNb1D8N&page=1&signed=brand%2Cdisableexport%2Cfallback%2Cpage%2Cversion&signer=document-rpc&version=1';
+
+          async function gql(query,variables={}){
+            const r=await fetch('https://api.buffer.com',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${apiKey}`},body:JSON.stringify({query,variables})});
+            const raw=await r.text(); let body; try{body=JSON.parse(raw)}catch{throw new Error(`Buffer non-JSON ${r.status}: ${raw.slice(0,300)}`)}
+            if(!r.ok||body.errors?.length) throw new Error(`Buffer ${r.status}: ${JSON.stringify(body)}`);
+            return body.data;
+          }
+          async function imageOkay(url){
+            try{const r=await fetch(url,{method:'GET',redirect:'follow'});const t=String(r.headers.get('content-type')||'').toLowerCase();return r.ok&&t.startsWith('image/')}catch{return false}
+          }
+
+          (async()=>{
+            if(!(await imageOkay(creativeUrl))){
+              state.attempts.push({at:new Date().toISOString(),status:'blocked-canva-image-unavailable'});
+              fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');
+              console.log('Canva creative unavailable; refusing product-image fallback.');
+              return;
+            }
+            const account=await gql('query { account { organizations { id name } } }');
+            let channel=null;
+            for(const org of account?.account?.organizations||[]){
+              const d=await gql(`query Channels($org: OrganizationId!) { channels(input:{organizationId:$org}) { id name displayName service isQueuePaused } }`,{org:org.id});
+              channel=(d?.channels||[]).find(c=>String(c.service).toLowerCase()==='pinterest'); if(channel) break;
+            }
+            if(!channel) throw new Error('Pinterest is not connected in Buffer');
+            if(channel.isQueuePaused) throw new Error('Pinterest queue is paused in Buffer');
+            const detail=await gql(`query Pinterest($id: ChannelId!) { channel(input:{id:$id}) { id metadata { ... on PinterestMetadata { boards { id name serviceId url } } } } }`,{id:channel.id});
+            const boards=detail?.channel?.metadata?.boards||[];
+            const board=boards.find(b=>String(b.name).trim().toLowerCase()===targetBoard.toLowerCase());
+            if(!board) throw new Error(`Board not visible in Buffer: ${targetBoard}`);
+            const data=await gql(`mutation CreatePost($input: CreatePostInput!) { createPost(input:$input) { __typename ... on PostActionSuccess { post { id status dueAt channelId channelService } } ... on MutationError { message } ... on InvalidInputError { message } ... on UnauthorizedError { message } ... on UnexpectedError { message } ... on RestProxyError { message } ... on LimitReachedError { message } } }`,{input:{text,channelId:channel.id,schedulingType:'automatic',mode:'shareNow',saveToDraft:false,needsApproval:false,aiAssisted:false,source:'trendpilot-bellavita-signature-canva-replacement',assets:[{image:{url:creativeUrl,metadata:{altText:'BellaVita Her N More Pinterest creative — Find the scent that feels like you'}}}],metadata:{pinterest:{boardServiceId:board.serviceId,title,url:targetUrl}}}});
+            const p=data?.createPost;
+            if(!p||p.__typename!=='PostActionSuccess'||!p.post?.id) throw new Error(p?.message||p?.__typename||'Buffer returned no post ID');
+            state={version:1,published:true,published_at:new Date().toISOString(),buffer_post_id:p.post.id,buffer_status:p.post.status,dueAt:p.post.dueAt||null,board:{name:board.name,serviceId:board.serviceId,url:board.url||null},title,text,target_url:targetUrl,image_url:creativeUrl,used_canva_creative:true,creative:'signature_scent_canva',campaign:'TP-PIN-US-PERFUME-01',attempts:[...(state.attempts||[])]};
+            fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');
+            console.log('BELLA_VITA_SIGNATURE_CANVA_RESULT',JSON.stringify(state));
+          })().catch(err=>{state.attempts=[...(state.attempts||[]),{at:new Date().toISOString(),status:'error',error:err?.message||String(err)}];fs.writeFileSync(statePath,JSON.stringify(state,null,2)+'\n');console.error(err?.message||String(err));process.exitCode=1});
+          NODE
+
+      - name: Persist corrected publication state
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-bellavita-buffer-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if [ ! -f data/runtime/bellavita-signature-canva-replacement.json ]; then exit 0; fi
+          git add data/runtime/bellavita-signature-canva-replacement.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record corrected BellaVita Canva signature pin'
+          git pull --rebase origin main
+          git push origin HEAD:main
