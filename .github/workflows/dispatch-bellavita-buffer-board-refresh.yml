@@ -1,0 +1,26 @@
+name: Dispatch BellaVita Buffer Board Refresh
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/dispatch-bellavita-buffer-board-refresh.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh Buffer Pinterest board list
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run bellavita-buffer-pinterest-diagnostic.yml \
+            --repo "${{ github.repository }}" \
+            --ref main
+          echo "Buffer Pinterest board diagnostic dispatched."
