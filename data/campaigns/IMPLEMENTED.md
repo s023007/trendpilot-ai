@@ -1,0 +1,1 @@
+Saudi Manchester Derby campaign scaffold implemented on branch `tp-saudi-manchester-derby` in draft PR #16. No paid spend has been launched. Exact affiliate links remain gated pending destination verification.
