@@ -1,0 +1,1 @@
+Exact event deeplink resolution is intentionally not guessed. The final ticket CTAs must be populated only from verified CJ/Admitad tracking links that land on the Manchester United vs Manchester City event page, not generic seller home/category pages.
