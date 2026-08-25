@@ -1,0 +1,91 @@
+name: Namecheap Guides Auto Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'public/guides/**'
+      - '.github/workflows/namecheap-guides-auto-deploy.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: namecheap-guides-auto-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-guides:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Validate guide source and deploy key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
+          test -d public/guides
+          test -f public/guides/manchester-derby-tickets-saudi-arabia/index.html
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish guides to Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/guides'"
+          tar -C public -czf - guides | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+          ssh trendpilot-namecheap "test -f '$STATIC_ROOT/guides/manchester-derby-tickets-saudi-arabia/index.html'"
+
+      - name: Verify live Manchester Derby guide
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$PUBLIC_ORIGIN/guides/manchester-derby-tickets-saudi-arabia/?deploy=${GITHUB_RUN_ID}"
+          for attempt in 1 2 3 4 5; do
+            code="$(curl -L -sS -o /tmp/guide.html -w '%{http_code}' -H 'Cache-Control: no-cache' "$url&attempt=$attempt" || true)"
+            echo "Attempt $attempt: HTTP $code"
+            if [ "$code" = '200' ] && grep -qi 'تذاكر ديربي مانشستر 2026' /tmp/guide.html; then
+              echo 'Live guide verified on trendpilotchoice.com'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Guide did not verify on the live Namecheap origin.'
+          head -c 500 /tmp/guide.html || true
+          exit 1
