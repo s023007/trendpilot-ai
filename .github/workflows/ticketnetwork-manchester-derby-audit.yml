@@ -1,0 +1,165 @@
+name: TrendPilot TicketNetwork Manchester Derby Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ticketnetwork-manchester-derby-audit.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ticketnetwork-manchester-derby-audit
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      CJ_API_TOKEN: ${{ secrets.CJ_API_TOKEN }}
+      CJ_TOKEN: ${{ secrets.CJ_TOKEN }}
+      CJ_PAT: ${{ secrets.CJ_PAT }}
+      CJ_PERSONAL_ACCESS_TOKEN: ${{ secrets.CJ_PERSONAL_ACCESS_TOKEN }}
+      CJ_WEBSITE_PID: ${{ secrets.CJ_WEBSITE_PID }}
+      CJ_PID: ${{ secrets.CJ_PID }}
+      CJ_WEBSITE_ID: ${{ secrets.CJ_WEBSITE_ID }}
+      TICKETNETWORK_ADVERTISER_ID: '2288710'
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 2
+
+      - name: Find and verify exact TicketNetwork route
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import html, json, os, pathlib, re, urllib.parse, urllib.request, urllib.error, xml.etree.ElementTree as ET
+          from datetime import datetime, timezone
+
+          def first(*names):
+              for n in names:
+                  v=(os.environ.get(n) or '').strip()
+                  if v: return v
+              return ''
+
+          token=first('CJ_API_TOKEN','CJ_TOKEN','CJ_PAT','CJ_PERSONAL_ACCESS_TOKEN')
+          pid=first('CJ_WEBSITE_PID','CJ_PID','CJ_WEBSITE_ID') or '100655394'
+          advertiser=os.environ['TICKETNETWORK_ADVERTISER_ID']
+          if not token: raise SystemExit('CJ token unavailable')
+
+          def text(el,name):
+              x=el.find(name)
+              return (x.text or '').strip() if x is not None else ''
+
+          def cj_links(keywords=''):
+              params={'website-id':pid,'advertiser-ids':advertiser,'records-per-page':'100','page-number':'1'}
+              if keywords: params['keywords']=keywords
+              req=urllib.request.Request('https://link-search.api.cj.com/v2/link-search?'+urllib.parse.urlencode(params),headers={'Authorization':'Bearer '+token,'Accept':'application/xml','User-Agent':'TrendPilot-TicketNetwork-Audit/1.0'})
+              with urllib.request.urlopen(req,timeout=60) as r:
+                  raw=r.read().decode('utf-8','replace')
+              root=ET.fromstring(raw)
+              rows=[]
+              for el in root.findall('.//link'):
+                  row={
+                      'advertiser_id':text(el,'advertiser-id'),
+                      'advertiser_name':text(el,'advertiser-name'),
+                      'relationship_status':text(el,'relationship-status'),
+                      'link_id':text(el,'link-id'),
+                      'link_name':text(el,'link-name'),
+                      'link_type':text(el,'link-type'),
+                      'allow_deep_linking':text(el,'allow-deep-linking'),
+                      'click_url':text(el,'click-url'),
+                      'destination':text(el,'destination'),
+                      'sale_commission':text(el,'sale-commission'),
+                      'seven_day_epc':text(el,'seven-day-epc'),
+                      'three_month_epc':text(el,'three-month-epc')
+                  }
+                  if not row['click_url']:
+                      code=text(el,'link-code-html')
+                      m=re.search(r'href=[\"\']([^\"\']+)',code,re.I) if code else None
+                      if m: row['click_url']=html.unescape(m.group(1))
+                  rows.append(row)
+              return rows
+
+          queries=['Manchester United FC vs Manchester City FC','Manchester United','Manchester City','Old Trafford']
+          unique={}
+          query_counts={}
+          for q in queries:
+              rows=cj_links(q)
+              query_counts[q]=len(rows)
+              for x in rows:
+                  key=x.get('link_id') or x.get('click_url')
+                  if key: unique[key]=x
+          all_links=cj_links('')
+          for x in all_links:
+              key=x.get('link_id') or x.get('click_url')
+              if key: unique.setdefault(key,x)
+          rows=list(unique.values())
+
+          def norm(x): return (x or '').lower().replace('–','-').replace('—','-')
+          def exact_score(x):
+              s=norm((x.get('link_name') or '')+' '+(x.get('destination') or ''))
+              score=0
+              if 'manchester united' in s: score+=50
+              if 'manchester city' in s: score+=50
+              if 'old trafford' in s: score+=10
+              if '2026' in s: score+=5
+              if x.get('relationship_status','').lower()=='joined': score+=3
+              if x.get('click_url'): score+=2
+              return score
+
+          ranked=sorted(rows,key=exact_score,reverse=True)
+          exact=next((x for x in ranked if 'manchester united' in norm((x.get('link_name') or '')+' '+(x.get('destination') or '')) and 'manchester city' in norm((x.get('link_name') or '')+' '+(x.get('destination') or '')) and x.get('relationship_status','').lower()=='joined' and x.get('click_url')),None)
+          deep=next((x for x in ranked if x.get('relationship_status','').lower()=='joined' and x.get('click_url') and x.get('allow_deep_linking','').lower() in ('true','yes','1')),None)
+
+          public_url='https://www.ticketnetwork.com/venues/old-trafford-tickets'
+          public_check={'url':public_url,'event_name_seen':False,'date_seen':False,'http_status':None}
+          try:
+              req=urllib.request.Request(public_url,headers={'User-Agent':'Mozilla/5.0 TrendPilot-TicketNetwork-Audit/1.0','Accept':'text/html'})
+              with urllib.request.urlopen(req,timeout=45) as r:
+                  body=r.read(1500000).decode('utf-8','replace')
+                  public_check['http_status']=r.status
+                  low=body.lower()
+                  public_check['event_name_seen']=('manchester united fc vs. manchester city fc' in low or 'manchester united fc vs manchester city fc' in low)
+                  public_check['date_seen']=('sep 13, 2026' in low or 'september 13, 2026' in low or '2026-09-13' in low)
+          except Exception as e:
+              public_check['note']=type(e).__name__+': '+str(e)[:180]
+
+          out={
+              'generated_at':datetime.now(timezone.utc).isoformat(),
+              'website_pid':pid,
+              'advertiser_id':advertiser,
+              'queries':query_counts,
+              'unique_links_scanned':len(rows),
+              'exact_tracked_event_link':exact,
+              'exact_tracked_event_verified':bool(exact),
+              'deep_link_base_candidate':deep,
+              'deep_linking_available':bool(deep),
+              'public_inventory_check':public_check,
+              'top_candidates':ranked[:10],
+              'decision':'enable-exact-tracked-link' if exact else 'keep-disabled-until-exact-affiliate-route-is-proven'
+          }
+          pathlib.Path('data/runtime').mkdir(parents=True,exist_ok=True)
+          pathlib.Path('data/runtime/ticketnetwork-manchester-derby-audit.json').write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print(json.dumps({'exact':bool(exact),'deep_linking_available':bool(deep),'public_inventory':public_check,'decision':out['decision']},ensure_ascii=False,indent=2))
+          PY
+
+      - name: Persist audit result
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f data/runtime/ticketnetwork-manchester-derby-audit.json || exit 1
+          git config user.name 'trendpilot-ticketnetwork-audit-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/runtime/ticketnetwork-manchester-derby-audit.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'chore: record TicketNetwork Manchester Derby audit'
+          git pull --rebase origin main
+          git push origin HEAD:main
