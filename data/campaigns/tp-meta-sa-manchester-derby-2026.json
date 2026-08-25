@@ -1,0 +1,101 @@
+{
+  "campaignId": "TP-META-SA-MANCHESTER-DERBY-01",
+  "status": "affiliate_routes_verified_pending_production_qa",
+  "market": {
+    "country": "Saudi Arabia",
+    "countryCode": "SA",
+    "language": "ar",
+    "currency": "SAR"
+  },
+  "event": {
+    "name": "Manchester United vs Manchester City",
+    "date": "2026-09-13",
+    "venue": "Old Trafford",
+    "city": "Manchester",
+    "country": "United Kingdom"
+  },
+  "objective": "Drive qualified Saudi visitors to a TrendPilot comparison page, then measure outbound ticket clicks before scaling paid traffic.",
+  "affiliateOptions": [
+    {
+      "seller": "Ticombo - Global Event Tickets Many GEOs",
+      "network": "Admitad",
+      "role": "ticket_marketplace",
+      "routeKind": "verified-exact-event-deeplink",
+      "eventId": "3001252536",
+      "status": "enabled_primary"
+    },
+    {
+      "seller": "Sports Events 365",
+      "network": "CJ",
+      "role": "ticket_marketplace",
+      "routeKind": "verified-competition-fallback",
+      "saleCommission": "8.00%",
+      "status": "enabled_secondary_with_non_exact_label"
+    },
+    {
+      "seller": "TicketNetwork",
+      "network": "CJ",
+      "role": "ticket_marketplace",
+      "routeKind": "pending-exact-affiliate-verification",
+      "status": "disabled_pending_audit"
+    },
+    {
+      "seller": "Trip.com (Global)",
+      "network": "CJ",
+      "role": "hotel_cross_sell",
+      "routeKind": "verified-targeted-deeplink",
+      "status": "enabled"
+    }
+  ],
+  "page": {
+    "slug": "/guides/manchester-derby-tickets-saudi-arabia/",
+    "headlineAr": "تذاكر ديربي مانشستر 2026: قارن الخيارات قبل الحجز",
+    "subheadlineAr": "مانشستر يونايتد ضد مانشستر سيتي — 13 سبتمبر 2026 — أولد ترافورد",
+    "affiliateDisclosureAr": "قد نحصل على عمولة عند الحجز عبر بعض الروابط دون تكلفة إضافية عليك. الأسعار والتوفر تتغير باستمرار، لذلك تحقق من السعر النهائي لدى البائع قبل الدفع.",
+    "safetyNoteAr": "TrendPilot لا يبيع التذاكر مباشرة. نقارن خيارات من منصات خارجية، وقد تتجاوز أسعار إعادة البيع القيمة الاسمية للتذكرة.",
+    "hotelCrossSell": true
+  },
+  "tracking": {
+    "primaryEvent": "AffiliateOutboundClick",
+    "dimensions": ["campaign_id", "seller", "network", "route_kind", "event_slug", "market", "placement"],
+    "sellerEvents": [
+      "sportsevents365_outbound_click",
+      "ticombo_outbound_click",
+      "tripcom_hotel_outbound_click"
+    ]
+  },
+  "paidTest": {
+    "platform": "Meta",
+    "initialBudgetUsd": 6,
+    "market": "Saudi Arabia",
+    "objective": "Traffic",
+    "optimization": "Landing Page Views",
+    "placements": ["Facebook", "Instagram"],
+    "creatives": 2,
+    "scaleRule": "Do not scale until outbound-ticket-click rate and CPC are acceptable.",
+    "stopRule": "Pause if traffic reaches the page but produces weak or near-zero ticket outbound clicks."
+  },
+  "creativeBrief": [
+    {
+      "format": "vertical_video",
+      "hook": "ديربي مانشستر يعود إلى أولد ترافورد — قارن خيارات التذاكر قبل أن تحجز",
+      "cta": "قارن الأسعار والتوفر"
+    },
+    {
+      "format": "static_or_carousel",
+      "hook": "Manchester Derby — 13 September 2026",
+      "cta": "Compare ticket options"
+    }
+  ],
+  "launchGate": {
+    "requiredBeforeSpend": [
+      "Keep at least one verified exact-event affiliate route active",
+      "Label any competition fallback clearly as non-exact",
+      "Re-check current ticket availability on launch day",
+      "Verify Trip.com Manchester hotel deeplink remains valid",
+      "Observe AffiliateOutboundClick in production analytics",
+      "Review mobile rendering and active CTA redirects on production",
+      "Confirm Meta billing safety limit"
+    ]
+  }
+}

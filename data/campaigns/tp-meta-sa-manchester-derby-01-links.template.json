@@ -1,0 +1,39 @@
+{
+  "campaignId": "TP-META-SA-MANCHESTER-DERBY-01",
+  "rule": "Exact-event CTAs require verified exact destinations. Competition-level fallbacks may be enabled only when clearly labeled as non-exact routes.",
+  "links": {
+    "ticketnetwork": {
+      "affiliateUrl": "",
+      "destinationUrl": "https://www.ticketnetwork.com/venues/old-trafford-tickets",
+      "routeKind": "pending-exact-affiliate-verification",
+      "verified": false,
+      "enabled": false
+    },
+    "sportsEvents365": {
+      "affiliateUrl": "https://www.anrdoezrs.net/click-100655394-17211515-1785895610000",
+      "destinationUrl": "https://cj.sportsevents365.com/dock/competition/premier-league",
+      "routeKind": "verified-competition-fallback",
+      "saleCommission": "8.00%",
+      "verified": true,
+      "exactEventVerified": false,
+      "enabled": true
+    },
+    "ticombo": {
+      "affiliateUrl": "https://zmgig.com/g/hn23xca4o8179d0dbedcbcf92d8d7a/?ulp=https%3A%2F%2Fwww.ticombo.com%2Fen%2Fdiscover%2Fevent%2Fmanchester-united-fc-vs-manchester-city-fc-premier-league-3001252536&subid=tp_man_derby_2026&subid1=trendpilot&subid2=manchester-derby-2026&subid3=v1",
+      "destinationUrl": "https://www.ticombo.com/en/discover/event/manchester-united-fc-vs-manchester-city-fc-premier-league-3001252536",
+      "routeKind": "verified-exact-event-deeplink",
+      "eventId": "3001252536",
+      "verified": true,
+      "exactEventVerified": true,
+      "enabled": true
+    },
+    "tripComManchesterHotel": {
+      "affiliateUrl": "https://www.dpbolvw.net/click-100655394-11947208-1751925150000?url=https%3A%2F%2Fwww.trip.com%2Fhotels%2Fmanchester-hotels-list-722%2F",
+      "destinationUrl": "https://www.trip.com/hotels/manchester-hotels-list-722/",
+      "routeKind": "verified-targeted-deeplink",
+      "saleCommission": "USD 0.50, 1.00% - 5.50%",
+      "verified": true,
+      "enabled": true
+    }
+  }
+}
