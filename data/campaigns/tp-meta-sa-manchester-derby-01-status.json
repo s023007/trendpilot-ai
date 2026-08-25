@@ -6,10 +6,19 @@
     "affiliateDisclosure": "done",
     "sellerComparisonStructure": "done",
     "outboundTrackingHook": "done",
-    "exactAffiliateDeeplinks": "pending_verification",
-    "livePriceAvailability": "pending_verification",
+    "ticomboExactAffiliateDeeplink": "verified",
+    "sportsEvents365CompetitionFallback": "verified_not_exact",
+    "tripComManchesterHotelDeeplink": "verified",
+    "ticketNetworkExactAffiliateDeeplink": "pending_verification",
+    "livePriceAvailability": "check_on_launch_day",
     "productionDeploy": "not_started",
     "metaSpend": "not_started"
+  },
+  "commercialCtaPolicy": {
+    "ticombo": "enabled_exact_event",
+    "sportsEvents365": "enabled_with_competition_fallback_label",
+    "tripComManchesterHotel": "enabled_verified_target",
+    "ticketNetwork": "disabled_until_exact_affiliate_route_verified"
   },
   "spendAuthorized": false
 }
