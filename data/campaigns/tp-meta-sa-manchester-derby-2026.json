@@ -1,6 +1,6 @@
 {
   "campaignId": "TP-META-SA-MANCHESTER-DERBY-01",
-  "status": "draft_ready_for_page_and_tracking",
+  "status": "affiliate_routes_verified_pending_production_qa",
   "market": {
     "country": "Saudi Arabia",
     "countryCode": "SA",
@@ -17,32 +17,34 @@
   "objective": "Drive qualified Saudi visitors to a TrendPilot comparison page, then measure outbound ticket clicks before scaling paid traffic.",
   "affiliateOptions": [
     {
-      "seller": "TicketNetwork",
-      "network": "CJ",
+      "seller": "Ticombo - Global Event Tickets Many GEOs",
+      "network": "Admitad",
       "role": "ticket_marketplace",
-      "linkRequirement": "exact event/deeplink only",
-      "status": "approved_program"
+      "routeKind": "verified-exact-event-deeplink",
+      "eventId": "3001252536",
+      "status": "enabled_primary"
     },
     {
       "seller": "Sports Events 365",
       "network": "CJ",
       "role": "ticket_marketplace",
-      "linkRequirement": "exact event/deeplink only",
-      "status": "approved_program"
+      "routeKind": "verified-competition-fallback",
+      "saleCommission": "8.00%",
+      "status": "enabled_secondary_with_non_exact_label"
     },
     {
-      "seller": "Ticombo - Global Event Tickets Many GEOs",
-      "network": "Admitad",
+      "seller": "TicketNetwork",
+      "network": "CJ",
       "role": "ticket_marketplace",
-      "linkRequirement": "exact event/deeplink only",
-      "status": "approved_program"
+      "routeKind": "pending-exact-affiliate-verification",
+      "status": "disabled_pending_audit"
     },
     {
       "seller": "Trip.com (Global)",
       "network": "CJ",
       "role": "hotel_cross_sell",
-      "linkRequirement": "Manchester hotel/search deeplink only",
-      "status": "approved_program"
+      "routeKind": "verified-targeted-deeplink",
+      "status": "enabled"
     }
   ],
   "page": {
@@ -55,9 +57,8 @@
   },
   "tracking": {
     "primaryEvent": "AffiliateOutboundClick",
-    "dimensions": ["campaign_id", "seller", "network", "event_slug", "market", "placement"],
+    "dimensions": ["campaign_id", "seller", "network", "route_kind", "event_slug", "market", "placement"],
     "sellerEvents": [
-      "ticketnetwork_outbound_click",
       "sportsevents365_outbound_click",
       "ticombo_outbound_click",
       "tripcom_hotel_outbound_click"
@@ -88,11 +89,12 @@
   ],
   "launchGate": {
     "requiredBeforeSpend": [
-      "Verify exact-event affiliate deeplinks for all ticket sellers",
-      "Verify current ticket availability and price at page publish time",
-      "Verify Trip.com hotel deeplink",
-      "Implement AffiliateOutboundClick tracking",
-      "Review mobile rendering",
+      "Keep at least one verified exact-event affiliate route active",
+      "Label any competition fallback clearly as non-exact",
+      "Re-check current ticket availability on launch day",
+      "Verify Trip.com Manchester hotel deeplink remains valid",
+      "Observe AffiliateOutboundClick in production analytics",
+      "Review mobile rendering and active CTA redirects on production",
       "Confirm Meta billing safety limit"
     ]
   }
