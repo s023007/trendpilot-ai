@@ -1,0 +1,39 @@
+name: Apply Google Ads English Keyword Planner
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/apply_google_ads_english_keyword_planner.py'
+      - '.github/workflows/apply-google-ads-english-keyword-planner.yml'
+      - 'marketing/google-ads/manchester-derby-sa/keyword-planner-english-sa-2026-08-26.json'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Apply planner shortlist
+        run: python .github/scripts/apply_google_ads_english_keyword_planner.py
+      - name: Validate campaign draft
+        run: python .github/scripts/validate_google_ads_campaign.py
+      - name: Commit campaign update
+        run: |
+          if git diff --quiet -- marketing/google-ads/manchester-derby-sa/campaign.json; then
+            echo "No campaign changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add marketing/google-ads/manchester-derby-sa/campaign.json
+          git commit -m "feat: apply Saudi English Keyword Planner shortlist"
+          git push origin HEAD:main
