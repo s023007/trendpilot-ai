@@ -1,0 +1,48 @@
+{
+  "updated_at_riyadh": "2026-08-26T05:14:44+03:00",
+  "fx": {
+    "EUR_USD": 1.1662,
+    "EUR_GBP": 0.8555,
+    "EUR_SAR": 4.37325
+  },
+  "sources": {
+    "ticombo": {
+      "amount": 378.0,
+      "currency": "EUR",
+      "source": "https://www.ticombo.com/en/discover/event/manchester-united-fc-vs-manchester-city-fc-premier-league-3001252536"
+    },
+    "sports365": {
+      "amount": 364.0,
+      "currency": "USD",
+      "source": "https://sportsevents365.com/events/venue/1018/"
+    },
+    "livefootballtickets": {
+      "amount": 249.99,
+      "currency": "GBP",
+      "source": "https://www.livefootballtickets.com/fixtures/manchester-united-v-manchester-city-tickets-english-premier-league.html"
+    },
+    "footballticketpad": {
+      "amount": 288.4,
+      "currency": "GBP",
+      "source": "https://www.footballticketpad.com/premier-league/manchester-united-v-manchester-city"
+    },
+    "shortside_lower": {
+      "amount": 357.0,
+      "currency": "USD",
+      "source": "market-reference"
+    },
+    "longside_lower": {
+      "amount": 362.0,
+      "currency": "USD",
+      "source": "market-reference"
+    }
+  },
+  "normalized_eur": {
+    "ticombo": 378.0,
+    "sports365": 312.1248,
+    "livefootballtickets": 292.2151,
+    "footballticketpad": 337.1128,
+    "shortside_lower": 306.1224,
+    "longside_lower": 310.4099
+  }
+}
