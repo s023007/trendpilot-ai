@@ -1,7 +1,7 @@
 {
   "campaign_id": "TP-GADS-SA-MANCHESTER-DERBY-01",
   "status": "DRAFT_DO_NOT_PUBLISH",
-  "draft_version": "2026-08-26-v2",
+  "draft_version": "2026-08-26-v3-english-planner",
   "purpose": "Controlled high-intent Google Search campaign for people in Saudi Arabia seeking Manchester United vs Manchester City tickets on 13 Sep 2026.",
   "landing_page": "https://trendpilotchoice.com/guides/manchester-derby-tickets-saudi-arabia/",
   "final_url_suffix": "utm_source=google&utm_medium=cpc&utm_campaign=tp_gads_sa_manchester_derby_2026&utm_term={keyword}&utm_content={adgroupid}-{creative}&device={device}&matchtype={matchtype}&network={network}",
@@ -12,11 +12,16 @@
     "display_network": false
   },
   "geo": {
-    "included": ["Saudi Arabia"],
+    "included": [
+      "Saudi Arabia"
+    ],
     "advanced_location_option": "PRESENCE_ONLY",
     "note": "People in or regularly in Saudi Arabia only for the first controlled test."
   },
-  "languages": ["Arabic", "English"],
+  "languages": [
+    "Arabic",
+    "English"
+  ],
   "language_strategy": {
     "primary_launch_language": "Arabic",
     "english_group_status": "READY_BUT_SECONDARY",
@@ -55,11 +60,18 @@
     "keyword_planner_review_completed": false,
     "billing_verified": true,
     "no_legacy_campaigns_running": true,
-    "final_manual_review_required": true
+    "final_manual_review_required": true,
+    "keyword_planner_english_review_completed": true,
+    "keyword_planner_arabic_review_completed": false
   },
   "policy": {
     "business_model": "TICKET_AGGREGATOR",
-    "never_use_terms": ["official", "official tickets", "official reseller", "authorized reseller"],
+    "never_use_terms": [
+      "official",
+      "official tickets",
+      "official reseller",
+      "authorized reseller"
+    ],
     "display_url_paths": [],
     "required_destination_disclosure": "TrendPilot compares ticket prices and does not sell tickets or act as the primary ticket provider. Some linked options are resale markets and prices may exceed face value.",
     "claims_guard": [
@@ -70,8 +82,66 @@
   },
   "campaign_negatives": {
     "broad": [
-      "free", "stream", "streaming", "live stream", "watch live", "highlights", "goals", "result", "score", "prediction", "lineup", "tv", "channel", "youtube", "reddit", "torrent", "jersey", "shirt", "kit", "wallpaper", "game", "fifa", "fc 26", "ps5", "jobs", "season ticket", "season tickets", "membership", "fixture", "fixtures", "table", "standings", "training", "academy",
-      "مجاني", "مجانا", "بث مباشر", "مشاهدة مباشرة", "اهداف", "أهداف", "ملخص", "نتيجة", "تشكيل", "توقعات", "قناة", "القنوات", "يوتيوب", "قميص", "طقم", "لعبة", "وظائف", "عضوية", "تذكرة موسمية", "تذاكر موسمية", "جدول الدوري", "ترتيب الدوري", "موعد المباراة", "تدريب", "اكاديمية", "أكاديمية"
+      "free",
+      "stream",
+      "streaming",
+      "live stream",
+      "watch live",
+      "highlights",
+      "goals",
+      "result",
+      "score",
+      "prediction",
+      "lineup",
+      "tv",
+      "channel",
+      "youtube",
+      "reddit",
+      "torrent",
+      "jersey",
+      "shirt",
+      "kit",
+      "wallpaper",
+      "game",
+      "fifa",
+      "fc 26",
+      "ps5",
+      "jobs",
+      "season ticket",
+      "season tickets",
+      "membership",
+      "fixture",
+      "fixtures",
+      "table",
+      "standings",
+      "training",
+      "academy",
+      "مجاني",
+      "مجانا",
+      "بث مباشر",
+      "مشاهدة مباشرة",
+      "اهداف",
+      "أهداف",
+      "ملخص",
+      "نتيجة",
+      "تشكيل",
+      "توقعات",
+      "قناة",
+      "القنوات",
+      "يوتيوب",
+      "قميص",
+      "طقم",
+      "لعبة",
+      "وظائف",
+      "عضوية",
+      "تذكرة موسمية",
+      "تذاكر موسمية",
+      "جدول الدوري",
+      "ترتيب الدوري",
+      "موعد المباراة",
+      "تدريب",
+      "اكاديمية",
+      "أكاديمية"
     ],
     "review_after_launch": "Use the Search terms report after every meaningful batch of clicks and add irrelevant queries as negatives."
   },
@@ -88,15 +158,35 @@
     ],
     "structured_snippet": {
       "header": "Types",
-      "values": ["Shortside Upper", "Longside Upper", "Shortside Lower", "Longside Lower"]
+      "values": [
+        "Shortside Upper",
+        "Longside Upper",
+        "Shortside Lower",
+        "Longside Lower"
+      ]
     },
     "sitelinks_status": "PREPARED_AFTER_ANCHOR_QA",
     "sitelink_plan": [
-      {"text": "قارن الأسعار", "target": "#offers"},
-      {"text": "خلف المرمى علوي", "target": "#seat-short-upper"},
-      {"text": "جانب الملعب علوي", "target": "#seat-long-upper"},
-      {"text": "خلف المرمى سفلي", "target": "#seat-short-lower"},
-      {"text": "جانب الملعب سفلي", "target": "#seat-long-lower"}
+      {
+        "text": "قارن الأسعار",
+        "target": "#offers"
+      },
+      {
+        "text": "خلف المرمى علوي",
+        "target": "#seat-short-upper"
+      },
+      {
+        "text": "جانب الملعب علوي",
+        "target": "#seat-long-upper"
+      },
+      {
+        "text": "خلف المرمى سفلي",
+        "target": "#seat-short-lower"
+      },
+      {
+        "text": "جانب الملعب سفلي",
+        "target": "#seat-long-lower"
+      }
     ]
   },
   "ad_groups": [
@@ -104,7 +194,7 @@
       "name": "AR_EVENT_HIGH_INTENT",
       "launch_priority": 1,
       "theme": "Arabic exact-event purchase intent",
-      "draft_max_cpc_usd": 0.50,
+      "draft_max_cpc_usd": 0.5,
       "final_url_variant_a": "https://trendpilotchoice.com/guides/manchester-derby-tickets-saudi-arabia/#offers",
       "final_url_variant_b": "https://trendpilotchoice.com/guides/manchester-derby-tickets-saudi-arabia/#seat-short-upper",
       "keywords": {
@@ -193,20 +283,17 @@
         "exact": [
           "manchester united vs manchester city tickets",
           "man utd vs man city tickets",
-          "man united man city tickets",
-          "manchester derby tickets",
           "manchester united manchester city tickets",
-          "manchester derby ticket price",
-          "manchester derby tickets 2026",
-          "old trafford manchester derby tickets"
+          "manchester city vs man united tickets",
+          "manchester derby tickets",
+          "man utd vs man city ticket price",
+          "manchester united vs manchester city ticket prices"
         ],
         "phrase": [
           "manchester united vs manchester city tickets",
           "man utd vs man city tickets",
-          "manchester derby ticket prices",
-          "manchester derby tickets 2026",
-          "old trafford manchester derby tickets",
-          "buy manchester derby tickets"
+          "manchester derby tickets",
+          "man utd vs man city ticket price"
         ]
       },
       "rsa_variants": [
@@ -264,7 +351,13 @@
             "TrendPilot is a comparison site. Resale prices may exceed face value."
           ]
         }
-      ]
+      ],
+      "keyword_planner_review": {
+        "status": "COMPLETE_2026-08-26",
+        "market": "Saudi Arabia",
+        "language": "English",
+        "source_file": "keyword-planner-english-sa-2026-08-26.json"
+      }
     },
     {
       "name": "PRICE_COMPARE_INTENT",
@@ -290,12 +383,19 @@
           "مقارنة أسعار تذاكر مانشستر"
         ]
       },
-      "rsa_reuse": ["AR_COMPARE_A", "EN_COMPARE_A"]
+      "rsa_reuse": [
+        "AR_COMPARE_A",
+        "EN_COMPARE_A"
+      ]
     }
   ],
   "measurement": {
     "primary_pre_sale_signal": "AffiliateOutboundClick",
-    "secondary_signals": ["LandingScrollMilestone_50", "LandingScrollMilestone_90", "ReferenceOutboundClick"],
+    "secondary_signals": [
+      "LandingScrollMilestone_50",
+      "LandingScrollMilestone_90",
+      "ReferenceOutboundClick"
+    ],
     "initial_optimization": "CLICK_QUALITY_NOT_PURCHASE_CLAIM",
     "utm_required": true,
     "search_term_review": "DAILY_DURING_FIRST_TEST",
