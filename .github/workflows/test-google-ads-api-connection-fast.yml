@@ -1,0 +1,81 @@
+name: Test Google Ads API Connection Fast
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/test-google-ads-api-connection-fast.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - name: Install Google Ads SDK
+        run: python -m pip install --disable-pip-version-check --quiet 'google-ads>=27,<30'
+      - name: Verify read-only API access
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, sys
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.ads.googleads.errors import GoogleAdsException
+
+          required = [
+              'GOOGLE_ADS_DEVELOPER_TOKEN','GOOGLE_ADS_CLIENT_ID','GOOGLE_ADS_CLIENT_SECRET',
+              'GOOGLE_ADS_REFRESH_TOKEN','GOOGLE_ADS_CUSTOMER_ID','GOOGLE_ADS_LOGIN_CUSTOMER_ID'
+          ]
+          missing = [k for k in required if not os.getenv(k)]
+          if missing:
+              print('Missing secrets: ' + ', '.join(missing)); sys.exit(2)
+
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          login = os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip()
+          cfg = {
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': login,
+              'use_proto_plus': True,
+          }
+          try:
+              client = GoogleAdsClient.load_from_dict(cfg)
+              cs = client.get_service('CustomerService')
+              accessible = cs.list_accessible_customers()
+              print(f'Authentication: PASS ({len(accessible.resource_names)} directly accessible account(s))')
+              gs = client.get_service('GoogleAdsService')
+              q = '''SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone, customer.manager, customer.test_account FROM customer LIMIT 1'''
+              rows = list(gs.search(customer_id=cid, query=q))
+              if not rows: raise RuntimeError('No customer row returned')
+              c = rows[0].customer
+              if str(c.id) != cid: raise RuntimeError(f'Customer mismatch: expected {cid}, got {c.id}')
+              print('Manager access to target: PASS')
+              print(f'Target customer: {c.id}')
+              print(f'Account name: {c.descriptive_name or "(not set)"}')
+              print(f'Currency: {c.currency_code}')
+              print(f'Time zone: {c.time_zone}')
+              print(f'Manager: {c.manager}; Test account: {c.test_account}')
+              print('Safety: READ-ONLY — no campaign, ad, budget, or billing mutation performed.')
+              print('GOOGLE ADS API CONNECTION: SUCCESS')
+          except GoogleAdsException as e:
+              print('GOOGLE ADS API CONNECTION: FAILED')
+              print('Request ID:', e.request_id)
+              for err in e.failure.errors: print('-', err.message)
+              sys.exit(1)
+          except Exception as e:
+              print('GOOGLE ADS API CONNECTION: FAILED')
+              print(type(e).__name__ + ':', e)
+              sys.exit(1)
+          PY
