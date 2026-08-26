@@ -80,8 +80,8 @@ jobs:
           for attempt in 1 2 3 4 5; do
             code="$(curl -L -sS -o /tmp/guide.html -w '%{http_code}' -H 'Cache-Control: no-cache' "$url&attempt=$attempt" || true)"
             echo "Attempt $attempt: HTTP $code"
-            if [ "$code" = '200' ] && grep -qi 'ديربي مانشستر' /tmp/guide.html && grep -qi '€378' /tmp/guide.html; then
-              echo 'Live redesigned guide verified on trendpilotchoice.com'
+            if [ "$code" = '200' ] && grep -qi 'ديربي مانشستر' /tmp/guide.html && grep -qi 'Sports Events 365' /tmp/guide.html && grep -qi 'Ticombo' /tmp/guide.html; then
+              echo 'Live dynamic guide verified on trendpilotchoice.com'
               exit 0
             fi
             sleep 5
