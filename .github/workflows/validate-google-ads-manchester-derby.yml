@@ -1,0 +1,23 @@
+name: Validate Google Ads Manchester Derby Campaign
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'marketing/google-ads/manchester-derby-sa/campaign.json'
+      - '.github/scripts/validate_google_ads_campaign.py'
+      - '.github/workflows/validate-google-ads-manchester-derby.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate campaign structure and ad limits
+        run: python .github/scripts/validate_google_ads_campaign.py
