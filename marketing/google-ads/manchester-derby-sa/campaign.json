@@ -1,0 +1,219 @@
+{
+  "campaign_id": "TP-GADS-SA-MANCHESTER-DERBY-01",
+  "status": "DRAFT_DO_NOT_PUBLISH",
+  "purpose": "High-intent Google Search campaign for Saudi-based users seeking Manchester United vs Manchester City tickets on 13 Sep 2026.",
+  "landing_page": "https://trendpilotchoice.com/guides/manchester-derby-tickets-saudi-arabia/",
+  "final_url_suffix": "utm_source=google&utm_medium=cpc&utm_campaign=tp_gads_sa_manchester_derby_2026&utm_term={keyword}&utm_content={adgroupid}-{creative}&device={device}&matchtype={matchtype}",
+  "network": {
+    "type": "SEARCH",
+    "google_search": true,
+    "search_partners": false,
+    "display_network": false
+  },
+  "geo": {
+    "included": ["Saudi Arabia"],
+    "advanced_location_option": "PRESENCE_ONLY",
+    "note": "People in or regularly in Saudi Arabia only; do not use Presence or Interest for the first controlled test."
+  },
+  "languages": ["Arabic", "English"],
+  "bidding": {
+    "initial_strategy": "MANUAL_CPC",
+    "draft_max_cpc_usd": 0.45,
+    "requires_keyword_planner_review_before_launch": true,
+    "note": "Exact/phrase first. Revisit CPC cap after Keyword Planner and real search-term data."
+  },
+  "budget": {
+    "draft_average_daily_usd": 3.0,
+    "manual_test_spend_guard_usd": 6.0,
+    "note": "Draft only. Google may overdeliver on individual days; manually pause at the agreed total-spend guard during the first test."
+  },
+  "ad_schedule": "ALL_DAY_INITIAL_TEST",
+  "launch_gates": {
+    "google_event_ticket_eligibility_confirmed_for_domain": false,
+    "landing_page_ticket_aggregator_disclosure_above_fold": false,
+    "conversion_tracking_affiliate_outbound_click_verified": false,
+    "keyword_planner_review_completed": false,
+    "billing_verified": true,
+    "no_legacy_campaigns_running": true
+  },
+  "policy": {
+    "business_model": "TICKET_AGGREGATOR",
+    "never_use_terms": ["official", "official tickets", "official reseller"],
+    "display_url_paths": [],
+    "required_destination_disclosure": "TrendPilot compares ticket prices and does not sell tickets or act as the primary ticket provider. Some linked options are resale markets and prices may exceed face value."
+  },
+  "campaign_negatives": {
+    "broad": [
+      "free", "stream", "streaming", "live stream", "watch live", "highlights", "goals", "result", "score", "prediction", "lineup", "tv", "channel", "youtube", "reddit", "torrent", "jersey", "shirt", "kit", "wallpaper", "game", "fifa", "fc 26", "ps5", "jobs", "season ticket", "season tickets", "membership",
+      "مجاني", "مجانا", "بث مباشر", "مشاهدة مباشرة", "اهداف", "أهداف", "ملخص", "نتيجة", "تشكيل", "توقعات", "قناة", "القنوات", "يوتيوب", "قميص", "طقم", "لعبة", "وظائف", "عضوية", "تذكرة موسمية", "تذاكر موسمية"
+    ]
+  },
+  "ad_groups": [
+    {
+      "name": "AR_EVENT_HIGH_INTENT",
+      "theme": "Arabic exact-event purchase intent",
+      "keywords": {
+        "exact": [
+          "تذاكر ديربي مانشستر",
+          "تذاكر مانشستر يونايتد مانشستر سيتي",
+          "تذاكر مانشستر يونايتد ضد مانشستر سيتي",
+          "تذاكر مباراة مانشستر يونايتد مانشستر سيتي",
+          "تذاكر مان يونايتد مان سيتي",
+          "سعر تذاكر ديربي مانشستر"
+        ],
+        "phrase": [
+          "تذاكر ديربي مانشستر",
+          "تذاكر مانشستر يونايتد ضد مانشستر سيتي",
+          "حجز تذاكر مانشستر يونايتد مانشستر سيتي",
+          "سعر تذاكر ديربي مانشستر",
+          "تذاكر ديربي مانشستر 2026"
+        ]
+      },
+      "rsa_variants": [
+        {
+          "name": "AR_COMPARE_A",
+          "headlines": [
+            "تذاكر ديربي مانشستر",
+            "مانشستر يونايتد × سيتي",
+            "قارن أسعار التذاكر",
+            "تذاكر أولد ترافورد",
+            "13 سبتمبر 2026",
+            "شاهد عروض المباراة",
+            "أسعار محدثة يومياً",
+            "اختر المقعد الأنسب",
+            "قارن قبل أن تحجز",
+            "دليل للمسافر من السعودية",
+            "تحقق من السعر والمقعد",
+            "روابط حجز للمباراة"
+          ],
+          "descriptions": [
+            "قارن عروض تذاكر نفس المباراة وروابط الحجز، مع أسعار محدثة يومياً قبل أن تدفع.",
+            "تحقق من السعر النهائي وموقع المقعد والرسوم من أكثر من مصدر قبل الحجز.",
+            "صفحة عربية للمسافر من السعودية مع تقدير الأسعار بالريال السعودي وروابط تحقق مستقلة.",
+            "TrendPilot يقارن الأسعار ولا يبيع التذاكر. قد تكون بعض الأسعار أعلى من القيمة الاسمية."
+          ]
+        },
+        {
+          "name": "AR_SEAT_VALUE_B",
+          "headlines": [
+            "ديربي مانشستر في أولد ترافورد",
+            "تذاكر يونايتد ضد سيتي",
+            "قارن المقاعد والأسعار",
+            "شاهد خيارات التذاكر",
+            "اعرف قيمة مقعدك",
+            "أسعار التذاكر اليوم",
+            "مانشستر ديربي 2026",
+            "خيارات للمسافر السعودي",
+            "تحقق قبل الدفع",
+            "قارن أكثر من مصدر",
+            "اختر حسب موقع المقعد",
+            "روابط مباشرة للمباراة"
+          ],
+          "descriptions": [
+            "شاهد خيارات التذاكر حسب السعر وموقع المقعد قبل الانتقال إلى موقع الحجز.",
+            "نحدّث الأسعار يومياً ونوضح الفرق بين خلف المرمى وجانب الملعب قبل الحجز.",
+            "قارن أكثر من مصدر وتحقق من الرسوم والسعر النهائي بنفسك قبل الدفع.",
+            "TrendPilot موقع مقارنة. بعض الروابط تقود لسوق إعادة بيع وقد تتجاوز القيمة الاسمية."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "EN_EVENT_HIGH_INTENT",
+      "theme": "English exact-event purchase intent from users physically in Saudi Arabia",
+      "keywords": {
+        "exact": [
+          "manchester united vs manchester city tickets",
+          "man utd vs man city tickets",
+          "man united man city tickets",
+          "manchester derby tickets",
+          "manchester united manchester city tickets",
+          "manchester derby ticket price"
+        ],
+        "phrase": [
+          "manchester united vs manchester city tickets",
+          "man utd vs man city tickets",
+          "manchester derby ticket prices",
+          "manchester derby tickets 2026",
+          "old trafford manchester derby tickets"
+        ]
+      },
+      "rsa_variants": [
+        {
+          "name": "EN_COMPARE_A",
+          "headlines": [
+            "Manchester Derby Tickets",
+            "Man Utd vs Man City Tickets",
+            "Compare Ticket Prices",
+            "Old Trafford Tickets",
+            "13 Sep 2026 Tickets",
+            "Check Seats Before Booking",
+            "Daily Ticket Price Updates",
+            "Compare Before You Book",
+            "Saudi Traveller Ticket Guide",
+            "Manchester Derby Seats",
+            "View Match Ticket Options",
+            "Check Price And Seat"
+          ],
+          "descriptions": [
+            "Compare ticket options for Man Utd vs Man City with daily price updates before you book.",
+            "Check final price, seat location and fees across multiple sources before paying.",
+            "Saudi-focused guide with SAR estimates, seat guidance and independent verification links.",
+            "TrendPilot compares prices and does not sell tickets. Resale prices may exceed face value."
+          ]
+        },
+        {
+          "name": "EN_SEAT_VALUE_B",
+          "headlines": [
+            "Man Utd Man City 2026",
+            "Compare Derby Ticket Seats",
+            "Manchester Derby 13 Sep",
+            "Old Trafford Seat Guide",
+            "Ticket Prices Updated Daily",
+            "Compare Multiple Sources",
+            "See Ticket Options",
+            "Check Final Price And Fees",
+            "Seat Location Matters",
+            "Saudi Fans Ticket Guide",
+            "Compare Before Paying",
+            "View Direct Match Tickets"
+          ],
+          "descriptions": [
+            "Compare seat areas and ticket prices for the Manchester derby before choosing a seller.",
+            "Daily price checks help you compare current options in EUR with approximate SAR values.",
+            "See direct match links plus independent sources so you can verify prices before paying.",
+            "TrendPilot is a comparison site. Resale prices may exceed face value."
+          ]
+        }
+      ]
+    },
+    {
+      "name": "PRICE_COMPARE_INTENT",
+      "theme": "Users explicitly comparing price or seat value",
+      "keywords": {
+        "exact": [
+          "manchester derby ticket price",
+          "manchester united manchester city ticket price",
+          "سعر تذاكر ديربي مانشستر",
+          "اسعار تذاكر مانشستر يونايتد مانشستر سيتي"
+        ],
+        "phrase": [
+          "compare manchester derby tickets",
+          "manchester derby seats",
+          "manchester derby ticket prices",
+          "مقارنة تذاكر ديربي مانشستر",
+          "اسعار مقاعد ديربي مانشستر",
+          "تذاكر ديربي مانشستر من السعودية",
+          "manchester derby tickets saudi arabia"
+        ]
+      },
+      "rsa_reuse": ["AR_COMPARE_A", "EN_COMPARE_A"]
+    }
+  ],
+  "measurement": {
+    "primary_pre_sale_signal": "AffiliateOutboundClick",
+    "secondary_signals": ["LandingScrollMilestone_50", "LandingScrollMilestone_90", "ReferenceOutboundClick"],
+    "initial_optimization": "CLICK_QUALITY_NOT_PURCHASE_CLAIM",
+    "note": "Do not switch to conversion-based automated bidding until conversion tracking is verified and enough data exists."
+  }
+}
