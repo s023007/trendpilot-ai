@@ -1,0 +1,103 @@
+{
+  "source": {
+    "tool": "Google Ads Keyword Planner export",
+    "market": "Saudi Arabia",
+    "language_run": "Arabic",
+    "historical_period": "2025-08-01 to 2026-07-31",
+    "export_date": "2026-08-26",
+    "rows_total": 16,
+    "arabic_rows": 5,
+    "english_rows_returned_in_same_export": 11
+  },
+  "arabic_market_signal": {
+    "measurable_arabic_rows": 5,
+    "event_specific_derby_rows": 0,
+    "interpretation": "The Arabic run shows measurable demand for generic Manchester United ticket queries, but this export does not provide measurable historical volume for Arabic phrases that explicitly name Manchester City or the Manchester derby. For a very small first-test budget, Arabic should not consume launch spend until Search Terms or a later Planner run proves specific derby demand."
+  },
+  "measurable_arabic_keywords": [
+    {
+      "keyword": "تذاكر مباراة مانشستر يونايتد",
+      "avg_monthly_searches": 50,
+      "three_month_change": "0%",
+      "yoy_change": "0%",
+      "competition": "High",
+      "competition_index": 71,
+      "top_of_page_bid_low_usd": 0.19,
+      "top_of_page_bid_high_usd": 0.85,
+      "decision": "DEFER_FROM_DERBY_LAUNCH",
+      "reason": "High purchase intent but not specific to Manchester City; could pay for searches about another Manchester United fixture."
+    },
+    {
+      "keyword": "حجز تذاكر مباراة مانشستر يونايتد",
+      "avg_monthly_searches": 50,
+      "three_month_change": "0%",
+      "yoy_change": "0%",
+      "competition": "Unknown",
+      "decision": "DEFER_FROM_DERBY_LAUNCH",
+      "reason": "Commercial intent is good but the query is club-generic, not derby-specific."
+    },
+    {
+      "keyword": "سعر تذكرة مباراة مانشستر يونايتد",
+      "avg_monthly_searches": 50,
+      "three_month_change": "0%",
+      "yoy_change": "0%",
+      "competition": "Unknown",
+      "decision": "DEFER_FROM_DERBY_LAUNCH",
+      "reason": "Price intent is useful but the query is not specific to this fixture."
+    },
+    {
+      "keyword": "أسعار تذاكر مباريات مانشستر يونايتد",
+      "avg_monthly_searches": 50,
+      "three_month_change": "-100%",
+      "yoy_change": "-100%",
+      "competition": "Unknown",
+      "decision": "DEFER_FROM_DERBY_LAUNCH",
+      "reason": "Generic club-ticket query and recent demand signal fell sharply in this export."
+    },
+    {
+      "keyword": "تذاكر مباراة مانشستر يونايتد وليفربول",
+      "avg_monthly_searches": 50,
+      "three_month_change": "-100%",
+      "yoy_change": "0%",
+      "competition": "Unknown",
+      "decision": "EXCLUDE",
+      "reason": "Different opponent."
+    }
+  ],
+  "launch_recommendation": {
+    "primary_language": "English",
+    "arabic_ad_group_initial_status": "PAUSED",
+    "reason": "English Planner data contains several derby-specific ticket queries with measurable volume and some low-competition variants, while the Arabic export validates only generic Manchester United ticket demand.",
+    "arabic_retest_trigger": "Enable only after Search Terms, a later Arabic Planner run, or organic query data reveals specific Arabic Manchester United vs Manchester City ticket demand.",
+    "arabic_draft_max_cpc_usd_if_later_tested": 0.30
+  },
+  "negative_keyword_additions": [
+    "ليفربول",
+    "أرسنال",
+    "ارسنال",
+    "تشيلسي",
+    "توتنهام",
+    "نيوكاسل",
+    "بورنموث",
+    "نوتنغهام",
+    "نوتنجهام",
+    "سندرلاند",
+    "إيبسويتش",
+    "ايبسويتش",
+    "إيفرتون",
+    "ايفرتون",
+    "برايتون",
+    "ليدز",
+    "أستون فيلا",
+    "استون فيلا",
+    "وست هام",
+    "فولهام"
+  ],
+  "status": {
+    "english_keyword_planner_review": "COMPLETE",
+    "arabic_keyword_planner_review": "COMPLETE",
+    "overall_keyword_planner_review": "COMPLETE",
+    "google_event_ticket_eligibility": "AWAITING_GOOGLE",
+    "campaign_publish_status": "DO_NOT_PUBLISH"
+  }
+}
