@@ -1,8 +1,13 @@
 {
-  "generated_at": "2026-08-26T09:11:40.001Z",
+  "generated_at": "2026-08-26T16:36:25.802Z",
   "event_name": "schedule",
-  "status": "no-slot",
+  "status": "nothing-new",
   "channels": [
+    {
+      "service": "pinterest",
+      "name": "trendpilotchoice",
+      "paused": false
+    },
     {
       "service": "youtube",
       "name": "Trendpilotchoice",
@@ -12,13 +17,13 @@
       "service": "tiktok",
       "name": "trendpilot.ai",
       "paused": false
-    },
-    {
-      "service": "pinterest",
-      "name": "trendpilotchoice",
-      "paused": false
     }
   ],
-  "posts": [],
+  "posts": [
+    {
+      "service": "youtube",
+      "status": "nothing-new"
+    }
+  ],
   "error": null
 }
