@@ -1,0 +1,103 @@
+name: Google Event Ticket Policy Prep
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/ensure_google_ticket_policy_disclosure.py'
+      - '.github/workflows/google-ticket-policy-prep.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  policy-prep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Ensure event-ticket disclosure above fold
+        run: python .github/scripts/ensure_google_ticket_policy_disclosure.py
+
+      - name: Commit disclosure if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- public/guides/manchester-derby-tickets-saudi-arabia/index.html; then
+            echo 'Disclosure already present.'
+          else
+            git config user.name 'trendpilot-policy-bot'
+            git config user.email '39025908+s023007@users.noreply.github.com'
+            git add public/guides/manchester-derby-tickets-saudi-arabia/index.html
+            git commit -m 'fix: add Google event-ticket disclosure above fold'
+            git fetch origin main
+            git rebase origin/main
+            git push origin HEAD:main
+          fi
+
+      - name: Validate Namecheap deploy key
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
+          test -f public/guides/manchester-derby-tickets-saudi-arabia/index.html
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish policy-ready guide to Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/guides/manchester-derby-tickets-saudi-arabia'"
+          scp public/guides/manchester-derby-tickets-saudi-arabia/index.html trendpilot-namecheap:"$STATIC_ROOT/guides/manchester-derby-tickets-saudi-arabia/index.html"
+
+      - name: Verify live disclosure
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="$PUBLIC_ORIGIN/guides/manchester-derby-tickets-saudi-arabia/?policy_prep=${GITHUB_RUN_ID}"
+          for attempt in 1 2 3 4 5; do
+            code="$(curl -L -sS -o /tmp/guide.html -w '%{http_code}' -H 'Cache-Control: no-cache' "$url&attempt=$attempt" || true)"
+            echo "Attempt $attempt: HTTP $code"
+            if [ "$code" = '200' ] && grep -qi 'تنبيه مهم' /tmp/guide.html && grep -qi 'لا يبيعها' /tmp/guide.html && grep -qi 'القيمة الاسمية' /tmp/guide.html; then
+              echo 'Live Google event-ticket disclosure verified.'
+              exit 0
+            fi
+            sleep 5
+          done
+          echo 'Policy disclosure did not verify on Namecheap.'
+          exit 1
