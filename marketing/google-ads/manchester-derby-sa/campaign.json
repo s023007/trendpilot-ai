@@ -1,7 +1,7 @@
 {
   "campaign_id": "TP-GADS-SA-MANCHESTER-DERBY-01",
   "status": "DRAFT_DO_NOT_PUBLISH",
-  "draft_version": "2026-08-26-v3-english-planner",
+  "draft_version": "2026-08-26-v4",
   "purpose": "Controlled high-intent Google Search campaign for people in Saudi Arabia seeking Manchester United vs Manchester City tickets on 13 Sep 2026.",
   "landing_page": "https://trendpilotchoice.com/guides/manchester-derby-tickets-saudi-arabia/",
   "final_url_suffix": "utm_source=google&utm_medium=cpc&utm_campaign=tp_gads_sa_manchester_derby_2026&utm_term={keyword}&utm_content={adgroupid}-{creative}&device={device}&matchtype={matchtype}&network={network}",
@@ -23,9 +23,10 @@
     "English"
   ],
   "language_strategy": {
-    "primary_launch_language": "Arabic",
-    "english_group_status": "READY_BUT_SECONDARY",
-    "note": "Arabic receives first priority because the landing page is Arabic. English high-intent queries remain prepared for Saudi users who search in English, but can be paused if landing-page relevance or quality is weaker."
+    "primary_launch_language": "English",
+    "english_group_status": "READY_AFTER_EVENT_TICKET_ELIGIBILITY",
+    "arabic_group_status": "PAUSED_INITIAL_TEST_LOW_EVENT_SPECIFIC_VOLUME",
+    "note": "Saudi Keyword Planner measured several derby-specific English ticket queries, including low-competition variants. The Arabic run measured generic Manchester United ticket demand but no Arabic query explicitly naming Manchester City/the derby. Protect the small first-test budget by launching English first and keeping Arabic prepared but paused."
   },
   "bidding": {
     "initial_strategy": "MANUAL_CPC",
@@ -36,7 +37,8 @@
       "no_broad_match_initially": true,
       "no_conversion_bidding_until_tracking_verified": true
     },
-    "note": "The CPC numbers are draft safety caps, not forecasts. Review Keyword Planner before launch and adjust only from real data."
+    "note": "The CPC numbers are draft safety caps, not forecasts. Review Keyword Planner before launch and adjust only from real data.",
+    "planner_decision": "Keep first-test cap at or below $0.45. Do not chase the English high-range top-of-page estimate."
   },
   "budget": {
     "draft_average_daily_usd": 3.0,
@@ -57,12 +59,14 @@
     "google_event_ticket_eligibility_confirmed_for_domain": false,
     "landing_page_ticket_aggregator_disclosure_above_fold": true,
     "conversion_tracking_affiliate_outbound_click_verified": false,
-    "keyword_planner_review_completed": false,
+    "keyword_planner_review_completed": true,
     "billing_verified": true,
     "no_legacy_campaigns_running": true,
     "final_manual_review_required": true,
     "keyword_planner_english_review_completed": true,
-    "keyword_planner_arabic_review_completed": false
+    "keyword_planner_arabic_review_completed": false,
+    "keyword_planner_english_completed": true,
+    "keyword_planner_arabic_completed": true
   },
   "policy": {
     "business_model": "TICKET_AGGREGATOR",
@@ -141,7 +145,27 @@
       "موعد المباراة",
       "تدريب",
       "اكاديمية",
-      "أكاديمية"
+      "أكاديمية",
+      "ليفربول",
+      "أرسنال",
+      "ارسنال",
+      "تشيلسي",
+      "توتنهام",
+      "نيوكاسل",
+      "بورنموث",
+      "نوتنغهام",
+      "نوتنجهام",
+      "سندرلاند",
+      "إيبسويتش",
+      "ايبسويتش",
+      "إيفرتون",
+      "ايفرتون",
+      "برايتون",
+      "ليدز",
+      "أستون فيلا",
+      "استون فيلا",
+      "وست هام",
+      "فولهام"
     ],
     "review_after_launch": "Use the Search terms report after every meaningful batch of clicks and add irrelevant queries as negatives."
   },
@@ -192,9 +216,9 @@
   "ad_groups": [
     {
       "name": "AR_EVENT_HIGH_INTENT",
-      "launch_priority": 1,
+      "launch_priority": 3,
       "theme": "Arabic exact-event purchase intent",
-      "draft_max_cpc_usd": 0.5,
+      "draft_max_cpc_usd": 0.3,
       "final_url_variant_a": "https://trendpilotchoice.com/guides/manchester-derby-tickets-saudi-arabia/#offers",
       "final_url_variant_b": "https://trendpilotchoice.com/guides/manchester-derby-tickets-saudi-arabia/#seat-short-upper",
       "keywords": {
@@ -272,11 +296,22 @@
             "TrendPilot موقع مقارنة. بعض الروابط تقود لسوق إعادة بيع وقد تتجاوز القيمة الاسمية."
           ]
         }
-      ]
+      ],
+      "initial_status": "PAUSED",
+      "keyword_planner_review": {
+        "status": "COMPLETE",
+        "result": "NO_MEASURABLE_ARABIC_DERBY_SPECIFIC_QUERY_IN_EXPORT",
+        "generic_measurable_examples": [
+          "تذاكر مباراة مانشستر يونايتد",
+          "حجز تذاكر مباراة مانشستر يونايتد",
+          "سعر تذكرة مباراة مانشستر يونايتد"
+        ],
+        "decision": "KEEP_PREPARED_BUT_PAUSED_FOR_FIRST_TEST"
+      }
     },
     {
       "name": "EN_EVENT_HIGH_INTENT",
-      "launch_priority": 2,
+      "launch_priority": 1,
       "theme": "English exact-event purchase intent from users physically in Saudi Arabia",
       "draft_max_cpc_usd": 0.45,
       "keywords": {
@@ -357,7 +392,8 @@
         "market": "Saudi Arabia",
         "language": "English",
         "source_file": "keyword-planner-english-sa-2026-08-26.json"
-      }
+      },
+      "initial_status": "READY_AFTER_EVENT_TICKET_ELIGIBILITY"
     },
     {
       "name": "PRICE_COMPARE_INTENT",
@@ -414,5 +450,11 @@
       "CPC remains within a range justified by expected commission economics."
     ],
     "never_auto_scale": true
+  },
+  "keyword_planner_evidence": {
+    "english_file": "marketing/google-ads/manchester-derby-sa/keyword-planner-english-sa-2026-08-26.json",
+    "arabic_file": "marketing/google-ads/manchester-derby-sa/keyword-planner-arabic-sa-2026-08-26.json",
+    "launch_decision": "ENGLISH_FIRST_ARABIC_PAUSED",
+    "reason": "English Planner data contains several derby-specific ticket queries with measurable volume and some low-competition variants, while the Arabic export validates only generic Manchester United ticket demand."
   }
 }
