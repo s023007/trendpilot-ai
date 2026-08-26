@@ -1,0 +1,121 @@
+{
+  "source": {
+    "tool": "Google Ads Keyword Planner export",
+    "market": "Saudi Arabia",
+    "language": "English",
+    "historical_period": "2025-08-01 to 2026-07-31",
+    "export_date": "2026-08-26",
+    "rows_total": 460
+  },
+  "dataset_summary": {
+    "avg_monthly_searches_50_rows": 179,
+    "avg_monthly_searches_0_rows": 136,
+    "no_search_volume_rows": 145,
+    "rows_with_top_of_page_bid_data": 15,
+    "note": "Keyword Planner is returning coarse historical buckets in this market, so 50 should be treated as an approximate bucket rather than an exact forecast for each phrase."
+  },
+  "core_market_signal": {
+    "keyword": "manchester united vs manchester city tickets",
+    "avg_monthly_searches": 50,
+    "three_month_change": "infinite/increased from zero bucket",
+    "yoy_change": "0%",
+    "competition": "High",
+    "competition_index": 75,
+    "top_of_page_bid_low_usd": 0.21,
+    "top_of_page_bid_high_usd": 2.29,
+    "interpretation": "Commercial intent is real but competitive. Do not chase the high-range bid in the first controlled test."
+  },
+  "low_competition_high_intent_variants": [
+    {
+      "keyword": "man utd vs man city tickets",
+      "avg_monthly_searches": 50,
+      "competition": "Low",
+      "competition_index": 14,
+      "three_month_change": "infinite/increased from zero bucket"
+    },
+    {
+      "keyword": "manchester united manchester city tickets",
+      "avg_monthly_searches": 50,
+      "competition": "Low",
+      "competition_index": 14,
+      "three_month_change": "infinite/increased from zero bucket"
+    },
+    {
+      "keyword": "manchester city vs man united tickets",
+      "avg_monthly_searches": 50,
+      "competition": "Low",
+      "competition_index": 14,
+      "three_month_change": "infinite/increased from zero bucket"
+    },
+    {
+      "keyword": "man city vs manchester united tickets",
+      "avg_monthly_searches": 50,
+      "competition": "Low",
+      "competition_index": 14,
+      "three_month_change": "infinite/increased from zero bucket"
+    },
+    {
+      "keyword": "tickets for man utd v man city",
+      "avg_monthly_searches": 50,
+      "competition": "Low",
+      "competition_index": 14,
+      "three_month_change": "infinite/increased from zero bucket"
+    }
+  ],
+  "recommended_first_test_exact": [
+    "manchester united vs manchester city tickets",
+    "man utd vs man city tickets",
+    "manchester united manchester city tickets",
+    "manchester city vs man united tickets",
+    "manchester derby tickets",
+    "man utd vs man city ticket price",
+    "manchester united vs manchester city ticket prices"
+  ],
+  "recommended_first_test_phrase": [
+    "manchester united vs manchester city tickets",
+    "man utd vs man city tickets",
+    "manchester derby tickets",
+    "man utd vs man city ticket price"
+  ],
+  "defer_from_first_test": [
+    {
+      "keyword": "manchester derby ticket prices",
+      "reason": "0 historical monthly searches in this export"
+    },
+    {
+      "keyword": "old trafford manchester derby tickets",
+      "reason": "no historical search-volume data in this export"
+    },
+    {
+      "keyword": "manchester derby seats",
+      "reason": "no historical search-volume data in this export"
+    },
+    {
+      "keyword": "manchester derby tickets 2026",
+      "reason": "not returned with measurable historical volume in this export"
+    },
+    {
+      "keyword": "buy manchester derby tickets",
+      "reason": "not supported by measurable historical volume in this export; test only later if Search Terms data justifies it"
+    }
+  ],
+  "exclude_from_campaign": [
+    "outdated year queries such as 2021/2022/2023",
+    "women/ladies/WSL queries",
+    "away-ticket specific queries unless the landing page explicitly supports away allocation",
+    "stadium-only informational queries",
+    "other opponent fixtures such as Liverpool, Tottenham, Chelsea, Newcastle, Arsenal, Bournemouth, Nottingham Forest and others"
+  ],
+  "bidding_recommendation": {
+    "campaign_default_max_cpc_usd": 0.45,
+    "reason": "The strongest canonical keyword shows a $0.21 low-range and $2.29 high-range top-of-page bid. The first test should remain near the lower end rather than bidding for premium positions.",
+    "do_not_raise_above_usd_without_new_data": 0.60,
+    "note": "This is a safety rule, not a guaranteed clearing price. Review actual impressions, CPC and Search Terms before any increase."
+  },
+  "status": {
+    "english_keyword_planner_review": "COMPLETE",
+    "arabic_keyword_planner_review": "PENDING",
+    "google_event_ticket_eligibility": "AWAITING_GOOGLE",
+    "campaign_publish_status": "DO_NOT_PUBLISH"
+  }
+}
