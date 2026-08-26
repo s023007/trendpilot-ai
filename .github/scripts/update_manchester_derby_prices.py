@@ -292,7 +292,8 @@ def main():
         'الأسعار والتوفر متغيرة · صورة Old Trafford: Wikimedia Commons / CC BY-SA'
     )
     doc = re.sub(r'<footer>.*?</footer>', f'<footer>{footer_text}</footer>', doc, count=1, flags=re.S)
-    doc = doc.replace("page_version:'v4-visual-qa'", "page_version:'v5-daily-price-refresh'")
+    doc = re.sub(r'(<div class="sticky-copy"><small>.*?</small><strong><span class="ltr">).*?(</span></strong>)', rf'\1€{tic_e:,} ≈ {tic_sar:,} ر.س\2', doc, count=1, flags=re.S)
+    doc = re.sub(r"page_version:'[^']+'", "page_version:'v5-daily-price-refresh'", doc, count=1)
 
     PAGE.write_text(doc, 'utf-8')
     STATE.parent.mkdir(parents=True, exist_ok=True)
