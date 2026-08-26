@@ -1,6 +1,6 @@
 name: Test Google Ads API Connection Fast
 
-# Retry marker: 2026-08-27 after OAuth propagation wait
+# Retry marker: 2026-08-27 with diagnostic artifact
 on:
   workflow_dispatch:
   push:
@@ -26,9 +26,11 @@ jobs:
       - name: Install Google Ads SDK
         run: python -m pip install --disable-pip-version-check --quiet 'google-ads>=27,<30'
       - name: Verify read-only API access
+        id: verify
         shell: bash
+        continue-on-error: true
         run: |
-          python - <<'PY'
+          python - <<'PY' > google-ads-test-output.txt 2>&1
           import os, sys
           from google.ads.googleads.client import GoogleAdsClient
           from google.ads.googleads.errors import GoogleAdsException
@@ -80,3 +82,16 @@ jobs:
               print(type(e).__name__ + ':', e)
               sys.exit(1)
           PY
+          cat google-ads-test-output.txt
+          grep -q 'GOOGLE ADS API CONNECTION: SUCCESS' google-ads-test-output.txt
+      - name: Upload diagnostic result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-ads-api-test-result
+          path: google-ads-test-output.txt
+          if-no-files-found: error
+          retention-days: 1
+      - name: Fail if verification failed
+        if: steps.verify.outcome != 'success'
+        run: exit 1
