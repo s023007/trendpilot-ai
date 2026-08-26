@@ -132,12 +132,12 @@
           <span class="tap">افتح صفحة المباراة ←</span>
         </a>
         <a class="offer reference-link track" href="https://sportsevents365.com/events/venue/1018/" target="_blank" rel="noopener noreferrer" data-zone="offer-s365-card" data-seller="Sports Events 365" data-network="reference" data-kind="venue-price-check">
-          <span class="badge" style="background:#f2f4f7;color:#253246">مرجع سوق — يحتاج تحقق</span>
+          <span class="badge" style="background:#f2f4f7;color:#253246">سعر المباراة مؤكد الآن</span>
           <div class="offer-name"><bdi>Sports Events 365</bdi></div>
           <div class="price">$364</div>
-          <div class="sar">≈ 1,364 ر.س على صفحة Old Trafford</div>
-          <div class="offer-note">ظهرت لنا قيمة مختلفة ($432) في صفحة الفريق، لذلك لا نرتبه كأرخص خيار حتى تؤكد السعر داخل الموقع.</div>
-          <span class="tap">تحقق بنفسك ←</span>
+          <div class="sar">≈ 1,364 ر.س · ويظهر نحو 140 ر.ع عند العرض بعملة عُمان</div>
+          <div class="offer-note">المباراة نفسها ظهرت بتاريخ 13 سبتمبر 2026 الساعة 16:30. قد يعرض الموقع السعر بعملتك المحلية تلقائيًا؛ افحص فئة المقعد والرسوم النهائية قبل الدفع.</div>
+          <span class="tap">تحقق من المباراة والسعر ←</span>
         </a>
       </div>
       <div class="warning">فرق السعر الظاهر وحده لا يكفي. قد يكون أحد العرضين خلف المرمى والآخر على جانب الملعب، وقد تختلف الرسوم أو شروط التذكرة.</div>
@@ -161,8 +161,8 @@
             <a class="checkbtn reference-link track" href="https://www.footballticketpad.com/premier-league/manchester-united-v-manchester-city" target="_blank" rel="noopener noreferrer" data-zone="check-footballticketpad" data-seller="Football Ticket Pad" data-network="reference" data-kind="exact-event-check">افتح المباراة للتحقق ←</a>
           </div>
           <div class="check-card">
-            <div class="check-top"><strong><bdi>Sports Events 365</bdi></strong><span class="check-price">$364 / $432</span></div>
-            <p>رصدنا اختلافًا بين صفحة Old Trafford وصفحة Manchester United في نفس وقت المراجعة. لهذا نعرضه كمرجع فقط ولا ندّعي أنه الأرخص.</p>
+            <div class="check-top"><strong><bdi>Sports Events 365</bdi></strong><span class="check-price">$364</span></div>
+            <p>تحققنا من نفس مباراة Manchester United vs Manchester City بتاريخ 13 سبتمبر 2026 الساعة 16:30. الموقع قد يحول السعر تلقائيًا إلى عملة الزائر؛ ظهر نحو 140 ر.ع عند العرض من عُمان.</p>
             <a class="checkbtn reference-link track" href="https://sportsevents365.com/events/venue/1018/" target="_blank" rel="noopener noreferrer" data-zone="check-s365" data-seller="Sports Events 365" data-network="reference" data-kind="venue-price-check">افتح صفحة Old Trafford ←</a>
           </div>
         </div>
@@ -243,7 +243,7 @@
   <script>
     (function(){
       window.dataLayer=window.dataLayer||[];
-      function push(name,extra){var d={event:name,campaign_id:'TP-META-SA-MANCHESTER-DERBY-01',event_slug:'manchester-united-vs-manchester-city-2026-09-13',market:'SA',page_version:'v4-visual-qa'};Object.keys(extra||{}).forEach(function(k){d[k]=extra[k]});window.dataLayer.push(d);try{window.dispatchEvent(new CustomEvent(name,{detail:d}));}catch(e){}}
+      function push(name,extra){var d={event:name,campaign_id:'TP-META-SA-MANCHESTER-DERBY-01',event_slug:'manchester-united-vs-manchester-city-2026-09-13',market:'SA',page_version:'v4-visual-qa-local-currency'};Object.keys(extra||{}).forEach(function(k){d[k]=extra[k]});window.dataLayer.push(d);try{window.dispatchEvent(new CustomEvent(name,{detail:d}));}catch(e){}}
       document.querySelectorAll('.track').forEach(function(el){el.addEventListener('click',function(){var internal=(el.getAttribute('href')||'').charAt(0)==='#';push(internal?'LandingInternalClick':(el.classList.contains('affiliate-link')?'AffiliateOutboundClick':'ReferenceOutboundClick'),{click_zone:el.dataset.zone||'',seller:el.dataset.seller||'',network:el.dataset.network||'',route_kind:el.dataset.kind||'',label:(el.textContent||'').trim().slice(0,90)});});});
       document.querySelectorAll('details').forEach(function(el){el.addEventListener('toggle',function(){if(el.open)push('LandingDisclosureOpen',{section_id:el.id||''});});});
       var sent={};function scrollMilestones(){var h=document.documentElement.scrollHeight-window.innerHeight;if(h<=0)return;var p=Math.round((window.scrollY/h)*100);[25,50,75,90].forEach(function(m){if(p>=m&&!sent[m]){sent[m]=1;push('LandingScrollMilestone',{milestone:m});}})}window.addEventListener('scroll',scrollMilestones,{passive:true});
