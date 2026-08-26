@@ -1,5 +1,6 @@
 name: Test Google Ads API Connection Fast
 
+# Retry marker: 2026-08-27 after OAuth propagation wait
 on:
   workflow_dispatch:
   push:
