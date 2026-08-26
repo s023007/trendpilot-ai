@@ -20,6 +20,18 @@ Status: **DRAFT — DO NOT PUBLISH**
 - Two RSA variants are prepared for each primary language group.
 - UTM tracking is prepared.
 - Initial spend is protected by a manual first-test guard.
+- English Keyword Planner export for Saudi Arabia reviewed on 2026-08-26.
+- English first-test keyword shortlist reduced to measurable high-intent terms.
+- English draft CPC remains conservative at **$0.45 max CPC**; do not chase the $2.29 high-range top-of-page estimate.
+
+## Keyword Planner findings — English / Saudi Arabia
+
+- Export contained **460** keyword ideas.
+- **179** rows were in Google's 50 avg-monthly-search bucket, **136** showed 0, and **145** had no measurable search-volume value.
+- Canonical query `manchester united vs manchester city tickets`: approx. **50 avg monthly searches**, High competition, index **75**, top-of-page bid range **$0.21–$2.29**.
+- Several exact-event variants showed the same approx. 50-search bucket with **Low competition / index 14**, including `man utd vs man city tickets` and `manchester united manchester city tickets`.
+- First test excludes outdated-year, women/WSL, away-specific, stadium-information and other-opponent queries.
+- Full snapshot: `keyword-planner-english-sa-2026-08-26.json`.
 
 ## Waiting on Google
 
@@ -30,8 +42,10 @@ Do not publish any event-ticket ad until this is explicitly approved.
 ## Must be completed before launch
 
 - [ ] Confirm Google Event Ticket Sale Eligibility approval.
-- [ ] Run Keyword Planner for Saudi Arabia on the exact/phrase keyword set.
-- [ ] Revisit draft CPC caps using Keyword Planner ranges; do not increase blindly.
+- [x] Run Keyword Planner for Saudi Arabia on the **English** exact/phrase keyword set.
+- [ ] Run Keyword Planner for Saudi Arabia on the **Arabic** exact/phrase keyword set.
+- [x] Revisit English draft CPC using Keyword Planner ranges; current controlled cap remains $0.45.
+- [ ] Revisit Arabic draft CPC after Arabic Keyword Planner export.
 - [ ] Verify affiliate-outbound-click tracking from landing page to ticket sellers.
 - [ ] Confirm current ticket prices and all outbound links on launch day.
 - [ ] Confirm the landing page still states that TrendPilot is a comparison/aggregator site and does not sell tickets.
