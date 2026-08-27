@@ -86,6 +86,7 @@ jobs:
           campaign.network_settings.target_content_network = False
           campaign.network_settings.target_partner_search_network = False
           campaign.manual_cpc.enhanced_cpc_enabled = False
+          campaign.contains_eu_political_advertising = client.enums.EuPoliticalAdvertisingStatusEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
           campaign_result = campaign_service.mutate_campaigns(customer_id=CUSTOMER_ID, operations=[campaign_op])
           campaign_resource = campaign_result.results[0].resource_name
           campaign_id = campaign_resource.split('/')[-1]
@@ -218,6 +219,7 @@ jobs:
           print('Budget: USD 10/day if later enabled')
           print('Manual CPC: $0.30 high-intent / $0.25 trip-planning')
           print('Final URL:', FINAL_URL)
+          print('EU political ads declaration: DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING')
           print('Geo targeting: intentionally NOT added yet; must be reviewed before activation.')
           print('SAFETY: No ad can serve or spend because campaign, ad groups, keywords, and ads are PAUSED.')
           PY
