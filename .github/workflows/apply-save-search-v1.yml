@@ -1,0 +1,34 @@
+name: Apply Save Search V1
+on:
+  push:
+    paths:
+      - 'scripts/apply_save_search_v1.py'
+      - 'events/manchester-derby-2026/save-search.js'
+      - 'events/manchester-derby-2026/save-search.css'
+      - 'api/save-search.php'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Inject Save Search assets
+        run: python scripts/apply_save_search_v1.py
+      - name: Commit generated landing-page wiring
+        run: |
+          if git diff --quiet; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git config user.name 'trendpilot-campaign-brain'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add events/manchester-derby-2026/ar/index.html events/manchester-derby-2026/en-gb/index.html
+          git commit -m 'feat: wire Save Search into derby landing pages'
+          git push
