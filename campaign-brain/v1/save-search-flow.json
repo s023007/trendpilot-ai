@@ -1,0 +1,93 @@
+{
+  "version": "1.0",
+  "feature": "save_search_email_recovery",
+  "status": "architecture_ready_provider_pending",
+  "entry_point": "seller_click_intercept",
+  "ux": {
+    "mandatory": false,
+    "headline": "Save this ticket search",
+    "body": "Enter your email and we’ll send you this comparison so you can return later.",
+    "primary_action": "Email me this search",
+    "secondary_action": "Continue without email",
+    "do_not_block_purchase": true,
+    "max_extra_steps": 1
+  },
+  "flow": [
+    "visitor_clicks_seller",
+    "optional_save_search_prompt",
+    "capture_email_and_context_if_consented",
+    "send_immediate_thank_you_with_saved_offer",
+    "continue_to_seller_immediately",
+    "record_email_save_event",
+    "later_check_for_return_or_price_change",
+    "send_recovery_or_verified_change_email_when_appropriate",
+    "return_link_opens_landing_page_at_prices_section",
+    "record_email_return_and_return_seller_click"
+  ],
+  "saved_context": [
+    "campaign_id",
+    "ad_group",
+    "keyword",
+    "search_term",
+    "match_type",
+    "language",
+    "country_coarse",
+    "device_type",
+    "landing_page",
+    "seller_clicked",
+    "offer_price_seen",
+    "offer_currency",
+    "saved_at",
+    "tracking_token"
+  ],
+  "privacy": {
+    "store_email_outside_github": true,
+    "separate_transactional_save_from_marketing_consent": true,
+    "unsubscribe_required_for_marketing": true,
+    "do_not_store_sensitive_profile_data": true,
+    "retention_policy_required_before_launch": true
+  },
+  "email_sequence": [
+    {
+      "id": "save_confirmation",
+      "timing": "immediate",
+      "purpose": "transactional",
+      "send_if": "email_saved",
+      "content": ["thank_you","saved_match","price_seen","return_to_comparison_button"]
+    },
+    {
+      "id": "recovery_reminder",
+      "timing": "6_to_24_hours",
+      "purpose": "recovery",
+      "send_if": "no_return_after_save AND permission_allows_followup",
+      "content": ["saved_search_reminder","latest_comparison","return_to_prices_button"]
+    },
+    {
+      "id": "price_change",
+      "timing": "when_verified_change_detected",
+      "purpose": "useful_update",
+      "send_if": "verified_price_change AND permission_allows_followup",
+      "content": ["old_price","new_price","seller","return_to_prices_button"]
+    },
+    {
+      "id": "availability_change",
+      "timing": "when_verified_change_detected",
+      "purpose": "useful_update",
+      "send_if": "verified_availability_signal AND permission_allows_followup",
+      "content": ["availability_changed","return_to_prices_button"],
+      "restriction": "never_claim_exact_seat_count_without_verified_source"
+    }
+  ],
+  "return_url_pattern": "https://trendpilotchoice.com/events/manchester-derby-2026/{locale}/?src=email&flow=save_search&token={opaque_token}#prices",
+  "campaign_brain_events": [
+    "SELLER_INTENT",
+    "SAVE_PROMPT_SHOWN",
+    "EMAIL_SAVE",
+    "EMAIL_SENT",
+    "EMAIL_OPEN_IF_PROVIDER_SUPPORTS",
+    "EMAIL_RETURN",
+    "RETURN_SELLER_CLICK",
+    "PRICE_CHANGE_EMAIL",
+    "AVAILABILITY_CHANGE_EMAIL"
+  ]
+}
