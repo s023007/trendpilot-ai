@@ -1,0 +1,244 @@
+name: Build Google Ads Manchester Derby Draft
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/build-google-ads-manchester-derby-draft.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-paused-draft:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - name: Install Google Ads SDK
+        run: python -m pip install --disable-pip-version-check --quiet 'google-ads>=27,<30'
+
+      - name: Create paused search campaign draft
+        shell: bash
+        run: |
+          python - <<'PY' | tee google-ads-draft-output.txt
+          import os, sys
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.ads.googleads.errors import GoogleAdsException
+
+          CUSTOMER_ID = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          LOGIN_ID = os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip()
+          CAMPAIGN_NAME = 'TrendPilot | Manchester Derby | Search | 2026-09-13 | DRAFT'
+          BUDGET_NAME = 'TrendPilot | Manchester Derby | Budget | DRAFT'
+          FINAL_URL = 'https://trendpilotchoice.com/'
+
+          cfg = {
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': LOGIN_ID,
+              'use_proto_plus': True,
+          }
+          client = GoogleAdsClient.load_from_dict(cfg)
+          ga = client.get_service('GoogleAdsService')
+
+          # Idempotency: never create a duplicate campaign on retries.
+          escaped = CAMPAIGN_NAME.replace("'", "\\'")
+          existing = list(ga.search(customer_id=CUSTOMER_ID, query=f"SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE campaign.name = '{escaped}' LIMIT 1"))
+          if existing:
+              c = existing[0].campaign
+              print(f'EXISTS: campaign {c.id} | {c.name} | status={c.status.name}')
+              print('No duplicate created.')
+              sys.exit(0)
+
+          # Campaign budget: $10/day. Campaign remains PAUSED, so this cannot spend yet.
+          budget_service = client.get_service('CampaignBudgetService')
+          budget_op = client.get_type('CampaignBudgetOperation')
+          budget = budget_op.create
+          budget.name = BUDGET_NAME
+          budget.amount_micros = 10_000_000
+          budget.delivery_method = client.enums.BudgetDeliveryMethodEnum.STANDARD
+          budget.explicitly_shared = False
+          budget_result = budget_service.mutate_campaign_budgets(customer_id=CUSTOMER_ID, operations=[budget_op])
+          budget_resource = budget_result.results[0].resource_name
+          print('Created budget:', budget_resource, '($10/day; no spend while campaign is paused)')
+
+          # Search campaign with a conservative click ceiling; PAUSED by design.
+          campaign_service = client.get_service('CampaignService')
+          campaign_op = client.get_type('CampaignOperation')
+          campaign = campaign_op.create
+          campaign.name = CAMPAIGN_NAME
+          campaign.status = client.enums.CampaignStatusEnum.PAUSED
+          campaign.advertising_channel_type = client.enums.AdvertisingChannelTypeEnum.SEARCH
+          campaign.campaign_budget = budget_resource
+          campaign.network_settings.target_google_search = True
+          campaign.network_settings.target_search_network = False
+          campaign.network_settings.target_content_network = False
+          campaign.network_settings.target_partner_search_network = False
+          campaign.maximize_clicks.cpc_bid_ceiling_micros = 350_000
+          campaign.start_date = '20260827'
+          campaign.end_date = '20260913'
+          campaign_result = campaign_service.mutate_campaigns(customer_id=CUSTOMER_ID, operations=[campaign_op])
+          campaign_resource = campaign_result.results[0].resource_name
+          campaign_id = campaign_resource.split('/')[-1]
+          print('Created PAUSED campaign:', campaign_resource)
+
+          # Ad groups kept PAUSED independently for a second safety layer.
+          ad_group_service = client.get_service('AdGroupService')
+          ad_group_defs = [
+              ('Derby Tickets | High Intent', 300_000),
+              ('Tickets + Trip Planning', 250_000),
+          ]
+          ad_group_resources = {}
+          for name, bid in ad_group_defs:
+              op = client.get_type('AdGroupOperation')
+              ag = op.create
+              ag.name = name
+              ag.campaign = campaign_resource
+              ag.status = client.enums.AdGroupStatusEnum.PAUSED
+              ag.type_ = client.enums.AdGroupTypeEnum.SEARCH_STANDARD
+              ag.cpc_bid_micros = bid
+              res = ad_group_service.mutate_ad_groups(customer_id=CUSTOMER_ID, operations=[op])
+              ad_group_resources[name] = res.results[0].resource_name
+              print('Created PAUSED ad group:', name)
+
+          # Tight match types only: exact + phrase. No broad-match keywords.
+          keyword_sets = {
+              'Derby Tickets | High Intent': [
+                  ('manchester derby tickets', 'EXACT'),
+                  ('manchester united vs man city tickets', 'EXACT'),
+                  ('man utd vs man city tickets', 'EXACT'),
+                  ('manchester city vs man united tickets', 'EXACT'),
+                  ('buy manchester derby tickets', 'PHRASE'),
+                  ('compare manchester derby tickets', 'PHRASE'),
+                  ('manchester derby ticket prices', 'PHRASE'),
+              ],
+              'Tickets + Trip Planning': [
+                  ('manchester derby travel', 'EXACT'),
+                  ('manchester derby hotel', 'EXACT'),
+                  ('manchester derby trip', 'PHRASE'),
+                  ('manchester football tickets and hotel', 'PHRASE'),
+                  ('manchester match travel package', 'PHRASE'),
+              ],
+          }
+          criterion_service = client.get_service('AdGroupCriterionService')
+          for group_name, kws in keyword_sets.items():
+              operations = []
+              for text, match in kws:
+                  op = client.get_type('AdGroupCriterionOperation')
+                  crit = op.create
+                  crit.ad_group = ad_group_resources[group_name]
+                  crit.status = client.enums.AdGroupCriterionStatusEnum.PAUSED
+                  crit.keyword.text = text
+                  crit.keyword.match_type = getattr(client.enums.KeywordMatchTypeEnum, match)
+                  operations.append(op)
+              criterion_service.mutate_ad_group_criteria(customer_id=CUSTOMER_ID, operations=operations)
+              print(f'Added {len(operations)} PAUSED keywords to {group_name}')
+
+          # Campaign-level negatives remove research/free-content traffic.
+          negative_terms = [
+              'free', 'live stream', 'stream', 'highlights', 'score', 'result',
+              'prediction', 'lineup', 'news', 'reddit', 'jobs', 'wallpaper',
+              'jersey', 'shirt'
+          ]
+          campaign_criterion_service = client.get_service('CampaignCriterionService')
+          neg_ops = []
+          for term in negative_terms:
+              op = client.get_type('CampaignCriterionOperation')
+              crit = op.create
+              crit.campaign = campaign_resource
+              crit.negative = True
+              crit.keyword.text = term
+              crit.keyword.match_type = client.enums.KeywordMatchTypeEnum.PHRASE
+              neg_ops.append(op)
+          campaign_criterion_service.mutate_campaign_criteria(customer_id=CUSTOMER_ID, operations=neg_ops)
+          print(f'Added {len(neg_ops)} campaign negative keywords')
+
+          # Responsive Search Ads. No claim of being an official or primary ticket seller.
+          ad_group_ad_service = client.get_service('AdGroupAdService')
+          rsa_sets = {
+              'Derby Tickets | High Intent': {
+                  'headlines': [
+                      'Manchester Derby Tickets',
+                      'Compare Derby Ticket Options',
+                      'Check Ticket Availability',
+                      'Compare Ticket Options',
+                      'Find Match Ticket Options',
+                      'Plan Your Manchester Trip',
+                      'Match Tickets & Travel',
+                      'Manchester Match Travel',
+                  ],
+                  'descriptions': [
+                      'Compare ticket options and plan your Manchester match trip before you book.',
+                      'Check availability, ticket options and travel planning in one place.',
+                      'Explore match ticket choices with clear comparison before visiting the seller.',
+                      'Plan tickets, hotel and travel for the Manchester derby from one starting point.',
+                  ],
+              },
+              'Tickets + Trip Planning': {
+                  'headlines': [
+                      'Plan Your Manchester Trip',
+                      'Match Tickets & Travel',
+                      'Manchester Derby Travel',
+                      'Compare Ticket Options',
+                      'Check Match Availability',
+                      'Plan Tickets Hotel Travel',
+                      'Manchester Match Planner',
+                      'Explore Derby Ticket Options',
+                  ],
+                  'descriptions': [
+                      'Start with ticket options, then plan hotel and travel for your Manchester trip.',
+                      'Compare options before booking and continue to the seller when you are ready.',
+                      'Make match-day planning simpler with tickets and travel choices in one place.',
+                      'Explore Manchester match options with clear comparisons and practical trip planning.',
+                  ],
+              },
+          }
+          for group_name, assets in rsa_sets.items():
+              op = client.get_type('AdGroupAdOperation')
+              aga = op.create
+              aga.ad_group = ad_group_resources[group_name]
+              aga.status = client.enums.AdGroupAdStatusEnum.PAUSED
+              ad = aga.ad
+              ad.final_urls.append(FINAL_URL)
+              ad.responsive_search_ad.path1 = 'manchester'
+              ad.responsive_search_ad.path2 = 'derby'
+              for h in assets['headlines']:
+                  asset = client.get_type('AdTextAsset'); asset.text = h
+                  ad.responsive_search_ad.headlines.append(asset)
+              for d in assets['descriptions']:
+                  asset = client.get_type('AdTextAsset'); asset.text = d
+                  ad.responsive_search_ad.descriptions.append(asset)
+              res = ad_group_ad_service.mutate_ad_group_ads(customer_id=CUSTOMER_ID, operations=[op])
+              print('Created PAUSED RSA for:', group_name, '|', res.results[0].resource_name)
+
+          print('--- DRAFT SUMMARY ---')
+          print('Campaign ID:', campaign_id)
+          print('Campaign status: PAUSED')
+          print('Ad groups: 2, both PAUSED')
+          print('Keywords: 12, exact/phrase only, all PAUSED')
+          print('Negative keywords:', len(negative_terms))
+          print('Responsive Search Ads: 2, both PAUSED')
+          print('Budget: USD 10/day if later enabled')
+          print('Maximize Clicks CPC ceiling: USD 0.35')
+          print('Final URL:', FINAL_URL)
+          print('Geo targeting: intentionally NOT added yet; must be reviewed before activation.')
+          print('SAFETY: No ad can serve or spend because campaign, ad groups, keywords, and ads are PAUSED.')
+          PY
+
+      - name: Upload draft report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: google-ads-manchester-derby-draft
+          path: google-ads-draft-output.txt
+          if-no-files-found: error
+          retention-days: 3
