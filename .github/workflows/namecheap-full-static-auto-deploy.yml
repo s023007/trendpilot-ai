@@ -1,0 +1,171 @@
+name: Namecheap Full Static Auto Deploy
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'css/**'
+      - 'js/**'
+      - 'images/**'
+      - 'data/**'
+      - 'item/**'
+      - 'find/**'
+      - 'compare/**'
+      - 'deals/**'
+      - 'products/**'
+      - 'sourcing/**'
+      - 'events/**'
+      - 'tickets/**'
+      - 'handoff/**'
+      - 'guides/**'
+      - 'software/**'
+      - 'price-watch/**'
+      - 'rare-used/**'
+      - 'coupons/**'
+      - 'index.html'
+      - '404.html'
+      - 'manifest.webmanifest'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - '.github/workflows/namecheap-full-static-auto-deploy.yml'
+
+concurrency:
+  group: namecheap-full-static-auto-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Validate critical public files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f index.html
+          test -f tickets/index.html
+          test -f handoff/index.html
+          test -f js/seller-handoff-v21-15.js
+          test -f events/manchester-derby-2026/en-gb/index.html
+          test -f products/index.html
+          test -f find/index.html
+          node --check js/seller-handoff-v21-15.js
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Verify production root
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && printf 'PRODUCTION_ROOT_OK\n'"
+
+      - name: Publish complete static site without deleting server-only files
+        shell: bash
+        run: |
+          set -euo pipefail
+          dirs=()
+          for d in css js images data item find compare deals products sourcing events tickets handoff guides software price-watch rare-used coupons; do
+            [ -d "$d" ] && dirs+=("$d")
+          done
+          printf 'Deploying directories:\n'; printf ' - %s\n' "${dirs[@]}"
+          tar -czf - "${dirs[@]}" | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+          roots=()
+          for f in index.html 404.html manifest.webmanifest robots.txt sitemap.xml; do
+            [ -f "$f" ] && roots+=("$f")
+          done
+          scp "${roots[@]}" "trendpilot-namecheap:$STATIC_ROOT/"
+          printf '%s\n' "$GITHUB_SHA" | ssh trendpilot-namecheap "cat > '$STATIC_ROOT/namecheap-full-static-release.txt'"
+
+      - name: Verify critical files on Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "\
+            test -f '$STATIC_ROOT/index.html' && \
+            test -f '$STATIC_ROOT/tickets/index.html' && \
+            test -f '$STATIC_ROOT/handoff/index.html' && \
+            test -f '$STATIC_ROOT/js/seller-handoff-v21-15.js' && \
+            test -f '$STATIC_ROOT/events/manchester-derby-2026/en-gb/index.html' && \
+            test -f '$STATIC_ROOT/products/index.html' && \
+            test -f '$STATIC_ROOT/find/index.html'"
+          remote_sha="$(ssh trendpilot-namecheap "cat '$STATIC_ROOT/namecheap-full-static-release.txt'")"
+          echo "REMOTE_RELEASE=$remote_sha"
+          test "$remote_sha" = "$GITHUB_SHA"
+
+      - name: Verify public routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os, time, urllib.request, urllib.error
+          origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
+          run=os.environ.get('GITHUB_RUN_ID','')
+          checks={
+            '/': ['TrendPilot'],
+            '/tickets/': ['TrendPilot'],
+            '/handoff/': ['Continue to seller'],
+            '/events/manchester-derby-2026/en-gb/': ['Manchester Derby 2026'],
+            '/products/': ['Shop by department'],
+            '/find/': ['TrendPilot'],
+            '/js/seller-handoff-v21-15.js': ['window.open(external.href']
+          }
+          failed=[]
+          for path, markers in checks.items():
+            ok=False; last=''
+            for attempt in range(1,6):
+              url=origin+path+('?' if '?' not in path else '&')+f'deploy={run}-{attempt}'
+              req=urllib.request.Request(url,headers={'User-Agent':'TrendPilotFullDeploy/1.0','Cache-Control':'no-cache'})
+              try:
+                with urllib.request.urlopen(req,timeout=25) as r:
+                  body=r.read().decode('utf-8','replace')
+                  last=f'HTTP {r.status}'
+                  ok=r.status==200 and all(m in body for m in markers)
+                  if ok: break
+              except Exception as exc:
+                last=type(exc).__name__+': '+str(exc)
+              time.sleep(4)
+            print(path, 'PASS' if ok else 'FAIL', last)
+            if not ok: failed.append(path)
+          if failed:
+            raise SystemExit('Public verification failed: '+', '.join(failed))
+          PY
