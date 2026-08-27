@@ -1,11 +1,13 @@
 {
-  "version": "1.0",
+  "version": "1.1",
   "mode": "recommend_only",
   "principles": {
     "protect_budget_first": true,
     "never_pause_on_tiny_sample": true,
     "scale_gradually": true,
-    "use_downstream_intent_not_ctr_alone": true
+    "use_downstream_intent_not_ctr_alone": true,
+    "treat_email_save_as_high_intent": true,
+    "never_fake_scarcity": true
   },
   "thresholds": {
     "learning_min_clicks": 12,
@@ -15,21 +17,40 @@
     "strong_ctr": 0.06,
     "max_scale_step_pct": 20,
     "stop_loss_clicks_without_intent": 25,
-    "stop_loss_cost_multiplier": 1.5
+    "stop_loss_cost_multiplier": 1.5,
+    "email_save_weight": 4,
+    "email_return_weight": 5,
+    "return_seller_click_weight": 7
   },
-  "states": ["LEARNING","WINNER","SCALE","KEEP","LANDING_MISMATCH","NEGATIVE_CANDIDATE","STOP_LOSS","PAUSE"],
+  "states": ["LEARNING","WINNER","SCALE","KEEP","LANDING_MISMATCH","EMAIL_ASSISTED","NEGATIVE_CANDIDATE","STOP_LOSS","PAUSE"],
   "rules": [
     {"id":"learning","when":"clicks < decision_min_clicks","state":"LEARNING","action":"collect_more_data"},
-    {"id":"winner","when":"clicks >= decision_min_clicks AND seller_click_rate >= strong_intent_rate","state":"WINNER","action":"keep_and_test_scale"},
+    {"id":"email_assisted","when":"email_saves > 0 OR email_returns > 0","state":"EMAIL_ASSISTED","action":"credit_keyword_with_assisted_intent"},
+    {"id":"winner","when":"clicks >= decision_min_clicks AND (seller_click_rate >= strong_intent_rate OR qualified_intent_score_rate >= strong_intent_rate)","state":"WINNER","action":"keep_and_test_scale"},
     {"id":"scale","when":"state == WINNER AND economics_positive","state":"SCALE","action":"increase_bid_or_budget_by_max_20_percent"},
-    {"id":"landing_mismatch","when":"ctr >= strong_ctr AND clicks >= decision_min_clicks AND seller_click_rate < weak_intent_rate","state":"LANDING_MISMATCH","action":"inspect_query_ad_landing_alignment"},
-    {"id":"stop_loss","when":"clicks >= stop_loss_clicks_without_intent AND seller_clicks == 0","state":"STOP_LOSS","action":"pause_recommendation"},
+    {"id":"landing_mismatch","when":"ctr >= strong_ctr AND clicks >= decision_min_clicks AND seller_click_rate < weak_intent_rate AND email_save_rate < weak_intent_rate","state":"LANDING_MISMATCH","action":"inspect_query_ad_landing_alignment"},
+    {"id":"stop_loss","when":"clicks >= stop_loss_clicks_without_intent AND seller_clicks == 0 AND email_saves == 0 AND email_returns == 0","state":"STOP_LOSS","action":"pause_recommendation"},
     {"id":"negative_candidate","when":"search_term_is_irrelevant == true","state":"NEGATIVE_CANDIDATE","action":"recommend_negative_keyword"}
   ],
+  "intent_scoring": {
+    "price_section_view": 1,
+    "seller_click": 3,
+    "email_save": 4,
+    "email_return": 5,
+    "return_seller_click": 7,
+    "conversion": 10,
+    "qualified_intent_score_formula": "price_section_views*1 + seller_clicks*3 + email_saves*4 + email_returns*5 + return_seller_clicks*7 + conversions*10",
+    "qualified_intent_score_rate_formula": "qualified_intent_score / max(clicks,1)"
+  },
   "economics": {
     "formula": "expected_value_per_ad_click = seller_click_rate * expected_value_per_seller_click",
     "max_cpc_formula": "max_cpc = expected_value_per_ad_click * safety_factor",
     "default_safety_factor": 0.70,
     "note": "Do not automate bid changes until conversion/revenue evidence is reliable."
+  },
+  "scarcity_policy": {
+    "allow_exact_seat_count_only_with_verified_source": true,
+    "fallback_copy": "Prices or availability may have changed since your visit.",
+    "forbidden": ["invented seat counts","unverified countdowns","false urgency"]
   }
 }
