@@ -1,0 +1,56 @@
+name: SMTP Diagnostic Once
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/smtp-diagnostic-once.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Inspect SMTP diagnostic state
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap 'bash -s' <<'REMOTE'
+          echo '=== FILES ==='
+          ls -l /home/kehwgbpo/trendpilot-private/mail-config.php /home/kehwgbpo/api.trendpilotchoice.com/save-search.php 2>&1 || true
+          echo '=== CONFIG CHECK ==='
+          php -r '$c=require "/home/kehwgbpo/trendpilot-private/mail-config.php"; echo "host=".$c["host"]." port=".$c["port"]." user=".$c["username"]." password_set=".((isset($c["password"]) && $c["password"] !== "" && $c["password"] !== "PUT_YOUR_EMAIL_PASSWORD_HERE") ? "yes" : "no").PHP_EOL;' 2>&1 || true
+          echo '=== PHP SYNTAX ==='
+          php -l /home/kehwgbpo/api.trendpilotchoice.com/save-search.php 2>&1 || true
+          echo '=== SMTP ERRORS ==='
+          if [ -f /home/kehwgbpo/trendpilot-private/smtp-errors.log ]; then tail -n 20 /home/kehwgbpo/trendpilot-private/smtp-errors.log; else echo 'no smtp-errors.log'; fi
+          REMOTE
