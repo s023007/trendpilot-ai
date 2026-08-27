@@ -57,7 +57,6 @@ jobs:
               print('No duplicate created.')
               sys.exit(0)
 
-          # Reuse the draft budget if a prior partial run already created it.
           budget_escaped = BUDGET_NAME.replace("'", "\\'")
           budget_rows = list(ga.search(customer_id=CUSTOMER_ID, query=f"SELECT campaign_budget.resource_name, campaign_budget.name, campaign_budget.amount_micros FROM campaign_budget WHERE campaign_budget.name = '{budget_escaped}' LIMIT 1"))
           if budget_rows:
@@ -86,10 +85,7 @@ jobs:
           campaign.network_settings.target_search_network = False
           campaign.network_settings.target_content_network = False
           campaign.network_settings.target_partner_search_network = False
-          # Manual CPC gives us a hard per-ad-group bid cap for the first controlled test.
           campaign.manual_cpc.enhanced_cpc_enabled = False
-          campaign.start_date = '20260827'
-          campaign.end_date = '20260913'
           campaign_result = campaign_service.mutate_campaigns(customer_id=CUSTOMER_ID, operations=[campaign_op])
           campaign_resource = campaign_result.results[0].resource_name
           campaign_id = campaign_resource.split('/')[-1]
