@@ -21,17 +21,43 @@
     } catch { return null; }
   }
 
+  function cardFor(a) {
+    return a?.closest?.(CARD_SELECTOR) || a?.closest?.('article') || a?.parentElement || null;
+  }
+
+  // A deal badge is useful only when it can actually reach the product. Some feed
+  // "Smart links" can expire or resolve to a dead route. If a card also contains
+  // a proven View product link, use that exact destination as the safe fallback.
+  function exactProductSibling(a) {
+    if (!/^check\s+deal\b/i.test(clean(a?.textContent))) return null;
+    const card = cardFor(a);
+    if (!card) return null;
+    const links = [...card.querySelectorAll('a[href]')];
+    const product = links.find(link => link !== a && /^view\s+product\b/i.test(clean(link.textContent)));
+    if (!product) return null;
+    const raw = product.dataset?.tpOriginalSellerUrl || product.getAttribute('href') || '';
+    try {
+      const u = new URL(raw, location.href);
+      if (/^https?:$/.test(u.protocol) && u.origin !== ORIGIN) return u;
+    } catch {}
+    return null;
+  }
+
+  function normalizedUrlOf(a) {
+    return exactProductSibling(a) || urlOf(a);
+  }
+
   function isExternalSeller(a) {
-    const u = urlOf(a);
+    const u = normalizedUrlOf(a);
     if (!u || !/^https?:$/.test(u.protocol) || u.origin === ORIGIN) return false;
     const rel = low(a.getAttribute('rel'));
     const text = clean(a.textContent || a.getAttribute('aria-label') || a.title);
-    const inCommerceCard = Boolean(a.closest?.(CARD_SELECTOR));
+    const inCommerceCard = Boolean(cardFor(a));
     return rel.includes('sponsored') || HOST_RE.test(u.hostname) || CTA_RE.test(text) || inCommerceCard;
   }
 
   function internalDetailFor(a) {
-    const card = a.closest?.(CARD_SELECTOR) || a.closest?.('article') || a.parentElement;
+    const card = cardFor(a);
     if (!card) return '';
     const links = [...card.querySelectorAll('a[href]')];
     for (const link of links) {
@@ -48,7 +74,7 @@
   function sellerLabel(a, u) {
     const explicit = clean(a.dataset?.seller || a.closest?.('[data-seller]')?.dataset?.seller || '');
     if (explicit) return explicit;
-    const card = a.closest?.(CARD_SELECTOR) || a.closest?.('article');
+    const card = cardFor(a);
     if (card) {
       const candidate = card.querySelector('[data-seller-name],.seller,.merchant,.tp214-meta strong,.tp214-coupon-top strong,.tp-ticket-v141-card-head strong');
       const text = clean(candidate?.textContent);
@@ -80,8 +106,14 @@
 
   function rewriteAnchor(a) {
     if (!a || a.dataset?.tpHandoffReady === '1' || !isExternalSeller(a)) return;
-    const external = urlOf(a);
+    const external = normalizedUrlOf(a);
     if (!external) return;
+
+    const rescuedDeal = exactProductSibling(a);
+    if (rescuedDeal) {
+      a.dataset.tpDealRescued = '1';
+      a.title = 'Exact product destination used because the separate deal route may be unavailable.';
+    }
 
     // Listing cards should always open their TrendPilot description/details page first.
     const internal = internalDetailFor(a);
@@ -109,12 +141,13 @@
     root?.querySelectorAll?.('a[href]').forEach(rewriteAnchor);
   }
 
-  // Capture any late-generated seller link even before MutationObserver rewrites it.
+  // Capture late-generated seller links. Check deal is normalized to the proven
+  // View product destination before any handoff is created, preventing dead smart links.
   d.addEventListener('click', e => {
     const a = e.target?.closest?.('a[href]');
     if (!a || !isExternalSeller(a)) return;
     const internal = internalDetailFor(a);
-    const u = urlOf(a);
+    const u = normalizedUrlOf(a);
     if (!u) return;
     e.preventDefault();
     e.stopImmediatePropagation();
