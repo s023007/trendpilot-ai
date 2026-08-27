@@ -93,8 +93,10 @@ if (!$sent) {
     exit;
 }
 
-// Store only operational lead data outside the public web root when possible.
-$storageDir = dirname(__DIR__) . '/.trendpilot-private';
+// Store operational lead data outside public_html.
+$docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
+$accountRoot = $docRoot ? dirname($docRoot) : dirname(dirname(__DIR__));
+$storageDir = $accountRoot . '/trendpilot-private';
 if (!is_dir($storageDir)) { @mkdir($storageDir, 0700, true); }
 $record = [
     'created_at' => gmdate('c'),
