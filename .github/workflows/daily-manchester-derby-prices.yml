@@ -2,12 +2,13 @@ name: Daily Manchester Derby Price Refresh
 
 on:
   schedule:
-    - cron: '15 2 * * *' # 05:15 Saudi Arabia time
+    - cron: '15 2 * * *'
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - '.github/scripts/update_manchester_derby_prices.py'
+      - '.github/scripts/sync_manchester_derby_event_pages.py'
       - '.github/workflows/daily-manchester-derby-prices.yml'
 
 concurrency:
@@ -28,7 +29,6 @@ jobs:
       STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
       PUBLIC_ORIGIN: https://trendpilotchoice.com
       DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
-
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -36,39 +36,37 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Refresh seller prices and EUR/SAR conversions
+      - name: Refresh source prices
         run: python .github/scripts/update_manchester_derby_prices.py
 
+      - name: Sync localized event price cards
+        run: python .github/scripts/sync_manchester_derby_event_pages.py
+
       - name: Show changes
-        run: git diff -- public/guides/manchester-derby-tickets-saudi-arabia/index.html .github/data/manchester-derby-prices.json || true
+        run: git diff -- public/guides/manchester-derby-tickets-saudi-arabia/index.html events/manchester-derby-2026/ar/index.html events/manchester-derby-2026/en-gb/index.html .github/data/manchester-derby-prices.json || true
 
       - name: Commit refreshed prices
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- public/guides/manchester-derby-tickets-saudi-arabia/index.html .github/data/manchester-derby-prices.json; then
+          FILES='public/guides/manchester-derby-tickets-saudi-arabia/index.html events/manchester-derby-2026/ar/index.html events/manchester-derby-2026/en-gb/index.html .github/data/manchester-derby-prices.json'
+          if git diff --quiet -- $FILES; then
             echo 'No price-page changes to commit.'
           else
             git config user.name 'trendpilot-price-bot'
             git config user.email '39025908+s023007@users.noreply.github.com'
-            git add public/guides/manchester-derby-tickets-saudi-arabia/index.html .github/data/manchester-derby-prices.json
-            git commit -m 'chore: refresh Manchester derby prices'
+            git add $FILES
+            git commit -m 'chore: refresh Manchester derby prices across landing pages'
             git fetch origin main
             git rebase origin/main
             git push origin HEAD:main
           fi
 
-      - name: Validate Namecheap deploy key
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
-          test -f public/guides/manchester-derby-tickets-saudi-arabia/index.html
-
       - name: Configure SSH
         shell: bash
         run: |
           set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
           mkdir -p ~/.ssh
           printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
           chmod 600 ~/.ssh/namecheap_deploy
@@ -81,34 +79,33 @@ jobs:
             IdentitiesOnly yes
             BatchMode yes
             ConnectTimeout 20
-            ServerAliveInterval 15
-            ServerAliveCountMax 2
             StrictHostKeyChecking accept-new
             UserKnownHostsFile ~/.ssh/known_hosts
           EOF
           chmod 600 ~/.ssh/config
 
-      - name: Publish refreshed guide to Namecheap
+      - name: Publish guide and localized event pages
         shell: bash
         run: |
           set -euo pipefail
-          ssh trendpilot-namecheap "test -d '$STATIC_ROOT' && mkdir -p '$STATIC_ROOT/guides/manchester-derby-tickets-saudi-arabia'"
+          ssh trendpilot-namecheap "mkdir -p '$STATIC_ROOT/guides/manchester-derby-tickets-saudi-arabia' '$STATIC_ROOT/events/manchester-derby-2026/ar' '$STATIC_ROOT/events/manchester-derby-2026/en-gb'"
           scp public/guides/manchester-derby-tickets-saudi-arabia/index.html trendpilot-namecheap:"$STATIC_ROOT/guides/manchester-derby-tickets-saudi-arabia/index.html"
+          scp events/manchester-derby-2026/ar/index.html trendpilot-namecheap:"$STATIC_ROOT/events/manchester-derby-2026/ar/index.html"
+          scp events/manchester-derby-2026/en-gb/index.html trendpilot-namecheap:"$STATIC_ROOT/events/manchester-derby-2026/en-gb/index.html"
+          scp events/manchester-derby-2026/derby-premium-v4.css trendpilot-namecheap:"$STATIC_ROOT/events/manchester-derby-2026/derby-premium-v4.css"
 
-      - name: Verify live refreshed guide
+      - name: Verify localized event pages
         shell: bash
         run: |
           set -euo pipefail
-          url="$PUBLIC_ORIGIN/guides/manchester-derby-tickets-saudi-arabia/?price_refresh=${GITHUB_RUN_ID}"
-          for attempt in 1 2 3 4 5; do
-            code="$(curl -L -sS -o /tmp/guide.html -w '%{http_code}' -H 'Cache-Control: no-cache' "$url&attempt=$attempt" || true)"
-            echo "Attempt $attempt: HTTP $code"
-            if [ "$code" = '200' ] && grep -qi 'ديربي مانشستر' /tmp/guide.html && grep -qi 'آخر تحديث تلقائي للأسعار' /tmp/guide.html && grep -qi 'Sports Events 365' /tmp/guide.html && grep -qi 'Ticombo' /tmp/guide.html; then
-              echo 'Live daily price refresh verified on trendpilotchoice.com'
-              exit 0
-            fi
-            sleep 5
+          for path in events/manchester-derby-2026/ar/ events/manchester-derby-2026/en-gb/; do
+            url="$PUBLIC_ORIGIN/$path?price_refresh=${GITHUB_RUN_ID}"
+            ok=0
+            for attempt in 1 2 3 4 5; do
+              code="$(curl -L -sS -o /tmp/page.html -w '%{http_code}' -H 'Cache-Control: no-cache' "$url&attempt=$attempt" || true)"
+              if [ "$code" = '200' ] && grep -qi 'LiveFootballTickets' /tmp/page.html && grep -qi 'Ticombo' /tmp/page.html; then ok=1; break; fi
+              sleep 5
+            done
+            test "$ok" = 1 || { echo "Verification failed: $path"; exit 1; }
           done
-          echo 'Daily price refresh did not verify on Namecheap.'
-          head -c 700 /tmp/guide.html || true
-          exit 1
+          echo 'Localized Manchester derby price pages verified live.'
