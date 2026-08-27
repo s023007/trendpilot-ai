@@ -1,0 +1,63 @@
+name: Deploy Email System
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'api/save-search.php'
+      - '.github/workflows/deploy-email-system.yml'
+permissions:
+  contents: read
+concurrency:
+  group: deploy-email-system
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      API_ROOT: /home/kehwgbpo/api.trendpilotchoice.com
+      PRIVATE_CONFIG: /home/kehwgbpo/trendpilot-private/mail-config.php
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PHP
+        run: php -l api/save-search.php
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+      - name: Preserve secret config and deploy engine
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -f '$PRIVATE_CONFIG'"
+          ssh trendpilot-namecheap "cp '$API_ROOT/save-search.php' '$API_ROOT/save-search.pre-github.bak.php' 2>/dev/null || true"
+          scp api/save-search.php "trendpilot-namecheap:$API_ROOT/save-search.php"
+          ssh trendpilot-namecheap "php -l '$API_ROOT/save-search.php' && test -f '$PRIVATE_CONFIG'"
+      - name: Verify API route
+        shell: bash
+        run: |
+          set -euo pipefail
+          body=$(curl -fsS --max-time 20 https://api.trendpilotchoice.com/save-search.php || true)
+          echo "$body"
+          echo "$body" | grep -q 'method_not_allowed'
