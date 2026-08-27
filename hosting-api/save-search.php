@@ -1,11 +1,25 @@
 <?php
-// TrendPilot Save Search endpoint for Namecheap/cPanel hosting.
-// Deploy this file to: public_html/api/save-search.php
+// TrendPilot Save Search endpoint for api.trendpilotchoice.com
 
 declare(strict_types=1);
+
+$allowedOrigin = 'https://trendpilotchoice.com';
+$origin = (string)($_SERVER['HTTP_ORIGIN'] ?? '');
+if ($origin === $allowedOrigin) {
+    header('Access-Control-Allow-Origin: ' . $allowedOrigin);
+    header('Vary: Origin');
+}
+header('Access-Control-Allow-Methods: POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type, Accept');
+header('Access-Control-Max-Age: 86400');
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
+
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
+    exit;
+}
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -93,7 +107,6 @@ if (!$sent) {
     exit;
 }
 
-// Store operational lead data outside public_html.
 $docRoot = rtrim((string)($_SERVER['DOCUMENT_ROOT'] ?? ''), '/');
 $accountRoot = $docRoot ? dirname($docRoot) : dirname(dirname(__DIR__));
 $storageDir = $accountRoot . '/trendpilot-private';
