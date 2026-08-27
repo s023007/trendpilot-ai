@@ -31,7 +31,6 @@ jobs:
           python - <<'PY' | tee google-ads-draft-output.txt
           import os, sys
           from google.ads.googleads.client import GoogleAdsClient
-          from google.ads.googleads.errors import GoogleAdsException
 
           CUSTOMER_ID = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
           LOGIN_ID = os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip()
@@ -50,7 +49,6 @@ jobs:
           client = GoogleAdsClient.load_from_dict(cfg)
           ga = client.get_service('GoogleAdsService')
 
-          # Idempotency: never create a duplicate campaign on retries.
           escaped = CAMPAIGN_NAME.replace("'", "\\'")
           existing = list(ga.search(customer_id=CUSTOMER_ID, query=f"SELECT campaign.id, campaign.name, campaign.status FROM campaign WHERE campaign.name = '{escaped}' LIMIT 1"))
           if existing:
@@ -59,19 +57,24 @@ jobs:
               print('No duplicate created.')
               sys.exit(0)
 
-          # Campaign budget: $10/day. Campaign remains PAUSED, so this cannot spend yet.
-          budget_service = client.get_service('CampaignBudgetService')
-          budget_op = client.get_type('CampaignBudgetOperation')
-          budget = budget_op.create
-          budget.name = BUDGET_NAME
-          budget.amount_micros = 10_000_000
-          budget.delivery_method = client.enums.BudgetDeliveryMethodEnum.STANDARD
-          budget.explicitly_shared = False
-          budget_result = budget_service.mutate_campaign_budgets(customer_id=CUSTOMER_ID, operations=[budget_op])
-          budget_resource = budget_result.results[0].resource_name
-          print('Created budget:', budget_resource, '($10/day; no spend while campaign is paused)')
+          # Reuse the draft budget if a prior partial run already created it.
+          budget_escaped = BUDGET_NAME.replace("'", "\\'")
+          budget_rows = list(ga.search(customer_id=CUSTOMER_ID, query=f"SELECT campaign_budget.resource_name, campaign_budget.name, campaign_budget.amount_micros FROM campaign_budget WHERE campaign_budget.name = '{budget_escaped}' LIMIT 1"))
+          if budget_rows:
+              budget_resource = budget_rows[0].campaign_budget.resource_name
+              print('Reusing existing budget:', budget_resource)
+          else:
+              budget_service = client.get_service('CampaignBudgetService')
+              budget_op = client.get_type('CampaignBudgetOperation')
+              budget = budget_op.create
+              budget.name = BUDGET_NAME
+              budget.amount_micros = 10_000_000
+              budget.delivery_method = client.enums.BudgetDeliveryMethodEnum.STANDARD
+              budget.explicitly_shared = False
+              budget_result = budget_service.mutate_campaign_budgets(customer_id=CUSTOMER_ID, operations=[budget_op])
+              budget_resource = budget_result.results[0].resource_name
+              print('Created budget:', budget_resource, '($10/day; no spend while campaign is paused)')
 
-          # Search campaign with a conservative click ceiling; PAUSED by design.
           campaign_service = client.get_service('CampaignService')
           campaign_op = client.get_type('CampaignOperation')
           campaign = campaign_op.create
@@ -83,7 +86,8 @@ jobs:
           campaign.network_settings.target_search_network = False
           campaign.network_settings.target_content_network = False
           campaign.network_settings.target_partner_search_network = False
-          campaign.maximize_clicks.cpc_bid_ceiling_micros = 350_000
+          # Manual CPC gives us a hard per-ad-group bid cap for the first controlled test.
+          campaign.manual_cpc.enhanced_cpc_enabled = False
           campaign.start_date = '20260827'
           campaign.end_date = '20260913'
           campaign_result = campaign_service.mutate_campaigns(customer_id=CUSTOMER_ID, operations=[campaign_op])
@@ -91,7 +95,6 @@ jobs:
           campaign_id = campaign_resource.split('/')[-1]
           print('Created PAUSED campaign:', campaign_resource)
 
-          # Ad groups kept PAUSED independently for a second safety layer.
           ad_group_service = client.get_service('AdGroupService')
           ad_group_defs = [
               ('Derby Tickets | High Intent', 300_000),
@@ -108,9 +111,8 @@ jobs:
               ag.cpc_bid_micros = bid
               res = ad_group_service.mutate_ad_groups(customer_id=CUSTOMER_ID, operations=[op])
               ad_group_resources[name] = res.results[0].resource_name
-              print('Created PAUSED ad group:', name)
+              print('Created PAUSED ad group:', name, '| max CPC $' + f'{bid/1_000_000:.2f}')
 
-          # Tight match types only: exact + phrase. No broad-match keywords.
           keyword_sets = {
               'Derby Tickets | High Intent': [
                   ('manchester derby tickets', 'EXACT'),
@@ -143,7 +145,6 @@ jobs:
               criterion_service.mutate_ad_group_criteria(customer_id=CUSTOMER_ID, operations=operations)
               print(f'Added {len(operations)} PAUSED keywords to {group_name}')
 
-          # Campaign-level negatives remove research/free-content traffic.
           negative_terms = [
               'free', 'live stream', 'stream', 'highlights', 'score', 'result',
               'prediction', 'lineup', 'news', 'reddit', 'jobs', 'wallpaper',
@@ -162,43 +163,34 @@ jobs:
           campaign_criterion_service.mutate_campaign_criteria(customer_id=CUSTOMER_ID, operations=neg_ops)
           print(f'Added {len(neg_ops)} campaign negative keywords')
 
-          # Responsive Search Ads. No claim of being an official or primary ticket seller.
           ad_group_ad_service = client.get_service('AdGroupAdService')
           rsa_sets = {
               'Derby Tickets | High Intent': {
                   'headlines': [
-                      'Manchester Derby Tickets',
-                      'Compare Derby Ticket Options',
-                      'Check Ticket Availability',
-                      'Compare Ticket Options',
-                      'Find Match Ticket Options',
-                      'Plan Your Manchester Trip',
-                      'Match Tickets & Travel',
-                      'Manchester Match Travel',
+                      'Manchester Derby Tickets', 'Compare Derby Ticket Options',
+                      'Check Ticket Availability', 'Compare Ticket Options',
+                      'Find Match Ticket Options', 'Plan Your Manchester Trip',
+                      'Match Tickets & Travel', 'Manchester Match Travel'
                   ],
                   'descriptions': [
                       'Compare ticket options and plan your Manchester match trip before you book.',
                       'Check availability, ticket options and travel planning in one place.',
                       'Explore match ticket choices with clear comparison before visiting the seller.',
-                      'Plan tickets, hotel and travel for the Manchester derby from one starting point.',
+                      'Plan tickets, hotel and travel for the Manchester derby from one starting point.'
                   ],
               },
               'Tickets + Trip Planning': {
                   'headlines': [
-                      'Plan Your Manchester Trip',
-                      'Match Tickets & Travel',
-                      'Manchester Derby Travel',
-                      'Compare Ticket Options',
-                      'Check Match Availability',
-                      'Plan Tickets Hotel Travel',
-                      'Manchester Match Planner',
-                      'Explore Derby Ticket Options',
+                      'Plan Your Manchester Trip', 'Match Tickets & Travel',
+                      'Manchester Derby Travel', 'Compare Ticket Options',
+                      'Check Match Availability', 'Plan Tickets Hotel Travel',
+                      'Manchester Match Planner', 'Explore Derby Ticket Options'
                   ],
                   'descriptions': [
                       'Start with ticket options, then plan hotel and travel for your Manchester trip.',
                       'Compare options before booking and continue to the seller when you are ready.',
                       'Make match-day planning simpler with tickets and travel choices in one place.',
-                      'Explore Manchester match options with clear comparisons and practical trip planning.',
+                      'Explore Manchester match options with clear comparisons and practical trip planning.'
                   ],
               },
           }
@@ -228,7 +220,7 @@ jobs:
           print('Negative keywords:', len(negative_terms))
           print('Responsive Search Ads: 2, both PAUSED')
           print('Budget: USD 10/day if later enabled')
-          print('Maximize Clicks CPC ceiling: USD 0.35')
+          print('Manual CPC: $0.30 high-intent / $0.25 trip-planning')
           print('Final URL:', FINAL_URL)
           print('Geo targeting: intentionally NOT added yet; must be reviewed before activation.')
           print('SAFETY: No ad can serve or spend because campaign, ad groups, keywords, and ads are PAUSED.')
