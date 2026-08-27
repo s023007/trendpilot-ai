@@ -58,6 +58,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          body=$(curl -fsS --max-time 20 https://api.trendpilotchoice.com/save-search.php || true)
+          body=$(curl -sS --max-time 20 https://api.trendpilotchoice.com/save-search.php)
           echo "$body"
           echo "$body" | grep -q 'method_not_allowed'
