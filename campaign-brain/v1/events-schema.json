@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "events": {
+    "PAGE_VIEW": ["session_id","campaign_id","keyword","search_term","locale","country_coarse","device_type","timestamp"],
+    "PRICE_VIEW": ["session_id","campaign_id","timestamp"],
+    "SELLER_INTENT": ["session_id","seller","price_seen","currency","timestamp"],
+    "SAVE_PROMPT_SHOWN": ["session_id","seller","timestamp"],
+    "EMAIL_SAVE": ["session_id","lead_id","seller","price_seen","currency","marketing_consent","timestamp"],
+    "EMAIL_SENT": ["lead_id","email_type","provider_message_id","timestamp"],
+    "EMAIL_RETURN": ["lead_id","tracking_token","campaign_id","timestamp"],
+    "RETURN_SELLER_CLICK": ["lead_id","seller","price_seen","currency","timestamp"],
+    "CONVERSION": ["session_id","lead_id_optional","seller","value","currency","timestamp"]
+  },
+  "rules": {
+    "email_address_must_not_be_in_analytics_event_payload": true,
+    "lead_id_must_be_pseudonymous": true,
+    "tracking_token_must_be_opaque_and_non_guessable": true,
+    "github_must_not_store_lead_records": true
+  }
+}
