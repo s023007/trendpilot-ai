@@ -51,6 +51,29 @@ jobs:
           php -r '$c=require "/home/kehwgbpo/trendpilot-private/mail-config.php"; echo "host=".$c["host"]." port=".$c["port"]." user=".$c["username"]." password_set=".((isset($c["password"]) && $c["password"] !== "" && $c["password"] !== "PUT_YOUR_EMAIL_PASSWORD_HERE") ? "yes" : "no").PHP_EOL;' 2>&1 || true
           echo '=== PHP SYNTAX ==='
           php -l /home/kehwgbpo/api.trendpilotchoice.com/save-search.php 2>&1 || true
+          echo '=== SMTP AUTH TEST ==='
+          php <<'PHP'
+          <?php
+          $c=require '/home/kehwgbpo/trendpilot-private/mail-config.php';
+          $ctx=stream_context_create(['ssl'=>['verify_peer'=>true,'verify_peer_name'=>true,'peer_name'=>$c['host'],'SNI_enabled'=>true]]);
+          $fp=@stream_socket_client('ssl://'.$c['host'].':'.$c['port'],$eno,$estr,20,STREAM_CLIENT_CONNECT,$ctx);
+          if(!$fp){echo "connect=FAIL code=$eno\n"; exit;}
+          stream_set_timeout($fp,20);
+          $read=function()use($fp){$o='';while(!feof($fp)){ $l=fgets($fp,8192); if($l===false)break; $o.=$l; if(preg_match('/^\d{3} /',$l))break;} return $o;};
+          $cmd=function($s)use($fp,$read){fwrite($fp,$s."\r\n");return $read();};
+          $g=$read(); echo 'greeting='.(int)substr($g,0,3)."\n";
+          $e=$cmd('EHLO trendpilotchoice.com'); echo 'ehlo='.(int)substr($e,0,3)."\n";
+          $a=$cmd('AUTH LOGIN'); echo 'auth_start='.(int)substr($a,0,3)."\n";
+          $u=$cmd(base64_encode($c['username'])); echo 'auth_user='.(int)substr($u,0,3)."\n";
+          $p=$cmd(base64_encode($c['password'])); echo 'auth_pass='.(int)substr($p,0,3)."\n";
+          if((int)substr($p,0,3)===235){$q=$cmd('QUIT'); echo 'quit='.(int)substr($q,0,3)."\n";}
+          fclose($fp);
+          ?>
+          PHP
+          echo '=== LATEST SAVED REQUEST ==='
+          if [ -f /home/kehwgbpo/trendpilot-private/save-search.jsonl ]; then php -r '$l=@file("/home/kehwgbpo/trendpilot-private/save-search.jsonl", FILE_IGNORE_NEW_LINES|FILE_SKIP_EMPTY_LINES); if(!$l){echo "none\n";exit;} $j=json_decode(end($l),true); echo "created_at=".($j["created_at"]??"")." seller=".($j["seller"]??"")." price=".($j["price"]??"").PHP_EOL;'; else echo 'no save-search.jsonl'; fi
           echo '=== SMTP ERRORS ==='
           if [ -f /home/kehwgbpo/trendpilot-private/smtp-errors.log ]; then tail -n 20 /home/kehwgbpo/trendpilot-private/smtp-errors.log; else echo 'no smtp-errors.log'; fi
+          echo '=== API LOG FILES ==='
+          ls -1 /home/kehwgbpo/logs 2>/dev/null | grep -i 'api.trendpilotchoice' || true
           REMOTE
