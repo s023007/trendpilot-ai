@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "mode": "recommend_only",
+  "principles": {
+    "protect_budget_first": true,
+    "never_pause_on_tiny_sample": true,
+    "scale_gradually": true,
+    "use_downstream_intent_not_ctr_alone": true
+  },
+  "thresholds": {
+    "learning_min_clicks": 12,
+    "decision_min_clicks": 20,
+    "strong_intent_rate": 0.20,
+    "weak_intent_rate": 0.05,
+    "strong_ctr": 0.06,
+    "max_scale_step_pct": 20,
+    "stop_loss_clicks_without_intent": 25,
+    "stop_loss_cost_multiplier": 1.5
+  },
+  "states": ["LEARNING","WINNER","SCALE","KEEP","LANDING_MISMATCH","NEGATIVE_CANDIDATE","STOP_LOSS","PAUSE"],
+  "rules": [
+    {"id":"learning","when":"clicks < decision_min_clicks","state":"LEARNING","action":"collect_more_data"},
+    {"id":"winner","when":"clicks >= decision_min_clicks AND seller_click_rate >= strong_intent_rate","state":"WINNER","action":"keep_and_test_scale"},
+    {"id":"scale","when":"state == WINNER AND economics_positive","state":"SCALE","action":"increase_bid_or_budget_by_max_20_percent"},
+    {"id":"landing_mismatch","when":"ctr >= strong_ctr AND clicks >= decision_min_clicks AND seller_click_rate < weak_intent_rate","state":"LANDING_MISMATCH","action":"inspect_query_ad_landing_alignment"},
+    {"id":"stop_loss","when":"clicks >= stop_loss_clicks_without_intent AND seller_clicks == 0","state":"STOP_LOSS","action":"pause_recommendation"},
+    {"id":"negative_candidate","when":"search_term_is_irrelevant == true","state":"NEGATIVE_CANDIDATE","action":"recommend_negative_keyword"}
+  ],
+  "economics": {
+    "formula": "expected_value_per_ad_click = seller_click_rate * expected_value_per_seller_click",
+    "max_cpc_formula": "max_cpc = expected_value_per_ad_click * safety_factor",
+    "default_safety_factor": 0.70,
+    "note": "Do not automate bid changes until conversion/revenue evidence is reliable."
+  }
+}
