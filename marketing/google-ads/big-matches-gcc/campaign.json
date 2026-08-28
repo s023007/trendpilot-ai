@@ -1,0 +1,97 @@
+{
+  "campaign_id": "TP-GADS-GCC-BIG-MATCHES-01",
+  "name": "TrendPilot | GCC Big Matches | Search | 2026",
+  "status": "PAUSED",
+  "purpose": "Controlled six-match Google Search test. Never auto-enable; user previews before launch.",
+  "network": {"google_search": true, "search_partners": false, "display_network": false},
+  "geo": {
+    "included": ["Saudi Arabia", "United Arab Emirates", "Oman", "Qatar", "Kuwait", "Bahrain"],
+    "advanced_location_option": "PRESENCE_ONLY"
+  },
+  "languages": ["Arabic", "English"],
+  "bidding": {
+    "strategy": "MANUAL_CPC",
+    "campaign_default_max_cpc_usd": 0.35,
+    "enhanced_cpc": false,
+    "broad_match": false,
+    "guardrail": "No automatic bid strategy until seller-click conversion tracking has real data."
+  },
+  "budget": {
+    "average_daily_usd": 5.0,
+    "launch_status": "PAUSED",
+    "note": "Preview value only. Campaign must remain paused until explicit manual approval."
+  },
+  "tracking": {
+    "final_url_suffix": "utm_source=google&utm_medium=cpc&utm_campaign=tp_gcc_big_matches_2026&utm_term={keyword}&utm_content={adgroupid}-{creative}&device={device}&matchtype={matchtype}&network={network}",
+    "primary_optimization_event": "seller_outbound_click",
+    "secondary_events": ["ticket_offer_click", "email_submit", "email_buy_click"],
+    "page_view_is_conversion": false
+  },
+  "campaign_negatives": [
+    "free", "stream", "streaming", "live stream", "watch live", "highlights", "score", "result", "prediction", "lineup", "youtube", "reddit", "torrent", "jersey", "shirt", "kit", "wallpaper", "game", "fc 26", "jobs", "season ticket", "membership",
+    "مجاني", "مجانا", "بث مباشر", "مشاهدة مباشرة", "اهداف", "أهداف", "ملخص", "نتيجة", "تشكيل", "توقعات", "يوتيوب", "قميص", "طقم", "لعبة", "وظائف", "عضوية"
+  ],
+  "launch_guards": {
+    "never_auto_enable": true,
+    "search_terms_review_required": true,
+    "pause_keyword_after_clicks_without_signal": 20,
+    "pause_adgroup_after_spend_usd_without_seller_click": 12,
+    "no_budget_increase_without_seller_click_data": true
+  },
+  "matches": [
+    {
+      "key": "manchester_derby",
+      "label": "Manchester United vs Manchester City",
+      "landing_ar": "https://trendpilotchoice.com/events/manchester-derby-2026/ar/",
+      "landing_en": "https://trendpilotchoice.com/events/manchester-derby-2026/en-gb/",
+      "max_cpc_usd": 0.35,
+      "keywords_exact": ["manchester united vs manchester city tickets", "manchester derby tickets", "buy manchester derby tickets", "تذاكر ديربي مانشستر", "تذاكر مانشستر يونايتد مانشستر سيتي"],
+      "keywords_phrase": ["manchester derby tickets", "man united man city tickets", "تذاكر مانشستر يونايتد ضد مانشستر سيتي"]
+    },
+    {
+      "key": "liverpool_manunited",
+      "label": "Liverpool vs Manchester United",
+      "landing_ar": "https://trendpilotchoice.com/events/liverpool-v-manchester-united-2026/ar/",
+      "landing_en": "https://trendpilotchoice.com/events/liverpool-v-manchester-united-2026/en-gb/",
+      "max_cpc_usd": 0.35,
+      "keywords_exact": ["liverpool vs manchester united tickets", "liverpool man united tickets", "buy liverpool man united tickets", "تذاكر ليفربول مانشستر يونايتد", "تذاكر ليفربول ضد مانشستر يونايتد"],
+      "keywords_phrase": ["liverpool man united tickets", "liverpool vs man utd tickets", "تذاكر ليفربول مانشستر يونايتد"]
+    },
+    {
+      "key": "el_clasico",
+      "label": "Barcelona vs Real Madrid",
+      "landing_ar": "https://trendpilotchoice.com/events/el-clasico-2026/ar/",
+      "landing_en": "https://trendpilotchoice.com/events/el-clasico-2026/en-gb/",
+      "max_cpc_usd": 0.40,
+      "keywords_exact": ["el clasico tickets", "barcelona vs real madrid tickets", "buy el clasico tickets", "تذاكر الكلاسيكو", "تذاكر برشلونة ريال مدريد"],
+      "keywords_phrase": ["el clasico tickets", "barcelona real madrid tickets", "تذاكر برشلونة ضد ريال مدريد"]
+    },
+    {
+      "key": "madrid_derby",
+      "label": "Atletico Madrid vs Real Madrid",
+      "landing_ar": "https://trendpilotchoice.com/events/madrid-derby-2026/ar/",
+      "landing_en": "https://trendpilotchoice.com/events/madrid-derby-2026/en-gb/",
+      "max_cpc_usd": 0.32,
+      "keywords_exact": ["atletico madrid vs real madrid tickets", "madrid derby tickets", "buy madrid derby tickets", "تذاكر ديربي مدريد", "تذاكر اتلتيكو ريال مدريد"],
+      "keywords_phrase": ["madrid derby tickets", "atletico real madrid tickets", "تذاكر أتلتيكو مدريد ريال مدريد"]
+    },
+    {
+      "key": "north_london_derby",
+      "label": "Tottenham vs Arsenal",
+      "landing_ar": "https://trendpilotchoice.com/events/north-london-derby-2026/ar/",
+      "landing_en": "https://trendpilotchoice.com/events/north-london-derby-2026/en-gb/",
+      "max_cpc_usd": 0.32,
+      "keywords_exact": ["tottenham vs arsenal tickets", "north london derby tickets", "buy tottenham arsenal tickets", "تذاكر توتنهام أرسنال", "تذاكر ديربي شمال لندن"],
+      "keywords_phrase": ["tottenham arsenal tickets", "north london derby tickets", "تذاكر توتنهام ضد ارسنال"]
+    },
+    {
+      "key": "arsenal_mancity",
+      "label": "Arsenal vs Manchester City",
+      "landing_ar": "https://trendpilotchoice.com/events/arsenal-v-manchester-city-2026/ar/",
+      "landing_en": "https://trendpilotchoice.com/events/arsenal-v-manchester-city-2026/en-gb/",
+      "max_cpc_usd": 0.32,
+      "keywords_exact": ["arsenal vs manchester city tickets", "arsenal man city tickets", "buy arsenal man city tickets", "تذاكر أرسنال مانشستر سيتي", "تذاكر ارسنال ضد مانشستر سيتي"],
+      "keywords_phrase": ["arsenal man city tickets", "arsenal vs man city tickets", "تذاكر أرسنال مانشستر سيتي"]
+    }
+  ]
+}
