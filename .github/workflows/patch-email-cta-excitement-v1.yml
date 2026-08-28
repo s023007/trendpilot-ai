@@ -1,0 +1,31 @@
+name: Patch Ticket Email CTA V1
+on:
+  push:
+    paths:
+      - 'scripts/patch_email_cta_excitement_v1.py'
+      - '.github/workflows/patch-email-cta-excitement-v1.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebase latest main
+        run: git pull --rebase origin main
+      - name: Apply email CTA patch
+        run: python scripts/patch_email_cta_excitement_v1.py
+      - name: Validate PHP
+        run: php -l api/save-search.php
+      - name: Commit and push
+        run: |
+          git config user.name 'trendpilot-email-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add api/save-search.php
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'feat: make ticket email CTA seat-focused'
+          git pull --rebase origin main
+          git push origin main
