@@ -1,0 +1,42 @@
+name: Google Ads Hard Spend Guard
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/google_ads_hard_spend_guard.py'
+      - '.github/workflows/google-ads-hard-spend-guard.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-ads-hard-spend-guard
+  cancel-in-progress: true
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: google-ads-paused-create
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Enforce spend, network and expiry safety guards
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: python .github/scripts/google_ads_hard_spend_guard.py
+      - name: Safety statement
+        if: always()
+        run: |
+          echo 'This guard can only preserve settings or PAUSE campaign/ad groups.'
+          echo 'It contains no campaign enable, bid increase, or budget increase operation.'
