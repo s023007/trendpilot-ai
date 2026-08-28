@@ -1,0 +1,86 @@
+name: Upload Google Ads Conversions Hourly
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/upload-google-ads-conversions-hourly.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+      TP_SAVE_LOG: /tmp/tp-save-search.jsonl
+      TP_CLICK_LOG: /tmp/tp-email-clicks.jsonl
+      TP_CONVERSION_STATE: /tmp/tp-google-ads-conversion-state.json
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Pull private conversion event logs without printing customer data
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/save-search.jsonl && cat /home/kehwgbpo/trendpilot-private/save-search.jsonl || true" > "$TP_SAVE_LOG"
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/email-clicks.jsonl && cat /home/kehwgbpo/trendpilot-private/email-clicks.jsonl || true" > "$TP_CLICK_LOG"
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/google-ads-conversion-state.json && cat /home/kehwgbpo/trendpilot-private/google-ads-conversion-state.json || true" > "$TP_CONVERSION_STATE"
+          test -s "$TP_CONVERSION_STATE" || printf '{"lead":[],"seller":[]}\n' > "$TP_CONVERSION_STATE"
+          echo "Private logs copied to runner; contents intentionally not printed."
+
+      - name: Upload only GCLID-attributed TrendPilot conversions
+        run: python .github/scripts/upload_google_ads_conversions.py
+
+      - name: Persist dedupe state privately on Namecheap
+        if: success()
+        shell: bash
+        run: |
+          set -euo pipefail
+          scp "$TP_CONVERSION_STATE" trendpilot-namecheap:/home/kehwgbpo/trendpilot-private/google-ads-conversion-state.json
+          ssh trendpilot-namecheap "chmod 600 /home/kehwgbpo/trendpilot-private/google-ads-conversion-state.json"
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo 'This workflow only uploads conversion observations.'
+          echo 'It contains no campaign enable, bid increase, or budget increase operation.'
