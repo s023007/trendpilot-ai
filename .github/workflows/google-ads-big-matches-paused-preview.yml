@@ -1,5 +1,4 @@
 name: Google Ads Big Matches — Paused Preview
-# One-time retry after RSA GAQL field-path hotfix.
 
 on:
   workflow_dispatch:
@@ -70,7 +69,7 @@ jobs:
         run: python .github/scripts/test_google_ads_api_connection.py
 
   create-paused:
-    if: github.event_name == 'push'
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'create-paused'
     needs: preview
     runs-on: ubuntu-latest
     environment: google-ads-paused-create
