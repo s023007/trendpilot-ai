@@ -1,0 +1,171 @@
+name: Setup Google Ads Conversion Goals V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/setup-google-ads-conversions-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Create safe conversion actions and verify campaign stays paused
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          SELLER_NAME = 'TrendPilot | Seller Outbound Click'
+          LEAD_NAME = 'TrendPilot | Email Lead'
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          # Read target account and conversion owner.
+          rows = list(ga.search(customer_id=cid, query='''
+            SELECT customer.id, customer.auto_tagging_enabled,
+                   customer.conversion_tracking_setting.google_ads_conversion_customer
+            FROM customer LIMIT 1
+          '''))
+          assert len(rows) == 1
+          cust = rows[0].customer
+          conversion_owner = str(cust.conversion_tracking_setting.google_ads_conversion_customer or '')
+          conversion_cid = conversion_owner.rsplit('/', 1)[-1] if conversion_owner else cid
+          print('Target customer:', cid)
+          print('Conversion customer:', conversion_cid)
+          print('Auto-tagging before:', bool(cust.auto_tagging_enabled))
+
+          # Auto-tagging is required for reliable GCLID capture. Enabling it does not enable ads.
+          if not cust.auto_tagging_enabled:
+              svc = client.get_service('CustomerService')
+              op = client.get_type('CustomerOperation')
+              op.update.resource_name = svc.customer_path(cid)
+              op.update.auto_tagging_enabled = True
+              op.update_mask.paths.append('auto_tagging_enabled')
+              svc.mutate_customer(customer_id=cid, operation=op)
+              print('Auto-tagging enabled.')
+
+          def find_action(name):
+              safe = name.replace("'", "\\'")
+              q = f'''
+                SELECT conversion_action.resource_name, conversion_action.id,
+                       conversion_action.name, conversion_action.status,
+                       conversion_action.type, conversion_action.category,
+                       conversion_action.origin, conversion_action.primary_for_goal
+                FROM conversion_action
+                WHERE conversion_action.name = '{safe}'
+                  AND conversion_action.status != 'REMOVED'
+                LIMIT 1
+              '''
+              rows = list(ga.search(customer_id=conversion_cid, query=q))
+              return rows[0].conversion_action if rows else None
+
+          def ensure_action(name, category_name, primary):
+              existing = find_action(name)
+              if existing:
+                  assert existing.type_.name == 'UPLOAD_CLICKS', existing.type_.name
+                  if bool(existing.primary_for_goal) != primary:
+                      svc = client.get_service('ConversionActionService')
+                      op = client.get_type('ConversionActionOperation')
+                      op.update.resource_name = existing.resource_name
+                      op.update.primary_for_goal = primary
+                      op.update_mask.paths.append('primary_for_goal')
+                      svc.mutate_conversion_actions(customer_id=conversion_cid, operations=[op])
+                      print('Updated primary_for_goal:', name, primary)
+                  return find_action(name)
+
+              svc = client.get_service('ConversionActionService')
+              op = client.get_type('ConversionActionOperation')
+              ca = op.create
+              ca.name = name
+              ca.type_ = client.enums.ConversionActionTypeEnum.UPLOAD_CLICKS
+              ca.category = getattr(client.enums.ConversionActionCategoryEnum, category_name)
+              ca.status = client.enums.ConversionActionStatusEnum.ENABLED
+              ca.primary_for_goal = primary
+              ca.counting_type = client.enums.ConversionActionCountingTypeEnum.ONE_PER_CLICK
+              ca.value_settings.default_value = 1.0
+              ca.value_settings.default_currency_code = 'USD'
+              ca.value_settings.always_use_default_value = True
+              ca.view_through_lookback_window_days = 15
+              res = svc.mutate_conversion_actions(customer_id=conversion_cid, operations=[op])
+              print('Created conversion action:', name, res.results[0].resource_name)
+              return find_action(name)
+
+          seller = ensure_action(SELLER_NAME, 'OUTBOUND_CLICK', True)
+          lead = ensure_action(LEAD_NAME, 'SUBMIT_LEAD_FORM', False)
+
+          # Make seller outbound click the account-default optimization goal;
+          # keep email lead observation-only. Manual CPC remains unchanged.
+          goal_svc = client.get_service('CustomerConversionGoalService')
+          for action, biddable in [(seller, True), (lead, False)]:
+              q = f'''
+                SELECT customer_conversion_goal.resource_name,
+                       customer_conversion_goal.biddable,
+                       customer_conversion_goal.category,
+                       customer_conversion_goal.origin
+                FROM customer_conversion_goal
+                WHERE customer_conversion_goal.category = '{action.category.name}'
+                  AND customer_conversion_goal.origin = '{action.origin.name}'
+                LIMIT 1
+              '''
+              rows = list(ga.search(customer_id=conversion_cid, query=q))
+              assert rows, f'Customer conversion goal missing for {action.name}'
+              goal = rows[0].customer_conversion_goal
+              if bool(goal.biddable) != biddable:
+                  op = client.get_type('CustomerConversionGoalOperation')
+                  op.update.resource_name = goal.resource_name
+                  op.update.biddable = biddable
+                  op.update_mask.paths.append('biddable')
+                  goal_svc.mutate_customer_conversion_goals(customer_id=conversion_cid, operations=[op])
+                  print('Updated account goal:', action.category.name, action.origin.name, biddable)
+
+          # Final safety verification: this workflow must never start spending.
+          rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.id, campaign.status, campaign.bidding_strategy_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network
+            FROM campaign WHERE campaign.id = {CAMPAIGN_ID} LIMIT 1
+          '''))
+          assert len(rows) == 1
+          c = rows[0].campaign
+          assert c.status.name == 'PAUSED', c.status.name
+          assert c.network_settings.target_google_search is True
+          assert c.network_settings.target_search_network is False
+          assert c.network_settings.target_content_network is False
+          assert c.network_settings.target_partner_search_network is False
+
+          seller = find_action(SELLER_NAME)
+          lead = find_action(LEAD_NAME)
+          print('CONVERSION SETUP PASS')
+          print('Campaign remains:', c.status.name)
+          print('Seller outbound click:', seller.status.name, '| Primary:', bool(seller.primary_for_goal))
+          print('Email lead:', lead.status.name, '| Primary:', bool(lead.primary_for_goal))
+          print('No campaign enable operation exists in this workflow.')
+          PY
