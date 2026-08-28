@@ -61,7 +61,7 @@ jobs:
           exit "$missing"
 
   create-paused:
-    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'create-paused'
+    if: (github.event_name == 'push' && contains(github.event.head_commit.message, 'ads: create paused six-match campaign')) || (github.event_name == 'workflow_dispatch' && inputs.mode == 'create-paused')
     needs: preview
     runs-on: ubuntu-latest
     environment: google-ads-paused-create
