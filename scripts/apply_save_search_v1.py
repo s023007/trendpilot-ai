@@ -8,6 +8,7 @@ PAGES = [
 CSS = '<link rel="stylesheet" href="../save-search.css?v=1.0.0">'
 JS = '<script src="../save-search.js?v=1.0.0" defer></script>'
 BUY_JS = '<script src="../email-buy-redirect.js?v=1.0.0"></script>'
+RETURNING_JS = '<script src="../returning-user.js?v=1.0.0"></script>'
 
 for path in PAGES:
     text = path.read_text(encoding='utf-8')
@@ -18,18 +19,13 @@ for path in PAGES:
             raise SystemExit(f'Missing stylesheet marker in {path}')
         text = text.replace(needle, needle + '\n' + CSS, 1)
         changed = True
-    if BUY_JS not in text:
-        needle = '</body></html>'
-        if needle not in text:
-            raise SystemExit(f'Missing body marker in {path}')
-        text = text.replace(needle, BUY_JS + '\n' + needle, 1)
-        changed = True
-    if JS not in text:
-        needle = '</body></html>'
-        if needle not in text:
-            raise SystemExit(f'Missing body marker in {path}')
-        text = text.replace(needle, JS + '\n' + needle, 1)
-        changed = True
+    for asset in (RETURNING_JS, BUY_JS, JS):
+        if asset not in text:
+            needle = '</body></html>'
+            if needle not in text:
+                raise SystemExit(f'Missing body marker in {path}')
+            text = text.replace(needle, asset + '\n' + needle, 1)
+            changed = True
     if changed:
         path.write_text(text, encoding='utf-8')
         print(f'updated {path}')
