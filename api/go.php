@@ -51,7 +51,16 @@ $allowedTicketHosts = [
     'livefootballtickets.com','www.livefootballtickets.com',
     'footballticketpad.com','www.footballticketpad.com'
 ];
+$allowedElClasicoHosts = [
+    'sportsevents365.com','www.sportsevents365.com',
+    'livefootballtickets.com','www.livefootballtickets.com',
+    'seatpick.com','www.seatpick.com','fanpass.es','www.fanpass.es'
+];
 if ($campaign === 'manchester_derby_2026' && !in_array($host, $allowedTicketHosts, true)) {
+    http_response_code(400);
+    exit('Seller link not allowed');
+}
+if ($campaign === 'el_clasico_2026' && !in_array($host, $allowedElClasicoHosts, true)) {
     http_response_code(400);
     exit('Seller link not allowed');
 }
