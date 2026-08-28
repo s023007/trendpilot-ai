@@ -1,0 +1,46 @@
+name: Simplify El Clasico CTAs V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/simplify_el_clasico_ctas_v1.py'
+      - '.github/workflows/simplify-el-clasico-ctas-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: simplify-el-clasico-ctas-v1
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebase latest main
+        run: |
+          git fetch origin main
+          git rebase origin/main || true
+      - name: Apply CTA cleanup
+        run: python scripts/simplify_el_clasico_ctas_v1.py
+      - name: Commit and push
+        run: |
+          git config user.name 'trendpilot-el-clasico-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add events/el-clasico-2026/ar/index.html events/el-clasico-2026/en-gb/index.html
+          if git diff --cached --quiet; then
+            echo 'No changes needed.'
+            exit 0
+          fi
+          git commit -m 'fix: simplify El Clasico purchase CTAs'
+          for i in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main && git push origin HEAD:main && exit 0
+            sleep 3
+          done
+          exit 1
