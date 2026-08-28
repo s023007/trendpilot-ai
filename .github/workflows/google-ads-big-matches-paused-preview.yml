@@ -1,0 +1,55 @@
+name: Google Ads Big Matches — Paused Preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preview = no Google mutation; create-paused = create campaign in Google Ads, PAUSED only"
+        required: true
+        default: preview
+        type: choice
+        options:
+          - preview
+          - create-paused
+  push:
+    branches: [main]
+    paths:
+      - 'marketing/google-ads/big-matches-gcc/campaign.json'
+      - '.github/scripts/create_paused_big_match_google_ads.py'
+      - '.github/workflows/google-ads-big-matches-paused-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate and preview — never spends
+        run: python .github/scripts/create_paused_big_match_google_ads.py preview
+
+  create-paused:
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'create-paused'
+    needs: preview
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Create in Google Ads — PAUSED only
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: python .github/scripts/create_paused_big_match_google_ads.py create-paused
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo 'This workflow contains no enable operation.'
+          echo 'Campaign/ad groups/ads/keywords are created PAUSED and require a separate explicit launch action after user preview.'
