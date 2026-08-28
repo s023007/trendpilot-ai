@@ -29,6 +29,37 @@ jobs:
       - name: Validate and preview — never spends
         run: python .github/scripts/create_paused_big_match_google_ads.py preview
 
+  credentials-check:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - name: Verify required Google Ads secrets without exposing values
+        shell: bash
+        run: |
+          missing=0
+          for name in GOOGLE_ADS_DEVELOPER_TOKEN GOOGLE_ADS_CLIENT_ID GOOGLE_ADS_CLIENT_SECRET GOOGLE_ADS_REFRESH_TOKEN GOOGLE_ADS_CUSTOMER_ID; do
+            if [ -z "${!name}" ]; then
+              echo "::error::$name is MISSING"
+              missing=1
+            else
+              echo "$name is PRESENT"
+            fi
+          done
+          if [ -n "$GOOGLE_ADS_LOGIN_CUSTOMER_ID" ]; then
+            echo "GOOGLE_ADS_LOGIN_CUSTOMER_ID is PRESENT"
+          else
+            echo "GOOGLE_ADS_LOGIN_CUSTOMER_ID is not set (optional for direct client-account access)"
+          fi
+          exit "$missing"
+
   create-paused:
     if: github.event_name == 'workflow_dispatch' && inputs.mode == 'create-paused'
     needs: preview
