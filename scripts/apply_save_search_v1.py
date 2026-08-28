@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# Keep the live derby pages wired to the email-return and returning-user assets.
 PAGES = [
     Path('events/manchester-derby-2026/ar/index.html'),
     Path('events/manchester-derby-2026/en-gb/index.html'),
