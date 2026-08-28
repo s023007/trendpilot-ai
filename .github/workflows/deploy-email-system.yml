@@ -68,3 +68,4 @@ jobs:
           code=$(curl -sS -o /tmp/go.out -w '%{http_code}' --max-time 20 'https://api.trendpilotchoice.com/go.php?lead=bad')
           cat /tmp/go.out
           test "$code" = '400'
+      # Force-deploy marker: email buy event bridge V3
