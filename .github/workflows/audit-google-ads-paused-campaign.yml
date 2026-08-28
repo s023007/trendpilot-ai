@@ -1,0 +1,102 @@
+name: Audit Google Ads Paused Campaign
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-google-ads-paused-campaign.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Read-only final campaign audit
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          EXPECTED_NAME = 'TrendPilot | GCC Big Matches | Search | 2026'
+          EXPECTED_BUDGET = 5_000_000
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', ''),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '')
+          ga = client.get_service('GoogleAdsService')
+
+          rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.id, campaign.name, campaign.status,
+                   campaign.advertising_channel_type, campaign.campaign_budget,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network,
+                   campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign_budget.name, campaign_budget.amount_micros,
+                   campaign_budget.status
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+            LIMIT 1
+          '''))
+          assert len(rows) == 1, f'Expected exactly one campaign row, got {len(rows)}'
+          r = rows[0]
+          c, b = r.campaign, r.campaign_budget
+          assert c.name == EXPECTED_NAME
+          assert c.status.name == 'PAUSED', c.status.name
+          assert c.advertising_channel_type.name == 'SEARCH'
+          assert c.network_settings.target_google_search is True
+          assert c.network_settings.target_search_network is False
+          assert c.network_settings.target_content_network is False
+          assert c.network_settings.target_partner_search_network is False
+          assert c.geo_target_type_setting.positive_geo_target_type.name == 'PRESENCE'
+          assert int(b.amount_micros) == EXPECTED_BUDGET, b.amount_micros
+
+          def count(query):
+              return len(list(ga.search(customer_id=cid, query=query)))
+
+          adgroups = count(f'''SELECT ad_group.id FROM ad_group WHERE campaign.id = {CAMPAIGN_ID} AND ad_group.status != 'REMOVED' ''')
+          paused_adgroups = count(f'''SELECT ad_group.id FROM ad_group WHERE campaign.id = {CAMPAIGN_ID} AND ad_group.status = 'PAUSED' ''')
+          ads = count(f'''SELECT ad_group_ad.resource_name FROM ad_group_ad WHERE campaign.id = {CAMPAIGN_ID} AND ad_group_ad.status != 'REMOVED' ''')
+          paused_ads = count(f'''SELECT ad_group_ad.resource_name FROM ad_group_ad WHERE campaign.id = {CAMPAIGN_ID} AND ad_group_ad.status = 'PAUSED' ''')
+          keywords = count(f'''SELECT ad_group_criterion.resource_name FROM keyword_view WHERE campaign.id = {CAMPAIGN_ID} AND ad_group_criterion.status != 'REMOVED' ''')
+          paused_keywords = count(f'''SELECT ad_group_criterion.resource_name FROM keyword_view WHERE campaign.id = {CAMPAIGN_ID} AND ad_group_criterion.status = 'PAUSED' ''')
+          locations = count(f'''SELECT campaign_criterion.resource_name FROM campaign_criterion WHERE campaign.id = {CAMPAIGN_ID} AND campaign_criterion.type = 'LOCATION' AND campaign_criterion.negative = FALSE ''')
+          languages = count(f'''SELECT campaign_criterion.resource_name FROM campaign_criterion WHERE campaign.id = {CAMPAIGN_ID} AND campaign_criterion.type = 'LANGUAGE' AND campaign_criterion.negative = FALSE ''')
+          negatives = count(f'''SELECT campaign_criterion.resource_name FROM campaign_criterion WHERE campaign.id = {CAMPAIGN_ID} AND campaign_criterion.type = 'KEYWORD' AND campaign_criterion.negative = TRUE ''')
+
+          assert adgroups == paused_adgroups == 12, (adgroups, paused_adgroups)
+          assert ads == paused_ads == 12, (ads, paused_ads)
+          assert keywords == paused_keywords == 48, (keywords, paused_keywords)
+          assert locations == 6, locations
+          assert languages == 2, languages
+          assert negatives >= 38, negatives
+
+          print('FINAL READ-ONLY AUDIT PASS')
+          print('Campaign ID:', CAMPAIGN_ID)
+          print('Status: PAUSED')
+          print('Attached daily budget: $5.00 USD')
+          print('Search only | Presence only | Search Partners OFF | Display OFF')
+          print('6 GCC locations | 2 languages')
+          print(f'12/12 ad groups PAUSED | 12/12 RSAs PAUSED | 48/48 keywords PAUSED')
+          print(f'Campaign negatives: {negatives}')
+          print('No mutation was performed by this audit.')
+          PY
