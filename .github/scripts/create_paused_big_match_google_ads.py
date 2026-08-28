@@ -443,10 +443,10 @@ def ensure_rsa(client, customer_id, ad_group_resource, match, lang):
     ga = client.get_service('GoogleAdsService')
     ad_group_id = ad_group_resource.rsplit('/', 1)[-1]
     q = f"""
-        SELECT ad_group_ad.resource_name, ad_group_ad.status, ad.type
+        SELECT ad_group_ad.resource_name, ad_group_ad.status, ad_group_ad.ad.type
         FROM ad_group_ad
         WHERE ad_group.id = {ad_group_id}
-          AND ad.type = 'RESPONSIVE_SEARCH_AD'
+          AND ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'
           AND ad_group_ad.status != 'REMOVED'
         LIMIT 1
     """
