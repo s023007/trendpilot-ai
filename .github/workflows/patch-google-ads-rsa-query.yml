@@ -1,0 +1,44 @@
+name: Patch Google Ads RSA Query
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-google-ads-rsa-query.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Fix ad_group_ad RSA GAQL fields
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/scripts/create_paused_big_match_google_ads.py')
+          s = p.read_text(encoding='utf-8')
+          old1 = 'SELECT ad_group_ad.resource_name, ad_group_ad.status, ad.type'
+          old2 = "AND ad.type = 'RESPONSIVE_SEARCH_AD'"
+          assert old1 in s, 'Expected SELECT pattern not found'
+          assert old2 in s, 'Expected WHERE pattern not found'
+          s = s.replace(old1, 'SELECT ad_group_ad.resource_name, ad_group_ad.status, ad_group_ad.ad.type', 1)
+          s = s.replace(old2, "AND ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'", 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Verify patch
+        run: |
+          grep -n "ad_group_ad.ad.type" .github/scripts/create_paused_big_match_google_ads.py
+          python -m py_compile .github/scripts/create_paused_big_match_google_ads.py
+      - name: Commit hotfix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/scripts/create_paused_big_match_google_ads.py
+          git commit -m "ads: fix RSA GAQL field path"
+          git push origin HEAD:main
