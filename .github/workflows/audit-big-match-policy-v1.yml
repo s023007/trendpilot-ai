@@ -1,0 +1,60 @@
+name: Audit Big Match Policy V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-big-match-policy-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Read ad policy approval state
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from collections import Counter
+          from google.ads.googleads.client import GoogleAdsClient
+          CAMPAIGN_ID=24190034111
+          c=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True})
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip(); ga=c.get_service('GoogleAdsService')
+          q=f'''SELECT ad_group.name,ad_group_ad.status,
+                       ad_group_ad.policy_summary.approval_status,
+                       ad_group_ad.policy_summary.review_status,
+                       ad_group_ad.policy_summary.policy_topic_entries
+                FROM ad_group_ad
+                WHERE campaign.id={CAMPAIGN_ID}
+                  AND ad_group_ad.status!='REMOVED'
+                ORDER BY ad_group.name'''
+          rows=list(ga.search(customer_id=cid,query=q)); counts=Counter()
+          print('AD POLICY COUNT',len(rows))
+          for r in rows:
+            p=r.ad_group_ad.policy_summary; counts[p.approval_status.name]+=1
+            topics=[]
+            for e in p.policy_topic_entries:
+              topics.append(e.topic)
+            print(r.ad_group.name,'| status=',r.ad_group_ad.status.name,'| approval=',p.approval_status.name,'| review=',p.review_status.name,'| topics=',','.join(topics) if topics else 'none')
+          print('POLICY SUMMARY',dict(counts))
+          print('READ-ONLY POLICY AUDIT COMPLETE')
+          PY
