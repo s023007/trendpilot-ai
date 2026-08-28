@@ -1,0 +1,40 @@
+name: Research Big Match Keywords V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/research_big_match_keywords.py'
+      - '.github/workflows/research-big-match-keywords-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  research:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Read-only Keyword Planner research and ad review audit
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: python .github/scripts/research_big_match_keywords.py
+      - name: Upload research artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcc-big-match-keyword-research
+          path: keyword_research.json
+          retention-days: 14
+      - name: Safety statement
+        run: |
+          echo 'Read-only research only.'
+          echo 'No campaign, bid, budget, keyword, ad, or status mutation exists in this workflow.'
