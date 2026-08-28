@@ -5,10 +5,15 @@ on:
       - 'scripts/apply_save_search_v1.py'
       - 'events/manchester-derby-2026/save-search.js'
       - 'events/manchester-derby-2026/save-search.css'
+      - 'events/manchester-derby-2026/returning-user.js'
+      - 'events/manchester-derby-2026/email-buy-redirect.js'
       - 'api/save-search.php'
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: apply-save-search-v1
+  cancel-in-progress: false
 jobs:
   apply:
     runs-on: ubuntu-latest
@@ -19,6 +24,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.x'
+      - name: Rebase onto latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --rebase origin main
       - name: Inject Save Search assets
         run: python scripts/apply_save_search_v1.py
       - name: Commit generated landing-page wiring
@@ -30,5 +40,14 @@ jobs:
           git config user.name 'trendpilot-campaign-brain'
           git config user.email '39025908+s023007@users.noreply.github.com'
           git add events/manchester-derby-2026/ar/index.html events/manchester-derby-2026/en-gb/index.html
-          git commit -m 'feat: wire Save Search into derby landing pages'
-          git push
+          git commit -m 'feat: wire returning email visitors into derby pages'
+          for i in 1 2 3; do
+            git fetch origin main
+            if git rebase origin/main && git push origin HEAD:main; then
+              exit 0
+            fi
+            git rebase --abort || true
+            sleep $((i*3))
+          done
+          echo 'Unable to publish landing-page wiring after retries.' >&2
+          exit 1
