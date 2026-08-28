@@ -1,0 +1,94 @@
+name: Stage Big Match Preview Safely V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/stage-big-match-preview-safe-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  stage:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Enable child resources only while campaign remains PAUSED
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+          CAMPAIGN_ID=24190034111
+          EXPECTED_NAME='TrendPilot | GCC Big Matches | Search | 2026'
+          c=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True})
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip(); ga=c.get_service('GoogleAdsService')
+          q=f'''SELECT campaign.resource_name,campaign.name,campaign.status,campaign.bidding_strategy_type,
+                       campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,
+                       campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,
+                       campaign_budget.amount_micros
+                FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1'''
+          row=list(ga.search(customer_id=cid,query=q))[0]; camp=row.campaign
+          assert camp.name==EXPECTED_NAME
+          assert camp.status.name=='PAUSED','Refusing: campaign must remain PAUSED'
+          assert camp.bidding_strategy_type.name=='MANUAL_CPC'
+          assert int(row.campaign_budget.amount_micros)<=5_000_000
+          assert camp.network_settings.target_google_search is True
+          assert camp.network_settings.target_search_network is False
+          assert camp.network_settings.target_content_network is False
+          assert camp.network_settings.target_partner_search_network is False
+
+          # Stage ad groups as ENABLED. The parent campaign stays PAUSED, so nothing can serve.
+          ags=list(ga.search(customer_id=cid,query=f'''SELECT ad_group.resource_name,ad_group.name,ad_group.status FROM ad_group WHERE campaign.id={CAMPAIGN_ID} AND ad_group.status!='REMOVED' '''))
+          agops=[]
+          for r in ags:
+            if r.ad_group.status.name!='ENABLED':
+              op=c.get_type('AdGroupOperation'); op.update.resource_name=r.ad_group.resource_name; op.update.status=c.enums.AdGroupStatusEnum.ENABLED; op.update_mask.paths.append('status'); agops.append(op)
+          if agops: c.get_service('AdGroupService').mutate_ad_groups(customer_id=cid,operations=agops)
+
+          # Stage positive keywords as ENABLED; keep negatives untouched.
+          kws=list(ga.search(customer_id=cid,query=f'''SELECT ad_group_criterion.resource_name,ad_group_criterion.status FROM keyword_view WHERE campaign.id={CAMPAIGN_ID} AND ad_group_criterion.status!='REMOVED' '''))
+          kops=[]
+          for r in kws:
+            if r.ad_group_criterion.status.name!='ENABLED':
+              op=c.get_type('AdGroupCriterionOperation'); op.update.resource_name=r.ad_group_criterion.resource_name; op.update.status=c.enums.AdGroupCriterionStatusEnum.ENABLED; op.update_mask.paths.append('status'); kops.append(op)
+          if kops: c.get_service('AdGroupCriterionService').mutate_ad_group_criteria(customer_id=cid,operations=kops)
+
+          # Stage RSAs as ENABLED for policy review/diagnosis. Parent campaign is still PAUSED.
+          ads=list(ga.search(customer_id=cid,query=f'''SELECT ad_group_ad.resource_name,ad_group_ad.status FROM ad_group_ad WHERE campaign.id={CAMPAIGN_ID} AND ad_group_ad.status!='REMOVED' '''))
+          aops=[]
+          for r in ads:
+            if r.ad_group_ad.status.name!='ENABLED':
+              op=c.get_type('AdGroupAdOperation'); op.update.resource_name=r.ad_group_ad.resource_name; op.update.status=c.enums.AdGroupAdStatusEnum.ENABLED; op.update_mask.paths.append('status'); aops.append(op)
+          if aops: c.get_service('AdGroupAdService').mutate_ad_group_ads(customer_id=cid,operations=aops)
+
+          # Fail-closed final verification.
+          vr=list(ga.search(customer_id=cid,query=f'''SELECT campaign.status,campaign_budget.amount_micros FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1'''))[0]
+          assert vr.campaign.status.name=='PAUSED'
+          assert int(vr.campaign_budget.amount_micros)<=5_000_000
+          ag2=list(ga.search(customer_id=cid,query=f'''SELECT ad_group.status FROM ad_group WHERE campaign.id={CAMPAIGN_ID} AND ad_group.status!='REMOVED' '''))
+          kw2=list(ga.search(customer_id=cid,query=f'''SELECT ad_group_criterion.status FROM keyword_view WHERE campaign.id={CAMPAIGN_ID} AND ad_group_criterion.status!='REMOVED' '''))
+          ad2=list(ga.search(customer_id=cid,query=f'''SELECT ad_group_ad.status FROM ad_group_ad WHERE campaign.id={CAMPAIGN_ID} AND ad_group_ad.status!='REMOVED' '''))
+          print('SAFE PREVIEW STAGING PASS')
+          print('Campaign remains:',vr.campaign.status.name)
+          print('Ad groups enabled for preview/review:',sum(x.ad_group.status.name=='ENABLED' for x in ag2),'/',len(ag2))
+          print('Keywords enabled for diagnosis:',sum(x.ad_group_criterion.status.name=='ENABLED' for x in kw2),'/',len(kw2))
+          print('Ads enabled for policy review:',sum(x.ad_group_ad.status.name=='ENABLED' for x in ad2),'/',len(ad2))
+          print('No campaign ENABLE operation exists in this workflow.')
+          PY
