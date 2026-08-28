@@ -1,0 +1,61 @@
+name: Audit Big Match Readiness V1
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-big-match-readiness-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Read-only readiness audit
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from collections import Counter
+          from google.ads.googleads.client import GoogleAdsClient
+          CAMPAIGN_ID=24190034111
+          c=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True})
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip(); ga=c.get_service('GoogleAdsService')
+          cq=f'''SELECT campaign.name,campaign.status,campaign.bidding_strategy_type,campaign.end_date_time FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1'''
+          cr=list(ga.search(customer_id=cid,query=cq))[0].campaign
+          print('CAMPAIGN',cr.name,'| status=',cr.status.name,'| bid=',cr.bidding_strategy_type.name,'| end=',cr.end_date_time)
+          print('\n=== ADS ===')
+          aq=f'''SELECT ad_group.name,ad_group.status,ad_group_ad.status,ad_group_ad.primary_status,ad_group_ad.primary_status_reasons,ad_group_ad.ad.final_urls FROM ad_group_ad WHERE campaign.id={CAMPAIGN_ID} AND ad_group_ad.status!='REMOVED' ORDER BY ad_group.name'''
+          ads=list(ga.search(customer_id=cid,query=aq)); print('AD COUNT',len(ads))
+          for r in ads:
+            print(r.ad_group.name,'| ag=',r.ad_group.status.name,'| ad=',r.ad_group_ad.status.name,'| primary=',r.ad_group_ad.primary_status.name,'| reasons=',','.join(x.name for x in r.ad_group_ad.primary_status_reasons),'| url=',','.join(r.ad_group_ad.ad.final_urls))
+          print('\n=== KEYWORDS ===')
+          kq=f'''SELECT ad_group.name,ad_group.status,ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status,ad_group_criterion.primary_status,ad_group_criterion.primary_status_reasons FROM keyword_view WHERE campaign.id={CAMPAIGN_ID} AND ad_group_criterion.status!='REMOVED' ORDER BY ad_group.name,ad_group_criterion.keyword.text'''
+          kws=list(ga.search(customer_id=cid,query=kq)); print('KEYWORD COUNT',len(kws))
+          statuses=Counter(); reasons=Counter()
+          for r in kws:
+            k=r.ad_group_criterion; statuses[k.primary_status.name]+=1
+            for x in k.primary_status_reasons: reasons[x.name]+=1
+            print(r.ad_group.name,'|',repr(k.keyword.text),'|',k.keyword.match_type.name,'| status=',k.status.name,'| primary=',k.primary_status.name,'| reasons=',','.join(x.name for x in k.primary_status_reasons))
+          print('\nKEYWORD PRIMARY STATUS SUMMARY',dict(statuses))
+          print('KEYWORD REASON SUMMARY',dict(reasons))
+          print('READ-ONLY READINESS AUDIT COMPLETE')
+          PY
