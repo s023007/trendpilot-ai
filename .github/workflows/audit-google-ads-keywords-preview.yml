@@ -1,0 +1,93 @@
+name: Audit Google Ads Preview Keywords
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/audit-google-ads-keywords-preview.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Read-only keyword and ad audit
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          q = f'''
+            SELECT campaign.status, ad_group.name, ad_group.status,
+                   ad_group_criterion.keyword.text,
+                   ad_group_criterion.keyword.match_type,
+                   ad_group_criterion.status,
+                   ad_group_criterion.primary_status,
+                   ad_group_criterion.primary_status_reasons
+            FROM keyword_view
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND ad_group.name = 'liverpool_manunited | AR'
+              AND ad_group_criterion.status != 'REMOVED'
+          '''
+          rows = list(ga.search(customer_id=cid, query=q))
+          print('LIVERPOOL AR KEYWORD AUDIT')
+          print('Rows:', len(rows))
+          for r in rows:
+              crit = r.ad_group_criterion
+              print('campaign=', r.campaign.status.name,
+                    '| adgroup=', r.ad_group.status.name,
+                    '| keyword=', repr(crit.keyword.text),
+                    '| match=', crit.keyword.match_type.name,
+                    '| status=', crit.status.name,
+                    '| primary=', crit.primary_status.name,
+                    '| reasons=', [x.name for x in crit.primary_status_reasons])
+
+          q2 = f'''
+            SELECT ad_group.name, ad_group.status,
+                   ad_group_ad.status, ad_group_ad.primary_status,
+                   ad_group_ad.primary_status_reasons,
+                   ad_group_ad.ad.final_urls
+            FROM ad_group_ad
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND ad_group.name = 'liverpool_manunited | AR'
+              AND ad_group_ad.status != 'REMOVED'
+          '''
+          ads = list(ga.search(customer_id=cid, query=q2))
+          print('LIVERPOOL AR AD AUDIT')
+          print('Ads:', len(ads))
+          for r in ads:
+              print('adgroup=', r.ad_group.status.name,
+                    '| ad=', r.ad_group_ad.status.name,
+                    '| primary=', r.ad_group_ad.primary_status.name,
+                    '| reasons=', [x.name for x in r.ad_group_ad.primary_status_reasons],
+                    '| final_url=', list(r.ad_group_ad.ad.final_urls))
+
+          assert rows, 'No Liverpool AR keywords found in Google Ads account.'
+          assert ads, 'No Liverpool AR responsive search ad found.'
+          print('READ-ONLY AUDIT COMPLETE — NO MUTATION')
+          PY
