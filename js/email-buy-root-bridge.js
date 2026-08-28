@@ -1,0 +1,1 @@
+(()=>{try{const p=new URLSearchParams(location.search);if(p.get('return')!=='email-buy')return;const lead=(p.get('lead')||'').trim();if(!/^[a-f0-9]{16}$/i.test(lead))return;location.replace('https://api.trendpilotchoice.com/go.php?lead='+encodeURIComponent(lead));}catch(_){}})();
