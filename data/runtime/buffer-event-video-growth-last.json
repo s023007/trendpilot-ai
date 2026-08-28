@@ -1,13 +1,8 @@
 {
-  "generated_at": "2026-08-28T09:51:36.604Z",
+  "generated_at": "2026-08-28T09:52:07.190Z",
   "event_name": "workflow_run",
   "status": "nothing-new",
   "channels": [
-    {
-      "service": "pinterest",
-      "name": "trendpilotchoice",
-      "paused": false
-    },
     {
       "service": "youtube",
       "name": "Trendpilotchoice",
@@ -16,6 +11,11 @@
     {
       "service": "tiktok",
       "name": "trendpilot.ai",
+      "paused": false
+    },
+    {
+      "service": "pinterest",
+      "name": "trendpilotchoice",
       "paused": false
     }
   ],
