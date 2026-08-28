@@ -1,0 +1,125 @@
+name: Namecheap Big Match Force Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/namecheap-big-match-force-deploy.yml'
+      - 'events/**'
+  workflow_dispatch:
+
+concurrency:
+  group: namecheap-big-match-force-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      PUBLIC_ORIGIN: https://trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Validate four big-match pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for p in \
+            events/liverpool-v-manchester-united-2026/ar/index.html \
+            events/liverpool-v-manchester-united-2026/en-gb/index.html \
+            events/madrid-derby-2026/ar/index.html \
+            events/madrid-derby-2026/en-gb/index.html \
+            events/north-london-derby-2026/ar/index.html \
+            events/north-london-derby-2026/en-gb/index.html \
+            events/arsenal-v-manchester-city-2026/ar/index.html \
+            events/arsenal-v-manchester-city-2026/en-gb/index.html; do
+            test -f "$p"
+          done
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing.'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            ServerAliveInterval 15
+            ServerAliveCountMax 2
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Deploy events directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -d '$STATIC_ROOT'"
+          tar -czf - events | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+          printf '%s\n' "$GITHUB_SHA" | ssh trendpilot-namecheap "cat > '$STATIC_ROOT/namecheap-big-match-release.txt'"
+
+      - name: Verify files on Namecheap
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "\
+            test -f '$STATIC_ROOT/events/liverpool-v-manchester-united-2026/ar/index.html' && \
+            test -f '$STATIC_ROOT/events/madrid-derby-2026/ar/index.html' && \
+            test -f '$STATIC_ROOT/events/north-london-derby-2026/ar/index.html' && \
+            test -f '$STATIC_ROOT/events/arsenal-v-manchester-city-2026/ar/index.html'"
+          test "$(ssh trendpilot-namecheap "cat '$STATIC_ROOT/namecheap-big-match-release.txt'")" = "$GITHUB_SHA"
+
+      - name: Verify public routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os,time,urllib.request
+          origin=os.environ['PUBLIC_ORIGIN'].rstrip('/')
+          checks={
+            '/events/liverpool-v-manchester-united-2026/ar/':'ليفربول',
+            '/events/madrid-derby-2026/ar/':'ريال مدريد',
+            '/events/north-london-derby-2026/ar/':'أرسنال',
+            '/events/arsenal-v-manchester-city-2026/ar/':'مانشستر سيتي',
+          }
+          failed=[]
+          for path,marker in checks.items():
+            ok=False
+            for attempt in range(1,6):
+              req=urllib.request.Request(origin+path+f'?deploy={attempt}',headers={'User-Agent':'TrendPilotDeploy/1.0','Cache-Control':'no-cache'})
+              try:
+                with urllib.request.urlopen(req,timeout=25) as r:
+                  body=r.read().decode('utf-8','replace')
+                  ok=r.status==200 and marker in body
+                  if ok: break
+              except Exception:
+                pass
+              time.sleep(4)
+            print(path,'PASS' if ok else 'FAIL')
+            if not ok: failed.append(path)
+          if failed:
+            raise SystemExit('Public verification failed: '+', '.join(failed))
+          PY
