@@ -1,13 +1,8 @@
 {
-  "generated_at": "2026-08-29T18:46:09.273Z",
+  "generated_at": "2026-08-29T19:27:08.584Z",
   "event_name": "schedule",
   "status": "no-slot",
   "channels": [
-    {
-      "service": "pinterest",
-      "name": "trendpilotchoice",
-      "paused": false
-    },
     {
       "service": "youtube",
       "name": "Trendpilotchoice",
@@ -16,6 +11,11 @@
     {
       "service": "tiktok",
       "name": "trendpilot.ai",
+      "paused": false
+    },
+    {
+      "service": "pinterest",
+      "name": "trendpilotchoice",
       "paused": false
     }
   ],
