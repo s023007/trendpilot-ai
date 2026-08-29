@@ -44,6 +44,7 @@ jobs:
           STOP_TRIGGER_USD = 18.00
           START_DATE = '2026-08-28'
           MUSCAT = ZoneInfo('Asia/Muscat')
+          SAFE_CHILD_STATUSES = {'PAUSED', 'ENABLED'}
 
           client = GoogleAdsClient.load_from_dict({
               'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
@@ -124,53 +125,72 @@ jobs:
           total_cost_usd = sum(int(r.metrics.cost_micros or 0) for r in cost_rows) / 1_000_000.0
           assert total_cost_usd < STOP_TRIGGER_USD, f'Spend guard already reached: ${total_cost_usd:.2f}'
 
+          ag_statuses = [r.ad_group.status.name for r in adgroups]
+          ad_statuses = [r.ad_group_ad.status.name for r in ads]
+          kw_statuses = [r.ad_group_criterion.status.name for r in keywords]
+          assert set(ag_statuses) <= SAFE_CHILD_STATUSES, f'Unexpected ad group status: {set(ag_statuses)}'
+          assert set(ad_statuses) <= SAFE_CHILD_STATUSES, f'Unexpected ad status: {set(ad_statuses)}'
+          assert set(kw_statuses) <= SAFE_CHILD_STATUSES, f'Unexpected keyword status: {set(kw_statuses)}'
+          print('Pre-launch child states:')
+          print('Ad groups:', {s: ag_statuses.count(s) for s in sorted(set(ag_statuses))})
+          print('Ads:', {s: ad_statuses.count(s) for s in sorted(set(ad_statuses))})
+          print('Keywords:', {s: kw_statuses.count(s) for s in sorted(set(kw_statuses))})
+
           # Idempotent success if a previous attempt already completed fully.
           if c.status.name == 'ENABLED':
-              enabled_ag = sum(r.ad_group.status.name == 'ENABLED' for r in adgroups)
-              enabled_ads = sum(r.ad_group_ad.status.name == 'ENABLED' for r in ads)
-              enabled_kw = sum(r.ad_group_criterion.status.name == 'ENABLED' for r in keywords)
+              enabled_ag = sum(s == 'ENABLED' for s in ag_statuses)
+              enabled_ads = sum(s == 'ENABLED' for s in ad_statuses)
+              enabled_kw = sum(s == 'ENABLED' for s in kw_statuses)
               assert (enabled_ag, enabled_ads, enabled_kw) == (12, 12, 48), (enabled_ag, enabled_ads, enabled_kw)
               print('LAUNCH ALREADY COMPLETE — campaign and all serving entities are ENABLED')
               print(f'Observed spend before verification: ${total_cost_usd:.2f}')
               raise SystemExit(0)
 
+          # The parent campaign must still be PAUSED before any launch mutation. Mixed PAUSED/ENABLED
+          # child states are safe while the parent is PAUSED, and are normalized below.
           assert c.status.name == 'PAUSED', c.status.name
-          assert all(r.ad_group.status.name == 'PAUSED' for r in adgroups), 'Not all ad groups are PAUSED before launch'
-          assert all(r.ad_group_ad.status.name == 'PAUSED' for r in ads), 'Not all ads are PAUSED before launch'
-          assert all(r.ad_group_criterion.status.name == 'PAUSED' for r in keywords), 'Not all keywords are PAUSED before launch'
 
           campaign_enabled = False
           try:
-              # Enable children first while the parent campaign is still PAUSED, so no serving can occur mid-launch.
+              # Enable only paused children first while the parent campaign remains PAUSED.
               ag_svc = client.get_service('AdGroupService')
               ag_ops = []
               for r in adgroups:
+                  if r.ad_group.status.name == 'ENABLED':
+                      continue
                   op = client.get_type('AdGroupOperation')
                   op.update.resource_name = r.ad_group.resource_name
                   op.update.status = client.enums.AdGroupStatusEnum.ENABLED
                   op.update_mask.paths.append('status')
                   ag_ops.append(op)
-              ag_svc.mutate_ad_groups(customer_id=cid, operations=ag_ops)
+              if ag_ops:
+                  ag_svc.mutate_ad_groups(customer_id=cid, operations=ag_ops)
 
               ad_svc = client.get_service('AdGroupAdService')
               ad_ops = []
               for r in ads:
+                  if r.ad_group_ad.status.name == 'ENABLED':
+                      continue
                   op = client.get_type('AdGroupAdOperation')
                   op.update.resource_name = r.ad_group_ad.resource_name
                   op.update.status = client.enums.AdGroupAdStatusEnum.ENABLED
                   op.update_mask.paths.append('status')
                   ad_ops.append(op)
-              ad_svc.mutate_ad_group_ads(customer_id=cid, operations=ad_ops)
+              if ad_ops:
+                  ad_svc.mutate_ad_group_ads(customer_id=cid, operations=ad_ops)
 
               kw_svc = client.get_service('AdGroupCriterionService')
               kw_ops = []
               for r in keywords:
+                  if r.ad_group_criterion.status.name == 'ENABLED':
+                      continue
                   op = client.get_type('AdGroupCriterionOperation')
                   op.update.resource_name = r.ad_group_criterion.resource_name
                   op.update.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
                   op.update_mask.paths.append('status')
                   kw_ops.append(op)
-              kw_svc.mutate_ad_group_criteria(customer_id=cid, operations=kw_ops)
+              if kw_ops:
+                  kw_svc.mutate_ad_group_criteria(customer_id=cid, operations=kw_ops)
 
               # Campaign is enabled LAST. No bid or budget mutation is made here.
               camp_svc = client.get_service('CampaignService')
