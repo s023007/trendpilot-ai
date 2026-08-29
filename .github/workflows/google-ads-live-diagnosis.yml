@@ -1,0 +1,110 @@
+name: Google Ads Live Diagnosis — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-live-diagnosis.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Read-only live diagnosis
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          print('READ-ONLY DIAGNOSIS')
+          print('CUSTOMER_ID=', cid)
+          print('LOGIN_CUSTOMER_ID=', os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip())
+
+          customer_rows = list(ga.search(customer_id=cid, query='''
+            SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone
+            FROM customer
+            LIMIT 1
+          '''))
+          for r in customer_rows:
+              print('CUSTOMER=', r.customer.id, '|', r.customer.descriptive_name, '|', r.customer.currency_code, '|', r.customer.time_zone)
+
+          campaign_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type,
+                   campaign.bidding_strategy_type, campaign.start_date, campaign.end_date,
+                   campaign_budget.amount_micros
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+            LIMIT 1
+          '''))
+          print('CAMPAIGN_ROWS=', len(campaign_rows))
+          for r in campaign_rows:
+              print('CAMPAIGN=', r.campaign.id, '|', r.campaign.name, '| status=', r.campaign.status.name,
+                    '| channel=', r.campaign.advertising_channel_type.name,
+                    '| bid=', r.campaign.bidding_strategy_type.name,
+                    '| start=', r.campaign.start_date, '| end=', r.campaign.end_date,
+                    '| budget_usd=', int(r.campaign_budget.amount_micros)/1_000_000)
+
+          keywords = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.id, campaign.name, campaign.status,
+                   ad_group.id, ad_group.name, ad_group.status,
+                   ad_group_criterion.criterion_id, ad_group_criterion.status,
+                   ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type
+            FROM keyword_view
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND ad_group_criterion.status != 'REMOVED'
+            ORDER BY ad_group.name, ad_group_criterion.keyword.text
+          '''))
+          print('KEYWORD_COUNT=', len(keywords))
+          for r in keywords:
+              txt = r.ad_group_criterion.keyword.text
+              if ('manchester derby' in txt.lower() or 'ديربي مانشستر' in txt or
+                  'manchester united' in txt.lower() or 'مانشستر يونايتد' in txt):
+                  print('KW=', repr(txt), '| match=', r.ad_group_criterion.keyword.match_type.name,
+                        '| kw_status=', r.ad_group_criterion.status.name,
+                        '| adgroup=', r.ad_group.name, '| ag_status=', r.ad_group.status.name,
+                        '| campaign_status=', r.campaign.status.name)
+
+          exact_probe = [r for r in keywords if r.ad_group_criterion.keyword.text.lower() == 'manchester derby tickets']
+          ar_probe = [r for r in keywords if r.ad_group_criterion.keyword.text == 'تذاكر ديربي مانشستر']
+          print('EXACT_EN_PROBE_COUNT=', len(exact_probe))
+          print('EXACT_AR_PROBE_COUNT=', len(ar_probe))
+
+          stats = list(ga.search(customer_id=cid, query=f'''
+            SELECT segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND segments.date DURING TODAY
+          '''))
+          for r in stats:
+              print('TODAY=', r.segments.date, '| impressions=', r.metrics.impressions,
+                    '| clicks=', r.metrics.clicks, '| cost_usd=', int(r.metrics.cost_micros or 0)/1_000_000)
+          print('END READ-ONLY DIAGNOSIS')
+          PY
