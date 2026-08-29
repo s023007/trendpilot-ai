@@ -1,0 +1,111 @@
+name: Rare GEO Multi-Seller Catalog Probe — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rare-geo-multi-seller-catalog-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan approved seller catalogs for long-tail niches
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          sellers={
+            'PandaHall':('pandahall',{
+              'beads':['bead','beads'], 'findings':['jump ring','lobster clasp','earring hook','jewelry finding'],
+              'chain':['jewelry chain','chain necklace'], 'pendant':['pendant','charm'],
+            }),
+            'Govee':('govee-many-geos',{
+              'rgbic':['rgbic'], 'tv_backlight':['tv backlight','backlight'], 'strip_light':['strip light','led strip'],
+              'smart_lamp':['floor lamp','table lamp'], 'sensor':['thermometer','sensor'],
+            }),
+            'Harfington':('harfington-many-geos',{
+              'bearing':['bearing'], 'switch':['switch'], 'drill_bits':['drill bit','drill bits'],
+              'o_ring':['o-ring','o ring'], 'hardware':['screw','bolt','nut'], 'replacement':['replacement','repair'],
+            }),
+            'Sunsky':('sunsky-online-ww',{
+              'carplay':['carplay'], 'car_camera':['dash cam','car camera'], 'phone_part':['replacement screen','lcd screen','charging port'],
+              'adapter':['adapter','converter'], 'led':['led light','led strip'],
+            }),
+            'Karaca':('karaca-eu',{
+              'coffee':['coffee machine','coffee maker','turkish coffee'], 'cookware':['cookware','pan','pot'],
+              'tea':['tea set','teapot'], 'dinnerware':['dinner set','dinnerware'],
+            }),
+            'Diecast':('diecast',{
+              'scale_164':['1:64','1/64'], 'scale_118':['1:18','1/18'], 'scale_124':['1:24','1/24'],
+              'jdm':['supra','skyline','civic type r','nsx','rx-7','rx7'],
+            }),
+            'FragranceShop':('fragranceshop-com',{
+              'tester':['tester'], 'eau_de_parfum':['eau de parfum'], 'rare':['discontinued','vintage','limited edition'],
+              '100ml':['100 ml','100ml'],
+            }),
+            'Lenovo':('lenovo',{
+              'thinkpad':['thinkpad'], 'legion':['legion'], 'ideapad':['ideapad'], 'yoga':['yoga'],
+            }),
+          }
+
+          def strings(v):
+            if isinstance(v,str): return [v] if v.strip() else []
+            if isinstance(v,dict):
+              out=[]
+              for x in v.values(): out += strings(x)
+              return out
+            if isinstance(v,list):
+              out=[]
+              for x in v: out += strings(x)
+              return out
+            return []
+          def title(o):
+            vals=[x for x in strings(o.get('name')) if not x.startswith(('http://','https://'))]
+            return max(vals,key=len) if vals else ''
+          def price(o):
+            v=o.get('offer') or {}
+            if isinstance(v,dict):
+              for k in ('price','salePrice','sale_price','currentPrice','amount','value'):
+                if v.get(k) not in (None,''): return v[k]
+            return ''
+          def pid(o):
+            v=o.get('productKey')
+            return str(v)[:90] if v else ''
+          def hay(o):
+            vals=[]
+            for k in ('name','specs','taxonomy','brand','identity'): vals += strings(o.get(k))
+            return ' '.join(vals).lower()
+
+          base=Path('data/catalog-v19/sellers')
+          print('=== RARE GEO MULTI-SELLER CATALOG PROBE ===')
+          for seller,(folder,cats) in sellers.items():
+            p=base/folder/'products.ndjson'
+            print(f'SELLER|{seller}|exists={p.exists()}|bytes={p.stat().st_size if p.exists() else 0}')
+            if not p.exists(): continue
+            counts={c:0 for c in cats}; samples={c:[] for c in cats}; total=0
+            with p.open('r',encoding='utf-8',errors='replace') as f:
+              for line in f:
+                try: o=json.loads(line); total+=1
+                except Exception: continue
+                text=hay(o); t=title(o)
+                for c,needles in cats.items():
+                  if any(n in text for n in needles):
+                    counts[c]+=1
+                    if len(samples[c])<5: samples[c].append((t,price(o),pid(o)))
+            print(f'TOTAL|{seller}|records={total}')
+            for c,n in sorted(counts.items(), key=lambda kv:kv[1], reverse=True):
+              print(f'NICHE|{seller}|{c}|matches={n}')
+              for t,pr,i in samples[c]:
+                print(f'PRODUCT|{seller}|{c}|title={" ".join(t.split())[:230]}|price={pr}|id={i}')
+          print('=== END MULTI-SELLER PROBE ===')
+          PY
