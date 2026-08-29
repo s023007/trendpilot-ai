@@ -1,4 +1,4 @@
-name: Audit Big Match Readiness V1
+name: Final Launch Audit Big Matches V1
 
 on:
   workflow_dispatch:
@@ -13,11 +13,15 @@ permissions:
 jobs:
   audit:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: google-ads-paused-create
     steps:
+      - uses: actions/checkout@v4
+
       - name: Install Google Ads client
         run: pip install --disable-pip-version-check google-ads
-      - name: Read-only readiness audit
+
+      - name: Read-only final launch audit
         env:
           GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
           GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
@@ -27,35 +31,276 @@ jobs:
           GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
         run: |
           python - <<'PY'
+          import json
           import os
-          from collections import Counter
+          import re
+          from datetime import datetime
+          from pathlib import Path
+          from urllib.error import HTTPError
+          from urllib.parse import urlparse
+          from urllib.request import Request, urlopen
+          from zoneinfo import ZoneInfo
           from google.ads.googleads.client import GoogleAdsClient
-          CAMPAIGN_ID=24190034111
-          c=GoogleAdsClient.load_from_dict({
-            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
-            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
-            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
-            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
-            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
-            'use_proto_plus':True})
-          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip(); ga=c.get_service('GoogleAdsService')
-          cq=f'''SELECT campaign.name,campaign.status,campaign.bidding_strategy_type,campaign.end_date_time FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1'''
-          cr=list(ga.search(customer_id=cid,query=cq))[0].campaign
-          print('CAMPAIGN',cr.name,'| status=',cr.status.name,'| bid=',cr.bidding_strategy_type.name,'| end=',cr.end_date_time)
-          print('\n=== ADS ===')
-          aq=f'''SELECT ad_group.name,ad_group.status,ad_group_ad.status,ad_group_ad.primary_status,ad_group_ad.primary_status_reasons,ad_group_ad.ad.final_urls FROM ad_group_ad WHERE campaign.id={CAMPAIGN_ID} AND ad_group_ad.status!='REMOVED' ORDER BY ad_group.name'''
-          ads=list(ga.search(customer_id=cid,query=aq)); print('AD COUNT',len(ads))
-          for r in ads:
-            print(r.ad_group.name,'| ag=',r.ad_group.status.name,'| ad=',r.ad_group_ad.status.name,'| primary=',r.ad_group_ad.primary_status.name,'| reasons=',','.join(x.name for x in r.ad_group_ad.primary_status_reasons),'| url=',','.join(r.ad_group_ad.ad.final_urls))
-          print('\n=== KEYWORDS ===')
-          kq=f'''SELECT ad_group.name,ad_group.status,ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status,ad_group_criterion.primary_status,ad_group_criterion.primary_status_reasons FROM keyword_view WHERE campaign.id={CAMPAIGN_ID} AND ad_group_criterion.status!='REMOVED' ORDER BY ad_group.name,ad_group_criterion.keyword.text'''
-          kws=list(ga.search(customer_id=cid,query=kq)); print('KEYWORD COUNT',len(kws))
-          statuses=Counter(); reasons=Counter()
-          for r in kws:
-            k=r.ad_group_criterion; statuses[k.primary_status.name]+=1
-            for x in k.primary_status_reasons: reasons[x.name]+=1
-            print(r.ad_group.name,'|',repr(k.keyword.text),'|',k.keyword.match_type.name,'| status=',k.status.name,'| primary=',k.primary_status.name,'| reasons=',','.join(x.name for x in k.primary_status_reasons))
-          print('\nKEYWORD PRIMARY STATUS SUMMARY',dict(statuses))
-          print('KEYWORD REASON SUMMARY',dict(reasons))
-          print('READ-ONLY READINESS AUDIT COMPLETE')
+
+          CAMPAIGN_ID = 24190034111
+          CAMPAIGN_NAME = 'TrendPilot | GCC Big Matches | Search | 2026'
+          START_DATE = '2026-08-28'
+          FINAL_END = '2026-12-05 23:59:59'
+          SELLER_NAME = 'TrendPilot | Seller Outbound Click'
+          LEAD_NAME = 'TrendPilot | Email Lead'
+          EXPECTED_GEO = {
+              'geoTargetConstants/2682', # Saudi Arabia
+              'geoTargetConstants/2784', # UAE
+              'geoTargetConstants/2512', # Oman
+              'geoTargetConstants/2634', # Qatar
+              'geoTargetConstants/2414', # Kuwait
+              'geoTargetConstants/2048', # Bahrain
+          }
+          EXPECTED_LANG = {'languageConstants/1000', 'languageConstants/1019'}
+          AR = re.compile(r'[\u0600-\u06FF]')
+          cfg = json.loads(Path('marketing/google-ads/big-matches-gcc/campaign.json').read_text(encoding='utf-8'))
+
+          def clean_id(v):
+              return str(v or '').replace('-', '').strip()
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': clean_id(os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID']),
+              'use_proto_plus': True,
+          })
+          cid = clean_id(os.environ['GOOGLE_ADS_CUSTOMER_ID'])
+          ga = client.get_service('GoogleAdsService')
+          warnings = []
+
+          # 1) Account + tracking foundation.
+          rows = list(ga.search(customer_id=cid, query='''
+            SELECT customer.currency_code, customer.time_zone, customer.auto_tagging_enabled,
+                   customer.conversion_tracking_setting.google_ads_conversion_customer
+            FROM customer LIMIT 1
+          '''))
+          assert len(rows) == 1, 'Target customer not readable'
+          customer = rows[0].customer
+          assert customer.currency_code == 'USD', customer.currency_code
+          assert customer.time_zone == 'Asia/Muscat', customer.time_zone
+          assert customer.auto_tagging_enabled is True, 'Auto-tagging must be ON'
+          conversion_owner = str(customer.conversion_tracking_setting.google_ads_conversion_customer or '')
+          conversion_cid = conversion_owner.rsplit('/', 1)[-1] if conversion_owner else cid
+          print('PASS account: USD | Asia/Muscat | auto-tagging ON')
+
+          # 2) Parent campaign must remain fail-closed before launch.
+          rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.id, campaign.name, campaign.status,
+                   campaign.advertising_channel_type, campaign.bidding_strategy_type,
+                   campaign.end_date_time, campaign.final_url_suffix,
+                   campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network,
+                   campaign_budget.amount_micros
+            FROM campaign WHERE campaign.id = {CAMPAIGN_ID} LIMIT 1
+          '''))
+          assert len(rows) == 1, 'Target campaign missing'
+          row = rows[0]; camp = row.campaign
+          assert camp.name == CAMPAIGN_NAME, camp.name
+          assert camp.status.name == 'PAUSED', f'Campaign must remain PAUSED, got {camp.status.name}'
+          assert camp.advertising_channel_type.name == 'SEARCH'
+          assert camp.bidding_strategy_type.name == 'MANUAL_CPC'
+          assert int(row.campaign_budget.amount_micros) == 5_000_000, row.campaign_budget.amount_micros
+          assert camp.network_settings.target_google_search is True
+          assert camp.network_settings.target_search_network is False
+          assert camp.network_settings.target_content_network is False
+          assert camp.network_settings.target_partner_search_network is False
+          assert str(camp.end_date_time) == FINAL_END, camp.end_date_time
+          assert camp.geo_target_type_setting.positive_geo_target_type.name == 'PRESENCE'
+          assert str(camp.final_url_suffix) == cfg['tracking']['final_url_suffix'], 'Tracking suffix drift'
+          print('PASS campaign safety: PAUSED | Search only | Manual CPC | $5/day | Presence only | end date installed')
+
+          # 3) Prelaunch spend must still be zero.
+          today = datetime.now(ZoneInfo('Asia/Muscat')).date().isoformat()
+          cost_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT segments.date, metrics.cost_micros
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND segments.date BETWEEN '{START_DATE}' AND '{today}'
+          '''))
+          cost_micros = sum(int(r.metrics.cost_micros or 0) for r in cost_rows)
+          assert cost_micros == 0, f'Unexpected prelaunch spend: ${cost_micros/1_000_000:.2f}'
+          print('PASS prelaunch spend: $0.00')
+
+          # 4) Exact GCC + language targeting.
+          loc_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.location.geo_target_constant, campaign_criterion.negative
+            FROM campaign_criterion
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND campaign_criterion.status != 'REMOVED'
+          '''))
+          live_geo = {str(r.campaign_criterion.location.geo_target_constant) for r in loc_rows
+                      if str(r.campaign_criterion.location.geo_target_constant) and not r.campaign_criterion.negative}
+          assert live_geo == EXPECTED_GEO, f'Geo targeting drift: {live_geo}'
+
+          lang_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.language.language_constant, campaign_criterion.negative
+            FROM campaign_criterion
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND campaign_criterion.status != 'REMOVED'
+          '''))
+          live_lang = {str(r.campaign_criterion.language.language_constant) for r in lang_rows
+                       if str(r.campaign_criterion.language.language_constant) and not r.campaign_criterion.negative}
+          assert live_lang == EXPECTED_LANG, f'Language targeting drift: {live_lang}'
+          print('PASS targeting: 6 GCC countries + Arabic/English only')
+
+          # Expected structures from the versioned campaign plan.
+          expected_groups = {}
+          expected_keywords = set()
+          expected_urls = {}
+          for m in cfg['matches']:
+              for lang, landing in [('AR', m['landing_ar']), ('EN', m['landing_en'])]:
+                  name = f"{m['key']} | {lang}"
+                  expected_groups[name] = int(round(float(m['max_cpc_usd']) * 1_000_000))
+                  expected_urls[name] = landing
+              for text in m['keywords_exact']:
+                  lang = 'AR' if AR.search(text) else 'EN'
+                  expected_keywords.add((f"{m['key']} | {lang}", text, 'EXACT'))
+              for text in m['keywords_phrase']:
+                  lang = 'AR' if AR.search(text) else 'EN'
+                  expected_keywords.add((f"{m['key']} | {lang}", text, 'PHRASE'))
+
+          # 5) 12 staged ad groups; bid caps must not exceed the plan.
+          ag_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.name, ad_group.status, ad_group.cpc_bid_micros
+            FROM ad_group
+            WHERE campaign.id = {CAMPAIGN_ID} AND ad_group.status != 'REMOVED'
+          '''))
+          assert len(ag_rows) == 12, f'Expected 12 ad groups, found {len(ag_rows)}'
+          live_group_names = {r.ad_group.name for r in ag_rows}
+          assert live_group_names == set(expected_groups), f'Ad group drift: {live_group_names ^ set(expected_groups)}'
+          for r in ag_rows:
+              assert r.ad_group.status.name == 'ENABLED', f'{r.ad_group.name} not staged ENABLED'
+              bid = int(r.ad_group.cpc_bid_micros or 0)
+              assert bid <= expected_groups[r.ad_group.name], f'Bid above planned cap: {r.ad_group.name} {bid}'
+          print('PASS ad groups: 12/12 staged; CPC caps within plan')
+
+          # 6) Positive keyword inventory must be exact/phrase only and match config exactly.
+          kw_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.name, ad_group_criterion.keyword.text,
+                   ad_group_criterion.keyword.match_type, ad_group_criterion.status,
+                   ad_group_criterion.primary_status_reasons
+            FROM keyword_view
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND ad_group_criterion.status != 'REMOVED'
+          '''))
+          assert len(kw_rows) == 48, f'Expected 48 positive keywords, found {len(kw_rows)}'
+          live_keywords = set()
+          rarely = 0
+          for r in kw_rows:
+              k = r.ad_group_criterion
+              assert k.status.name == 'ENABLED', f'Keyword paused: {k.keyword.text}'
+              mt = k.keyword.match_type.name
+              assert mt in {'EXACT', 'PHRASE'}, f'Broad/unsafe match type found: {mt} {k.keyword.text}'
+              live_keywords.add((r.ad_group.name, k.keyword.text, mt))
+              if any(x.name == 'AD_GROUP_CRITERION_RARELY_SERVED' for x in k.primary_status_reasons):
+                  rarely += 1
+          assert live_keywords == expected_keywords, f'Keyword inventory drift; missing={expected_keywords-live_keywords}; extra={live_keywords-expected_keywords}'
+          print(f'PASS keywords: 48/48 exact+phrase only | broad=0 | rarely-served observed={rarely}')
+
+          # 7) Campaign negative keyword set must match the planned 38-term shield exactly.
+          neg_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.keyword.text, campaign_criterion.negative
+            FROM campaign_criterion
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND campaign_criterion.status != 'REMOVED'
+              AND campaign_criterion.negative = TRUE
+          '''))
+          live_neg = {r.campaign_criterion.keyword.text for r in neg_rows if r.campaign_criterion.keyword.text}
+          expected_neg = set(cfg['campaign_negatives'])
+          assert live_neg == expected_neg, f'Negative keyword drift; missing={expected_neg-live_neg}; extra={live_neg-expected_neg}'
+          print(f'PASS negative shield: {len(live_neg)} campaign negatives exact to plan')
+
+          # 8) 12 approved/reviewed RSAs with exact landing destinations.
+          ad_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.name, ad_group_ad.status,
+                   ad_group_ad.policy_summary.approval_status,
+                   ad_group_ad.policy_summary.review_status,
+                   ad_group_ad.policy_summary.policy_topic_entries,
+                   ad_group_ad.ad.final_urls
+            FROM ad_group_ad
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND ad_group_ad.status != 'REMOVED'
+          '''))
+          assert len(ad_rows) == 12, f'Expected 12 ads, found {len(ad_rows)}'
+          for r in ad_rows:
+              ad = r.ad_group_ad; policy = ad.policy_summary
+              assert ad.status.name == 'ENABLED', f'Ad not staged enabled: {r.ad_group.name}'
+              assert policy.approval_status.name == 'APPROVED', f'Ad not approved: {r.ad_group.name} {policy.approval_status.name}'
+              assert policy.review_status.name == 'REVIEWED', f'Ad review incomplete: {r.ad_group.name}'
+              assert len(policy.policy_topic_entries) == 0, f'Policy topic present: {r.ad_group.name}'
+              urls = list(ad.ad.final_urls)
+              assert urls == [expected_urls[r.ad_group.name]], f'Wrong final URL: {r.ad_group.name} {urls}'
+          print('PASS ads: 12/12 APPROVED + REVIEWED | policy topics=0 | destinations exact')
+
+          # 9) Conversion actions: seller click primary, email lead observation-only.
+          conv_rows = list(ga.search(customer_id=conversion_cid, query=f'''
+            SELECT conversion_action.name, conversion_action.status, conversion_action.type,
+                   conversion_action.category, conversion_action.primary_for_goal
+            FROM conversion_action
+            WHERE conversion_action.name IN ('{SELLER_NAME}', '{LEAD_NAME}')
+              AND conversion_action.status != 'REMOVED'
+          '''))
+          conv = {r.conversion_action.name: r.conversion_action for r in conv_rows}
+          assert set(conv) == {SELLER_NAME, LEAD_NAME}, f'Conversion actions missing: {set(conv)}'
+          seller = conv[SELLER_NAME]; lead = conv[LEAD_NAME]
+          assert seller.status.name == 'ENABLED' and seller.type_.name == 'UPLOAD_CLICKS'
+          assert seller.category.name == 'OUTBOUND_CLICK' and bool(seller.primary_for_goal) is True
+          assert lead.status.name == 'ENABLED' and lead.type_.name == 'UPLOAD_CLICKS'
+          assert lead.category.name == 'SUBMIT_LEAD_FORM' and bool(lead.primary_for_goal) is False
+          print('PASS conversions: Seller Outbound Click PRIMARY | Email Lead SECONDARY | upload-click actions enabled')
+
+          # 10) Safety automation is installed and conservative.
+          guard_yml = Path('.github/workflows/google-ads-hard-spend-guard.yml').read_text(encoding='utf-8')
+          guard_py = Path('.github/scripts/google_ads_hard_spend_guard.py').read_text(encoding='utf-8')
+          upload_yml = Path('.github/workflows/upload-google-ads-conversions-hourly.yml').read_text(encoding='utf-8')
+          upload_py = Path('.github/scripts/upload_google_ads_conversions.py').read_text(encoding='utf-8')
+          assert "cron: '*/5 * * * *'" in guard_yml, '5-minute spend guard schedule missing'
+          assert 'STOP_TRIGGER_USD = 18.00' in guard_py
+          assert 'DAILY_BUDGET_MAX_MICROS = 5_000_000' in guard_py
+          assert 'CAMPAIGN_ID = 24190034111' in guard_py
+          assert 'CampaignStatusEnum.PAUSED' in guard_py and 'AdGroupStatusEnum.PAUSED' in guard_py
+          assert "cron: '17 * * * *'" in upload_yml, 'Hourly conversion import schedule missing'
+          assert "order_id = order_id" in upload_py or 'conversion.order_id = order_id' in upload_py
+          assert "len(gclid) >= 10" in upload_py and "state['seller']" in upload_py and "state['lead']" in upload_py
+          print('PASS automations: 5-min $18 fail-closed guard + hourly GCLID conversion importer + dedupe')
+
+          # 11) Public landing pages must not be broken. 403 is reported as a warning
+          # because some hosts may block GitHub runner user agents; 404/5xx is a hard failure.
+          for name, url in sorted(expected_urls.items()):
+              req = Request(url, headers={'User-Agent': 'Mozilla/5.0 TrendPilotFinalLaunchAudit/1.0'})
+              try:
+                  with urlopen(req, timeout=20) as resp:
+                      status = int(resp.status)
+                      final = resp.geturl()
+                      assert status < 400, f'{name} HTTP {status}'
+                      assert urlparse(final).hostname == 'trendpilotchoice.com', f'{name} redirected off-domain: {final}'
+              except HTTPError as e:
+                  if e.code in (401, 403):
+                      warnings.append(f'{name}: runner received HTTP {e.code}; browser/live-page checks remain required')
+                  else:
+                      raise AssertionError(f'{name} landing HTTP {e.code}')
+          print('PASS landing URLs: no 404/5xx/off-domain redirect detected')
+
+          print('\nFINAL LAUNCH AUDIT: PASS')
+          print('Campaign remains PAUSED. No mutation or enable call exists in this audit.')
+          print('Prelaunch spend: $0.00')
+          print('Warnings:', len(warnings))
+          for w in warnings:
+              print('WARNING:', w)
           PY
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo 'READ-ONLY FINAL AUDIT. No Google Ads mutation service is called.'
+          echo 'The parent campaign must remain PAUSED until explicit user approval.'
