@@ -1,0 +1,104 @@
+name: Rare GEO Product Catalog Probe — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rare-geo-product-catalog-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Find real long-tail product candidates
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re
+          from pathlib import Path
+
+          targets={
+            'AliExpress':('data/catalog-v19/sellers/aliexpress/products.ndjson',{
+              'carplay':['carplay'],
+              'obd2':['obd2','obd ii'],
+              'inspection_camera':['endoscope','inspection camera','borescope'],
+              'power_bank':['10000mah','power bank'],
+              'smart_sensor':['door sensor','temperature sensor','water leak sensor'],
+            }),
+            'Alibaba':('data/catalog-v19/sellers/alibaba/products.ndjson',{
+              'solar':['solar inverter','solar system'],
+              'packaging':['packaging machine','packing machine'],
+              'brick_machine':['brick making machine','block making machine'],
+              'bottling':['bottling machine','filling machine'],
+              'cnc':['cnc router','laser engraving machine'],
+              'agri_machine':['feed pellet machine','grain mill','oil press machine'],
+            }),
+          }
+
+          def title_of(o):
+            for k in ('display_name','displayName','title','name','product_name','productName'):
+              v=o.get(k)
+              if isinstance(v,str) and v.strip(): return v.strip()
+            p=o.get('product')
+            if isinstance(p,dict):
+              for k in ('display_name','title','name'):
+                v=p.get(k)
+                if isinstance(v,str) and v.strip(): return v.strip()
+            return ''
+
+          def price_of(o):
+            for k in ('price','sale_price','salePrice','current_price','price_value'):
+              v=o.get(k)
+              if v not in (None,''): return v
+            for parent in ('offer','pricing'):
+              p=o.get(parent)
+              if isinstance(p,dict):
+                for k in ('price','sale_price','value','amount'):
+                  if p.get(k) not in (None,''): return p.get(k)
+            return ''
+
+          def id_of(o):
+            for k in ('tpoid','id','product_id','productId','sku','seller_id','sellerId'):
+              v=o.get(k)
+              if v not in (None,''): return str(v)[:80]
+            return ''
+
+          print('=== REAL CATALOG LONG-TAIL CANDIDATES ===')
+          for seller,(path,cats) in targets.items():
+            p=Path(path)
+            print(f'SELLER|{seller}|file_exists={p.exists()}|size={p.stat().st_size if p.exists() else 0}')
+            if not p.exists(): continue
+            hits={k:[] for k in cats}
+            counts={k:0 for k in cats}
+            first_keys=None
+            with p.open('r',encoding='utf-8',errors='replace') as f:
+              for line in f:
+                line=line.strip()
+                if not line: continue
+                try: o=json.loads(line)
+                except Exception: continue
+                if first_keys is None: first_keys=sorted(o.keys())
+                title=title_of(o)
+                low=title.lower()
+                for cat,needles in cats.items():
+                  if any(n in low for n in needles):
+                    counts[cat]+=1
+                    if len(hits[cat])<6:
+                      hits[cat].append((title,price_of(o),id_of(o)))
+            print('FIELDS|{}|{}'.format(seller,','.join(first_keys or [])))
+            for cat in cats:
+              print(f'CATEGORY|{seller}|{cat}|matches={counts[cat]}')
+              for title,price,pid in hits[cat]:
+                clean=' '.join(title.split())[:220]
+                print(f'PRODUCT|{seller}|{cat}|title={clean}|price={price}|id={pid}')
+          print('=== END REAL CATALOG PROBE ===')
+          PY
