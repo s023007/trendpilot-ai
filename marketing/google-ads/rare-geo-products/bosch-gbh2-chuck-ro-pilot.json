@@ -1,0 +1,89 @@
+{
+  "version": "1.0",
+  "created_at": "2026-08-29",
+  "status": "PAUSED_DRAFT",
+  "campaign_name": "TrendPilot | RO | GBH2 Chuck | Search | Pilot",
+  "seller": "AliExpress WW",
+  "product_key": "aliexpress:2b8a2b92b20569fd6e5c7928",
+  "landing_page": "https://trendpilotchoice.com/rare-products/bosch-gbh2-chuck/ro/",
+  "geo": {
+    "country": "Romania",
+    "country_code": "RO",
+    "presence_only": true
+  },
+  "languages": ["Romanian", "English"],
+  "network": {
+    "google_search": true,
+    "search_partners": false,
+    "display": false
+  },
+  "bidding": {
+    "strategy": "MANUAL_CPC",
+    "initial_max_cpc_usd": 0.15,
+    "probe_steps_usd": [0.15, 0.20, 0.25],
+    "hard_keyword_ceiling_usd": 0.25,
+    "enhanced_cpc": false
+  },
+  "budget": {
+    "planned_daily_usd": 2.0,
+    "launch_status": "DO_NOT_ENABLE_YET",
+    "shares_existing_experiment_cap": true
+  },
+  "keywords": [
+    {"text": "bosch gbh2-26 chuck replacement", "match": "EXACT", "max_cpc_usd": 0.15},
+    {"text": "bosch gbh2-24 chuck replacement", "match": "EXACT", "max_cpc_usd": 0.15},
+    {"text": "bosch gbh2-20 chuck replacement", "match": "EXACT", "max_cpc_usd": 0.15},
+    {"text": "bosch gbh 2-26 mandrina sds", "match": "EXACT", "max_cpc_usd": 0.15},
+    {"text": "gbh2-26 mandrina sds", "match": "EXACT", "max_cpc_usd": 0.15},
+    {"text": "gbh2-24 mandrina sds", "match": "EXACT", "max_cpc_usd": 0.15},
+    {"text": "bosch gbh2-26 chuck", "match": "PHRASE", "max_cpc_usd": 0.15},
+    {"text": "gbh2-26 sds chuck", "match": "PHRASE", "max_cpc_usd": 0.15}
+  ],
+  "negative_keywords": [
+    "aliexpress",
+    "manual",
+    "pdf",
+    "schema",
+    "diagram",
+    "youtube",
+    "tutorial",
+    "repair service",
+    "service center",
+    "free"
+  ],
+  "responsive_search_ad": {
+    "headlines": [
+      "GBH2-26 SDS Chuck Part",
+      "GBH2-24 Replacement Chuck",
+      "GBH2-20 Compatible Part",
+      "Check Fit Before Ordering",
+      "Direct Product Offer",
+      "Verify Delivery to Romania"
+    ],
+    "descriptions": [
+      "Replacement SDS chuck/nose part listed for GBH2-20, GBH2-24 and GBH2-26. Check current price and delivery.",
+      "Verify model fit, product photos and Romania delivery on the seller page before ordering."
+    ]
+  },
+  "tracking": {
+    "primary_event": "outbound_click",
+    "site_event": "trendpilot_outbound_click",
+    "auto_tagging_required": true,
+    "utm_campaign": "tp_ro_gbh2_chuck_pilot"
+  },
+  "launch_gates": [
+    "AliExpress program remains active",
+    "Google Ads traffic remains allowed",
+    "AliExpress brand bidding remains excluded",
+    "exact affiliate link resolves to item 1005011859163692",
+    "landing page returns HTTP 200",
+    "Romania is commission eligible",
+    "Romania delivery is confirmed on seller checkout before enabling",
+    "ticket campaign / total experiment spend guard remains protected"
+  ],
+  "stop_rules": {
+    "pause_after_clicks_without_outbound_signal": 12,
+    "pause_after_spend_without_outbound_signal_usd": 3.0,
+    "do_not_raise_budget_without_conversion_signal": true
+  }
+}
