@@ -1,0 +1,77 @@
+name: Export Bosch RO Pilot Manifest
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/export-bosch-ro-pilot-manifest.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  export:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Export exact product manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          key='aliexpress:2b8a2b92b20569fd6e5c7928'
+          src=Path('data/catalog-v19/sellers/aliexpress/products.ndjson')
+          hit=None
+          with src.open('r',encoding='utf-8',errors='replace') as f:
+              for line in f:
+                  try:
+                      obj=json.loads(line)
+                  except Exception:
+                      continue
+                  if obj.get('productKey')==key:
+                      hit=obj
+                      break
+          if not hit:
+              raise SystemExit('Exact product not found')
+          name=hit.get('name') or {}
+          offer=hit.get('offer') or {}
+          links=hit.get('links') or {}
+          out={
+              'product_key': key,
+              'display_name': name.get('display') if isinstance(name,dict) else str(name),
+              'price': offer.get('price'),
+              'currency': offer.get('currency') or 'USD',
+              'affiliate_url': links.get('destinationUrl') or links.get('affiliateUrl') or '',
+              'seller': 'AliExpress WW',
+              'geo': 'RO',
+              'shipping_status': 'NEEDS_FINAL_CONFIRMATION'
+          }
+          if 'rzekl.com/' not in out['affiliate_url']:
+              raise SystemExit('Tracked affiliate URL missing')
+          p=Path('marketing/google-ads/rare-geo-products/bosch-gbh2-chuck-ro-manifest.json')
+          p.parent.mkdir(parents=True,exist_ok=True)
+          p.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('Manifest created for exact product; tracked URL retained in repository file.')
+          PY
+          git diff --check
+      - name: Commit manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add marketing/google-ads/rare-geo-products/bosch-gbh2-chuck-ro-manifest.json
+          if git diff --cached --quiet; then
+            echo 'No changes'
+            exit 0
+          fi
+          git commit -m 'chore: export Bosch Romania pilot manifest'
+          git push origin HEAD:main
