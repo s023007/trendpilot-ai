@@ -1,0 +1,104 @@
+name: Harfington Rare GEO Readiness Audit — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/harfington-rare-geo-readiness-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      EXPECTED_WEBSITE_ID: "2980568"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Harfington products and commission geos
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64,json,os,urllib.parse,urllib.request
+          from pathlib import Path
+
+          keys={
+            'harfington-many-geos:1477d5c8c8d02733e2c920f6',
+            'harfington-many-geos:7870531973cbd82e678f1040',
+            'harfington-many-geos:2ced4dffac2ac6a2ea4047ba',
+            'harfington-many-geos:590e316bdc13d13c7bcbc0ab',
+            'harfington-many-geos:b515934395add4fc6285335d',
+          }
+          p=Path('data/catalog-v19/sellers/harfington-many-geos/products.ndjson')
+          found={}
+          with p.open('r',encoding='utf-8',errors='replace') as f:
+            for line in f:
+              try:o=json.loads(line)
+              except:continue
+              if o.get('productKey') in keys:found[o['productKey']]=o
+
+          def title(o):
+              n=o.get('name') or {}
+              return n.get('display') if isinstance(n,dict) else str(n)
+
+          print('=== HARFINGTON PRODUCT LINK READINESS ===')
+          print(f'products_found={len(found)}/{len(keys)}')
+          for key in sorted(keys):
+              o=found.get(key)
+              if not o:
+                print(f'ITEM|{key}|MISSING');continue
+              url=(o.get('links') or {}).get('destinationUrl') or (o.get('links') or {}).get('affiliateUrl') or ''
+              pu=urllib.parse.urlparse(url)
+              print(f'ITEM|{key}|title={title(o)[:220]}|price={(o.get("offer") or {}).get("price")}|tracking_host={pu.netloc}|has_url={bool(url)}')
+              try:
+                req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0'},method='GET')
+                with urllib.request.urlopen(req,timeout=15) as r:
+                  final=r.geturl();fp=urllib.parse.urlparse(final)
+                  print(f'HTTP|{key}|status={r.status}|final_host={fp.netloc}|final_path={fp.path[:220]}')
+              except Exception as e:
+                print(f'HTTP|{key}|error={type(e).__name__}:{str(e)[:180]}')
+
+          def env(*names):
+              for n in names:
+                v=(os.environ.get(n) or '').strip()
+                if v:return v
+              return ''
+          cid=env('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT');secret=env('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          basic=base64.b64encode(f'{cid}:{secret}'.encode()).decode()
+          def req_json(url,method='GET',headers=None,data=None):
+              req=urllib.request.Request(url,data=data,method=method,headers={'Accept':'application/json','User-Agent':'TrendPilot-Harfington-Audit/1.0',**(headers or {})})
+              with urllib.request.urlopen(req,timeout=60) as r:return json.loads(r.read().decode('utf-8','replace'))
+          body=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':cid,'scope':'websites advcampaigns_for_website'}).encode()
+          tok=req_json('https://api.admitad.com/token/',method='POST',headers={'Authorization':f'Basic {basic}','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},data=body).get('access_token')
+          auth={'Authorization':f'Bearer {tok}'}
+          page=req_json('https://api.admitad.com/advcampaigns/website/2980568/?limit=200&connection_status=active',headers=auth)
+          rows=page.get('results',[])
+          for r in rows:
+            if 'harfington' not in str(r.get('name') or '').lower():continue
+            print('=== HARFINGTON ADMITAD GEO/TRAFIC ===')
+            countries=r.get('action_countries') or []
+            compact=[]
+            for c in countries:
+              if isinstance(c,dict):compact.append(str(c.get('code') or c.get('name') or c.get('id') or c))
+              else:compact.append(str(c))
+            print('ACTION_COUNTRIES|'+'|'.join(compact))
+            regions=r.get('regions') or []
+            reg=[]
+            for x in regions:
+              if isinstance(x,dict):reg.append(str(x.get('name') or x.get('code') or x.get('id') or x))
+              else:reg.append(str(x))
+            print('REGIONS|'+'|'.join(reg))
+            for t in r.get('traffics') or []:
+              nm=str(t.get('name') or '')
+              if t.get('id') in (3,6,42) or 'Google' in nm:
+                print(f'TRAFFIC|id={t.get("id")}|name={nm}|enabled={t.get("enabled")}')
+          print('=== END HARFINGTON READINESS ===')
+          PY
