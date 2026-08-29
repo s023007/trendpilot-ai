@@ -1,0 +1,135 @@
+name: Google Ads El Clasico Bid Boost
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-elclasico-bid-boost.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  boost:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Raise only El Clasico EN keyword bids
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID=24190034111
+          TARGET_AG='el_clasico | EN'
+          NEW_BID=550_000
+          MAX_DAILY=5_000_000
+          STOP_SPEND=18.0
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          ga=client.get_service('GoogleAdsService')
+
+          rows=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign.status, campaign.bidding_strategy_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network,
+                   campaign_budget.amount_micros
+            FROM campaign
+            WHERE campaign.id={CAMPAIGN_ID}
+            LIMIT 1
+          '''))
+          assert len(rows)==1
+          r=rows[0]
+          assert r.campaign.status.name=='ENABLED'
+          assert r.campaign.bidding_strategy_type.name=='MANUAL_CPC'
+          assert int(r.campaign_budget.amount_micros)<=MAX_DAILY
+          assert r.campaign.network_settings.target_google_search is True
+          assert r.campaign.network_settings.target_search_network is False
+          assert r.campaign.network_settings.target_content_network is False
+          assert r.campaign.network_settings.target_partner_search_network is False
+
+          spend_rows=list(ga.search(customer_id=cid,query=f'''
+            SELECT metrics.cost_micros FROM campaign
+            WHERE campaign.id={CAMPAIGN_ID} AND segments.date DURING TODAY
+          '''))
+          spend=sum(int(x.metrics.cost_micros or 0) for x in spend_rows)/1_000_000
+          assert spend < STOP_SPEND, f'spend already {spend}'
+
+          kws=list(ga.search(customer_id=cid,query=f'''
+            SELECT ad_group.name, ad_group_criterion.resource_name,
+                   ad_group_criterion.keyword.text,
+                   ad_group_criterion.keyword.match_type,
+                   ad_group_criterion.cpc_bid_micros,
+                   ad_group_criterion.status
+            FROM keyword_view
+            WHERE campaign.id={CAMPAIGN_ID}
+              AND ad_group.name='{TARGET_AG}'
+              AND ad_group_criterion.status='ENABLED'
+          '''))
+          assert 1 <= len(kws) <= 6, f'unexpected target keyword count {len(kws)}'
+          old={x.ad_group_criterion.resource_name:int(x.ad_group_criterion.cpc_bid_micros or 0) for x in kws}
+          print('PRE-BID STATE')
+          for x in kws:
+            print(repr(x.ad_group_criterion.keyword.text),x.ad_group_criterion.keyword.match_type.name,'old_usd=',old[x.ad_group_criterion.resource_name]/1_000_000)
+
+          svc=client.get_service('AdGroupCriterionService')
+          ops=[]
+          for x in kws:
+            op=client.get_type('AdGroupCriterionOperation')
+            op.update.resource_name=x.ad_group_criterion.resource_name
+            op.update.cpc_bid_micros=NEW_BID
+            op.update_mask.paths.append('cpc_bid_micros')
+            ops.append(op)
+          svc.mutate_ad_group_criteria(customer_id=cid,operations=ops)
+
+          try:
+            verify=list(ga.search(customer_id=cid,query=f'''
+              SELECT ad_group_criterion.resource_name,
+                     ad_group_criterion.keyword.text,
+                     ad_group_criterion.cpc_bid_micros
+              FROM keyword_view
+              WHERE campaign.id={CAMPAIGN_ID}
+                AND ad_group.name='{TARGET_AG}'
+                AND ad_group_criterion.status='ENABLED'
+            '''))
+            assert len(verify)==len(kws)
+            assert all(int(x.ad_group_criterion.cpc_bid_micros)==NEW_BID for x in verify)
+            print('BID BOOST SUCCESS')
+            for x in verify:
+              print(repr(x.ad_group_criterion.keyword.text),'new_usd=',int(x.ad_group_criterion.cpc_bid_micros)/1_000_000)
+            print('Daily budget unchanged: $5.00 max')
+            print('Search Partners and Display remain OFF')
+            print('Hard spend guard unchanged')
+          except Exception:
+            rev=[]
+            for rn,bid in old.items():
+              op=client.get_type('AdGroupCriterionOperation')
+              op.update.resource_name=rn
+              op.update.cpc_bid_micros=bid
+              op.update_mask.paths.append('cpc_bid_micros')
+              rev.append(op)
+            svc.mutate_ad_group_criteria(customer_id=cid,operations=rev)
+            print('POST-VERIFY FAILED — reverted all target bids')
+            raise
+          PY
