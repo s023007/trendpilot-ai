@@ -1,0 +1,106 @@
+name: Admitad Paid Search Policy Audit — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/admitad-paid-search-policy-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      EXPECTED_WEBSITE_ID: "2980568"
+    steps:
+      - name: Read active program policy fields safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64,json,os,re,urllib.parse,urllib.request
+
+          API='https://api.admitad.com'
+          WID=int(os.environ['EXPECTED_WEBSITE_ID'])
+          targets=('aliexpress','alibaba','govee','harfington','sunsky','lenovo','geekbuying')
+
+          def env(*names):
+              for n in names:
+                  v=(os.environ.get(n) or '').strip()
+                  if v:return v
+              return ''
+          cid=env('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT')
+          secret=env('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          if not cid or not secret: raise SystemExit('Missing Admitad credentials')
+
+          def request_json(url,method='GET',headers=None,data=None):
+              r=urllib.request.Request(url,data=data,method=method,headers={'Accept':'application/json','User-Agent':'TrendPilot-Policy-Audit/1.0',**(headers or {})})
+              with urllib.request.urlopen(r,timeout=60) as resp:
+                  return json.loads(resp.read().decode('utf-8','replace'))
+
+          basic=base64.b64encode(f'{cid}:{secret}'.encode()).decode()
+          body=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':cid,'scope':'websites advcampaigns_for_website'}).encode()
+          token=request_json(f'{API}/token/',method='POST',headers={'Authorization':f'Basic {basic}','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},data=body).get('access_token')
+          if not token: raise SystemExit('No access token')
+          auth={'Authorization':f'Bearer {token}'}
+
+          rows=[];offset=0
+          while True:
+              q=urllib.parse.urlencode({'limit':200,'offset':offset,'connection_status':'active'})
+              page=request_json(f'{API}/advcampaigns/website/{WID}/?{q}',headers=auth)
+              batch=page.get('results',[]) if isinstance(page,dict) else []
+              rows.extend(x for x in batch if isinstance(x,dict))
+              if len(batch)<200:break
+              offset+=200
+
+          def target_name(name):
+              n=str(name or '').lower()
+              return any(t in n for t in targets)
+
+          interesting=re.compile(r'(traffic|context|ppc|paid|search|brand|trademark|keyword|rule|prohibit|forbid|allow|deny|banned|negative|coupon|deeplink|geo|countr)',re.I)
+          sensitive=re.compile(r'(token|secret|password|csv_link|xml_link|products_csv|products_xml|authorization)',re.I)
+
+          def scalar(v): return isinstance(v,(str,int,float,bool)) or v is None
+          def walk(obj,path=''):
+              out=[]
+              if isinstance(obj,dict):
+                  for k,v in obj.items():
+                      kp=f'{path}.{k}' if path else str(k)
+                      if sensitive.search(kp): continue
+                      if interesting.search(kp):
+                          if scalar(v): out.append((kp,v))
+                          elif isinstance(v,(list,dict)):
+                              txt=json.dumps(v,ensure_ascii=False,separators=(',',':'))
+                              if len(txt)<=2500: out.append((kp,txt))
+                      out.extend(walk(v,kp))
+              elif isinstance(obj,list):
+                  for i,v in enumerate(obj): out.extend(walk(v,f'{path}[{i}]'))
+              return out
+
+          print('=== ADMITAD ACTIVE PAID-SEARCH POLICY AUDIT ===')
+          print(f'website_id={WID}|active_programs={len(rows)}')
+          matched=[r for r in rows if target_name(r.get('name'))]
+          print(f'target_programs={len(matched)}')
+          for r in sorted(matched,key=lambda x:str(x.get('name') or '').lower()):
+              print(f'PROGRAM|id={r.get("id")}|name={r.get("name")}|status={r.get("connection_status") or r.get("status")}|allow_deeplink={bool(r.get("allow_deeplink"))}')
+              print('TOP_KEYS|'+','.join(sorted(str(k) for k in r.keys())))
+              vals=[]; seen=set()
+              for p,v in walk(r):
+                  key=(p,str(v))
+                  if key in seen: continue
+                  seen.add(key); vals.append((p,v))
+              if not vals:
+                  print('POLICY|NO_RELEVANT_FIELDS_IN_LIST_RESPONSE')
+              for p,v in vals[:80]:
+                  s=str(v).replace('\n',' ')[:2500]
+                  print(f'POLICY|{p}|{s}')
+          print('=== END ADMITAD POLICY AUDIT ===')
+          PY
