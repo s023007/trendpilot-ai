@@ -1,0 +1,43 @@
+name: Rare GEO Bosch RO Live Landing Check — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rare-geo-bosch-ro-live-check.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Verify public landing URL
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import urllib.request
+          url='https://trendpilotchoice.com/rare-products/bosch-gbh2-chuck/ro/'
+          req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 TrendPilot-QA/1.0','Accept-Language':'ro-RO,ro;q=0.9,en;q=0.7'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+              raw=r.read(700000).decode('utf-8','replace')
+              final=r.geturl()
+              print('HTTP_STATUS|'+str(r.status))
+              print('FINAL_URL|'+final)
+              print('BYTES|'+str(len(raw)))
+              checks={
+                'ROMANIAN_TITLE':'Mandrină SDS compatibilă' in raw,
+                'PRODUCT_MODELS':all(x in raw for x in ('GBH2','20','24','26')),
+                'EXACT_ITEM_ID':'1005011859163692' in raw,
+                'OUTBOUND_TRACKING':'data-tp-outbound' in raw,
+                'AFFILIATE_DISCLOSURE':'comision' in raw.lower(),
+                'NOINDEX_ABSENT':'noindex' not in raw.lower(),
+              }
+              for k,v in checks.items(): print(f'CHECK|{k}|{v}')
+              if r.status!=200 or not all(checks.values()):
+                  raise SystemExit('Safety stop: live landing failed QA')
+          PY
