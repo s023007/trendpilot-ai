@@ -1,0 +1,225 @@
+name: Launch Google Ads Big Matches — Explicit Approval
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/launch-google-ads-big-matches-explicit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-ads-big-matches-explicit-launch
+  cancel-in-progress: false
+
+jobs:
+  launch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Preflight, enable safely, and verify
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          EXPECTED_NAME = 'TrendPilot | GCC Big Matches | Search | 2026'
+          EXPECTED_BUDGET = 5_000_000
+          STOP_TRIGGER_USD = 18.00
+          START_DATE = '2026-08-28'
+          MUSCAT = ZoneInfo('Asia/Muscat')
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          def rows(query):
+              return list(ga.search(customer_id=cid, query=query))
+
+          def count(query):
+              return len(rows(query))
+
+          def pause_campaign_fail_closed(reason):
+              svc = client.get_service('CampaignService')
+              op = client.get_type('CampaignOperation')
+              op.update.resource_name = svc.campaign_path(cid, CAMPAIGN_ID)
+              op.update.status = client.enums.CampaignStatusEnum.PAUSED
+              op.update_mask.paths.append('status')
+              svc.mutate_campaigns(customer_id=cid, operations=[op])
+              print('FAIL-CLOSED PAUSE:', reason)
+
+          campaign_rows = rows(f'''
+            SELECT campaign.id, campaign.name, campaign.status,
+                   campaign.advertising_channel_type,
+                   campaign.bidding_strategy_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network,
+                   campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign_budget.amount_micros
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+            LIMIT 1
+          ''')
+          assert len(campaign_rows) == 1, 'Target campaign not found'
+          c = campaign_rows[0].campaign
+          b = campaign_rows[0].campaign_budget
+          assert c.name == EXPECTED_NAME, c.name
+          assert c.advertising_channel_type.name == 'SEARCH'
+          assert c.bidding_strategy_type.name == 'MANUAL_CPC', c.bidding_strategy_type.name
+          assert c.network_settings.target_google_search is True
+          assert c.network_settings.target_search_network is False
+          assert c.network_settings.target_content_network is False
+          assert c.network_settings.target_partner_search_network is False
+          assert c.geo_target_type_setting.positive_geo_target_type.name == 'PRESENCE'
+          assert int(b.amount_micros) == EXPECTED_BUDGET, b.amount_micros
+
+          adgroups = rows(f'''SELECT ad_group.resource_name, ad_group.status FROM ad_group WHERE campaign.id = {CAMPAIGN_ID} AND ad_group.status != 'REMOVED' ''')
+          ads = rows(f'''SELECT ad_group_ad.resource_name, ad_group_ad.status, ad_group_ad.policy_summary.approval_status FROM ad_group_ad WHERE campaign.id = {CAMPAIGN_ID} AND ad_group_ad.status != 'REMOVED' ''')
+          keywords = rows(f'''SELECT ad_group_criterion.resource_name, ad_group_criterion.status FROM keyword_view WHERE campaign.id = {CAMPAIGN_ID} AND ad_group_criterion.status != 'REMOVED' ''')
+          locations = count(f'''SELECT campaign_criterion.resource_name FROM campaign_criterion WHERE campaign.id = {CAMPAIGN_ID} AND campaign_criterion.type = 'LOCATION' AND campaign_criterion.negative = FALSE ''')
+          languages = count(f'''SELECT campaign_criterion.resource_name FROM campaign_criterion WHERE campaign.id = {CAMPAIGN_ID} AND campaign_criterion.type = 'LANGUAGE' AND campaign_criterion.negative = FALSE ''')
+          negatives = count(f'''SELECT campaign_criterion.resource_name FROM campaign_criterion WHERE campaign.id = {CAMPAIGN_ID} AND campaign_criterion.type = 'KEYWORD' AND campaign_criterion.negative = TRUE ''')
+
+          assert len(adgroups) == 12, len(adgroups)
+          assert len(ads) == 12, len(ads)
+          assert len(keywords) == 48, len(keywords)
+          assert locations == 6, locations
+          assert languages == 2, languages
+          assert negatives >= 38, negatives
+          not_approved = [r.ad_group_ad.resource_name for r in ads if r.ad_group_ad.policy_summary.approval_status.name != 'APPROVED']
+          assert not not_approved, f'Ads not approved: {not_approved}'
+
+          today = datetime.now(MUSCAT).date().isoformat()
+          cost_rows = rows(f'''
+            SELECT segments.date, metrics.cost_micros
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND segments.date BETWEEN '{START_DATE}' AND '{today}'
+          ''')
+          total_cost_usd = sum(int(r.metrics.cost_micros or 0) for r in cost_rows) / 1_000_000.0
+          assert total_cost_usd < STOP_TRIGGER_USD, f'Spend guard already reached: ${total_cost_usd:.2f}'
+
+          # Idempotent success if a previous attempt already completed fully.
+          if c.status.name == 'ENABLED':
+              enabled_ag = sum(r.ad_group.status.name == 'ENABLED' for r in adgroups)
+              enabled_ads = sum(r.ad_group_ad.status.name == 'ENABLED' for r in ads)
+              enabled_kw = sum(r.ad_group_criterion.status.name == 'ENABLED' for r in keywords)
+              assert (enabled_ag, enabled_ads, enabled_kw) == (12, 12, 48), (enabled_ag, enabled_ads, enabled_kw)
+              print('LAUNCH ALREADY COMPLETE — campaign and all serving entities are ENABLED')
+              print(f'Observed spend before verification: ${total_cost_usd:.2f}')
+              raise SystemExit(0)
+
+          assert c.status.name == 'PAUSED', c.status.name
+          assert all(r.ad_group.status.name == 'PAUSED' for r in adgroups), 'Not all ad groups are PAUSED before launch'
+          assert all(r.ad_group_ad.status.name == 'PAUSED' for r in ads), 'Not all ads are PAUSED before launch'
+          assert all(r.ad_group_criterion.status.name == 'PAUSED' for r in keywords), 'Not all keywords are PAUSED before launch'
+
+          campaign_enabled = False
+          try:
+              # Enable children first while the parent campaign is still PAUSED, so no serving can occur mid-launch.
+              ag_svc = client.get_service('AdGroupService')
+              ag_ops = []
+              for r in adgroups:
+                  op = client.get_type('AdGroupOperation')
+                  op.update.resource_name = r.ad_group.resource_name
+                  op.update.status = client.enums.AdGroupStatusEnum.ENABLED
+                  op.update_mask.paths.append('status')
+                  ag_ops.append(op)
+              ag_svc.mutate_ad_groups(customer_id=cid, operations=ag_ops)
+
+              ad_svc = client.get_service('AdGroupAdService')
+              ad_ops = []
+              for r in ads:
+                  op = client.get_type('AdGroupAdOperation')
+                  op.update.resource_name = r.ad_group_ad.resource_name
+                  op.update.status = client.enums.AdGroupAdStatusEnum.ENABLED
+                  op.update_mask.paths.append('status')
+                  ad_ops.append(op)
+              ad_svc.mutate_ad_group_ads(customer_id=cid, operations=ad_ops)
+
+              kw_svc = client.get_service('AdGroupCriterionService')
+              kw_ops = []
+              for r in keywords:
+                  op = client.get_type('AdGroupCriterionOperation')
+                  op.update.resource_name = r.ad_group_criterion.resource_name
+                  op.update.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+                  op.update_mask.paths.append('status')
+                  kw_ops.append(op)
+              kw_svc.mutate_ad_group_criteria(customer_id=cid, operations=kw_ops)
+
+              # Campaign is enabled LAST. No bid or budget mutation is made here.
+              camp_svc = client.get_service('CampaignService')
+              camp_op = client.get_type('CampaignOperation')
+              camp_op.update.resource_name = camp_svc.campaign_path(cid, CAMPAIGN_ID)
+              camp_op.update.status = client.enums.CampaignStatusEnum.ENABLED
+              camp_op.update_mask.paths.append('status')
+              camp_svc.mutate_campaigns(customer_id=cid, operations=[camp_op])
+              campaign_enabled = True
+
+              # Post-launch verification.
+              after = rows(f'''SELECT campaign.status, campaign.bidding_strategy_type,
+                                      campaign.network_settings.target_google_search,
+                                      campaign.network_settings.target_search_network,
+                                      campaign.network_settings.target_content_network,
+                                      campaign.network_settings.target_partner_search_network,
+                                      campaign_budget.amount_micros
+                               FROM campaign WHERE campaign.id = {CAMPAIGN_ID} LIMIT 1''')[0]
+              assert after.campaign.status.name == 'ENABLED'
+              assert after.campaign.bidding_strategy_type.name == 'MANUAL_CPC'
+              assert after.campaign.network_settings.target_google_search is True
+              assert after.campaign.network_settings.target_search_network is False
+              assert after.campaign.network_settings.target_content_network is False
+              assert after.campaign.network_settings.target_partner_search_network is False
+              assert int(after.campaign_budget.amount_micros) == EXPECTED_BUDGET
+
+              enabled_ag = count(f'''SELECT ad_group.id FROM ad_group WHERE campaign.id = {CAMPAIGN_ID} AND ad_group.status = 'ENABLED' ''')
+              enabled_ads = count(f'''SELECT ad_group_ad.resource_name FROM ad_group_ad WHERE campaign.id = {CAMPAIGN_ID} AND ad_group_ad.status = 'ENABLED' ''')
+              enabled_kw = count(f'''SELECT ad_group_criterion.resource_name FROM keyword_view WHERE campaign.id = {CAMPAIGN_ID} AND ad_group_criterion.status = 'ENABLED' ''')
+              assert (enabled_ag, enabled_ads, enabled_kw) == (12, 12, 48), (enabled_ag, enabled_ads, enabled_kw)
+
+              print('LAUNCH SUCCESS')
+              print('Campaign ID:', CAMPAIGN_ID)
+              print('Campaign status: ENABLED')
+              print('12/12 ad groups ENABLED | 12/12 ads ENABLED | 48/48 keywords ENABLED')
+              print('Daily budget unchanged: $5.00 USD')
+              print('Bidding unchanged: MANUAL CPC')
+              print('Google Search only | Search Partners OFF | Display OFF | Presence only')
+              print(f'Observed campaign spend before launch: ${total_cost_usd:.2f}')
+              print('No bid increase and no budget increase were performed.')
+          except Exception as exc:
+              if campaign_enabled:
+                  pause_campaign_fail_closed(f'post-launch failure: {exc}')
+              raise
+          PY
+
+      - name: Launch safety statement
+        if: always()
+        run: |
+          echo 'Explicit user launch approval was received before this workflow was created.'
+          echo 'This workflow does not increase bids or budget.'
+          echo 'The separate hard-spend guard remains responsible for fail-closed pausing near the test cap.'
