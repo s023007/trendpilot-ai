@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-29T00:36:27.397Z",
-  "event_name": "schedule",
-  "status": "no-slot",
+  "generated_at": "2026-08-29T11:01:43.676Z",
+  "event_name": "workflow_run",
+  "status": "nothing-new",
   "channels": [
     {
       "service": "pinterest",
@@ -19,6 +19,15 @@
       "paused": false
     }
   ],
-  "posts": [],
+  "posts": [
+    {
+      "service": "tiktok",
+      "status": "nothing-new"
+    },
+    {
+      "service": "youtube",
+      "status": "nothing-new"
+    }
+  ],
   "error": null
 }
