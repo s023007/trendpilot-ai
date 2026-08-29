@@ -1,0 +1,95 @@
+name: Rare GEO AliExpress Shipping Audit — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/rare-geo-aliexpress-shipping-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Probe AliExpress GEO readiness without mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re,urllib.parse,urllib.request
+          from pathlib import Path
+
+          wanted={
+            'aliexpress:2b8a2b92b20569fd6e5c7928':'Bosch GBH2-20/24/26 chuck',
+            'aliexpress:16dba243dcd0dd53a44ac931':'Hilti 2082535 carbon brushes',
+            'aliexpress:2d42de1034c9472289323ae9':'Toyota Corolla 2015-2018 CarPlay',
+            'aliexpress:2ec53b1b035fd4b1d1428e00':'Mazda 2/CX-3 2014-2020 CarPlay',
+            'aliexpress:6d3042f25bdc12e59beca401':'BMW F20/F22 2013-2018 CarPlay',
+          }
+          geos={'RO':'Romania','BG':'Bulgaria','PT':'Portugal','ZA':'South Africa','CL':'Chile','PE':'Peru'}
+          p=Path('data/catalog-v19/sellers/aliexpress/products.ndjson')
+          rows={}
+          with p.open('r',encoding='utf-8',errors='replace') as f:
+            for line in f:
+              try:o=json.loads(line)
+              except:continue
+              if o.get('productKey') in wanted: rows[o['productKey']]=o
+
+          def direct_item_url(o):
+            u=((o.get('links') or {}).get('destinationUrl') or '')
+            pu=urllib.parse.urlparse(u); q=urllib.parse.parse_qs(pu.query)
+            ulp=(q.get('ulp') or [''])[0]
+            dec=urllib.parse.unquote(ulp) if ulp else u
+            # unwrap nested dl_target_url if present
+            for _ in range(3):
+              m=re.search(r'dl_target_url=([^&]+)',dec)
+              if not m: break
+              dec=urllib.parse.unquote(m.group(1))
+            m=re.search(r'https?://www\.aliexpress\.com/item/(\d+)\.html',dec)
+            if not m:
+              m=re.search(r'/item/(\d+)\.html',dec)
+            return f'https://www.aliexpress.com/item/{m.group(1)}.html' if m else ''
+
+          neg_patterns=[
+            'cannot deliver','can not deliver','not available in your location','not available in this region',
+            'does not ship','unable to ship','sold out','no longer available','this item is unavailable'
+          ]
+          pos_patterns=['delivery','shipping','ship to','ships to']
+          print('=== ALIEXPRESS PRODUCT x GEO PROBE ===')
+          for key,label in wanted.items():
+            o=rows.get(key)
+            if not o:
+              print(f'PRODUCT|{key}|MISSING'); continue
+            direct=direct_item_url(o)
+            print(f'PRODUCT|{key}|label={label}|price={(o.get("offer") or {}).get("price")}|direct_item={bool(direct)}')
+            if not direct: continue
+            for code,name in geos.items():
+              cookie=f'aep_usuc_f=site=glo&c_tp=USD&region={code}&b_locale=en_US; intl_locale=en_US; xman_us_f=x_locale=en_US&x_l=0&x_c_chg=1&acs_rt=' 
+              req=urllib.request.Request(direct+'?gatewayAdapt=glo2'+code.lower(),headers={
+                'User-Agent':'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140 Safari/537.36',
+                'Accept-Language':'en-US,en;q=0.9','Cookie':cookie,'Accept':'text/html,*/*'
+              })
+              try:
+                with urllib.request.urlopen(req,timeout=20) as r:
+                  raw=r.read(1500000).decode('utf-8','replace')
+                  low=re.sub(r'\s+',' ',raw.lower())
+                  neg=[x for x in neg_patterns if x in low]
+                  pos=[x for x in pos_patterns if x in low]
+                  # collect shipping/logistics context snippets without printing full page
+                  snippets=[]
+                  for pat in ('ship to','delivery','shipping','region'):
+                    idx=low.find(pat)
+                    if idx>=0:
+                      snippets.append(re.sub(r'[^a-z0-9 .,:;_\-/$]',' ',low[max(0,idx-90):idx+220])[:300])
+                  verdict='BLOCK_SIGNAL' if neg else ('PAGE_OK_SHIPPING_MARKERS' if pos else 'PAGE_OK_NO_CLEAR_SHIPPING_MARKER')
+                  print(f'GEO|{key}|{code}|{name}|http={r.status}|bytes={len(raw)}|verdict={verdict}|neg={";".join(neg) or "none"}|markers={";".join(pos[:4]) or "none"}')
+                  if snippets: print(f'SNIP|{key}|{code}|'+ ' || '.join(snippets[:2]))
+              except Exception as e:
+                print(f'GEO|{key}|{code}|{name}|error={type(e).__name__}:{str(e)[:160]}')
+          print('=== END GEO PROBE ===')
+          PY
