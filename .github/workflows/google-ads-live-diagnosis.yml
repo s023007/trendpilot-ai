@@ -46,25 +46,16 @@ jobs:
           ga = client.get_service('GoogleAdsService')
 
           print('READ-ONLY DIAGNOSIS')
-          customer_rows = list(ga.search(customer_id=cid, query='''
-            SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone
-            FROM customer LIMIT 1
-          '''))
-          for r in customer_rows:
-              print('CUSTOMER=', r.customer.id, '|', r.customer.descriptive_name, '|', r.customer.currency_code, '|', r.customer.time_zone)
-
           campaign_rows = list(ga.search(customer_id=cid, query=f'''
             SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type,
                    campaign.bidding_strategy_type, campaign_budget.amount_micros,
                    campaign.network_settings.target_google_search,
                    campaign.network_settings.target_search_network,
                    campaign.network_settings.target_content_network
-            FROM campaign
-            WHERE campaign.id = {CAMPAIGN_ID}
-            LIMIT 1
+            FROM campaign WHERE campaign.id = {CAMPAIGN_ID} LIMIT 1
           '''))
           for r in campaign_rows:
-              print('CAMPAIGN=', r.campaign.id, '|', r.campaign.name, '| status=', r.campaign.status.name,
+              print('CAMPAIGN=', r.campaign.id, '| status=', r.campaign.status.name,
                     '| channel=', r.campaign.advertising_channel_type.name,
                     '| bid=', r.campaign.bidding_strategy_type.name,
                     '| budget_usd=', int(r.campaign_budget.amount_micros)/1_000_000,
@@ -72,13 +63,32 @@ jobs:
                     '| search_network=', r.campaign.network_settings.target_search_network,
                     '| content_network=', r.campaign.network_settings.target_content_network)
 
+          ads = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.name, ad_group.status,
+                   ad_group_ad.status, ad_group_ad.primary_status,
+                   ad_group_ad.primary_status_reasons,
+                   ad_group_ad.policy_summary.approval_status,
+                   ad_group_ad.policy_summary.review_status
+            FROM ad_group_ad
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND ad_group_ad.status != 'REMOVED'
+          '''))
+          print('AD_COUNT=', len(ads))
+          print('AD_PRIMARY_STATUS_COUNTS=', dict(Counter(r.ad_group_ad.primary_status.name for r in ads)))
+          print('AD_APPROVAL_STATUS_COUNTS=', dict(Counter(r.ad_group_ad.policy_summary.approval_status.name for r in ads)))
+          print('AD_REVIEW_STATUS_COUNTS=', dict(Counter(r.ad_group_ad.policy_summary.review_status.name for r in ads)))
+          for r in ads:
+              print('AD=', r.ad_group.name,
+                    '| ag=', r.ad_group.status.name,
+                    '| ad=', r.ad_group_ad.status.name,
+                    '| primary=', r.ad_group_ad.primary_status.name,
+                    '| approval=', r.ad_group_ad.policy_summary.approval_status.name,
+                    '| review=', r.ad_group_ad.policy_summary.review_status.name,
+                    '| reasons=', [x.name for x in r.ad_group_ad.primary_status_reasons])
+
           keywords = list(ga.search(customer_id=cid, query=f'''
-            SELECT campaign.status, ad_group.name, ad_group.status,
-                   ad_group_criterion.status, ad_group_criterion.keyword.text,
-                   ad_group_criterion.keyword.match_type,
+            SELECT ad_group_criterion.primary_status,
                    ad_group_criterion.system_serving_status,
-                   ad_group_criterion.primary_status,
-                   ad_group_criterion.primary_status_reasons,
                    ad_group_criterion.effective_cpc_bid_micros
             FROM keyword_view
             WHERE campaign.id = {CAMPAIGN_ID}
@@ -87,19 +97,10 @@ jobs:
           print('KEYWORD_COUNT=', len(keywords))
           print('KEYWORD_PRIMARY_STATUS_COUNTS=', dict(Counter(r.ad_group_criterion.primary_status.name for r in keywords)))
           print('KEYWORD_SERVING_STATUS_COUNTS=', dict(Counter(r.ad_group_criterion.system_serving_status.name for r in keywords)))
-          for r in keywords:
-              txt = r.ad_group_criterion.keyword.text
-              if ('manchester derby' in txt.lower() or 'ديربي مانشستر' in txt or
-                  'el clasico' in txt.lower() or 'كلاسيكو' in txt):
-                  print('KW=', repr(txt), '| match=', r.ad_group_criterion.keyword.match_type.name,
-                        '| primary=', r.ad_group_criterion.primary_status.name,
-                        '| serving=', r.ad_group_criterion.system_serving_status.name,
-                        '| bid_usd=', int(r.ad_group_criterion.effective_cpc_bid_micros or 0)/1_000_000,
-                        '| reasons=', [x.name for x in r.ad_group_criterion.primary_status_reasons])
 
           stats = list(ga.search(customer_id=cid, query=f'''
             SELECT segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros,
-                   metrics.ctr, metrics.average_cpc, metrics.conversions, metrics.all_conversions,
+                   metrics.ctr, metrics.average_cpc, metrics.conversions,
                    metrics.search_impression_share, metrics.search_rank_lost_impression_share,
                    metrics.search_budget_lost_impression_share
             FROM campaign
@@ -116,20 +117,18 @@ jobs:
                     '| ctr=', float(r.metrics.ctr or 0),
                     '| avg_cpc_usd=', int(r.metrics.average_cpc or 0)/1_000_000,
                     '| conversions=', float(r.metrics.conversions or 0),
-                    '| all_conversions=', float(r.metrics.all_conversions or 0),
                     '| search_IS=', float(r.metrics.search_impression_share or 0),
                     '| rank_lost_IS=', float(r.metrics.search_rank_lost_impression_share or 0),
                     '| budget_lost_IS=', float(r.metrics.search_budget_lost_impression_share or 0))
 
-          geo = list(ga.search(customer_id=cid, query=f'''
-            SELECT campaign_criterion.criterion_id, campaign_criterion.location.geo_target_constant,
-                   campaign_criterion.negative, campaign_criterion.status
+          schedules = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.criterion_id, campaign_criterion.status
             FROM campaign_criterion
             WHERE campaign.id = {CAMPAIGN_ID}
-              AND campaign_criterion.type = 'LOCATION'
+              AND campaign_criterion.type = 'AD_SCHEDULE'
           '''))
-          print('TARGET_LOCATION_CRITERIA=', [(r.campaign_criterion.criterion_id, r.campaign_criterion.negative, r.campaign_criterion.status.name) for r in geo])
+          print('AD_SCHEDULE_CRITERIA_COUNT=', len(schedules))
           print('END READ-ONLY DIAGNOSIS')
           PY
 
-# refresh: 2026-08-29 13:37 Asia/Muscat
+# refresh: 2026-08-29 13:41 Asia/Muscat
