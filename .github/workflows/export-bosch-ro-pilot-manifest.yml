@@ -25,7 +25,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json
+          import json,re
           from pathlib import Path
           key='aliexpress:2b8a2b92b20569fd6e5c7928'
           src=Path('data/catalog-v19/sellers/aliexpress/products.ndjson')
@@ -41,6 +41,31 @@ jobs:
                       break
           if not hit:
               raise SystemExit('Exact product not found')
+
+          def walk(v):
+              if isinstance(v,str):
+                  yield v
+              elif isinstance(v,dict):
+                  for x in v.values():
+                      yield from walk(x)
+              elif isinstance(v,list):
+                  for x in v:
+                      yield from walk(x)
+
+          image_url=''
+          preferred=[]
+          for field in ('images','image','media'):
+              if field in hit:
+                  preferred.extend(walk(hit.get(field)))
+          for candidate in preferred + list(walk(hit)):
+              s=str(candidate or '').strip()
+              if not re.match(r'^https?://',s,re.I):
+                  continue
+              if re.search(r'\.(?:jpg|jpeg|png|webp)(?:\?|$)',s,re.I) or 'alicdn.com' in s.lower():
+                  if 'rzekl.com' not in s.lower():
+                      image_url=s
+                      break
+
           name=hit.get('name') or {}
           offer=hit.get('offer') or {}
           links=hit.get('links') or {}
@@ -50,6 +75,7 @@ jobs:
               'price': offer.get('price'),
               'currency': offer.get('currency') or 'USD',
               'affiliate_url': links.get('destinationUrl') or links.get('affiliateUrl') or '',
+              'image_url': image_url,
               'seller': 'AliExpress WW',
               'geo': 'RO',
               'shipping_status': 'NEEDS_FINAL_CONFIRMATION'
@@ -59,7 +85,7 @@ jobs:
           p=Path('marketing/google-ads/rare-geo-products/bosch-gbh2-chuck-ro-manifest.json')
           p.parent.mkdir(parents=True,exist_ok=True)
           p.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
-          print('Manifest created for exact product; tracked URL retained in repository file.')
+          print('Manifest created for exact product; source image present:',bool(image_url))
           PY
           git diff --check
       - name: Commit manifest
@@ -73,5 +99,5 @@ jobs:
             echo 'No changes'
             exit 0
           fi
-          git commit -m 'chore: export Bosch Romania pilot manifest'
+          git commit -m 'chore: refresh Bosch Romania pilot manifest'
           git push origin HEAD:main
