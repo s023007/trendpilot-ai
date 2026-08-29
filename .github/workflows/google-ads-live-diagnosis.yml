@@ -100,13 +100,24 @@ jobs:
           print('EXACT_AR_PROBE_COUNT=', len(ar_probe))
 
           stats = list(ga.search(customer_id=cid, query=f'''
-            SELECT segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros
+            SELECT segments.date, metrics.impressions, metrics.clicks, metrics.cost_micros,
+                   metrics.ctr, metrics.average_cpc, metrics.conversions, metrics.all_conversions
             FROM campaign
             WHERE campaign.id = {CAMPAIGN_ID}
               AND segments.date DURING TODAY
           '''))
+          if not stats:
+              print('TODAY=NO_ROWS | impressions=0 | clicks=0 | cost_usd=0.0 | ctr=0 | avg_cpc_usd=0.0 | conversions=0 | all_conversions=0')
           for r in stats:
-              print('TODAY=', r.segments.date, '| impressions=', r.metrics.impressions,
-                    '| clicks=', r.metrics.clicks, '| cost_usd=', int(r.metrics.cost_micros or 0)/1_000_000)
+              print('TODAY=', r.segments.date,
+                    '| impressions=', r.metrics.impressions,
+                    '| clicks=', r.metrics.clicks,
+                    '| cost_usd=', int(r.metrics.cost_micros or 0)/1_000_000,
+                    '| ctr=', float(r.metrics.ctr or 0),
+                    '| avg_cpc_usd=', int(r.metrics.average_cpc or 0)/1_000_000,
+                    '| conversions=', float(r.metrics.conversions or 0),
+                    '| all_conversions=', float(r.metrics.all_conversions or 0))
           print('END READ-ONLY DIAGNOSIS')
           PY
+
+# refresh: 2026-08-29 09:39 Asia/Muscat
