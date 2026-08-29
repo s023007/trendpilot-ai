@@ -1,0 +1,109 @@
+{
+  "version": "1.0",
+  "date": "2026-08-29",
+  "source_of_truth": [
+    "TrendPilot V19 canonical seller catalogs",
+    "TrendPilot Admitad active-program API for website 2980568",
+    "read-only affiliate deep-link HTTP audits"
+  ],
+  "keyword_planner_note": "Google Ads Keyword Planner historical metrics are unavailable to the current API developer token because it has Explorer access. No search-volume/CPC estimates in this report are claimed from Keyword Planner.",
+  "admitad_paid_search_matrix": {
+    "AliExpress WW": {
+      "active": true,
+      "google_ads": true,
+      "contextual_ads": true,
+      "brand_contextual_ads": false,
+      "deeplink": true,
+      "decision": "PRIMARY_PILOT_CANDIDATE_GENERIC_NON_BRAND"
+    },
+    "Alibaba WW": {
+      "active": true,
+      "google_ads": true,
+      "contextual_ads": true,
+      "brand_contextual_ads": false,
+      "deeplink": true,
+      "decision": "PPC_ALLOWED_BUT_DEFER_UNTIL_CATALOG_REFRESH"
+    },
+    "Harfington Many GEOs": {
+      "active": true,
+      "google_ads": true,
+      "contextual_ads": true,
+      "brand_contextual_ads": true,
+      "deeplink": true,
+      "action_countries": "worldwide action-country list returned by Admitad API",
+      "priority_regions_returned": ["AU","FR","JP","DE","CA","IE","ES","US","FI","IT","GB","BE","AT"],
+      "decision": "STRONG_SECOND_PILOT_CANDIDATE_PENDING_BROWSER_DESTINATION_CHECK"
+    },
+    "Govee Many GEOs": {
+      "active": true,
+      "contextual_ads": true,
+      "brand_contextual_ads": false,
+      "google_ads_explicit_type": false,
+      "deeplink": true,
+      "decision": "HOLD_NO_EXPLICIT_GOOGLE_ADS_TYPE"
+    },
+    "Sunsky-online WW": {
+      "active": true,
+      "contextual_ads": true,
+      "brand_contextual_ads": false,
+      "google_ads_explicit_type": false,
+      "deeplink": true,
+      "decision": "HOLD_NO_EXPLICIT_GOOGLE_ADS_TYPE"
+    },
+    "Lenovo Many GEOs": {
+      "active": true,
+      "contextual_ads": false,
+      "brand_contextual_ads": false,
+      "google_ads_explicit_type": false,
+      "deeplink": true,
+      "decision": "BLOCK_FOR_SEARCH_PPC"
+    },
+    "Geekbuying WW": {
+      "active": true,
+      "contextual_ads": true,
+      "brand_contextual_ads": false,
+      "google_ads_explicit_type": false,
+      "deeplink": true,
+      "decision": "BLOCK_FOR_GOOGLE_SEARCH_PPC"
+    }
+  },
+  "aliexpress_priority_link_audit": {
+    "found": 5,
+    "tested": 5,
+    "exact_product_destinations_http_200": 5,
+    "products": [
+      {"product_key":"aliexpress:16dba243dcd0dd53a44ac931","price_usd":26.52,"item_id":"1005012421318736","product":"Hilti TE50AVR / TE70-D / TE70AVR 2082535 carbon brushes","result":"EXACT_ITEM_HTTP_200"},
+      {"product_key":"aliexpress:2b8a2b92b20569fd6e5c7928","price_usd":25.75,"item_id":"1005011859163692","product":"Bosch GBH2-20 / GBH2-24 / GBH2-26 SDS chuck replacement","result":"EXACT_ITEM_HTTP_200"},
+      {"product_key":"aliexpress:2d42de1034c9472289323ae9","price_usd":147.99,"item_id":"1005008606575845","product":"Toyota Corolla 2015-2018 Android 13 Wireless CarPlay stereo","result":"EXACT_ITEM_HTTP_200"},
+      {"product_key":"aliexpress:2ec53b1b035fd4b1d1428e00","price_usd":161.57,"item_id":"1005008902994700","product":"Mazda 2 / CX-3 2014-2020 Wireless CarPlay head unit","result":"EXACT_ITEM_HTTP_200"},
+      {"product_key":"aliexpress:6d3042f25bdc12e59beca401","price_usd":189.56,"item_id":"1005012112129467","product":"BMW 1 Series F20/F22 2013-2018 Wireless CarPlay screen","result":"EXACT_ITEM_HTTP_200"}
+    ]
+  },
+  "harfington_product_audit": {
+    "catalog_products_found": 5,
+    "catalog_products_tested": 5,
+    "tracking_links_present": 5,
+    "automated_http_result": "HTTP 403 on rzekl.com tracking redirect for all five tests; this may be bot/redirect protection and is not treated as proof that a human-browser affiliate click fails.",
+    "products": [
+      {"product_key":"harfington-many-geos:1477d5c8c8d02733e2c920f6","price_usd":34.15,"product":"HYQ4AA Buick Encore 2017-2020 replacement key fob"},
+      {"product_key":"harfington-many-geos:7870531973cbd82e678f1040","price_usd":24.24,"product":"HYQ2AB Cadillac SRX 2015-2016 replacement key fob"},
+      {"product_key":"harfington-many-geos:2ced4dffac2ac6a2ea4047ba","price_usd":17.99,"product":"KR55WK45144 Mercedes Smart Fortwo 2008-2015 replacement key"},
+      {"product_key":"harfington-many-geos:590e316bdc13d13c7bcbc0ab","price_usd":18.64,"product":"15298923 GMC/Chevy ignition lock switch cylinder"},
+      {"product_key":"harfington-many-geos:b515934395add4fc6285335d","price_usd":31.82,"product":"2059056811 Mercedes GLC300/C350e master window switch"}
+    ]
+  },
+  "current_recommendation": {
+    "first_pilot_seller": "AliExpress WW",
+    "why": [
+      "Google Ads and contextual advertising are explicitly enabled in the live Admitad account",
+      "brand bidding is explicitly disabled and will not be used",
+      "all five shortlisted affiliate links resolve to exact AliExpress item pages with HTTP 200",
+      "current catalog contains 328 replacement-part matches and 107 CarPlay matches",
+      "model-number, part-number and vehicle-fitment searches provide narrow purchase intent"
+    ],
+    "first_product_families": ["exact replacement parts", "vehicle-model/year CarPlay head units"],
+    "candidate_geo_basket": ["Romania","Bulgaria","Portugal","South Africa","Chile","Peru"],
+    "auction_test_rule": "Use small Exact/Phrase non-brand tests, initially around $0.15-$0.25 CPC where eligible; drop cells that require uneconomic auction prices rather than forcing them.",
+    "launch_gate": "Do not launch until product availability/shipping for the chosen GEO and a directly relevant TrendPilot landing experience are verified."
+  }
+}
