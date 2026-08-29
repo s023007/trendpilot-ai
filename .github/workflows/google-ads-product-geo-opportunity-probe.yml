@@ -1,0 +1,171 @@
+name: Google Ads Product GEO Opportunity Probe — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-product-geo-opportunity-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Probe Seller x Product x GEO demand
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, math
+          from google.ads.googleads.client import GoogleAdsClient
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          svc = client.get_service('KeywordPlanIdeaService')
+
+          # Country criterion IDs are Google Ads country geo-target constants.
+          # Language criterion IDs are from Google's targetable-language table.
+          cells = [
+              # AliExpress WW: generic/product-intent phrases only; NEVER AliExpress brand bidding.
+              ('AliExpress','Bulgaria','BG',2100,1020,[
+                  'безжичен carplay адаптер','obd2 bluetooth скенер','power bank 10000mah usb c','usb c ендоскоп камера']),
+              ('AliExpress','Romania','RO',2642,1032,[
+                  'adaptor carplay wireless','scanner obd2 bluetooth','baterie externa 10000mah usb c','camera endoscop usb c']),
+              ('AliExpress','Croatia','HR',2191,1039,[
+                  'bežični carplay adapter','obd2 bluetooth skener','power bank 10000mah usb c','usb c endoskopska kamera']),
+              ('AliExpress','Hungary','HU',2348,1024,[
+                  'vezeték nélküli carplay adapter','obd2 bluetooth diagnosztika','power bank 10000mah usb c','usb c endoszkóp kamera']),
+              ('AliExpress','Portugal','PT',2620,1014,[
+                  'adaptador carplay sem fios','scanner obd2 bluetooth','power bank 10000mah usb c','camera endoscopica usb c']),
+              ('AliExpress','Peru','PE',2604,1003,[
+                  'adaptador carplay inalámbrico','escáner obd2 bluetooth','power bank 10000mah usb c','cámara endoscópica usb c']),
+              ('AliExpress','Chile','CL',2152,1003,[
+                  'adaptador carplay inalámbrico','escáner obd2 bluetooth','power bank 10000mah usb c','cámara endoscópica usb c']),
+              ('AliExpress','South Africa','ZA',2710,1000,[
+                  'wireless carplay adapter','obd2 bluetooth scanner','usb c power bank 10000mah','usb c inspection camera']),
+              ('AliExpress','Malaysia','MY',2458,1000,[
+                  'wireless carplay adapter','obd2 bluetooth scanner','usb c power bank 10000mah','usb c inspection camera']),
+              ('AliExpress','Philippines','PH',2608,1000,[
+                  'wireless carplay adapter','obd2 bluetooth scanner','usb c power bank 10000mah','usb c inspection camera']),
+
+              # Alibaba WW: B2B generic intent only; never Alibaba brand bidding.
+              # Nigeria/India/China/Russia/Ukraine and other program-ineligible geos are intentionally excluded.
+              ('Alibaba','Kenya','KE',2404,1000,[
+                  'solar system supplier','solar inverter wholesale','packaging machine price','brick making machine','bottling machine price','cnc router machine price']),
+              ('Alibaba','Ghana','GH',2288,1000,[
+                  'solar system supplier','solar inverter wholesale','packaging machine price','brick making machine','bottling machine price','cnc router machine price']),
+              ('Alibaba','Tanzania','TZ',2834,1000,[
+                  'solar system supplier','solar inverter wholesale','packaging machine price','brick making machine','bottling machine price','cnc router machine price']),
+              ('Alibaba','Uganda','UG',2800,1000,[
+                  'solar system supplier','solar inverter wholesale','packaging machine price','brick making machine','bottling machine price','cnc router machine price']),
+              ('Alibaba','Zambia','ZM',2894,1000,[
+                  'solar system supplier','solar inverter wholesale','packaging machine price','brick making machine','bottling machine price','cnc router machine price']),
+              ('Alibaba','Botswana','BW',2072,1000,[
+                  'solar system supplier','solar inverter wholesale','packaging machine price','brick making machine','bottling machine price','cnc router machine price']),
+              ('Alibaba','Namibia','NA',2516,1000,[
+                  'solar system supplier','solar inverter wholesale','packaging machine price','brick making machine','bottling machine price','cnc router machine price']),
+          ]
+
+          def score(vol, comp_index, low_bid, high_bid):
+              # Discovery score only: rewards some demand + lower auction pressure.
+              # Search volume is deliberately not dominant.
+              demand = min(30.0, math.log10(max(1, vol)+1) * 12.0)
+              ci = 50 if comp_index is None else max(0, min(100, comp_index))
+              competition = (100-ci) * 0.35
+              low = low_bid if low_bid > 0 else high_bid
+              if low <= 0:
+                  cost = 8.0
+              elif low <= 0.15:
+                  cost = 30.0
+              elif low <= 0.25:
+                  cost = 24.0
+              elif low <= 0.40:
+                  cost = 17.0
+              elif low <= 0.60:
+                  cost = 10.0
+              else:
+                  cost = 3.0
+              return round(demand + competition + cost, 1)
+
+          all_rows=[]
+          print('=== TRENDpilot PRODUCT x GEO KEYWORD PLANNER PROBE ===')
+          print('READ ONLY. No campaigns, bids, budgets, networks or locations are changed.')
+          for seller,country,cc,geo_id,lang_id,seeds in cells:
+              req=client.get_type('GenerateKeywordIdeasRequest')
+              req.customer_id=cid
+              req.language=f'languageConstants/{lang_id}'
+              req.geo_target_constants.append(f'geoTargetConstants/{geo_id}')
+              req.keyword_plan_network=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+              req.include_adult_keywords=False
+              req.keyword_seed.keywords.extend(seeds)
+              try:
+                  ideas=list(svc.generate_keyword_ideas(request=req))
+              except Exception as e:
+                  print(f'CELL|{seller}|{country}|ERROR|{type(e).__name__}|{str(e)[:240]}')
+                  continue
+              by_text={r.text.lower().strip():r for r in ideas}
+              print(f'CELL|{seller}|{country}|ideas={len(ideas)}|seed_count={len(seeds)}')
+              for kw in seeds:
+                  r=by_text.get(kw.lower().strip())
+                  if r is None:
+                      row=(seller,country,kw,0,'NOT_RETURNED',None,0.0,0.0,0.0)
+                  else:
+                      m=r.keyword_idea_metrics
+                      vol=int(m.avg_monthly_searches or 0)
+                      comp=m.competition.name if m.competition else 'UNKNOWN'
+                      ci=int(m.competition_index) if getattr(m,'competition_index',None) else None
+                      low=int(m.low_top_of_page_bid_micros or 0)/1_000_000
+                      high=int(m.high_top_of_page_bid_micros or 0)/1_000_000
+                      s=score(vol,ci,low,high)
+                      row=(seller,country,kw,vol,comp,ci,low,high,s)
+                      all_rows.append(row)
+                  print('KW|{}|{}|{}|avg_monthly={}|competition={}|comp_index={}|low_usd={:.4f}|high_usd={:.4f}|score={:.1f}'.format(*row))
+
+              # Also print up to 5 planner-generated ideas with positive demand and the best discovery score.
+              generated=[]
+              seedset={x.lower().strip() for x in seeds}
+              for r in ideas:
+                  text=r.text.strip()
+                  if text.lower() in seedset: continue
+                  m=r.keyword_idea_metrics
+                  vol=int(m.avg_monthly_searches or 0)
+                  if vol <= 0: continue
+                  ci=int(m.competition_index) if getattr(m,'competition_index',None) else None
+                  low=int(m.low_top_of_page_bid_micros or 0)/1_000_000
+                  high=int(m.high_top_of_page_bid_micros or 0)/1_000_000
+                  s=score(vol,ci,low,high)
+                  comp=m.competition.name if m.competition else 'UNKNOWN'
+                  generated.append((s,text,vol,comp,ci,low,high))
+              generated.sort(reverse=True)
+              for s,text,vol,comp,ci,low,high in generated[:5]:
+                  print(f'IDEA|{seller}|{country}|{text}|avg_monthly={vol}|competition={comp}|comp_index={ci}|low_usd={low:.4f}|high_usd={high:.4f}|score={s:.1f}')
+
+          print('=== TOP EXACT-SEED DISCOVERY CELLS ===')
+          all_rows.sort(key=lambda x:(x[8],x[3]), reverse=True)
+          for row in all_rows[:30]:
+              seller,country,kw,vol,comp,ci,low,high,s=row
+              print(f'TOP|score={s:.1f}|{seller}|{country}|{kw}|avg_monthly={vol}|competition={comp}|comp_index={ci}|low_usd={low:.4f}|high_usd={high:.4f}')
+          print('=== END PROBE ===')
+          PY
