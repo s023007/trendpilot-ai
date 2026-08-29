@@ -1,0 +1,1 @@
+Read-only diagnostics are handled by google-ads-live-diagnosis.yml.
