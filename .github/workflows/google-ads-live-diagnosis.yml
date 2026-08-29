@@ -1,4 +1,3 @@
-# Triggered for live read-only diagnosis on 2026-08-29
 name: Google Ads Live Diagnosis — Read Only
 
 on:
@@ -46,9 +45,6 @@ jobs:
           ga = client.get_service('GoogleAdsService')
 
           print('READ-ONLY DIAGNOSIS')
-          print('CUSTOMER_ID=', cid)
-          print('LOGIN_CUSTOMER_ID=', os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip())
-
           customer_rows = list(ga.search(customer_id=cid, query='''
             SELECT customer.id, customer.descriptive_name, customer.currency_code, customer.time_zone
             FROM customer
@@ -59,8 +55,7 @@ jobs:
 
           campaign_rows = list(ga.search(customer_id=cid, query=f'''
             SELECT campaign.id, campaign.name, campaign.status, campaign.advertising_channel_type,
-                   campaign.bidding_strategy_type, campaign.start_date, campaign.end_date,
-                   campaign_budget.amount_micros
+                   campaign.bidding_strategy_type, campaign_budget.amount_micros
             FROM campaign
             WHERE campaign.id = {CAMPAIGN_ID}
             LIMIT 1
@@ -70,14 +65,16 @@ jobs:
               print('CAMPAIGN=', r.campaign.id, '|', r.campaign.name, '| status=', r.campaign.status.name,
                     '| channel=', r.campaign.advertising_channel_type.name,
                     '| bid=', r.campaign.bidding_strategy_type.name,
-                    '| start=', r.campaign.start_date, '| end=', r.campaign.end_date,
                     '| budget_usd=', int(r.campaign_budget.amount_micros)/1_000_000)
 
           keywords = list(ga.search(customer_id=cid, query=f'''
             SELECT campaign.id, campaign.name, campaign.status,
                    ad_group.id, ad_group.name, ad_group.status,
                    ad_group_criterion.criterion_id, ad_group_criterion.status,
-                   ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type
+                   ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type,
+                   ad_group_criterion.system_serving_status,
+                   ad_group_criterion.primary_status,
+                   ad_group_criterion.primary_status_reasons
             FROM keyword_view
             WHERE campaign.id = {CAMPAIGN_ID}
               AND ad_group_criterion.status != 'REMOVED'
@@ -88,8 +85,12 @@ jobs:
               txt = r.ad_group_criterion.keyword.text
               if ('manchester derby' in txt.lower() or 'ديربي مانشستر' in txt or
                   'manchester united' in txt.lower() or 'مانشستر يونايتد' in txt):
+                  reasons = [x.name for x in r.ad_group_criterion.primary_status_reasons]
                   print('KW=', repr(txt), '| match=', r.ad_group_criterion.keyword.match_type.name,
                         '| kw_status=', r.ad_group_criterion.status.name,
+                        '| serving=', r.ad_group_criterion.system_serving_status.name,
+                        '| primary=', r.ad_group_criterion.primary_status.name,
+                        '| reasons=', reasons,
                         '| adgroup=', r.ad_group.name, '| ag_status=', r.ad_group.status.name,
                         '| campaign_status=', r.campaign.status.name)
 
