@@ -1,0 +1,141 @@
+{
+  "version": "1.0",
+  "created_at": "2026-08-29",
+  "strategy": "Seller x Product x GEO long-tail arbitrage",
+  "purpose": "Prepare low-cost Search pilots without increasing the existing $5/day account experiment budget.",
+  "rules": {
+    "google_search_only": true,
+    "search_partners": false,
+    "display": false,
+    "presence_only": true,
+    "broad_match": false,
+    "initial_bid_probe_usd": [0.15, 0.20, 0.25],
+    "never_brand_bid": ["AliExpress", "Alibaba"],
+    "do_not_launch_until": [
+      "seller paid-search policy is verified",
+      "exact affiliate product destination is verified",
+      "product availability/shipping to target GEO is verified",
+      "landing page is directly relevant to the exact product intent",
+      "existing total spend guard is preserved"
+    ]
+  },
+  "priority_cells": [
+    {
+      "priority": 1,
+      "seller": "AliExpress WW",
+      "product_key": "aliexpress:2b8a2b92b20569fd6e5c7928",
+      "product": "Bosch GBH2-20 / GBH2-24 / GBH2-26 rotary hammer SDS chuck nose replacement part",
+      "catalog_price_usd": 25.75,
+      "intent_type": "exact replacement part / model-number search",
+      "candidate_geos": ["Romania", "Bulgaria", "Portugal", "South Africa", "Chile", "Peru"],
+      "keyword_pattern": ["Bosch GBH2-26 chuck replacement", "GBH2-24 SDS chuck part", "GBH2-20 replacement chuck"],
+      "paid_search_status": "eligible_for_controlled_test_generic_non-brand",
+      "why": "Specific model/part intent, 328 replacement-part matches in current AliExpress catalog, direct product-feed origin."
+    },
+    {
+      "priority": 2,
+      "seller": "AliExpress WW",
+      "product_key": "aliexpress:16dba243dcd0dd53a44ac931",
+      "product": "Hilti TE50AVR / TE70-D / TE70AVR carbon brushes 2082535 replacement part",
+      "catalog_price_usd": 26.52,
+      "intent_type": "exact part-number search",
+      "candidate_geos": ["Romania", "Bulgaria", "Portugal", "South Africa", "Chile", "Peru"],
+      "keyword_pattern": ["Hilti 2082535 carbon brushes", "TE70 AVR carbon brushes", "TE50 AVR replacement brushes"],
+      "paid_search_status": "eligible_for_controlled_test_generic_non-brand",
+      "why": "Part number 2082535 creates narrow high-intent search and avoids generic power-tool auctions."
+    },
+    {
+      "priority": 3,
+      "seller": "AliExpress WW",
+      "product_key": "aliexpress:2d42de1034c9472289323ae9",
+      "product": "Toyota Corolla 2015-2018 4+64GB Android 13 Wireless CarPlay stereo",
+      "catalog_price_usd": 147.99,
+      "intent_type": "vehicle-model + year-fitment purchase intent",
+      "candidate_geos": ["Romania", "Bulgaria", "Portugal", "Chile", "South Africa"],
+      "keyword_pattern": ["Toyota Corolla 2015 2018 CarPlay stereo", "Corolla 2017 Android radio CarPlay", "Toyota Corolla 2016 head unit CarPlay"],
+      "paid_search_status": "eligible_for_controlled_test_generic_non-brand",
+      "why": "Higher order value and exact vehicle/year fitment; 107 CarPlay matches in current AliExpress catalog."
+    },
+    {
+      "priority": 4,
+      "seller": "AliExpress WW",
+      "product_key": "aliexpress:2ec53b1b035fd4b1d1428e00",
+      "product": "Mazda 2 / CX-3 2014-2020 4+64GB Wireless CarPlay head unit",
+      "catalog_price_usd": 161.57,
+      "intent_type": "vehicle-model + year-fitment purchase intent",
+      "candidate_geos": ["Portugal", "Romania", "Chile", "South Africa"],
+      "keyword_pattern": ["Mazda 2 2014 2020 CarPlay radio", "Mazda CX-3 CarPlay head unit", "Mazda 2 Android radio 4GB 64GB"],
+      "paid_search_status": "eligible_for_controlled_test_generic_non-brand",
+      "why": "Specific vehicle fitment plus materially higher order value than commodity accessories."
+    },
+    {
+      "priority": 5,
+      "seller": "AliExpress WW",
+      "product_key": "aliexpress:6d3042f25bdc12e59beca401",
+      "product": "BMW 1 Series F20/F22 2013-2018 wireless CarPlay multimedia screen",
+      "catalog_price_usd": 189.56,
+      "intent_type": "vehicle-chassis + year-fitment purchase intent",
+      "candidate_geos": ["Romania", "Bulgaria", "Portugal", "South Africa"],
+      "keyword_pattern": ["BMW F20 2013 2018 CarPlay screen", "BMW F22 wireless CarPlay screen", "BMW 1 Series F20 CarPlay retrofit"],
+      "paid_search_status": "eligible_for_controlled_test_generic_non-brand",
+      "why": "Chassis-code search is narrow, commercial and relatively high value."
+    }
+  ],
+  "secondary_candidates_hold": [
+    {
+      "seller": "Govee Many GEOs",
+      "catalog": "100 records; 32 RGBIC; 12 TV backlight; 16 sensors",
+      "candidate_geos": ["Bulgaria", "Croatia", "Hungary", "Romania", "Portugal"],
+      "status": "HOLD_PENDING_EXACT_PAID_SEARCH_RULES",
+      "notable_products": ["DreamView T1/T2 TV Backlight", "RGBIC strip lights", "H5075 hygrometer thermometer"]
+    },
+    {
+      "seller": "Harfington Many GEOs",
+      "catalog": "100 records; exact car-key remotes, switches, drill bits and hardware",
+      "candidate_geos": ["Finland", "Austria", "Ireland"],
+      "status": "HOLD_PENDING_EXACT_PAID_SEARCH_RULES",
+      "notable_products": ["HYQ4AA Buick Encore remote", "HYQ2AB Cadillac SRX remote", "Mercedes Smart Fortwo KR55WK45144 remote"]
+    },
+    {
+      "seller": "Sunsky-online WW",
+      "catalog": "100 records; 9 exact phone display parts; 1 CarPlay box",
+      "candidate_geos": ["Romania", "Bulgaria", "Portugal", "Chile", "Peru", "South Africa"],
+      "status": "HOLD_PENDING_EXACT_PAID_SEARCH_RULES",
+      "notable_products": ["Samsung A21S LCD assembly", "Samsung A12/A32/M12 LCD assembly", "iPhone 11 JK incell LCD", "Q1A wireless CarPlay box"]
+    },
+    {
+      "seller": "PandaHall",
+      "catalog": "127 records; 105 bead products",
+      "status": "HOLD_PENDING_CJ_PAID_SEARCH_TERMS_AND_UNIT_ECONOMICS",
+      "reason": "Strong long-tail inventory but sampled product prices are mostly too low for paid-search economics unless basket size is high."
+    },
+    {
+      "seller": "Karaca EU",
+      "catalog": "100 cookware records",
+      "status": "HOLD_PENDING_CJ_PAID_SEARCH_TERMS",
+      "reason": "Good $20-$80 basket candidates, but current CJ paid-search policy must be verified before testing."
+    },
+    {
+      "seller": "Diecast",
+      "catalog": "3 current V19 records",
+      "status": "HOLD_CATALOG_TOO_THIN",
+      "reason": "Excellent long-tail concept but current local catalog is too thin to scale until feed ingestion is improved."
+    },
+    {
+      "seller": "Lenovo Many GEOs",
+      "catalog": "756 records but many placeholder $1 prices",
+      "status": "HOLD_DATA_QUALITY_AND_PAID_SEARCH_RULES",
+      "reason": "Do not advertise until catalog price truth and traffic policy are verified."
+    },
+    {
+      "seller": "Geekbuying WW",
+      "status": "BLOCK_FOR_SEARCH_PPC",
+      "reason": "Affiliate terms prohibit PPC advertising on search engines. Keep for organic/SEO channels."
+    },
+    {
+      "seller": "Alibaba WW",
+      "status": "DEFER_FOR_CATALOG_REFRESH",
+      "reason": "Generic non-brand contextual search can be tested under program rules, but current local catalog returned only two CNC matches among the targeted B2B niches. Nigeria and other program-ineligible geos must never be targeted."
+    }
+  ]
+}
