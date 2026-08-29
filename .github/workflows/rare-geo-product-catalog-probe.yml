@@ -23,7 +23,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import json,re
+          import json
           from pathlib import Path
 
           targets={
@@ -33,6 +33,7 @@ jobs:
               'inspection_camera':['endoscope','inspection camera','borescope'],
               'power_bank':['10000mah','power bank'],
               'smart_sensor':['door sensor','temperature sensor','water leak sensor'],
+              'replacement_part':['replacement part','replacement filter','replacement brush','replacement remote'],
             }),
             'Alibaba':('data/catalog-v19/sellers/alibaba/products.ndjson',{
               'solar':['solar inverter','solar system'],
@@ -44,32 +45,50 @@ jobs:
             }),
           }
 
+          def all_strings(v):
+            out=[]
+            if isinstance(v,str):
+              if v.strip(): out.append(v.strip())
+            elif isinstance(v,dict):
+              for x in v.values(): out.extend(all_strings(x))
+            elif isinstance(v,list):
+              for x in v: out.extend(all_strings(x))
+            return out
+
           def title_of(o):
-            for k in ('display_name','displayName','title','name','product_name','productName'):
-              v=o.get(k)
-              if isinstance(v,str) and v.strip(): return v.strip()
-            p=o.get('product')
-            if isinstance(p,dict):
-              for k in ('display_name','title','name'):
-                v=p.get(k)
-                if isinstance(v,str) and v.strip(): return v.strip()
-            return ''
+            # V19 name is a structured object. Prefer readable text values under name.
+            vals=all_strings(o.get('name'))
+            vals=[x for x in vals if not x.startswith(('http://','https://'))]
+            if vals:
+              # Usually raw/display title is the longest useful string.
+              return max(vals,key=len)
+            vals=[]
+            for k in ('display_name','displayName','title','product_name','productName'):
+              vals.extend(all_strings(o.get(k)))
+            return max(vals,key=len) if vals else ''
+
+          def searchable_text(o):
+            vals=[]
+            for k in ('name','specs','taxonomy','brand','identity'):
+              vals.extend(all_strings(o.get(k)))
+            return ' '.join(vals).lower()
 
           def price_of(o):
-            for k in ('price','sale_price','salePrice','current_price','price_value'):
-              v=o.get(k)
-              if v not in (None,''): return v
-            for parent in ('offer','pricing'):
-              p=o.get(parent)
-              if isinstance(p,dict):
-                for k in ('price','sale_price','value','amount'):
-                  if p.get(k) not in (None,''): return p.get(k)
+            offer=o.get('offer')
+            if isinstance(offer,dict):
+              # Print a compact representation so we can later select economically useful SKUs.
+              for k in ('salePrice','sale_price','price','currentPrice','current_price','amount','value'):
+                if k in offer and offer[k] not in (None,''):
+                  return offer[k]
+              vals=all_strings(offer)
+              money=[x for x in vals if any(ch.isdigit() for ch in x) and len(x)<60]
+              if money: return money[0]
             return ''
 
           def id_of(o):
-            for k in ('tpoid','id','product_id','productId','sku','seller_id','sellerId'):
-              v=o.get(k)
-              if v not in (None,''): return str(v)[:80]
+            for k in ('productKey','catalogId','identifiers'):
+              vals=all_strings(o.get(k))
+              if vals: return vals[0][:100]
             return ''
 
           print('=== REAL CATALOG LONG-TAIL CANDIDATES ===')
@@ -79,26 +98,30 @@ jobs:
             if not p.exists(): continue
             hits={k:[] for k in cats}
             counts={k:0 for k in cats}
-            first_keys=None
+            sample=None
             with p.open('r',encoding='utf-8',errors='replace') as f:
               for line in f:
                 line=line.strip()
                 if not line: continue
                 try: o=json.loads(line)
                 except Exception: continue
-                if first_keys is None: first_keys=sorted(o.keys())
+                if sample is None:
+                  sample={
+                    'name':o.get('name'), 'offer':o.get('offer'), 'productKey':o.get('productKey'),
+                    'taxonomy':o.get('taxonomy'), 'links':o.get('links')
+                  }
                 title=title_of(o)
-                low=title.lower()
+                hay=searchable_text(o)
                 for cat,needles in cats.items():
-                  if any(n in low for n in needles):
+                  if any(n in hay for n in needles):
                     counts[cat]+=1
-                    if len(hits[cat])<6:
+                    if len(hits[cat])<8:
                       hits[cat].append((title,price_of(o),id_of(o)))
-            print('FIELDS|{}|{}'.format(seller,','.join(first_keys or [])))
+            print('SAMPLE_STRUCT|{}|{}'.format(seller,json.dumps(sample,ensure_ascii=False)[:1500]))
             for cat in cats:
               print(f'CATEGORY|{seller}|{cat}|matches={counts[cat]}')
               for title,price,pid in hits[cat]:
-                clean=' '.join(title.split())[:220]
+                clean=' '.join(str(title).split())[:260]
                 print(f'PRODUCT|{seller}|{cat}|title={clean}|price={price}|id={pid}')
           print('=== END REAL CATALOG PROBE ===')
           PY
