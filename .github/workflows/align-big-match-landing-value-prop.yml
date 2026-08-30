@@ -13,110 +13,90 @@ permissions:
 jobs:
   align-landing-copy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Align four template landing pages with RSA test
+      - name: Patch landing pages in one fail-closed commit
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           python - <<'PY'
-          from pathlib import Path
+          import base64, os, requests
 
-          pages = {
-            'events/liverpool-v-manchester-united-2026/en-gb/index.html': ('Liverpool vs Manchester United', 'Anfield'),
-            'events/madrid-derby-2026/en-gb/index.html': ('Atlético Madrid vs Real Madrid', 'Riyadh Air Metropolitano'),
-            'events/north-london-derby-2026/en-gb/index.html': ('Tottenham Hotspur vs Arsenal', 'Tottenham Hotspur Stadium'),
-            'events/arsenal-v-manchester-city-2026/en-gb/index.html': ('Arsenal vs Manchester City', 'Emirates Stadium'),
+          repo = os.environ['GITHUB_REPOSITORY']
+          token = os.environ['GH_TOKEN']
+          api = f'https://api.github.com/repos/{repo}'
+          headers = {'Authorization': f'Bearer {token}', 'Accept': 'application/vnd.github+json'}
+
+          def req(method, url, **kwargs):
+              r = requests.request(method, url, headers=headers, timeout=30, **kwargs)
+              r.raise_for_status()
+              return r.json() if r.content else {}
+
+          en = {
+            'events/liverpool-v-manchester-united-2026/en-gb/index.html': 'Liverpool vs Manchester United',
+            'events/madrid-derby-2026/en-gb/index.html': 'Atlético Madrid vs Real Madrid',
+            'events/north-london-derby-2026/en-gb/index.html': 'Tottenham Hotspur vs Arsenal',
+            'events/arsenal-v-manchester-city-2026/en-gb/index.html': 'Arsenal vs Manchester City',
           }
-
-          for file, (match, venue) in pages.items():
-              p = Path(file)
-              doc = p.read_text('utf-8')
-              expected = [
-                  f'<h1>{match} — choose your seat before prices move.</h1>',
-                  '<a class="btn btn-primary" href="#prices">See available tickets now</a>',
-                  '<h2>High-demand seats move quickly for big fixtures.</h2>',
-                  'Prices and availability change quickly, and resale prices may exceed face value.',
-              ]
-              for old in expected:
-                  if doc.count(old) != 1:
-                      raise SystemExit(f'Fail closed: expected exactly one match in {file}: {old}')
-              doc = doc.replace(
-                  f'<h1>{match} — choose your seat before prices move.</h1>',
-                  f'<h1>{match} — compare ticket prices, seats and fees.</h1>'
-              )
-              doc = doc.replace(
-                  '<a class="btn btn-primary" href="#prices">See available tickets now</a>',
-                  '<a class="btn btn-primary" href="#prices">Compare ticket prices &amp; seats</a>'
-              )
-              doc = doc.replace(
-                  '<h2>High-demand seats move quickly for big fixtures.</h2>',
-                  '<h2>Compare the whole offer, not only the headline price.</h2>'
-              )
-              doc = doc.replace(
-                  'Prices and availability change quickly, and resale prices may exceed face value.',
-                  'Prices and availability can change, and resale prices may exceed face value.'
-              )
-              p.write_text(doc, 'utf-8')
-              print('Aligned EN:', file)
-
-          pages_ar = {
+          ar = {
             'events/liverpool-v-manchester-united-2026/ar/index.html': 'ليفربول ضد مانشستر يونايتد',
             'events/madrid-derby-2026/ar/index.html': 'أتلتيكو مدريد ضد ريال مدريد',
             'events/north-london-derby-2026/ar/index.html': 'توتنهام ضد أرسنال',
             'events/arsenal-v-manchester-city-2026/ar/index.html': 'أرسنال ضد مانشستر سيتي',
           }
 
-          for file, match in pages_ar.items():
-              p = Path(file)
-              doc = p.read_text('utf-8')
-              expected = [
-                  f'<h1>{match}… اختر مقعدك قبل أن ترتفع الأسعار.</h1>',
-                  '<a class="btn btn-primary" href="#prices">شاهد التذاكر المتاحة الآن</a>',
-                  '<h2>المقاعد المطلوبة تتحرك بسرعة في المباريات الكبرى.</h2>',
-                  'الأسعار والتوفر يتغيران بسرعة، وقد تكون أسعار إعادة البيع أعلى من القيمة الاسمية.',
-              ]
-              for old in expected:
-                  if doc.count(old) != 1:
-                      raise SystemExit(f'Fail closed: expected exactly one match in {file}: {old}')
-              doc = doc.replace(
-                  f'<h1>{match}… اختر مقعدك قبل أن ترتفع الأسعار.</h1>',
-                  f'<h1>{match} — قارن أسعار التذاكر والمقاعد والرسوم.</h1>'
-              )
-              doc = doc.replace(
-                  '<a class="btn btn-primary" href="#prices">شاهد التذاكر المتاحة الآن</a>',
-                  '<a class="btn btn-primary" href="#prices">قارن أسعار التذاكر والمقاعد</a>'
-              )
-              doc = doc.replace(
-                  '<h2>المقاعد المطلوبة تتحرك بسرعة في المباريات الكبرى.</h2>',
-                  '<h2>قارن العرض كاملًا، وليس السعر الظاهر فقط.</h2>'
-              )
-              doc = doc.replace(
-                  'الأسعار والتوفر يتغيران بسرعة، وقد تكون أسعار إعادة البيع أعلى من القيمة الاسمية.',
-                  'الأسعار والتوفر قد يتغيران، وقد تكون أسعار إعادة البيع أعلى من القيمة الاسمية.'
-              )
-              p.write_text(doc, 'utf-8')
-              print('Aligned AR:', file)
-          PY
+          ref = req('GET', f'{api}/git/ref/heads/main')
+          head_sha = ref['object']['sha']
+          commit = req('GET', f'{api}/git/commits/{head_sha}')
+          base_tree = commit['tree']['sha']
+          tree = []
 
-      - name: Commit landing copy alignment
-        run: |
-          if git diff --quiet; then
-            echo "No changes needed"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            events/liverpool-v-manchester-united-2026/en-gb/index.html \
-            events/liverpool-v-manchester-united-2026/ar/index.html \
-            events/madrid-derby-2026/en-gb/index.html \
-            events/madrid-derby-2026/ar/index.html \
-            events/north-london-derby-2026/en-gb/index.html \
-            events/north-london-derby-2026/ar/index.html \
-            events/arsenal-v-manchester-city-2026/en-gb/index.html \
-            events/arsenal-v-manchester-city-2026/ar/index.html
-          git commit -m "landing: align ticket comparison message with RSA test"
-          git push origin HEAD:main
+          def patch(path, pairs):
+              item = req('GET', f'{api}/contents/{path}?ref={head_sha}')
+              doc = base64.b64decode(item['content']).decode('utf-8')
+              changed = False
+              for old, new in pairs:
+                  old_n, new_n = doc.count(old), doc.count(new)
+                  if old_n == 1:
+                      doc = doc.replace(old, new)
+                      changed = True
+                  elif old_n == 0 and new_n >= 1:
+                      continue
+                  else:
+                      raise SystemExit(f'Fail closed for {path}: old={old_n}, new={new_n}: {old}')
+              if not changed:
+                  print('Already aligned:', path)
+                  return
+              blob = req('POST', f'{api}/git/blobs', json={'content': doc, 'encoding': 'utf-8'})
+              tree.append({'path': path, 'mode': '100644', 'type': 'blob', 'sha': blob['sha']})
+              print('Prepared:', path)
+
+          for path, match in en.items():
+              patch(path, [
+                (f'<h1>{match} — choose your seat before prices move.</h1>', f'<h1>{match} — compare ticket prices, seats and fees.</h1>'),
+                ('<a class="btn btn-primary" href="#prices">See available tickets now</a>', '<a class="btn btn-primary" href="#prices">Compare ticket prices &amp; seats</a>'),
+                ('<h2>High-demand seats move quickly for big fixtures.</h2>', '<h2>Compare the whole offer, not only the headline price.</h2>'),
+                ('Prices and availability change quickly, and resale prices may exceed face value.', 'Prices and availability can change, and resale prices may exceed face value.'),
+              ])
+
+          for path, match in ar.items():
+              patch(path, [
+                (f'<h1>{match}… اختر مقعدك قبل أن ترتفع الأسعار.</h1>', f'<h1>{match} — قارن أسعار التذاكر والمقاعد والرسوم.</h1>'),
+                ('<a class="btn btn-primary" href="#prices">شاهد التذاكر المتاحة الآن</a>', '<a class="btn btn-primary" href="#prices">قارن أسعار التذاكر والمقاعد</a>'),
+                ('<h2>المقاعد المطلوبة تتحرك بسرعة في المباريات الكبرى.</h2>', '<h2>قارن العرض كاملًا، وليس السعر الظاهر فقط.</h2>'),
+                ('الأسعار والتوفر يتغيران بسرعة، وقد تكون أسعار إعادة البيع أعلى من القيمة الاسمية.', 'الأسعار والتوفر قد يتغيران، وقد تكون أسعار إعادة البيع أعلى من القيمة الاسمية.'),
+              ])
+
+          if not tree:
+              print('No landing-page changes needed.')
+              raise SystemExit(0)
+
+          new_tree = req('POST', f'{api}/git/trees', json={'base_tree': base_tree, 'tree': tree})
+          new_commit = req('POST', f'{api}/git/commits', json={
+              'message': 'landing: align ticket comparison message with RSA test',
+              'tree': new_tree['sha'],
+              'parents': [head_sha],
+          })
+          req('PATCH', f'{api}/git/refs/heads/main', json={'sha': new_commit['sha'], 'force': False})
+          print('Committed:', new_commit['sha'])
+          PY
