@@ -41,3 +41,4 @@ jobs:
               if r.status!=200 or not all(checks.values()):
                   raise SystemExit('Safety stop: live landing failed QA')
           PY
+      # Re-run marker after Namecheap production publishing of rare-products.
