@@ -1,0 +1,36 @@
+name: Create PAUSED Romania Bosch Google Ads Pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/create-paused-bosch-ro-google-ads.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  create-paused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Create and verify PAUSED pilot only
+        run: python .github/scripts/create_paused_bosch_ro_google_ads.py
+      - name: Safety statement
+        if: always()
+        run: |
+          echo 'No enable operation exists in this workflow or its creator script.'
+          echo 'Budget is $2/day, campaign and all children must verify PAUSED.'
+          echo 'Initial keyword/ad-group CPC is $0.15 and hard design ceiling is $0.25.'
