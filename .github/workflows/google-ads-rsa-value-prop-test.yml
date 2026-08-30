@@ -1,0 +1,180 @@
+name: Google Ads RSA Value Proposition Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-rsa-value-prop-test.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  add-challenger-rsas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Add value-proposition challenger RSAs only
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          MARKER_EN = 'Compare Ticket Prices & Seats'
+          MARKER_AR = 'قارن أسعار التذاكر والمقاعد'
+
+          cfg = {
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          }
+          client = GoogleAdsClient.load_from_dict(cfg)
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+          ad_service = client.get_service('AdGroupAdService')
+
+          campaign_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.id, campaign.status, campaign_budget.amount_micros,
+                   campaign.bidding_strategy_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+            LIMIT 1
+          '''))
+          if not campaign_rows:
+              raise SystemExit('Target campaign not found; no mutation made.')
+          c = campaign_rows[0]
+
+          # Fail closed if the campaign architecture changed from the approved Search-only setup.
+          if c.campaign.network_settings.target_google_search is not True:
+              raise SystemExit('Google Search is not enabled; no mutation made.')
+          if c.campaign.network_settings.target_search_network is not False:
+              raise SystemExit('Search Partners unexpectedly enabled; no mutation made.')
+          if c.campaign.network_settings.target_content_network is not False:
+              raise SystemExit('Display Network unexpectedly enabled; no mutation made.')
+          if c.campaign.bidding_strategy_type.name != 'MANUAL_CPC':
+              raise SystemExit('Bidding is no longer MANUAL_CPC; no mutation made.')
+
+          groups = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.resource_name, ad_group.name, ad_group.status
+            FROM ad_group
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND ad_group.status != 'REMOVED'
+          '''))
+          if not groups:
+              raise SystemExit('No ad groups found; no mutation made.')
+
+          created = 0
+          skipped = 0
+          for row in groups:
+              group = row.ad_group
+              lang = 'AR' if group.name.endswith('| AR') else ('EN' if group.name.endswith('| EN') else None)
+              if not lang:
+                  print('SKIP unexpected ad group:', group.name)
+                  skipped += 1
+                  continue
+
+              existing = list(ga.search(customer_id=cid, query=f'''
+                SELECT ad_group_ad.resource_name, ad_group_ad.status,
+                       ad_group_ad.ad.final_urls,
+                       ad_group_ad.ad.responsive_search_ad.headlines
+                FROM ad_group_ad
+                WHERE ad_group.resource_name = '{group.resource_name}'
+                  AND ad_group_ad.status != 'REMOVED'
+                  AND ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'
+              '''))
+              if not existing:
+                  print('SKIP no existing RSA:', group.name)
+                  skipped += 1
+                  continue
+
+              marker = MARKER_AR if lang == 'AR' else MARKER_EN
+              if any(marker in [h.text for h in r.ad_group_ad.ad.responsive_search_ad.headlines] for r in existing):
+                  print('SKIP challenger already exists:', group.name)
+                  skipped += 1
+                  continue
+
+              final_urls = list(existing[0].ad_group_ad.ad.final_urls)
+              if not final_urls:
+                  print('SKIP no final URL:', group.name)
+                  skipped += 1
+                  continue
+
+              if lang == 'AR':
+                  heads = [
+                      MARKER_AR,
+                      'افحص السعر والمقعد والرسوم',
+                      'قارن قبل الحجز',
+                      'اختر عرض التذكرة الأنسب',
+                      'خيارات تذاكر للمباراة',
+                      'TrendPilot لمقارنة التذاكر',
+                  ]
+                  descs = [
+                      'قارن خيارات التذاكر والسعر والمقعد والرسوم قبل الانتقال إلى موقع الحجز.',
+                      'راجع أكثر من خيار في مكان واحد. TrendPilot موقع مقارنة مستقل ولا يبيع التذاكر.',
+                  ]
+              else:
+                  heads = [
+                      MARKER_EN,
+                      'Check Price, Seat & Fees',
+                      'Compare Before You Book',
+                      'Review Ticket Options',
+                      'Choose the Better Ticket',
+                      'TrendPilot Ticket Compare',
+                  ]
+                  descs = [
+                      'Compare ticket options, seat details, prices and fees before visiting the booking site.',
+                      'Review more than one ticket option in one place. TrendPilot is an independent comparison site.',
+                  ]
+
+              for text in heads:
+                  if len(text) > 30:
+                      raise SystemExit(f'Headline over 30 chars: {text!r}')
+              for text in descs:
+                  if len(text) > 90:
+                      raise SystemExit(f'Description over 90 chars: {text!r}')
+
+              op = client.get_type('AdGroupAdOperation')
+              aga = op.create
+              aga.ad_group = group.resource_name
+              # Respect the current ad-group state. Never enable a paused group.
+              aga.status = (client.enums.AdGroupAdStatusEnum.ENABLED
+                            if group.status.name == 'ENABLED'
+                            else client.enums.AdGroupAdStatusEnum.PAUSED)
+              ad = aga.ad
+              ad.final_urls.extend(final_urls)
+              rsa = ad.responsive_search_ad
+              for text in heads:
+                  a = client.get_type('AdTextAsset')
+                  a.text = text
+                  rsa.headlines.append(a)
+              for text in descs:
+                  a = client.get_type('AdTextAsset')
+                  a.text = text
+                  rsa.descriptions.append(a)
+
+              result = ad_service.mutate_ad_group_ads(customer_id=cid, operations=[op])
+              print('CREATED challenger:', group.name, '|', result.results[0].resource_name)
+              created += 1
+
+          print('SUMMARY created=', created, 'skipped=', skipped)
+          print('NO keyword, CPC, budget, geo, network or existing-ad changes were made.')
+          PY
