@@ -1,0 +1,137 @@
+name: Google Ads Dutch Localization Audit — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-dutch-localization-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Inspect live campaign language, groups, keywords and ads
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from collections import Counter
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          print('DUTCH LOCALIZATION AUDIT — READ ONLY')
+
+          camps = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.id,campaign.name,campaign.status,campaign.advertising_channel_type,
+                   campaign.bidding_strategy_type,campaign_budget.amount_micros,
+                   campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network
+            FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1
+          '''))
+          for r in camps:
+              c=r.campaign
+              print('CAMPAIGN=',c.name,'| status=',c.status.name,'| channel=',c.advertising_channel_type.name,
+                    '| bid=',c.bidding_strategy_type.name,'| budget=',int(r.campaign_budget.amount_micros)/1_000_000,
+                    '| presence=',c.geo_target_type_setting.positive_geo_target_type.name,
+                    '| google_search=',c.network_settings.target_google_search,
+                    '| search_network=',c.network_settings.target_search_network,
+                    '| display=',c.network_settings.target_content_network,
+                    '| partners=',c.network_settings.target_partner_search_network)
+
+          locs=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign_criterion.location.geo_target_constant,campaign_criterion.negative,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID} AND campaign_criterion.type='LOCATION' AND campaign_criterion.status!='REMOVED'
+          '''))
+          print('POSITIVE_GEOS=',sorted({r.campaign_criterion.location.geo_target_constant for r in locs if not r.campaign_criterion.negative}))
+
+          langs=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign_criterion.resource_name,campaign_criterion.language.language_constant,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID} AND campaign_criterion.type='LANGUAGE' AND campaign_criterion.status!='REMOVED'
+          '''))
+          lang_resources=[r.campaign_criterion.language.language_constant for r in langs]
+          print('LANGUAGE_CRITERIA=',lang_resources)
+          lang_ids=[]
+          for x in lang_resources:
+              try: lang_ids.append(int(x.rsplit('/',1)[-1]))
+              except: pass
+          if lang_ids:
+              q='SELECT language_constant.id,language_constant.name,language_constant.code,language_constant.targetable FROM language_constant WHERE language_constant.id IN ('+','.join(map(str,lang_ids))+')'
+              for r in ga.search(customer_id=cid,query=q):
+                  l=r.language_constant
+                  print('LANGUAGE=',l.id,l.name,l.code,'targetable=',l.targetable)
+          dutch=list(ga.search(customer_id=cid,query="SELECT language_constant.id,language_constant.name,language_constant.code,language_constant.targetable,language_constant.resource_name FROM language_constant WHERE language_constant.code='nl' LIMIT 5"))
+          print('DUTCH_CONSTANTS=',[(r.language_constant.id,r.language_constant.name,r.language_constant.code,r.language_constant.targetable,r.language_constant.resource_name) for r in dutch])
+
+          groups=list(ga.search(customer_id=cid,query=f'''
+            SELECT ad_group.id,ad_group.name,ad_group.status,ad_group.type,ad_group.cpc_bid_micros
+            FROM ad_group WHERE campaign.id={CAMPAIGN_ID} AND ad_group.status!='REMOVED'
+            ORDER BY ad_group.name
+          '''))
+          print('AD_GROUP_COUNT=',len(groups))
+          for r in groups:
+              g=r.ad_group
+              print('GROUP=',g.id,repr(g.name),'| status=',g.status.name,'| type=',g.type_.name,'| cpc=',int(g.cpc_bid_micros or 0)/1_000_000)
+
+          kws=list(ga.search(customer_id=cid,query=f'''
+            SELECT ad_group.name,ad_group_criterion.status,ad_group_criterion.primary_status,
+                   ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,
+                   ad_group_criterion.effective_cpc_bid_micros
+            FROM keyword_view WHERE campaign.id={CAMPAIGN_ID} AND ad_group_criterion.status!='REMOVED'
+            ORDER BY ad_group.name
+          '''))
+          print('KEYWORD_COUNT=',len(kws))
+          print('KEYWORD_STATUS_COUNTS=',dict(Counter(r.ad_group_criterion.primary_status.name for r in kws)))
+          for r in kws:
+              k=r.ad_group_criterion
+              print('KW=',repr(r.ad_group.name),'|',repr(k.keyword.text),'|',k.keyword.match_type.name,'|',k.status.name,'| primary=',k.primary_status.name,'| eff_cpc=',int(k.effective_cpc_bid_micros or 0)/1_000_000)
+
+          ads=list(ga.search(customer_id=cid,query=f'''
+            SELECT ad_group.name,ad_group_ad.status,ad_group_ad.primary_status,
+                   ad_group_ad.policy_summary.approval_status,
+                   ad_group_ad.ad.final_urls,
+                   ad_group_ad.ad.responsive_search_ad.headlines,
+                   ad_group_ad.ad.responsive_search_ad.descriptions
+            FROM ad_group_ad WHERE campaign.id={CAMPAIGN_ID} AND ad_group_ad.status!='REMOVED'
+            ORDER BY ad_group.name
+          '''))
+          print('AD_COUNT=',len(ads))
+          for r in ads:
+              a=r.ad_group_ad
+              hs=[x.text for x in a.ad.responsive_search_ad.headlines]
+              ds=[x.text for x in a.ad.responsive_search_ad.descriptions]
+              print('AD=',repr(r.ad_group.name),'| status=',a.status.name,'| primary=',a.primary_status.name,'| approval=',a.policy_summary.approval_status.name,'| urls=',list(a.ad.final_urls))
+              print('  HEADLINES=',hs)
+              print('  DESCRIPTIONS=',ds)
+
+          print('END DUTCH LOCALIZATION AUDIT')
+          PY
