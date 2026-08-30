@@ -1,0 +1,324 @@
+name: Google Ads Big Matches — Dutch Localization
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-localize-big-matches-dutch.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  localize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Switch language to Dutch and create Dutch ad groups
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          CAMPAIGN_NAME = 'TrendPilot | GCC Big Matches | Search | 2026'
+          NL_GEO = 'geoTargetConstants/2528'
+          DUTCH_LANG = 'languageConstants/1010'
+          BUDGET_MICROS = 5_000_000
+          SPEND_STOP_USD = 18.00
+          START_DATE = '2026-08-28'
+
+          CFG = {
+            'manchester_derby': {
+              'bid': 0.35,
+              'url': 'https://trendpilotchoice.com/events/manchester-derby-2026/en-gb/',
+              'keywords': [
+                ('manchester derby tickets','EXACT'),
+                ('manchester derby kaartjes','PHRASE'),
+                ('manchester united manchester city tickets','PHRASE'),
+                ('kaartjes manchester united manchester city','PHRASE'),
+                ('voetbalreis manchester derby','PHRASE'),
+              ],
+              'headlines': ['Manchester Derby Tickets','Manchester Derby Kaartjes','Voetbalreis Manchester','Vergelijk Tickets & Stoelen','Bekijk Prijs, Stoel & Kosten','Vergelijk Voor Je Boekt','Ticket + Hotel Vergelijken','TrendPilot Ticketvergelijking'],
+            },
+            'liverpool_manunited': {
+              'bid': 0.35,
+              'url': 'https://trendpilotchoice.com/events/liverpool-v-manchester-united-2026/en-gb/',
+              'keywords': [
+                ('liverpool manchester united tickets','EXACT'),
+                ('liverpool man united tickets','PHRASE'),
+                ('liverpool manchester united kaartjes','PHRASE'),
+                ('kaartjes liverpool manchester united','PHRASE'),
+                ('voetbalreis liverpool manchester united','PHRASE'),
+              ],
+              'headlines': ['Liverpool Man Utd Tickets','Liverpool Man Utd Kaartjes','Voetbalreis Liverpool','Vergelijk Tickets & Stoelen','Bekijk Prijs, Stoel & Kosten','Vergelijk Voor Je Boekt','Ticket + Hotel Vergelijken','TrendPilot Ticketvergelijking'],
+            },
+            'el_clasico': {
+              'bid': 0.40,
+              'keyword_bid': 0.55,
+              'url': 'https://trendpilotchoice.com/events/el-clasico-2026/en-gb/',
+              'keywords': [
+                ('el clasico tickets','EXACT'),
+                ('el clasico kaartjes','PHRASE'),
+                ('barcelona real madrid tickets','PHRASE'),
+                ('kaartjes barcelona real madrid','PHRASE'),
+                ('voetbalreis el clasico','PHRASE'),
+              ],
+              'headlines': ['El Clasico Tickets','El Clasico Kaartjes','Voetbalreis El Clasico','Barcelona Real Madrid Tickets','Vergelijk Tickets & Stoelen','Bekijk Prijs, Stoel & Kosten','Vergelijk Voor Je Boekt','Ticket + Hotel Vergelijken'],
+            },
+            'madrid_derby': {
+              'bid': 0.32,
+              'url': 'https://trendpilotchoice.com/events/madrid-derby-2026/en-gb/',
+              'keywords': [
+                ('madrid derby tickets','EXACT'),
+                ('atletico madrid real madrid tickets','PHRASE'),
+                ('kaartjes atletico real madrid','PHRASE'),
+                ('atletico real madrid kaartjes','PHRASE'),
+                ('voetbalreis madrid derby','PHRASE'),
+              ],
+              'headlines': ['Derby Van Madrid Tickets','Atletico Real Madrid Tickets','Voetbalreis Madrid','Vergelijk Tickets & Stoelen','Bekijk Prijs, Stoel & Kosten','Vergelijk Voor Je Boekt','Ticket + Hotel Vergelijken','TrendPilot Ticketvergelijking'],
+            },
+            'north_london_derby': {
+              'bid': 0.32,
+              'url': 'https://trendpilotchoice.com/events/north-london-derby-2026/en-gb/',
+              'keywords': [
+                ('north london derby tickets','EXACT'),
+                ('tottenham arsenal tickets','PHRASE'),
+                ('tottenham arsenal kaartjes','PHRASE'),
+                ('kaartjes tottenham arsenal','PHRASE'),
+                ('voetbalreis tottenham arsenal','PHRASE'),
+              ],
+              'headlines': ['North London Derby Tickets','Tottenham Arsenal Tickets','Tottenham Arsenal Kaartjes','Voetbalreis Londen','Vergelijk Tickets & Stoelen','Bekijk Prijs, Stoel & Kosten','Vergelijk Voor Je Boekt','Ticket + Hotel Vergelijken'],
+            },
+            'arsenal_mancity': {
+              'bid': 0.32,
+              'url': 'https://trendpilotchoice.com/events/arsenal-v-manchester-city-2026/en-gb/',
+              'keywords': [
+                ('arsenal vs manchester city tickets','EXACT'),
+                ('arsenal man city tickets','PHRASE'),
+                ('arsenal man city kaartjes','PHRASE'),
+                ('kaartjes arsenal manchester city','PHRASE'),
+                ('voetbalreis arsenal manchester city','PHRASE'),
+              ],
+              'headlines': ['Arsenal Man City Tickets','Arsenal Man City Kaartjes','Voetbalreis Arsenal','Arsenal Manchester City','Vergelijk Tickets & Stoelen','Bekijk Prijs, Stoel & Kosten','Vergelijk Voor Je Boekt','Ticket + Hotel Vergelijken'],
+            },
+          }
+
+          descriptions = [
+            'Vergelijk tickets, zitplaatsen, prijzen en kosten voordat je naar de aanbieder gaat.',
+            'Plan daarna hotel en reis. TrendPilot vergelijkt; de verkoper bepaalt de eindprijs.',
+          ]
+
+          for key,cfg in CFG.items():
+              assert 0 < cfg['bid'] <= 0.55
+              assert all(len(h) <= 30 for h in cfg['headlines']), (key, [(h,len(h)) for h in cfg['headlines'] if len(h)>30])
+              assert len(cfg['headlines']) >= 3
+          assert all(len(d) <= 90 for d in descriptions), [(d,len(d)) for d in descriptions]
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          # Safety invariants before any mutation.
+          rows=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign.resource_name,campaign.id,campaign.name,campaign.status,
+                   campaign.advertising_channel_type,campaign.bidding_strategy_type,
+                   campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network,
+                   campaign_budget.amount_micros
+            FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1
+          '''))
+          if len(rows)!=1: raise SystemExit('SAFETY STOP: campaign not found exactly once')
+          r=rows[0]; c=r.campaign
+          checks = {
+            'name': c.name == CAMPAIGN_NAME,
+            'enabled': c.status.name == 'ENABLED',
+            'search': c.advertising_channel_type.name == 'SEARCH',
+            'manual_cpc': c.bidding_strategy_type.name == 'MANUAL_CPC',
+            'budget_5': int(r.campaign_budget.amount_micros or 0) == BUDGET_MICROS,
+            'presence': c.geo_target_type_setting.positive_geo_target_type.name == 'PRESENCE',
+            'google_search': c.network_settings.target_google_search is True,
+            'search_network_off': c.network_settings.target_search_network is False,
+            'display_off': c.network_settings.target_content_network is False,
+            'partners_off': c.network_settings.target_partner_search_network is False,
+          }
+          failed=[k for k,v in checks.items() if not v]
+          if failed: raise SystemExit('SAFETY STOP: '+','.join(failed))
+
+          locs=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign_criterion.location.geo_target_constant,campaign_criterion.negative,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID} AND campaign_criterion.type='LOCATION' AND campaign_criterion.status!='REMOVED'
+          '''))
+          pos=sorted({x.campaign_criterion.location.geo_target_constant for x in locs if not x.campaign_criterion.negative})
+          if pos != [NL_GEO]: raise SystemExit('SAFETY STOP: GEO is not Netherlands-only: '+repr(pos))
+
+          today=datetime.now(ZoneInfo('Asia/Muscat')).date().isoformat()
+          costs=list(ga.search(customer_id=cid,query=f'''
+            SELECT segments.date,metrics.cost_micros FROM campaign
+            WHERE campaign.id={CAMPAIGN_ID} AND segments.date BETWEEN '{START_DATE}' AND '{today}'
+          '''))
+          total_cost=sum(int(x.metrics.cost_micros or 0) for x in costs)/1_000_000
+          if total_cost >= SPEND_STOP_USD: raise SystemExit(f'SAFETY STOP: cumulative spend ${total_cost:.2f}')
+
+          # Verify Dutch constant.
+          d=list(ga.search(customer_id=cid,query="SELECT language_constant.id,language_constant.name,language_constant.code,language_constant.targetable,language_constant.resource_name FROM language_constant WHERE language_constant.id=1010 LIMIT 1"))
+          if len(d)!=1 or d[0].language_constant.name!='Dutch' or d[0].language_constant.code!='nl' or not d[0].language_constant.targetable:
+              raise SystemExit('SAFETY STOP: Dutch language constant verification failed')
+
+          # Replace language criteria with Dutch only.
+          langs=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign_criterion.resource_name,campaign_criterion.language.language_constant,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID} AND campaign_criterion.type='LANGUAGE' AND campaign_criterion.status!='REMOVED'
+          '''))
+          lang_ops=[]; dutch_present=False
+          for x in langs:
+              res=x.campaign_criterion.language.language_constant
+              if res == DUTCH_LANG:
+                  dutch_present=True
+              else:
+                  op=client.get_type('CampaignCriterionOperation'); op.remove=x.campaign_criterion.resource_name; lang_ops.append(op)
+          if not dutch_present:
+              op=client.get_type('CampaignCriterionOperation'); crit=op.create; crit.campaign=c.resource_name; crit.language.language_constant=DUTCH_LANG; lang_ops.append(op)
+          if lang_ops:
+              client.get_service('CampaignCriterionService').mutate_campaign_criteria(customer_id=cid,operations=lang_ops)
+
+          # Pause legacy EN/AR groups; preserve them for rollback.
+          groups=list(ga.search(customer_id=cid,query=f'''
+            SELECT ad_group.resource_name,ad_group.name,ad_group.status,ad_group.cpc_bid_micros
+            FROM ad_group WHERE campaign.id={CAMPAIGN_ID} AND ad_group.status!='REMOVED'
+          '''))
+          legacy=[x for x in groups if x.ad_group.name.endswith(' | EN') or x.ad_group.name.endswith(' | AR')]
+          pause_ops=[]
+          for x in legacy:
+              if x.ad_group.status.name != 'PAUSED':
+                  op=client.get_type('AdGroupOperation'); g=op.update; g.resource_name=x.ad_group.resource_name; g.status=client.enums.AdGroupStatusEnum.PAUSED; op.update_mask.paths.append('status'); pause_ops.append(op)
+          if pause_ops:
+              client.get_service('AdGroupService').mutate_ad_groups(customer_id=cid,operations=pause_ops)
+
+          # Create/enable Dutch groups.
+          group_service=client.get_service('AdGroupService')
+          existing_groups={x.ad_group.name:x.ad_group for x in groups}
+          group_resources={}
+          for key,cfg in CFG.items():
+              name=f'{key} | NL'
+              eg=existing_groups.get(name)
+              if eg:
+                  group_resources[key]=eg.resource_name
+                  if eg.status.name != 'ENABLED':
+                      op=client.get_type('AdGroupOperation'); g=op.update; g.resource_name=eg.resource_name; g.status=client.enums.AdGroupStatusEnum.ENABLED; op.update_mask.paths.append('status'); group_service.mutate_ad_groups(customer_id=cid,operations=[op])
+              else:
+                  op=client.get_type('AdGroupOperation'); g=op.create
+                  g.name=name; g.campaign=c.resource_name; g.status=client.enums.AdGroupStatusEnum.ENABLED
+                  g.type_=client.enums.AdGroupTypeEnum.SEARCH_STANDARD
+                  g.cpc_bid_micros=int(cfg['bid']*1_000_000)
+                  res=group_service.mutate_ad_groups(customer_id=cid,operations=[op])
+                  group_resources[key]=res.results[0].resource_name
+
+          # Keywords, idempotently.
+          criterion_service=client.get_service('AdGroupCriterionService')
+          for key,cfg in CFG.items():
+              group_name=f'{key} | NL'; group_res=group_resources[key]
+              existing=list(ga.search(customer_id=cid,query=f'''
+                SELECT ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status
+                FROM keyword_view WHERE campaign.id={CAMPAIGN_ID} AND ad_group.name='{group_name}' AND ad_group_criterion.status!='REMOVED'
+              '''))
+              have={(x.ad_group_criterion.keyword.text.lower(),x.ad_group_criterion.keyword.match_type.name) for x in existing}
+              ops=[]
+              for text,match in cfg['keywords']:
+                  if (text.lower(),match) in have: continue
+                  op=client.get_type('AdGroupCriterionOperation'); k=op.create
+                  k.ad_group=group_res; k.status=client.enums.AdGroupCriterionStatusEnum.ENABLED
+                  k.keyword.text=text; k.keyword.match_type=getattr(client.enums.KeywordMatchTypeEnum,match)
+                  bid=cfg.get('keyword_bid',cfg['bid']); k.cpc_bid_micros=int(bid*1_000_000)
+                  ops.append(op)
+              if ops: criterion_service.mutate_ad_group_criteria(customer_id=cid,operations=ops)
+
+          # One Dutch RSA per group; keep copy compact and match-specific.
+          ad_service=client.get_service('AdGroupAdService')
+          for key,cfg in CFG.items():
+              group_name=f'{key} | NL'; group_res=group_resources[key]
+              ads=list(ga.search(customer_id=cid,query=f'''
+                SELECT ad_group_ad.resource_name,ad_group_ad.status
+                FROM ad_group_ad WHERE campaign.id={CAMPAIGN_ID} AND ad_group.name='{group_name}' AND ad_group_ad.status!='REMOVED'
+              '''))
+              if ads: continue
+              op=client.get_type('AdGroupAdOperation'); aga=op.create
+              aga.ad_group=group_res; aga.status=client.enums.AdGroupAdStatusEnum.ENABLED
+              aga.ad.final_urls.append(cfg['url'])
+              rsa=aga.ad.responsive_search_ad
+              for text in cfg['headlines']:
+                  a=client.get_type('AdTextAsset'); a.text=text; rsa.headlines.append(a)
+              for text in descriptions:
+                  a=client.get_type('AdTextAsset'); a.text=text; rsa.descriptions.append(a)
+              ad_service.mutate_ad_group_ads(customer_id=cid,operations=[op])
+
+          # Post-verify language, GEO and safety invariants.
+          langs2=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign_criterion.language.language_constant,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID} AND campaign_criterion.type='LANGUAGE' AND campaign_criterion.status!='REMOVED'
+          '''))
+          langset=sorted({x.campaign_criterion.language.language_constant for x in langs2})
+          if langset != [DUTCH_LANG]: raise SystemExit('POST-VERIFY FAILED: language='+repr(langset))
+
+          groups2=list(ga.search(customer_id=cid,query=f'''
+            SELECT ad_group.name,ad_group.status FROM ad_group
+            WHERE campaign.id={CAMPAIGN_ID} AND ad_group.status!='REMOVED'
+          '''))
+          nl={x.ad_group.name:x.ad_group.status.name for x in groups2 if x.ad_group.name.endswith(' | NL')}
+          if len(nl)!=6 or any(v!='ENABLED' for v in nl.values()): raise SystemExit('POST-VERIFY FAILED: NL groups='+repr(nl))
+          old={x.ad_group.name:x.ad_group.status.name for x in groups2 if x.ad_group.name.endswith(' | EN') or x.ad_group.name.endswith(' | AR')}
+          if any(v!='PAUSED' for v in old.values()): raise SystemExit('POST-VERIFY FAILED: old groups='+repr(old))
+
+          post=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign.status,campaign.bidding_strategy_type,campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,
+                   campaign_budget.amount_micros
+            FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1
+          '''))[0]
+          pc=post.campaign
+          if not (pc.status.name=='ENABLED' and pc.bidding_strategy_type.name=='MANUAL_CPC' and
+                  int(post.campaign_budget.amount_micros or 0)==BUDGET_MICROS and
+                  pc.geo_target_type_setting.positive_geo_target_type.name=='PRESENCE' and
+                  pc.network_settings.target_google_search is True and
+                  pc.network_settings.target_search_network is False and
+                  pc.network_settings.target_content_network is False and
+                  pc.network_settings.target_partner_search_network is False):
+              raise SystemExit('POST-VERIFY FAILED: protected campaign setting drifted')
+
+          print('DUTCH LOCALIZATION SUCCESS')
+          print('GEO: Netherlands only | Language: Dutch only')
+          print('Legacy EN/AR groups: PAUSED')
+          print('Dutch groups enabled:', sorted(nl))
+          print('Dutch keywords planned:', sum(len(x['keywords']) for x in CFG.values()))
+          print('Daily budget unchanged: $5.00')
+          print('Google Search only | Search Partners OFF | Display OFF | Presence-only PASS')
+          print('Cumulative spend before localization: $%.2f' % total_cost)
+          print('Landing URLs remain existing en-gb pages for now; campaign-language and ad-copy localization is complete.')
+          PY
