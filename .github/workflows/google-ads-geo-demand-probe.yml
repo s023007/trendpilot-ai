@@ -103,3 +103,5 @@ jobs:
                   print('  KW=', repr(d[0]), '| avg_monthly=', d[1], '| competition=', d[2], '| low_bid_usd=', d[3], '| high_bid_usd=', d[4])
           print('END GEO DEMAND PROBE')
           PY
+
+# rerun: 2026-08-30 13:00 Asia/Muscat — evaluate non-GCC GEO before live switch
