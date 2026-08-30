@@ -1,0 +1,209 @@
+name: Google Ads Big Matches — Switch GEO to Netherlands
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-switch-big-matches-to-netherlands.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  switch-geo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Replace positive GEO targets with Netherlands only
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          CAMPAIGN_NAME = 'TrendPilot | GCC Big Matches | Search | 2026'
+          TARGET_GEO_ID = '2528'
+          TARGET_GEO_RESOURCE = f'geoTargetConstants/{TARGET_GEO_ID}'
+          MAX_DAILY_BUDGET_MICROS = 5_000_000
+          SPEND_STOP_USD = 18.00
+          START_DATE = '2026-08-28'
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          # Fail closed unless every money/network/location invariant is exactly as expected.
+          rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.resource_name, campaign.id, campaign.name, campaign.status,
+                   campaign.advertising_channel_type, campaign.bidding_strategy_type,
+                   campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign.geo_target_type_setting.negative_geo_target_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network,
+                   campaign_budget.amount_micros
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+            LIMIT 1
+          '''))
+          if len(rows) != 1:
+              raise SystemExit('SAFETY STOP: target campaign not found exactly once')
+          r = rows[0]
+          c = r.campaign
+          budget = int(r.campaign_budget.amount_micros or 0)
+          checks = {
+              'name': c.name == CAMPAIGN_NAME,
+              'status_enabled': c.status.name == 'ENABLED',
+              'search_campaign': c.advertising_channel_type.name == 'SEARCH',
+              'manual_cpc': c.bidding_strategy_type.name == 'MANUAL_CPC',
+              'budget_exact_5': budget == MAX_DAILY_BUDGET_MICROS,
+              'google_search_on': c.network_settings.target_google_search is True,
+              'search_network_off': c.network_settings.target_search_network is False,
+              'display_off': c.network_settings.target_content_network is False,
+              'search_partners_off': c.network_settings.target_partner_search_network is False,
+              'positive_presence_only': c.geo_target_type_setting.positive_geo_target_type.name == 'PRESENCE',
+              'negative_presence_only': c.geo_target_type_setting.negative_geo_target_type.name == 'PRESENCE',
+          }
+          failed = [k for k,v in checks.items() if not v]
+          if failed:
+              raise SystemExit('SAFETY STOP: campaign invariant failed: ' + ','.join(failed))
+
+          # Preserve the cumulative hard-spend guard: do not retarget if the stop threshold is reached.
+          today = datetime.now(ZoneInfo('Asia/Muscat')).date().isoformat()
+          cost_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT segments.date, metrics.cost_micros
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND segments.date BETWEEN '{START_DATE}' AND '{today}'
+          '''))
+          total_cost = sum(int(x.metrics.cost_micros or 0) for x in cost_rows) / 1_000_000
+          if total_cost >= SPEND_STOP_USD:
+              raise SystemExit(f'SAFETY STOP: cumulative spend ${total_cost:.2f} reached guard threshold')
+
+          # Verify the target is the enabled country Netherlands before mutating anything.
+          geo_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT geo_target_constant.id, geo_target_constant.name,
+                   geo_target_constant.country_code, geo_target_constant.target_type,
+                   geo_target_constant.status
+            FROM geo_target_constant
+            WHERE geo_target_constant.id = {TARGET_GEO_ID}
+            LIMIT 1
+          '''))
+          if len(geo_rows) != 1:
+              raise SystemExit('SAFETY STOP: Netherlands geo constant not found')
+          g = geo_rows[0].geo_target_constant
+          if not (str(g.id) == TARGET_GEO_ID and g.name == 'Netherlands' and g.country_code == 'NL' and str(g.target_type).lower() == 'country' and g.status.name == 'ENABLED'):
+              raise SystemExit(f'SAFETY STOP: unexpected target geo: {g.name}/{g.country_code}/{g.target_type}/{g.status.name}')
+
+          # Read only current positive country/location criteria. Keep NL if already present; remove all others.
+          loc_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.resource_name,
+                   campaign_criterion.location.geo_target_constant,
+                   campaign_criterion.negative,
+                   campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND campaign_criterion.type = 'LOCATION'
+              AND campaign_criterion.status != 'REMOVED'
+          '''))
+          positives = [x for x in loc_rows if not bool(x.campaign_criterion.negative)]
+          before = [(x.campaign_criterion.location.geo_target_constant, x.campaign_criterion.resource_name) for x in positives]
+          print('POSITIVE_GEOS_BEFORE=', before)
+
+          ops = []
+          nl_present = False
+          for x in positives:
+              target = x.campaign_criterion.location.geo_target_constant
+              if target == TARGET_GEO_RESOURCE:
+                  nl_present = True
+                  continue
+              op = client.get_type('CampaignCriterionOperation')
+              op.remove = x.campaign_criterion.resource_name
+              ops.append(op)
+
+          if not nl_present:
+              op = client.get_type('CampaignCriterionOperation')
+              crit = op.create
+              crit.campaign = c.resource_name
+              crit.location.geo_target_constant = TARGET_GEO_RESOURCE
+              crit.negative = False
+              ops.append(op)
+
+          if ops:
+              client.get_service('CampaignCriterionService').mutate_campaign_criteria(
+                  customer_id=cid, operations=ops
+              )
+
+          # Post-verify: NL is the only positive GEO; budget/network/PRESENCE remain untouched.
+          verify_locs = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.location.geo_target_constant,
+                   campaign_criterion.negative,
+                   campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id = {CAMPAIGN_ID}
+              AND campaign_criterion.type = 'LOCATION'
+              AND campaign_criterion.status != 'REMOVED'
+          '''))
+          after_positive = sorted({x.campaign_criterion.location.geo_target_constant for x in verify_locs if not bool(x.campaign_criterion.negative)})
+          if after_positive != [TARGET_GEO_RESOURCE]:
+              raise SystemExit('POST-VERIFY FAILED: positive GEOs=' + repr(after_positive))
+
+          post = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.status, campaign.bidding_strategy_type,
+                   campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign.geo_target_type_setting.negative_geo_target_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network,
+                   campaign_budget.amount_micros
+            FROM campaign
+            WHERE campaign.id = {CAMPAIGN_ID}
+            LIMIT 1
+          '''))[0]
+          pc = post.campaign
+          post_budget = int(post.campaign_budget.amount_micros or 0)
+          if not (
+              pc.status.name == 'ENABLED' and
+              pc.bidding_strategy_type.name == 'MANUAL_CPC' and
+              post_budget == MAX_DAILY_BUDGET_MICROS and
+              pc.geo_target_type_setting.positive_geo_target_type.name == 'PRESENCE' and
+              pc.geo_target_type_setting.negative_geo_target_type.name == 'PRESENCE' and
+              pc.network_settings.target_google_search is True and
+              pc.network_settings.target_search_network is False and
+              pc.network_settings.target_content_network is False and
+              pc.network_settings.target_partner_search_network is False
+          ):
+              raise SystemExit('POST-VERIFY FAILED: a protected campaign setting drifted')
+
+          print('GEO SWITCH SUCCESS')
+          print('Campaign:', CAMPAIGN_ID, CAMPAIGN_NAME)
+          print('Positive GEO after: Netherlands (NL) only')
+          print('Presence-only: PASS')
+          print('Google Search only: PASS | Search Partners OFF | Display OFF')
+          print('Daily budget unchanged: $5.00')
+          print('Cumulative spend before switch: $%.2f' % total_cost)
+          print('No bid, budget, language, ad, keyword, or campaign-status mutation was performed.')
+          PY
