@@ -63,7 +63,6 @@ jobs:
               raise SystemExit('Target campaign not found; no mutation made.')
           c = campaign_rows[0]
 
-          # Fail closed if the campaign architecture changed from the approved Search-only setup.
           if c.campaign.network_settings.target_google_search is not True:
               raise SystemExit('Google Search is not enabled; no mutation made.')
           if c.campaign.network_settings.target_search_network is not False:
@@ -142,7 +141,7 @@ jobs:
                   ]
                   descs = [
                       'Compare ticket options, seat details, prices and fees before visiting the booking site.',
-                      'Review more than one ticket option in one place. TrendPilot is an independent comparison site.',
+                      'Review ticket options in one place. TrendPilot is an independent comparison site.',
                   ]
 
               for text in heads:
@@ -155,7 +154,6 @@ jobs:
               op = client.get_type('AdGroupAdOperation')
               aga = op.create
               aga.ad_group = group.resource_name
-              # Respect the current ad-group state. Never enable a paused group.
               aga.status = (client.enums.AdGroupAdStatusEnum.ENABLED
                             if group.status.name == 'ENABLED'
                             else client.enums.AdGroupAdStatusEnum.PAUSED)
