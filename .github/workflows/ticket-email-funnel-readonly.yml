@@ -1,4 +1,4 @@
-name: Ticket Email Funnel Audit — Read Only
+name: Ticket Funnel Audit — Read Only
 
 on:
   workflow_dispatch:
@@ -21,7 +21,8 @@ jobs:
       CPANEL_USER: kehwgbpo
       DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
       TP_SAVE_LOG: /tmp/tp-save-search.jsonl
-      TP_CLICK_LOG: /tmp/tp-email-clicks.jsonl
+      TP_EMAIL_CLICK_LOG: /tmp/tp-email-clicks.jsonl
+      TP_OUTBOUND_LOG: /tmp/tp-seller-outbound.jsonl
     steps:
       - name: Configure read-only SSH access
         shell: bash
@@ -49,10 +50,11 @@ jobs:
         run: |
           set -euo pipefail
           ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/save-search.jsonl && cat /home/kehwgbpo/trendpilot-private/save-search.jsonl || true" > "$TP_SAVE_LOG"
-          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/email-clicks.jsonl && cat /home/kehwgbpo/trendpilot-private/email-clicks.jsonl || true" > "$TP_CLICK_LOG"
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/email-clicks.jsonl && cat /home/kehwgbpo/trendpilot-private/email-clicks.jsonl || true" > "$TP_EMAIL_CLICK_LOG"
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/seller-outbound.jsonl && cat /home/kehwgbpo/trendpilot-private/seller-outbound.jsonl || true" > "$TP_OUTBOUND_LOG"
           echo 'Private logs copied. Raw contents intentionally suppressed.'
 
-      - name: Report aggregate ticket-email funnel only
+      - name: Report aggregate paid-ticket funnel only
         shell: bash
         run: |
           python - <<'PY'
@@ -60,72 +62,53 @@ jobs:
           from datetime import datetime, timedelta, timezone
           from zoneinfo import ZoneInfo
 
-          TZ = ZoneInfo('Asia/Muscat')
-          now = datetime.now(TZ)
-          today = now.date()
-          since7 = today - timedelta(days=6)
-          campaigns = {
-              'manchester-derby-2026',
-              'liverpool-v-manchester-united-2026',
-              'el-clasico-2026',
-              'madrid-derby-2026',
-              'north-london-derby-2026',
-              'arsenal-v-manchester-city-2026',
+          TZ=ZoneInfo('Asia/Muscat'); now=datetime.now(TZ); today=now.date(); since7=today-timedelta(days=6)
+          campaigns={
+            'manchester_derby_2026','liverpool_manunited_2026','el_clasico_2026',
+            'madrid_derby_2026','north_london_derby_2026','arsenal_mancity_2026'
           }
-
           def parse_dt(v):
-              if not v: return None
-              s = str(v).strip().replace('Z', '+00:00')
-              try:
-                  d = datetime.fromisoformat(s)
-              except Exception:
-                  return None
-              if d.tzinfo is None:
-                  d = d.replace(tzinfo=timezone.utc)
-              return d.astimezone(TZ)
-
+            if not v:return None
+            try:d=datetime.fromisoformat(str(v).strip().replace('Z','+00:00'))
+            except Exception:return None
+            if d.tzinfo is None:d=d.replace(tzinfo=timezone.utc)
+            return d.astimezone(TZ)
           def rows(path):
-              out=[]
-              if not os.path.exists(path): return out
-              with open(path, 'r', encoding='utf-8', errors='replace') as f:
-                  for line in f:
-                      line=line.strip()
-                      if not line: continue
-                      try: x=json.loads(line)
-                      except Exception: continue
-                      camp=str(x.get('campaign_id') or x.get('campaign') or '')
-                      if camp not in campaigns: continue
-                      d=parse_dt(x.get('created_at') or x.get('clicked_at') or x.get('timestamp'))
-                      if not d: continue
-                      x['_dt']=d; x['_campaign']=camp
-                      out.append(x)
-              return out
+            out=[]
+            if not os.path.exists(path):return out
+            for line in open(path,'r',encoding='utf-8',errors='replace'):
+              try:x=json.loads(line)
+              except Exception:continue
+              camp=str(x.get('campaign_id') or '')
+              if camp not in campaigns:continue
+              d=parse_dt(x.get('created_at') or x.get('clicked_at') or x.get('timestamp'))
+              if not d:continue
+              x['_campaign']=camp;x['_dt']=d;out.append(x)
+            return out
+          def has_gclid(x):return bool(str(x.get('gclid') or '').strip())
+          def today_rows(xs):return [x for x in xs if x['_dt'].date()==today]
+          def last7(xs):return [x for x in xs if since7<=x['_dt'].date()<=today]
 
           saves=rows(os.environ['TP_SAVE_LOG'])
-          clicks=rows(os.environ['TP_CLICK_LOG'])
+          email_clicks=rows(os.environ['TP_EMAIL_CLICK_LOG'])
+          outbound=rows(os.environ['TP_OUTBOUND_LOG'])
+          ts,te,to=map(today_rows,(saves,email_clicks,outbound))
+          s7,e7,o7=map(last7,(saves,email_clicks,outbound))
 
-          def in_today(x): return x['_dt'].date() == today
-          def in_7d(x): return since7 <= x['_dt'].date() <= today
-          def has_gclid(x): return bool(str(x.get('gclid') or '').strip())
-
-          ts=[x for x in saves if in_today(x)]
-          tc=[x for x in clicks if in_today(x)]
-          s7=[x for x in saves if in_7d(x)]
-          c7=[x for x in clicks if in_7d(x)]
-
-          print('TICKET_EMAIL_FUNNEL_READ_ONLY')
-          print('AS_OF_MUSCAT=', now.isoformat(timespec='seconds'))
-          print('TODAY_EMAILS_SENT=', len(ts))
-          print('TODAY_EMAILS_WITH_GCLID=', sum(has_gclid(x) for x in ts))
-          print('TODAY_EMAIL_LINK_CLICKS=', len(tc))
-          print('TODAY_EMAIL_LINK_CLICKS_WITH_GCLID=', sum(has_gclid(x) for x in tc))
-          print('LAST7_EMAILS_SENT=', len(s7))
-          print('LAST7_EMAILS_WITH_GCLID=', sum(has_gclid(x) for x in s7))
-          print('LAST7_EMAIL_LINK_CLICKS=', len(c7))
-          print('LAST7_EMAIL_LINK_CLICKS_WITH_GCLID=', sum(has_gclid(x) for x in c7))
+          print('TICKET_FUNNEL_READ_ONLY')
+          print('AS_OF_MUSCAT=',now.isoformat(timespec='seconds'))
+          print('TODAY_EMAILS_SENT=',len(ts),'| WITH_GCLID=',sum(map(has_gclid,ts)))
+          print('TODAY_EMAIL_LINK_CLICKS=',len(te),'| WITH_GCLID=',sum(map(has_gclid,te)))
+          print('TODAY_DIRECT_SELLER_OUTBOUND=',len(to),'| WITH_GCLID=',sum(map(has_gclid,to)))
+          print('TODAY_TOTAL_SELLER_CLICKS=',len(te)+len(to))
+          print('LAST7_EMAILS_SENT=',len(s7),'| WITH_GCLID=',sum(map(has_gclid,s7)))
+          print('LAST7_EMAIL_LINK_CLICKS=',len(e7),'| WITH_GCLID=',sum(map(has_gclid,e7)))
+          print('LAST7_DIRECT_SELLER_OUTBOUND=',len(o7),'| WITH_GCLID=',sum(map(has_gclid,o7)))
+          print('LAST7_TOTAL_SELLER_CLICKS=',len(e7)+len(o7))
           for camp in sorted(campaigns):
-              a=[x for x in ts if x['_campaign']==camp]
-              b=[x for x in tc if x['_campaign']==camp]
-              print('TODAY_CAMPAIGN=',camp,'| emails_sent=',len(a),'| sent_with_gclid=',sum(has_gclid(x) for x in a),'| email_link_clicks=',len(b),'| clicks_with_gclid=',sum(has_gclid(x) for x in b))
-          print('PRIVACY=PASS | no email, hash, lead id, seller URL, or gclid printed')
+            a=[x for x in ts if x['_campaign']==camp]
+            b=[x for x in te if x['_campaign']==camp]
+            c=[x for x in to if x['_campaign']==camp]
+            print('TODAY_CAMPAIGN=',camp,'| emails=',len(a),'| email_clicks=',len(b),'| direct_outbound=',len(c),'| total_seller_clicks=',len(b)+len(c))
+          print('PRIVACY=PASS | no email, hash, lead id, seller URL, or gclid value printed')
           PY
