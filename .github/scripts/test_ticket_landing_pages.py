@@ -8,6 +8,9 @@ SAVE_JS = ROOT / 'events/manchester-derby-2026/save-search.js'
 SAVE_PHP = ROOT / 'api/save-search.php'
 ROUTER_JS = ROOT / 'events/_factory/locale-router-v1.js'
 OUTBOUND_API = ROOT / 'api/seller-outbound.php'
+AUDIT_YML = ROOT / '.github/workflows/ticket-email-funnel-readonly.yml'
+UPLOAD_YML = ROOT / '.github/workflows/upload-google-ads-conversions-hourly.yml'
+DEPLOY_YML = ROOT / '.github/workflows/deploy-email-system.yml'
 PAID_EVENTS = [
     'manchester-derby-2026',
     'liverpool-v-manchester-united-2026',
@@ -15,6 +18,14 @@ PAID_EVENTS = [
     'madrid-derby-2026',
     'north-london-derby-2026',
     'arsenal-v-manchester-city-2026',
+]
+BACKEND_CAMPAIGNS = [
+    'manchester_derby_2026',
+    'liverpool_manunited_2026',
+    'el_clasico_2026',
+    'madrid_derby_2026',
+    'north_london_derby_2026',
+    'arsenal_mancity_2026',
 ]
 
 
@@ -46,7 +57,6 @@ def main() -> None:
     require('https://www.fanpass.es/entradas-fc-barcelona-vs-real-madrid' in html,
             'Fanpass must use the verified exact-fixture URL')
 
-    # Every seller CTA must retain safe rel attributes.
     seller_links = re.findall(r'<a class="price-link"[^>]+>', html)
     require(len(seller_links) >= 3, 'Expected at least three seller CTAs')
     for link in seller_links:
@@ -72,13 +82,23 @@ def main() -> None:
     require('gclid' in outbound_php, 'Seller outbound endpoint does not preserve Google click attribution')
     require('lead_id' in outbound_php, 'Seller outbound event lacks a dedupe/conversion identifier')
 
+    # Deployment, Google Ads conversion upload and read-only audit must all include direct seller clicks.
+    deploy = DEPLOY_YML.read_text(encoding='utf-8')
+    upload = UPLOAD_YML.read_text(encoding='utf-8')
+    audit = AUDIT_YML.read_text(encoding='utf-8')
+    require('api/seller-outbound.php' in deploy, 'API deployment does not include seller-outbound.php')
+    require('seller-outbound.jsonl' in upload, 'Google Ads conversion uploader does not read direct seller clicks')
+    require('seller-outbound.jsonl' in audit, 'Read-only funnel audit does not count direct seller clicks')
+    for campaign in BACKEND_CAMPAIGNS:
+        require(campaign in audit, f'Read-only audit omits backend campaign id {campaign}')
+    require("'el-clasico-2026'" not in audit, 'Audit still uses page slugs instead of backend campaign IDs')
+
     # Locale router must understand Netherlands both from country and browser language.
     require("'NL'" in router_js, 'Global locale router does not map Netherlands to nl-nl')
     require("startsWith('nl')" in router_js, 'Global locale router does not understand Dutch browser locale')
     require('"nl-nl"' in root_html or "'nl-nl'" in root_html, 'El Clasico root router does not advertise nl-nl')
     require("startsWith('nl')" in root_html, 'El Clasico immediate root redirect bypasses Dutch visitors')
 
-    # Systemic guard: any paid event that has a Dutch page must advertise and immediately route it.
     for slug in PAID_EVENTS:
         event = ROOT / 'events' / slug
         dutch = event / 'nl-nl' / 'index.html'
@@ -89,7 +109,7 @@ def main() -> None:
             require('nl-nl' in routed, f'{slug}: Dutch page exists but root router omits nl-nl')
             require("startsWith('nl')" in routed, f'{slug}: immediate root redirect bypasses Dutch visitors')
 
-    print('PASS paid-ticket QA: Dutch page, exact seller links, Dutch modal/email, outbound tracking, locale routing')
+    print('PASS paid-ticket QA: Dutch page, exact sellers, localized funnel, outbound conversions, correct audit IDs, routing')
 
 
 if __name__ == '__main__':
