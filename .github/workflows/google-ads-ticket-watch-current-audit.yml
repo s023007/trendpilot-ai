@@ -1,0 +1,104 @@
+name: Google Ads Ticket Watch Current Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-ticket-watch-current-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Read current campaign state
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os, json
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CID_CAMPAIGN=24190034111
+          START='2026-08-29'
+          END='2026-09-01'
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          ga=client.get_service('GoogleAdsService')
+          def rows(q): return list(ga.search(customer_id=cid,query=q))
+          def money(m): return round(int(m or 0)/1_000_000,2)
+
+          base=rows(f'''SELECT customer.currency_code,campaign.id,campaign.name,campaign.status,campaign.advertising_channel_type,campaign.bidding_strategy_type,campaign.geo_target_type_setting.positive_geo_target_type,campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,campaign_budget.amount_micros FROM campaign WHERE campaign.id={CID_CAMPAIGN} LIMIT 1''')[0]
+          c=base.campaign
+          print('CONFIG',json.dumps({
+            'currency':base.customer.currency_code,'status':c.status.name,'budget':money(base.campaign_budget.amount_micros),
+            'channel':c.advertising_channel_type.name,'bidding':c.bidding_strategy_type.name,
+            'presence':c.geo_target_type_setting.positive_geo_target_type.name,
+            'google_search':bool(c.network_settings.target_google_search),'search_network':bool(c.network_settings.target_search_network),
+            'display':bool(c.network_settings.target_content_network),'partners':bool(c.network_settings.target_partner_search_network)
+          },sort_keys=True))
+
+          loc=rows(f'''SELECT campaign_criterion.location.geo_target_constant,campaign_criterion.negative,campaign_criterion.status FROM campaign_criterion WHERE campaign.id={CID_CAMPAIGN} AND campaign_criterion.type='LOCATION' AND campaign_criterion.status!='REMOVED' ''')
+          print('LOCATIONS',json.dumps(sorted([x.campaign_criterion.location.geo_target_constant for x in loc if not x.campaign_criterion.negative])))
+          langs=rows(f'''SELECT campaign_criterion.language.language_constant,campaign_criterion.status FROM campaign_criterion WHERE campaign.id={CID_CAMPAIGN} AND campaign_criterion.type='LANGUAGE' AND campaign_criterion.status!='REMOVED' ''')
+          print('LANGUAGES',json.dumps(sorted([x.campaign_criterion.language.language_constant for x in langs])))
+
+          daily=rows(f'''SELECT segments.date,metrics.impressions,metrics.clicks,metrics.cost_micros,metrics.conversions,metrics.all_conversions,metrics.search_impression_share,metrics.search_rank_lost_impression_share FROM campaign WHERE campaign.id={CID_CAMPAIGN} AND segments.date BETWEEN '{START}' AND '{END}' ORDER BY segments.date''')
+          tot={'imp':0,'clicks':0,'cost':0,'conv':0.0,'all_conv':0.0}
+          for r in daily:
+            d={'date':r.segments.date,'imp':r.metrics.impressions,'clicks':r.metrics.clicks,'cost':money(r.metrics.cost_micros),'conv':r.metrics.conversions,'all_conv':r.metrics.all_conversions,'sis':r.metrics.search_impression_share,'rank_lost':r.metrics.search_rank_lost_impression_share}
+            print('DAY',json.dumps(d,sort_keys=True))
+            tot['imp']+=r.metrics.impressions;tot['clicks']+=r.metrics.clicks;tot['cost']+=int(r.metrics.cost_micros or 0);tot['conv']+=float(r.metrics.conversions or 0);tot['all_conv']+=float(r.metrics.all_conversions or 0)
+          tot['cost']=money(tot['cost']);tot['ctr']=round(tot['clicks']/tot['imp']*100,2) if tot['imp'] else 0;tot['cpc']=round(tot['cost']/tot['clicks'],2) if tot['clicks'] else 0
+          print('TOTAL',json.dumps(tot,sort_keys=True))
+
+          ag=rows(f'''SELECT ad_group.name,ad_group.status,ad_group.primary_status,metrics.impressions,metrics.clicks,metrics.cost_micros,metrics.conversions FROM ad_group WHERE campaign.id={CID_CAMPAIGN} AND segments.date BETWEEN '{START}' AND '{END}' ORDER BY metrics.cost_micros DESC''')
+          for r in ag:
+            print('ADGROUP',json.dumps({'name':r.ad_group.name,'status':r.ad_group.status.name,'primary':r.ad_group.primary_status.name,'imp':r.metrics.impressions,'clicks':r.metrics.clicks,'cost':money(r.metrics.cost_micros),'conv':r.metrics.conversions},ensure_ascii=False,sort_keys=True))
+
+          kw=rows(f'''SELECT ad_group.name,ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status,ad_group_criterion.primary_status,ad_group_criterion.effective_cpc_bid_micros,metrics.impressions,metrics.clicks,metrics.cost_micros,metrics.conversions FROM keyword_view WHERE campaign.id={CID_CAMPAIGN} AND segments.date BETWEEN '{START}' AND '{END}' ORDER BY metrics.cost_micros DESC''')
+          eligible=0
+          for r in kw:
+            if r.ad_group_criterion.status.name=='ENABLED' and r.ad_group_criterion.primary_status.name in ('ELIGIBLE','LIMITED'): eligible+=1
+            if r.metrics.impressions or r.metrics.clicks or r.metrics.cost_micros:
+              print('KEYWORD',json.dumps({'group':r.ad_group.name,'text':r.ad_group_criterion.keyword.text,'match':r.ad_group_criterion.keyword.match_type.name,'status':r.ad_group_criterion.status.name,'primary':r.ad_group_criterion.primary_status.name,'bid':money(r.ad_group_criterion.effective_cpc_bid_micros),'imp':r.metrics.impressions,'clicks':r.metrics.clicks,'cost':money(r.metrics.cost_micros),'conv':r.metrics.conversions},ensure_ascii=False,sort_keys=True))
+          print('ELIGIBLE_KEYWORDS',eligible)
+
+          st=rows(f'''SELECT search_term_view.search_term,ad_group.name,metrics.impressions,metrics.clicks,metrics.cost_micros,metrics.conversions,metrics.all_conversions FROM search_term_view WHERE campaign.id={CID_CAMPAIGN} AND segments.date BETWEEN '{START}' AND '{END}' ORDER BY metrics.cost_micros DESC''')
+          for r in st:
+            print('TERM',json.dumps({'term':r.search_term_view.search_term,'group':r.ad_group.name,'imp':r.metrics.impressions,'clicks':r.metrics.clicks,'cost':money(r.metrics.cost_micros),'conv':r.metrics.conversions,'all_conv':r.metrics.all_conversions},ensure_ascii=False,sort_keys=True))
+
+          ads=rows(f'''SELECT ad_group.name,ad_group_ad.status,ad_group_ad.primary_status,ad_group_ad.policy_summary.approval_status,ad_group_ad.ad.final_urls FROM ad_group_ad WHERE campaign.id={CID_CAMPAIGN} AND ad_group_ad.status!='REMOVED' ''')
+          pol={}; enabled_ads=0
+          for r in ads:
+            ps=r.ad_group_ad.policy_summary.approval_status.name
+            pol[ps]=pol.get(ps,0)+1
+            if r.ad_group_ad.status.name=='ENABLED': enabled_ads+=1
+            print('AD',json.dumps({'group':r.ad_group.name,'status':r.ad_group_ad.status.name,'primary':r.ad_group_ad.primary_status.name,'policy':ps,'urls':list(r.ad_group_ad.ad.final_urls)},ensure_ascii=False,sort_keys=True))
+          print('POLICY_COUNTS',json.dumps(pol,sort_keys=True)); print('ENABLED_ADS',enabled_ads)
+
+          try:
+            cv=rows(f'''SELECT segments.conversion_action_name,metrics.conversions,metrics.all_conversions,metrics.conversions_value FROM campaign WHERE campaign.id={CID_CAMPAIGN} AND segments.date BETWEEN '{START}' AND '{END}' AND metrics.all_conversions > 0''')
+            for r in cv: print('CONVERSION_SIGNAL',json.dumps({'name':r.segments.conversion_action_name,'conv':r.metrics.conversions,'all_conv':r.metrics.all_conversions,'value':r.metrics.conversions_value},ensure_ascii=False,sort_keys=True))
+          except Exception as e: print('CONVERSION_SIGNAL_QUERY_ERROR',type(e).__name__)
+
+          guard={'budget_5':money(base.campaign_budget.amount_micros)==5.0,'search_only':c.advertising_channel_type.name=='SEARCH' and c.network_settings.target_google_search and not c.network_settings.target_search_network and not c.network_settings.target_content_network and not c.network_settings.target_partner_search_network,'presence':c.geo_target_type_setting.positive_geo_target_type.name=='PRESENCE','under_hard_guard':tot['cost']<18.0}
+          print('SAFETY',json.dumps(guard,sort_keys=True))
+          PY
