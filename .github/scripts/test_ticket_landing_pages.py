@@ -76,8 +76,9 @@ def main() -> None:
     require("'NL'" in router_js, 'Global locale router does not map Netherlands to nl-nl')
     require("startsWith('nl')" in router_js, 'Global locale router does not understand Dutch browser locale')
     require('"nl-nl"' in root_html or "'nl-nl'" in root_html, 'El Clasico root router does not advertise nl-nl')
+    require("startsWith('nl')" in root_html, 'El Clasico immediate root redirect bypasses Dutch visitors')
 
-    # Systemic guard: any paid event that has a Dutch page must advertise it at its root router.
+    # Systemic guard: any paid event that has a Dutch page must advertise and immediately route it.
     for slug in PAID_EVENTS:
         event = ROOT / 'events' / slug
         dutch = event / 'nl-nl' / 'index.html'
@@ -86,6 +87,7 @@ def main() -> None:
             require(root.exists(), f'{slug}: Dutch page exists but event root router is missing')
             routed = root.read_text(encoding='utf-8')
             require('nl-nl' in routed, f'{slug}: Dutch page exists but root router omits nl-nl')
+            require("startsWith('nl')" in routed, f'{slug}: immediate root redirect bypasses Dutch visitors')
 
     print('PASS paid-ticket QA: Dutch page, exact seller links, Dutch modal/email, outbound tracking, locale routing')
 
