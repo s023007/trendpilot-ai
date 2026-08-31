@@ -1,0 +1,25 @@
+name: Paid Ticket Landing QA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/test_ticket_landing_pages.py'
+      - '.github/workflows/test-ticket-landing-pages.yml'
+      - 'events/el-clasico-2026/**'
+      - 'events/manchester-derby-2026/save-search.js'
+      - 'events/_factory/locale-router-v1.js'
+      - 'api/seller-outbound.php'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run paid ticket landing contract tests
+        run: python .github/scripts/test_ticket_landing_pages.py
