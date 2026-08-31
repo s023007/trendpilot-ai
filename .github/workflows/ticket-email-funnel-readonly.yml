@@ -1,0 +1,131 @@
+name: Ticket Email Funnel Audit — Read Only
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/ticket-email-funnel-readonly.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: google-ads-paused-create
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+      TP_SAVE_LOG: /tmp/tp-save-search.jsonl
+      TP_CLICK_LOG: /tmp/tp-email-clicks.jsonl
+    steps:
+      - name: Configure read-only SSH access
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Pull private funnel logs without printing customer data
+        shell: bash
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/save-search.jsonl && cat /home/kehwgbpo/trendpilot-private/save-search.jsonl || true" > "$TP_SAVE_LOG"
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/email-clicks.jsonl && cat /home/kehwgbpo/trendpilot-private/email-clicks.jsonl || true" > "$TP_CLICK_LOG"
+          echo 'Private logs copied. Raw contents intentionally suppressed.'
+
+      - name: Report aggregate ticket-email funnel only
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json, os
+          from datetime import datetime, timedelta, timezone
+          from zoneinfo import ZoneInfo
+
+          TZ = ZoneInfo('Asia/Muscat')
+          now = datetime.now(TZ)
+          today = now.date()
+          since7 = today - timedelta(days=6)
+          campaigns = {
+              'manchester-derby-2026',
+              'liverpool-v-manchester-united-2026',
+              'el-clasico-2026',
+              'madrid-derby-2026',
+              'north-london-derby-2026',
+              'arsenal-v-manchester-city-2026',
+          }
+
+          def parse_dt(v):
+              if not v: return None
+              s = str(v).strip().replace('Z', '+00:00')
+              try:
+                  d = datetime.fromisoformat(s)
+              except Exception:
+                  return None
+              if d.tzinfo is None:
+                  d = d.replace(tzinfo=timezone.utc)
+              return d.astimezone(TZ)
+
+          def rows(path):
+              out=[]
+              if not os.path.exists(path): return out
+              with open(path, 'r', encoding='utf-8', errors='replace') as f:
+                  for line in f:
+                      line=line.strip()
+                      if not line: continue
+                      try: x=json.loads(line)
+                      except Exception: continue
+                      camp=str(x.get('campaign_id') or x.get('campaign') or '')
+                      if camp not in campaigns: continue
+                      d=parse_dt(x.get('created_at') or x.get('clicked_at') or x.get('timestamp'))
+                      if not d: continue
+                      x['_dt']=d; x['_campaign']=camp
+                      out.append(x)
+              return out
+
+          saves=rows(os.environ['TP_SAVE_LOG'])
+          clicks=rows(os.environ['TP_CLICK_LOG'])
+
+          def in_today(x): return x['_dt'].date() == today
+          def in_7d(x): return since7 <= x['_dt'].date() <= today
+          def has_gclid(x): return bool(str(x.get('gclid') or '').strip())
+
+          ts=[x for x in saves if in_today(x)]
+          tc=[x for x in clicks if in_today(x)]
+          s7=[x for x in saves if in_7d(x)]
+          c7=[x for x in clicks if in_7d(x)]
+
+          print('TICKET_EMAIL_FUNNEL_READ_ONLY')
+          print('AS_OF_MUSCAT=', now.isoformat(timespec='seconds'))
+          print('TODAY_EMAILS_SENT=', len(ts))
+          print('TODAY_EMAILS_WITH_GCLID=', sum(has_gclid(x) for x in ts))
+          print('TODAY_EMAIL_LINK_CLICKS=', len(tc))
+          print('TODAY_EMAIL_LINK_CLICKS_WITH_GCLID=', sum(has_gclid(x) for x in tc))
+          print('LAST7_EMAILS_SENT=', len(s7))
+          print('LAST7_EMAILS_WITH_GCLID=', sum(has_gclid(x) for x in s7))
+          print('LAST7_EMAIL_LINK_CLICKS=', len(c7))
+          print('LAST7_EMAIL_LINK_CLICKS_WITH_GCLID=', sum(has_gclid(x) for x in c7))
+          for camp in sorted(campaigns):
+              a=[x for x in ts if x['_campaign']==camp]
+              b=[x for x in tc if x['_campaign']==camp]
+              print('TODAY_CAMPAIGN=',camp,'| emails_sent=',len(a),'| sent_with_gclid=',sum(has_gclid(x) for x in a),'| email_link_clicks=',len(b),'| clicks_with_gclid=',sum(has_gclid(x) for x in b))
+          print('PRIVACY=PASS | no email, hash, lead id, seller URL, or gclid printed')
+          PY
