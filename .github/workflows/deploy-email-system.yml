@@ -6,6 +6,7 @@ on:
     paths:
       - 'api/save-search.php'
       - 'api/go.php'
+      - 'api/seller-outbound.php'
       - '.github/workflows/deploy-email-system.yml'
 permissions:
   contents: read
@@ -29,6 +30,7 @@ jobs:
         run: |
           php -l api/save-search.php
           php -l api/go.php
+          php -l api/seller-outbound.php
       - name: Configure SSH
         shell: bash
         run: |
@@ -57,15 +59,16 @@ jobs:
           ssh trendpilot-namecheap "cp '$API_ROOT/save-search.php' '$API_ROOT/save-search.pre-github.bak.php' 2>/dev/null || true"
           scp api/save-search.php "trendpilot-namecheap:$API_ROOT/save-search.php"
           scp api/go.php "trendpilot-namecheap:$API_ROOT/go.php"
-          ssh trendpilot-namecheap "php -l '$API_ROOT/save-search.php' && php -l '$API_ROOT/go.php' && test -f '$PRIVATE_CONFIG'"
+          scp api/seller-outbound.php "trendpilot-namecheap:$API_ROOT/seller-outbound.php"
+          ssh trendpilot-namecheap "php -l '$API_ROOT/save-search.php' && php -l '$API_ROOT/go.php' && php -l '$API_ROOT/seller-outbound.php' && test -f '$PRIVATE_CONFIG'"
       - name: Verify API routes
         shell: bash
         run: |
           set -euo pipefail
           body=$(curl -sS --max-time 20 https://api.trendpilotchoice.com/save-search.php)
-          echo "$body"
           echo "$body" | grep -q 'method_not_allowed'
           code=$(curl -sS -o /tmp/go.out -w '%{http_code}' --max-time 20 'https://api.trendpilotchoice.com/go.php?lead=bad')
-          cat /tmp/go.out
           test "$code" = '400'
-      # Force-deploy marker: email buy event bridge V3
+          outbound_code=$(curl -sS -o /tmp/outbound.out -w '%{http_code}' --max-time 20 'https://api.trendpilotchoice.com/seller-outbound.php')
+          cat /tmp/outbound.out
+          test "$outbound_code" = '405'
