@@ -1,0 +1,119 @@
+name: Google Ads — Pause Manchester NL on Poor Downstream Quality
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-pause-manchester-nl-quality-guard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pause:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Verify safeguards and pause only Manchester NL if quality rule still holds
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID=24190034111
+          CAMPAIGN_NAME='TrendPilot | GCC Big Matches | Search | 2026'
+          GROUP_NAME='manchester_derby | NL'
+          NL_GEO='geoTargetConstants/2528'
+          DUTCH_LANG='languageConstants/1010'
+          BUDGET_MICROS=5_000_000
+          HARD_GUARD_USD=18.00
+          START_DATE='2026-08-28'
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          ga=client.get_service('GoogleAdsService')
+
+          rows=list(ga.search(customer_id=cid,query=f'''
+            SELECT campaign.resource_name,campaign.name,campaign.status,campaign.advertising_channel_type,
+                   campaign.bidding_strategy_type,campaign.geo_target_type_setting.positive_geo_target_type,
+                   campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,
+                   campaign_budget.amount_micros
+            FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1
+          '''))
+          if len(rows)!=1: raise SystemExit('SAFETY STOP: campaign not found exactly once')
+          r=rows[0]; c=r.campaign
+          checks={
+            'name': c.name==CAMPAIGN_NAME,
+            'enabled': c.status.name=='ENABLED',
+            'search': c.advertising_channel_type.name=='SEARCH',
+            'manual_cpc': c.bidding_strategy_type.name=='MANUAL_CPC',
+            'budget_5': int(r.campaign_budget.amount_micros or 0)==BUDGET_MICROS,
+            'presence': c.geo_target_type_setting.positive_geo_target_type.name=='PRESENCE',
+            'google_search': c.network_settings.target_google_search is True,
+            'search_network_off': c.network_settings.target_search_network is False,
+            'display_off': c.network_settings.target_content_network is False,
+            'partners_off': c.network_settings.target_partner_search_network is False,
+          }
+          bad=[k for k,v in checks.items() if not v]
+          if bad: raise SystemExit('SAFETY STOP: '+','.join(bad))
+
+          locs=list(ga.search(customer_id=cid,query=f'''SELECT campaign_criterion.location.geo_target_constant,campaign_criterion.negative,campaign_criterion.status FROM campaign_criterion WHERE campaign.id={CAMPAIGN_ID} AND campaign_criterion.type='LOCATION' AND campaign_criterion.status!='REMOVED' '''))
+          pos=sorted({x.campaign_criterion.location.geo_target_constant for x in locs if not x.campaign_criterion.negative})
+          if pos != [NL_GEO]: raise SystemExit('SAFETY STOP: GEO not Netherlands-only '+repr(pos))
+
+          langs=list(ga.search(customer_id=cid,query=f'''SELECT campaign_criterion.language.language_constant,campaign_criterion.status FROM campaign_criterion WHERE campaign.id={CAMPAIGN_ID} AND campaign_criterion.type='LANGUAGE' AND campaign_criterion.status!='REMOVED' '''))
+          langset=sorted({x.campaign_criterion.language.language_constant for x in langs})
+          if langset != [DUTCH_LANG]: raise SystemExit('SAFETY STOP: language not Dutch-only '+repr(langset))
+
+          today=datetime.now(ZoneInfo('Asia/Muscat')).date().isoformat()
+          costs=list(ga.search(customer_id=cid,query=f'''SELECT metrics.cost_micros FROM campaign WHERE campaign.id={CAMPAIGN_ID} AND segments.date BETWEEN '{START_DATE}' AND '{today}' '''))
+          total_cost=sum(int(x.metrics.cost_micros or 0) for x in costs)/1_000_000
+          if total_cost >= HARD_GUARD_USD: raise SystemExit(f'SAFETY STOP: hard spend guard already reached ${total_cost:.2f}')
+
+          groups=list(ga.search(customer_id=cid,query=f'''SELECT ad_group.resource_name,ad_group.name,ad_group.status FROM ad_group WHERE campaign.id={CAMPAIGN_ID} AND ad_group.name='{GROUP_NAME}' AND ad_group.status!='REMOVED' LIMIT 1'''))
+          if len(groups)!=1: raise SystemExit('SAFETY STOP: target group not found exactly once')
+          g=groups[0].ad_group
+          if g.status.name=='PAUSED':
+            print('NO CHANGE: Manchester NL already paused'); raise SystemExit(0)
+          if g.status.name!='ENABLED': raise SystemExit('SAFETY STOP: unexpected group status '+g.status.name)
+
+          m=list(ga.search(customer_id=cid,query=f'''SELECT metrics.impressions,metrics.clicks,metrics.cost_micros,metrics.conversions,metrics.all_conversions FROM ad_group WHERE campaign.id={CAMPAIGN_ID} AND ad_group.name='{GROUP_NAME}' AND segments.date DURING TODAY'''))
+          impr=sum(int(x.metrics.impressions or 0) for x in m); clicks=sum(int(x.metrics.clicks or 0) for x in m); spend=sum(int(x.metrics.cost_micros or 0) for x in m)/1_000_000; conv=sum(float(x.metrics.conversions or 0) for x in m); allconv=sum(float(x.metrics.all_conversions or 0) for x in m)
+          print(f'PRECHECK Manchester NL: impressions={impr} clicks={clicks} spend=${spend:.6f} conversions={conv} all_conversions={allconv}')
+          if not (clicks>=20 and spend>=5.00 and conv==0 and allconv==0):
+            raise SystemExit('NO CHANGE: poor-downstream quality threshold no longer holds')
+
+          op=client.get_type('AdGroupOperation'); u=op.update; u.resource_name=g.resource_name; u.status=client.enums.AdGroupStatusEnum.PAUSED; op.update_mask.paths.append('status')
+          client.get_service('AdGroupService').mutate_ad_groups(customer_id=cid,operations=[op])
+
+          post=list(ga.search(customer_id=cid,query=f'''SELECT ad_group.status FROM ad_group WHERE campaign.id={CAMPAIGN_ID} AND ad_group.name='{GROUP_NAME}' LIMIT 1'''))
+          if len(post)!=1 or post[0].ad_group.status.name!='PAUSED': raise SystemExit('POST-VERIFY FAILED: Manchester NL not paused')
+
+          c2=list(ga.search(customer_id=cid,query=f'''SELECT campaign.status,campaign.geo_target_type_setting.positive_geo_target_type,campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,campaign_budget.amount_micros FROM campaign WHERE campaign.id={CAMPAIGN_ID} LIMIT 1'''))[0]
+          if not (c2.campaign.status.name=='ENABLED' and c2.campaign.geo_target_type_setting.positive_geo_target_type.name=='PRESENCE' and int(c2.campaign_budget.amount_micros or 0)==BUDGET_MICROS and c2.campaign.network_settings.target_google_search is True and c2.campaign.network_settings.target_search_network is False and c2.campaign.network_settings.target_content_network is False and c2.campaign.network_settings.target_partner_search_network is False):
+            raise SystemExit('POST-VERIFY FAILED: protected campaign setting drifted')
+          print('QUALITY GUARD ACTION SUCCESS: paused only manchester_derby | NL')
+          print(f'Cumulative campaign spend before action: ${total_cost:.2f} / ${HARD_GUARD_USD:.2f} hard guard')
+          print('Campaign remains enabled | $5/day | Netherlands presence-only | Dutch-only | Google Search only | Search Partners OFF | Display OFF')
+          PY
