@@ -112,7 +112,7 @@ jobs:
                 AND metrics.impressions > 0
             '''
             rows=list(ga.search(customer_id=cid,query=q))
-            names={2048:'Bahrain',2414:'Kuwait',2512:'Oman',2634:'Qatar',2682:'Saudi Arabia',2784:'United Arab Emirates',2826:'United Kingdom',2372:'Ireland'}
+            names={2048:'Bahrain',2414:'Kuwait',2512:'Oman',2634:'Qatar',2682:'Saudi Arabia',2784:'United Arab Emirates',2826:'United Kingdom',2372:'Ireland',2528:'Netherlands'}
             print('USER_LOCATIONS=',len(rows))
             for r in rows:
               geo=int(r.user_location_view.country_criterion_id)
@@ -124,3 +124,5 @@ jobs:
             print('USER_LOCATION_QUERY_ERROR=',type(e).__name__,str(e)[:500])
           print('END CLICK DETAIL')
           PY
+
+# refresh: 2026-08-31 21:14 Asia/Muscat — automation campaign watch
