@@ -29,7 +29,9 @@ jobs:
       GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
       GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
       TP_SAVE_LOG: /tmp/tp-save-search.jsonl
-      TP_CLICK_LOG: /tmp/tp-email-clicks.jsonl
+      TP_EMAIL_CLICK_LOG: /tmp/tp-email-clicks.jsonl
+      TP_OUTBOUND_LOG: /tmp/tp-seller-outbound.jsonl
+      TP_CLICK_LOG: /tmp/tp-all-seller-clicks.jsonl
       TP_CONVERSION_STATE: /tmp/tp-google-ads-conversion-state.json
     steps:
       - uses: actions/checkout@v4
@@ -63,7 +65,9 @@ jobs:
         run: |
           set -euo pipefail
           ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/save-search.jsonl && cat /home/kehwgbpo/trendpilot-private/save-search.jsonl || true" > "$TP_SAVE_LOG"
-          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/email-clicks.jsonl && cat /home/kehwgbpo/trendpilot-private/email-clicks.jsonl || true" > "$TP_CLICK_LOG"
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/email-clicks.jsonl && cat /home/kehwgbpo/trendpilot-private/email-clicks.jsonl || true" > "$TP_EMAIL_CLICK_LOG"
+          ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/seller-outbound.jsonl && cat /home/kehwgbpo/trendpilot-private/seller-outbound.jsonl || true" > "$TP_OUTBOUND_LOG"
+          cat "$TP_EMAIL_CLICK_LOG" "$TP_OUTBOUND_LOG" > "$TP_CLICK_LOG"
           ssh trendpilot-namecheap "test -f /home/kehwgbpo/trendpilot-private/google-ads-conversion-state.json && cat /home/kehwgbpo/trendpilot-private/google-ads-conversion-state.json || true" > "$TP_CONVERSION_STATE"
           test -s "$TP_CONVERSION_STATE" || printf '{"lead":[],"seller":[]}\n' > "$TP_CONVERSION_STATE"
           echo "Private logs copied to runner; contents intentionally not printed."
