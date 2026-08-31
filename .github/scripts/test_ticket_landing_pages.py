@@ -41,14 +41,12 @@ def main() -> None:
     save_php = SAVE_PHP.read_text(encoding='utf-8')
     router_js = ROUTER_JS.read_text(encoding='utf-8')
 
-    # Locale + SEO contract for the paid Dutch page.
     require('<html lang="nl-NL"' in html, 'Dutch landing page must declare nl-NL')
     require('rel="canonical" href="https://trendpilotchoice.com/events/el-clasico-2026/nl-nl/"' in html,
             'Dutch canonical URL missing or wrong')
     require('hreflang="nl-NL"' in html, 'Dutch hreflang missing')
-    require('save-search.js' in html, 'Purchase-intent/save tracking script missing')
+    require('save-search.js?v=1.0.2' in html, 'Dutch paid page must load the cache-busted tracking script')
 
-    # Seller links must match the exact fixture and must not force an unrelated locale.
     require('seatpick.com/ar/' not in html, 'Dutch page must not send users to SeatPick Arabic locale')
     require('https://seatpick.com/fc-barcelona-vs-real-madrid-camp-nou-stadium-tickets/event/510975' in html,
             'SeatPick must use the verified exact-event URL')
@@ -62,18 +60,15 @@ def main() -> None:
     for link in seller_links:
         require('rel="nofollow noopener"' in link, f'Unsafe seller link attributes: {link}')
 
-    # Shared modal must be truly localized for a Dutch paid visitor.
     require('nl:{' in save_js or 'nl: {' in save_js, 'Dutch save-offer modal copy is missing')
     require("startsWith('nl')" in save_js, 'Dutch browser/page language is not selected in save-search.js')
     require('Doorgaan zonder e-mail' in save_js, 'Dutch no-email CTA is missing')
 
-    # The email itself must remain Dutch after a Dutch visitor submits the form.
     require("$nl=$lang==='nl'" in save_php.replace(' ', ''), 'save-search.php has no Dutch locale branch')
     require('/events/el-clasico-2026/nl-nl/' in save_php, 'Dutch email return URL is missing')
     require('Je El Clásico-aanbod is opgeslagen' in save_php, 'Dutch El Clasico email subject/headline is missing')
     require('Bekijk prijs en stoelen' in save_php, 'Dutch email CTA is missing')
 
-    # The no-email path is a real conversion signal and must be logged server-side.
     require(OUTBOUND_API.exists(), 'Server-side seller outbound endpoint is missing')
     require('seller-outbound.php' in save_js, 'save-search.js does not call seller outbound tracking')
     require('trackSellerOutbound' in save_js, 'No explicit seller outbound tracking function found')
@@ -82,7 +77,6 @@ def main() -> None:
     require('gclid' in outbound_php, 'Seller outbound endpoint does not preserve Google click attribution')
     require('lead_id' in outbound_php, 'Seller outbound event lacks a dedupe/conversion identifier')
 
-    # Deployment, Google Ads conversion upload and read-only audit must all include direct seller clicks.
     deploy = DEPLOY_YML.read_text(encoding='utf-8')
     upload = UPLOAD_YML.read_text(encoding='utf-8')
     audit = AUDIT_YML.read_text(encoding='utf-8')
@@ -93,7 +87,6 @@ def main() -> None:
         require(campaign in audit, f'Read-only audit omits backend campaign id {campaign}')
     require("'el-clasico-2026'" not in audit, 'Audit still uses page slugs instead of backend campaign IDs')
 
-    # Locale router must understand Netherlands both from country and browser language.
     require("'NL'" in router_js, 'Global locale router does not map Netherlands to nl-nl')
     require("startsWith('nl')" in router_js, 'Global locale router does not understand Dutch browser locale')
     require('"nl-nl"' in root_html or "'nl-nl'" in root_html, 'El Clasico root router does not advertise nl-nl')
@@ -108,6 +101,8 @@ def main() -> None:
             routed = root.read_text(encoding='utf-8')
             require('nl-nl' in routed, f'{slug}: Dutch page exists but root router omits nl-nl')
             require("startsWith('nl')" in routed, f'{slug}: immediate root redirect bypasses Dutch visitors')
+            require('save-search.js?v=1.0.2' in dutch.read_text(encoding='utf-8'),
+                    f'{slug}: Dutch paid page still references stale save-search.js')
 
     print('PASS paid-ticket QA: Dutch page, exact sellers, localized funnel, outbound conversions, correct audit IDs, routing')
 
