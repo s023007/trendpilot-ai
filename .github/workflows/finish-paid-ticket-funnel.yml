@@ -1,0 +1,37 @@
+name: Finish paid ticket funnel
+
+on:
+  push:
+    paths:
+      - '.github/scripts/finish_paid_ticket_funnel.py'
+      - '.github/workflows/finish-paid-ticket-funnel.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finish-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply final funnel fix
+        run: python .github/scripts/finish_paid_ticket_funnel.py
+      - name: Run paid ticket QA
+        run: python .github/scripts/test_ticket_landing_pages.py
+      - name: Commit verified changes
+        run: |
+          if git diff --quiet; then
+            echo 'No changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add events api
+          git commit -m 'Complete verified Dutch paid ticket funnel'
+          git push
