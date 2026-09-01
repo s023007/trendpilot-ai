@@ -1,0 +1,79 @@
+name: Google Ads Rare Search Opportunity Engine
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: google-ads-rare-search-opportunity-engine
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    name: Read-only multi-seller opportunity scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: google-ads-paused-create
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Verify Google Ads API connection — read only
+        run: python .github/scripts/test_google_ads_api_connection.py
+
+      - name: Run rare-search opportunity scan — read only
+        run: python .github/scripts/google_ads_rare_search_opportunity_engine.py
+
+      - name: Publish summary
+        if: success()
+        run: cat marketing/google-ads/rare-search-opportunities/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Commit latest research results
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            marketing/google-ads/rare-search-opportunities/latest.json \
+            marketing/google-ads/rare-search-opportunities/latest.csv \
+            marketing/google-ads/rare-search-opportunities/summary.md
+          if git diff --cached --quiet; then
+            echo "No research output changes to commit."
+            exit 0
+          fi
+          git commit -m "data: refresh rare search opportunity scan"
+          git push origin HEAD:main
+
+      - name: Upload research artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rare-search-opportunity-scan
+          if-no-files-found: ignore
+          retention-days: 14
+          path: |
+            marketing/google-ads/rare-search-opportunities/latest.json
+            marketing/google-ads/rare-search-opportunities/latest.csv
+            marketing/google-ads/rare-search-opportunities/summary.md
+            marketing/google-ads/rare-search-opportunities/error.json
