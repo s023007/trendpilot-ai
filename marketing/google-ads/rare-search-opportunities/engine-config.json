@@ -1,0 +1,160 @@
+{
+  "version": "1.0",
+  "country_code": "US",
+  "language_constant_id": "1000",
+  "network": "GOOGLE_SEARCH",
+  "batch_size": 50,
+  "min_monthly_searches": 10,
+  "max_competition_index": 35,
+  "max_high_top_bid_usd": 2.5,
+  "geo_sets": {
+    "us_low_competition_shipping": [
+      "Idaho",
+      "Wyoming",
+      "Montana",
+      "North Dakota",
+      "South Dakota",
+      "Nebraska",
+      "Iowa",
+      "Kansas",
+      "Arkansas",
+      "Oklahoma",
+      "New Mexico",
+      "West Virginia",
+      "Maine",
+      "Vermont",
+      "New Hampshire",
+      "Rhode Island",
+      "Delaware"
+    ]
+  },
+  "families": [
+    {
+      "id": "mfi_medical_parts",
+      "seller": "MFI Medical",
+      "network": "CJ",
+      "category": "medical_equipment_parts",
+      "geo_set": "us_low_competition_shipping",
+      "commission_note": "CJ active advertiser; current account screenshot shows 1% sale commission.",
+      "shipping_note": "Prioritize in-stock equipment parts and accessories suitable for contiguous-US shipping.",
+      "policy_guard": "Exclude medicines, prescription products, controlled substances, health-condition targeting, and restricted healthcare categories. Focus on equipment parts, accessories, tables, carts, diagnostic hardware and repair components that are eligible for Google Ads.",
+      "keywords": [
+        "midmark replacement parts",
+        "midmark exam table parts",
+        "ritter exam table parts",
+        "exam table repair kit",
+        "medical equipment replacement parts",
+        "medical cart replacement parts",
+        "patient monitor accessories",
+        "exam table hand control",
+        "medical equipment power supply",
+        "medical equipment foot control",
+        "055-0005-00 midmark",
+        "owk-281 repair kit"
+      ]
+    },
+    {
+      "id": "trip_hotels",
+      "seller": "Trip.com Global",
+      "network": "CJ",
+      "category": "hotels",
+      "geo_set": "us_low_competition_shipping",
+      "commission_note": "CJ active advertiser; prioritize hotels over flights because hotel commissions are materially stronger.",
+      "shipping_note": "No physical shipping. Score destination-specific long-tail hotel searches and exact property intent.",
+      "policy_guard": "Avoid trademark bidding if prohibited by current CJ program terms. Prefer non-brand destination + property + landmark/event intent unless terms explicitly allow brand terms.",
+      "keywords": [
+        "hotel near boise airport",
+        "hotel near idaho falls airport",
+        "hotel near glacier national park entrance",
+        "hotel near yellowstone west entrance",
+        "hotel near fargo airport",
+        "hotel near sioux falls airport",
+        "hotel near omaha airport",
+        "hotel near des moines airport",
+        "hotel near wichita airport",
+        "hotel near tulsa airport",
+        "hotel near albuquerque airport",
+        "hotel near bangor airport"
+      ]
+    },
+    {
+      "id": "economybookings_car_rental",
+      "seller": "EconomyBookings.com",
+      "network": "CJ",
+      "category": "car_rental",
+      "geo_set": "us_low_competition_shipping",
+      "commission_note": "CJ active advertiser; current account screenshot shows strong sale payout percentage. Use exact current program terms before launch.",
+      "shipping_note": "No physical shipping. Prioritize airport and secondary-city rental searches with clear booking intent.",
+      "policy_guard": "Prefer generic airport/city rental intent. Avoid trademark bidding if restricted by current program terms.",
+      "keywords": [
+        "car rental boise airport",
+        "car rental idaho falls airport",
+        "car rental billings airport",
+        "car rental bozeman airport",
+        "car rental jackson hole airport",
+        "car rental fargo airport",
+        "car rental sioux falls airport",
+        "car rental omaha airport",
+        "car rental des moines airport",
+        "car rental wichita airport",
+        "car rental tulsa airport",
+        "car rental albuquerque airport"
+      ]
+    },
+    {
+      "id": "diecast_collectibles",
+      "seller": "Diecast Models Wholesale",
+      "network": "CJ",
+      "category": "rare_collectibles",
+      "geo_set": "us_low_competition_shipping",
+      "commission_note": "CJ active advertiser; current account screenshot shows 10% sale commission.",
+      "shipping_note": "Prioritize contiguous-US opportunities benefiting from the seller's flat-rate shipping and exact SKU/product availability.",
+      "policy_guard": "Use product/brand/model terms only where current advertiser paid-search rules permit. Prefer exact model, scale, event edition and SKU intent.",
+      "keywords": [
+        "ignition diecast",
+        "ignition model 1 64",
+        "ignition model supra",
+        "ignition model skyline",
+        "ignition model r34",
+        "ignition model rwb",
+        "pop race supra diecast",
+        "pop race rx7 diecast",
+        "rwb 993 diecast",
+        "mazda rx7 diecast",
+        "toyota supra diecast",
+        "ford gt 1 64"
+      ]
+    },
+    {
+      "id": "accorplus_membership",
+      "seller": "AccorPlus",
+      "network": "CJ",
+      "category": "travel_membership",
+      "geo_set": "us_low_competition_shipping",
+      "commission_note": "CJ active advertiser; current account screenshot shows 8% sale commission.",
+      "shipping_note": "Digital/travel membership; no physical shipping.",
+      "policy_guard": "Treat brand terms cautiously and verify current CJ search-engine-marketing restrictions before launch.",
+      "keywords": [
+        "hotel membership discounts",
+        "hotel dining membership",
+        "asia pacific hotel membership",
+        "hotel membership free night",
+        "hotel loyalty membership discount",
+        "travel membership hotel discounts"
+      ]
+    }
+  ],
+  "scoring": {
+    "search_weight": 45,
+    "competition_weight": 25,
+    "bid_weight": 15,
+    "intent_weight": 15,
+    "intent_multipliers": {
+      "medical_equipment_parts": 1.35,
+      "hotels": 1.15,
+      "car_rental": 1.15,
+      "rare_collectibles": 1.2,
+      "travel_membership": 1.0
+    }
+  }
+}
