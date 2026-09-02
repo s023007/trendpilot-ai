@@ -21,7 +21,7 @@ jobs:
           PAGE='https://trendpilotchoice.com/products/car-tire-inflator/sa/'
           JS='https://trendpilotchoice.com/js/product-email-intent-v1.js?v=1.0.0'
           API='https://api.trendpilotchoice.com/save-search.php'
-          GO='https://api.trendpilotchoice.com/api/go.php'
+          GO='https://api.trendpilotchoice.com/go.php'
 
           fetch_retry() {
             local url="$1" out="$2"
@@ -49,6 +49,7 @@ jobs:
           grep -Fq "PRODUCT_EMAIL_INTENT" /tmp/product-email.js
           grep -Fq "EMAIL_BUY_INTENT" /tmp/product-email.js
           grep -Fq "seller_outbound_click" /tmp/product-email.js
+          grep -Fq "https://api.trendpilotchoice.com/go.php" /tmp/product-email.js
           echo 'EMAIL_INTENT_JS|PASS'
 
           api_code=$(curl --max-time 20 -sS -o /tmp/api.txt -w '%{http_code}' "$API" || true)
