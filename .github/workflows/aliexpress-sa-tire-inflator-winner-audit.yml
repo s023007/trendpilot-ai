@@ -1,0 +1,107 @@
+name: AliExpress Saudi Tire Inflator Winner Audit — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/aliexpress-sa-tire-inflator-winner-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rank exact AliExpress candidates and probe Saudi landing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re,urllib.parse,urllib.request
+          from pathlib import Path
+
+          p=Path('data/catalog-v19/sellers/aliexpress/products.ndjson')
+          if not p.exists(): raise SystemExit('catalog missing')
+          rows=[]
+          positive=('tire inflator','tyre inflator','air compressor','air pump','inflator pump')
+          vehicle=('car','auto','vehicle','tire','tyre')
+          bad=('replacement part','hose only','connector only','adapter only','gauge only','valve only','motor only','repair kit')
+          with p.open('r',encoding='utf-8',errors='replace') as f:
+            for line in f:
+              try:o=json.loads(line)
+              except:continue
+              name=((o.get('name') or {}).get('display') or '').strip()
+              low=name.lower()
+              if not any(x in low for x in positive): continue
+              if not any(x in low for x in vehicle): continue
+              if any(x in low for x in bad): continue
+              price=float(((o.get('offer') or {}).get('price') or 0) or 0)
+              if not 8 <= price <= 85: continue
+              url=((o.get('links') or {}).get('destinationUrl') or '')
+              image=((o.get('media') or {}).get('imageUrl') or '')
+              q=float(((o.get('quality') or {}).get('inputQuality') or 0) or 0)
+              sf=((o.get('specs') or {}).get('sourceFields') or {})
+              old=float(sf.get('oldPrice') or 0)
+              stable=bool((o.get('quality') or {}).get('hasStableSellerId'))
+              if not url or 'aliexpress' not in urllib.parse.unquote(url).lower(): continue
+              discount=(1-price/old)*100 if old>price>0 else 0
+              # Favor practical mid-price products, clear product title, good catalog quality and discount.
+              title_bonus=sum(1 for x in ('portable','digital','cordless','rechargeable','12v','150psi','150 psi','automatic','auto stop') if x in low)
+              score=q + min(discount,60)*0.20 + title_bonus*2.5 + (8 if 15<=price<=45 else 0) + (3 if stable else 0)
+              rows.append((score,o,name,price,old,discount,url,image,q))
+          rows.sort(key=lambda x:x[0],reverse=True)
+          print('CANDIDATE_COUNT|',len(rows))
+          if not rows: raise SystemExit('No AliExpress tire inflator candidates')
+
+          def direct_item(url):
+            dec=urllib.parse.unquote(url)
+            for _ in range(4):
+              m=re.search(r'dl_target_url=([^&]+)',dec)
+              if m: dec=urllib.parse.unquote(m.group(1)); continue
+              m=re.search(r'ulp=([^&]+)',dec)
+              if m: dec=urllib.parse.unquote(m.group(1)); continue
+              break
+            m=re.search(r'https?://(?:www\.)?aliexpress\.com/item/(\d+)\.html',dec,re.I)
+            if not m: m=re.search(r'/item/(\d+)\.html',dec,re.I)
+            return (m.group(1),f'https://www.aliexpress.com/item/{m.group(1)}.html') if m else ('','')
+
+          shortlisted=[]
+          for rank,(score,o,name,price,old,discount,url,image,q) in enumerate(rows[:20],1):
+            iid,direct=direct_item(url)
+            print(f'CANDIDATE|rank={rank}|score={score:.1f}|price={price:.2f}|old={old:.2f}|discount={discount:.1f}|quality={q:.1f}|item={iid}|name={name}|affiliate={url}|image={image}')
+            if iid and direct: shortlisted.append((rank,score,o,name,price,old,discount,url,image,q,iid,direct))
+
+          neg_patterns=['cannot deliver','can not deliver','not available in your location','not available in this region','does not ship','unable to ship','sold out','no longer available','this item is unavailable','item temporarily unavailable']
+          good=[]
+          for x in shortlisted[:8]:
+            rank,score,o,name,price,old,discount,url,image,q,iid,direct=x
+            cookie='aep_usuc_f=site=glo&c_tp=USD&region=SA&b_locale=en_US; intl_locale=en_US; xman_us_f=x_locale=en_US&x_l=0&x_c_chg=1&acs_rt='
+            req=urllib.request.Request(direct+'?gatewayAdapt=glo2sa',headers={'User-Agent':'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/140 Safari/537.36','Accept-Language':'ar-SA,ar;q=0.9,en;q=0.7','Cookie':cookie,'Accept':'text/html,*/*'})
+            verdict='ERROR'; status=0; size=0; neg=[]
+            try:
+              with urllib.request.urlopen(req,timeout=25) as r:
+                raw=r.read(1200000).decode('utf-8','replace'); status=r.status; size=len(raw); low=raw.lower()
+                neg=[z for z in neg_patterns if z in low]
+                verdict='BLOCK_SIGNAL' if neg else ('SA_PAGE_OK' if status==200 and size>20000 else 'WEAK_PAGE')
+            except Exception as e:
+              verdict='ERROR_'+type(e).__name__
+            print(f'SAUDI_PROBE|rank={rank}|item={iid}|http={status}|bytes={size}|verdict={verdict}|neg={";".join(neg) or "none"}')
+            if verdict=='SA_PAGE_OK': good.append(x)
+
+          if not good:
+            raise SystemExit('FAIL_CLOSED: no candidate passed Saudi public-page probe')
+          # Winner is highest catalog score among Saudi-page-pass candidates.
+          w=good[0]
+          rank,score,o,name,price,old,discount,url,image,q,iid,direct=w
+          print('=== WINNER ===')
+          print(f'WINNER|item={iid}|price={price:.2f}|old={old:.2f}|discount={discount:.1f}|score={score:.1f}|name={name}')
+          print('WINNER_AFFILIATE|'+url)
+          print('WINNER_IMAGE|'+image)
+          print('WINNER_DIRECT|'+direct)
+          print('SAUDI_PAGE_PROBE|PASS')
+          print('MODE|READ_ONLY|NO_ADS_MUTATION')
+          PY
