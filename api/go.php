@@ -60,6 +60,10 @@ $allowedBigMatchHosts = [
     'sportsevents365.com','www.sportsevents365.com',
     'livefootballtickets.com','www.livefootballtickets.com'
 ];
+$allowedAliExpressHosts = [
+    'rzekl.com','www.rzekl.com',
+    's.click.aliexpress.com','www.aliexpress.com','aliexpress.com'
+];
 if ($campaign === 'manchester_derby_2026' && !in_array($host, $allowedTicketHosts, true)) {
     http_response_code(400);
     exit('Seller link not allowed');
@@ -72,10 +76,14 @@ if (in_array($campaign, ['liverpool_manunited_2026','madrid_derby_2026','north_l
     http_response_code(400);
     exit('Seller link not allowed');
 }
+if ($campaign === 'sa_tire_inflator_aliexpress' && !in_array($host, $allowedAliExpressHosts, true)) {
+    http_response_code(400);
+    exit('Seller link not allowed');
+}
 
 $click = [
     'created_at' => gmdate('c'),
-    'event' => 'email_affiliate_handoff',
+    'event' => $campaign === 'sa_tire_inflator_aliexpress' ? 'EMAIL_BUY_INTENT' : 'email_affiliate_handoff',
     'lead_id' => $lead,
     'campaign_id' => $campaign,
     'seller' => (string)($match['seller'] ?? ''),
