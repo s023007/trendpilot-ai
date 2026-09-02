@@ -1,0 +1,93 @@
+name: Google Ads SA Tire Inflator Hard Spend Guard
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Enforce cumulative USD 6 hard stop
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from google.ads.googleads.client import GoogleAdsClient
+
+          NAME='TrendPilot | SA Tire Inflator | AliExpress | Search | Pilot'
+          START='2026-09-02'
+          HARD=6.00
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          ga=client.get_service('GoogleAdsService')
+          rows=list(ga.search(customer_id=cid,query=f"""
+            SELECT campaign.resource_name,campaign.id,campaign.name,campaign.status,
+                   campaign_budget.amount_micros,campaign.advertising_channel_type,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network,
+                   campaign.geo_target_type_setting.positive_geo_target_type
+            FROM campaign WHERE campaign.name='{NAME.replace("'","\\'")}' AND campaign.status!='REMOVED'
+          """))
+          if not rows:
+            print('GUARD|campaign_not_created_yet|NOOP'); raise SystemExit(0)
+          if len(rows)!=1: raise SystemExit('SAFETY STOP: campaign name not unique')
+          r=rows[0]; c=r.campaign
+          safety={
+            'search':c.advertising_channel_type.name=='SEARCH',
+            'budget_2':int(r.campaign_budget.amount_micros or 0)==2_000_000,
+            'google_search':c.network_settings.target_google_search is True,
+            'search_partners_off':c.network_settings.target_search_network is False,
+            'display_off':c.network_settings.target_content_network is False,
+            'partner_search_off':c.network_settings.target_partner_search_network is False,
+            'presence_only':c.geo_target_type_setting.positive_geo_target_type.name=='PRESENCE',
+          }
+          failed=[k for k,v in safety.items() if not v]
+          if failed: raise SystemExit('SAFETY STOP: protected setting drift: '+','.join(failed))
+          today=datetime.now(ZoneInfo('Asia/Muscat')).date().isoformat()
+          metrics=list(ga.search(customer_id=cid,query=f"""
+            SELECT metrics.cost_micros,metrics.impressions,metrics.clicks,metrics.conversions,metrics.all_conversions
+            FROM campaign
+            WHERE campaign.id={c.id} AND segments.date BETWEEN '{START}' AND '{today}'
+          """))
+          cost=sum(int(x.metrics.cost_micros or 0) for x in metrics)/1_000_000
+          imp=sum(int(x.metrics.impressions or 0) for x in metrics)
+          clicks=sum(int(x.metrics.clicks or 0) for x in metrics)
+          conv=sum(float(x.metrics.conversions or 0) for x in metrics)
+          print(f'GUARD|status={c.status.name}|cost={cost:.2f}|impressions={imp}|clicks={clicks}|conversions={conv:.2f}|hard={HARD:.2f}')
+          if cost >= HARD and c.status.name=='ENABLED':
+            service=client.get_service('CampaignService'); op=client.get_type('CampaignOperation')
+            op.update.resource_name=c.resource_name; op.update.status=client.enums.CampaignStatusEnum.PAUSED
+            op.update_mask.paths.append('status'); service.mutate_campaigns(customer_id=cid,operations=[op])
+            print('ACTION|PAUSED_AT_HARD_SPEND_CAP')
+          elif cost >= HARD:
+            print('ACTION|ALREADY_PAUSED_AT_OR_ABOVE_CAP')
+          else:
+            print(f'GUARD|PASS|remaining={HARD-cost:.2f}')
+          PY
