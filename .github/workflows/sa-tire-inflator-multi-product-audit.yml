@@ -1,0 +1,100 @@
+name: SA Tire Inflator Multi Product Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/sa-tire-inflator-multi-product-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find diverse AliExpress inflators and verify Saudi product pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json,re,urllib.parse,urllib.request
+          from pathlib import Path
+
+          p=Path('data/catalog-v19/sellers/aliexpress/products.ndjson')
+          rows=[]
+          positive=('tire inflator','tyre inflator','air compressor','air pump','inflator pump')
+          vehicle=('car','auto','vehicle','tire','tyre')
+          bad=('replacement part','hose only','connector only','adapter only','gauge only','valve only','motor only','repair kit')
+          for line in p.open('r',encoding='utf-8',errors='replace'):
+            try:o=json.loads(line)
+            except: continue
+            name=((o.get('name') or {}).get('display') or '').strip(); low=name.lower()
+            if not any(x in low for x in positive) or not any(x in low for x in vehicle) or any(x in low for x in bad): continue
+            price=float(((o.get('offer') or {}).get('price') or 0) or 0)
+            if not 8<=price<=85: continue
+            url=((o.get('links') or {}).get('destinationUrl') or '')
+            image=((o.get('media') or {}).get('imageUrl') or '')
+            if not url or not image or 'aliexpress' not in urllib.parse.unquote(url).lower(): continue
+            sf=((o.get('specs') or {}).get('sourceFields') or {}); old=float(sf.get('oldPrice') or 0)
+            q=float(((o.get('quality') or {}).get('inputQuality') or 0) or 0)
+            disc=(1-price/old)*100 if old>price>0 else 0
+            if any(x in low for x in ('cordless','wireless','rechargeable','type-c','usb-c')): kind='cordless'
+            elif any(x in low for x in ('12v','cigarette lighter','corded')): kind='12v_corded'
+            else: kind='portable'
+            bonus=sum(1 for x in ('150psi','150 psi','digital','automatic','auto stop','led') if x in low)
+            score=q+min(disc,60)*0.2+bonus*2.5+(8 if 15<=price<=45 else 0)
+            rows.append((score,kind,name,price,old,disc,url,image))
+          rows.sort(reverse=True,key=lambda x:x[0])
+          print('CANDIDATE_COUNT|'+str(len(rows)))
+
+          def item(url):
+            d=urllib.parse.unquote(url)
+            for _ in range(5):
+              m=re.search(r'(?:dl_target_url|ulp)=([^&]+)',d)
+              if not m: break
+              d=urllib.parse.unquote(m.group(1))
+            m=re.search(r'(?:www\.)?aliexpress\.com/item/(\d+)\.html',d,re.I) or re.search(r'/item/(\d+)\.html',d,re.I)
+            return (m.group(1),f'https://www.aliexpress.com/item/{m.group(1)}.html') if m else ('','')
+
+          shortlisted=[]; seen=set()
+          for score,kind,name,price,old,disc,url,image in rows[:35]:
+            iid,direct=item(url)
+            if not iid or iid in seen: continue
+            seen.add(iid); shortlisted.append((score,kind,name,price,old,disc,url,image,iid,direct))
+          neg_patterns=['cannot deliver','can not deliver','not available in your location','not available in this region','does not ship','unable to ship','sold out','no longer available','this item is unavailable']
+          good=[]
+          for x in shortlisted[:16]:
+            score,kind,name,price,old,disc,url,image,iid,direct=x
+            req=urllib.request.Request(direct+'?gatewayAdapt=glo2sa',headers={'User-Agent':'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/140 Safari/537.36','Accept-Language':'ar-SA,ar;q=0.9,en;q=0.7','Cookie':'aep_usuc_f=site=glo&c_tp=USD&region=SA&b_locale=en_US; intl_locale=en_US'})
+            status=0; size=0; verdict='ERROR'
+            try:
+              with urllib.request.urlopen(req,timeout=25) as r:
+                raw=r.read(900000).decode('utf-8','replace'); status=r.status; size=len(raw); low=raw.lower(); neg=[z for z in neg_patterns if z in low]
+                verdict='BLOCK_SIGNAL' if neg else ('SA_PAGE_OK' if status==200 and size>20000 else 'WEAK_PAGE')
+            except Exception as e: verdict='ERROR_'+type(e).__name__
+            print(f'PROBE|item={iid}|kind={kind}|http={status}|bytes={size}|verdict={verdict}|price={price:.2f}|name={name}|image={image}')
+            if verdict=='SA_PAGE_OK': good.append(x)
+
+          # Pick up to 4, preferring variety first, then score.
+          picks=[]
+          for wanted in ('cordless','12v_corded','portable'):
+            for x in good:
+              if x[1]==wanted and x not in picks:
+                picks.append(x); break
+          for x in good:
+            if x not in picks: picks.append(x)
+            if len(picks)>=4: break
+          print('=== PICKS ===')
+          for i,x in enumerate(picks[:4],1):
+            score,kind,name,price,old,disc,url,image,iid,direct=x
+            print(f'PICK|slot={i}|item={iid}|kind={kind}|price={price:.2f}|old={old:.2f}|discount={disc:.1f}|score={score:.1f}|name={name}')
+            print(f'PICK_IMAGE|slot={i}|{image}')
+            print(f'PICK_AFFILIATE|slot={i}|{url}')
+            print(f'PICK_DIRECT|slot={i}|{direct}')
+          if len(picks)<3: raise SystemExit(f'FAIL_CLOSED: only {len(picks)} Saudi-page-pass candidates')
+          print('MULTI_PRODUCT_AUDIT|PASS|count='+str(len(picks[:4])))
+          PY
