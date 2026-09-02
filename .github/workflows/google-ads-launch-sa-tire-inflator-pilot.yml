@@ -1,0 +1,223 @@
+name: Launch SA AliExpress Tire Inflator Pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-launch-sa-tire-inflator-pilot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  launch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Create, verify, then enable guarded pilot
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,urllib.request
+          from google.ads.googleads.client import GoogleAdsClient
+
+          NAME='TrendPilot | SA Tire Inflator | AliExpress | Search | Pilot'
+          OLD_TICKET='TrendPilot | GCC Big Matches | Search | 2026'
+          LANDING='https://trendpilotchoice.com/products/car-tire-inflator/sa/'
+          BUDGET=2_000_000
+          BID=220_000
+          HARD_BID=300_000
+          PRODUCT_ID='1005012667041964'
+          KEYWORDS=[
+            ('منفاخ هواء للسيارة',220_000),
+            ('منفاخ كفرات',210_000),
+            ('كمبروسر هواء للسيارة',210_000),
+            ('portable tire inflator',190_000),
+            ('cordless tire inflator',180_000),
+            ('car tire air compressor',180_000),
+          ]
+          NEG=['مجاني','مستعمل','تصليح','صيانة','شرح','aliexpress','ali express','علي اكسبرس','علي اكسبريس','free','used','repair','manual','pdf','industrial','truck','bus','heavy duty']
+          HEAD=[
+            'منفاخ إطارات 150PSI','منفاخ هواء للسيارة','شاشة رقمية لقياس الضغط',
+            'تحقق من السعر والشحن','منتج محدد للسيارة','150PSI Tire Inflator',
+            'Digital Pressure Display','Check Price & Shipping'
+          ]
+          DESC=[
+            'شاهد منفاخ إطارات 150PSI بشاشة رقمية وتحقق من السعر والشحن إلى السعودية.',
+            'صفحة منتج محددة ورابط مباشر للبائع. تحقق من النسخة والتوفر قبل الطلب.',
+            'View the exact product, then confirm current price, stock and Saudi shipping.'
+          ]
+
+          # Landing must be live before any Google Ads mutation.
+          req=urllib.request.Request(LANDING,headers={'User-Agent':'Mozilla/5.0 TrendPilot-SA-Launch/1.0','Accept-Language':'ar-SA,ar;q=0.9,en;q=0.7','Cache-Control':'no-cache'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+            raw=r.read(800000).decode('utf-8','replace')
+            checks={
+              'http200':r.status==200,
+              'arabic_title':'منفاخ إطارات سيارة 150PSI' in raw,
+              'exact_item':PRODUCT_ID in raw,
+              'tracking':'data-tp-outbound' in raw,
+              'affiliate':'أفلييت' in raw,
+              'indexable':'noindex' not in raw.lower(),
+            }
+            print('LANDING_FINAL',r.geturl())
+            for k,v in checks.items(): print('LANDING_CHECK',k,v)
+            if not all(checks.values()): raise SystemExit('SAFETY STOP: landing preflight failed')
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          ga=client.get_service('GoogleAdsService')
+          def rows(q): return list(ga.search(customer_id=cid,query=q))
+          def one(q):
+            rr=rows(q); return rr[0] if rr else None
+
+          acct=one('SELECT customer.descriptive_name,customer.currency_code,customer.time_zone FROM customer LIMIT 1')
+          if not acct or acct.customer.currency_code!='USD': raise SystemExit('SAFETY STOP: expected USD target account')
+          print('ACCOUNT',acct.customer.descriptive_name,acct.customer.currency_code,acct.customer.time_zone)
+
+          # Do not relaunch while old ticket experiment is active.
+          safe_old=OLD_TICKET.replace("'","\\'")
+          old=rows(f"SELECT campaign.id,campaign.status FROM campaign WHERE campaign.name='{safe_old}' AND campaign.status!='REMOVED'")
+          if old and any(x.campaign.status.name!='PAUSED' for x in old): raise SystemExit('SAFETY STOP: old ticket campaign is not paused')
+          print('OLD_TICKET_GUARD|PASS')
+
+          # Resolve Saudi country and Arabic/English language constants from Google directly.
+          geo=rows("""SELECT geo_target_constant.id,geo_target_constant.resource_name,geo_target_constant.name,geo_target_constant.country_code,geo_target_constant.target_type,geo_target_constant.status FROM geo_target_constant WHERE geo_target_constant.country_code='SA' AND geo_target_constant.target_type='Country' AND geo_target_constant.status='ENABLED'""")
+          if len(geo)!=1: raise SystemExit('SAFETY STOP: Saudi country constant not unique')
+          sa_res=geo[0].geo_target_constant.resource_name
+          lang_rows=rows("""SELECT language_constant.id,language_constant.resource_name,language_constant.code,language_constant.targetable FROM language_constant WHERE language_constant.code IN ('ar','en')""")
+          langs={x.language_constant.code:x.language_constant.resource_name for x in lang_rows if x.language_constant.targetable}
+          if set(langs)!= {'ar','en'}: raise SystemExit('SAFETY STOP: Arabic/English language constants unresolved')
+          print('TARGETS',sa_res,langs)
+
+          safe=NAME.replace("'","\\'")
+          existing=rows(f"SELECT campaign.resource_name,campaign.id,campaign.status,campaign.advertising_channel_type,campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,campaign.geo_target_type_setting.positive_geo_target_type,campaign_budget.amount_micros FROM campaign WHERE campaign.name='{safe}' AND campaign.status!='REMOVED'")
+          if len(existing)>1: raise SystemExit('SAFETY STOP: duplicate pilot campaign names')
+
+          if not existing:
+            bs=client.get_service('CampaignBudgetService'); bop=client.get_type('CampaignBudgetOperation'); b=bop.create
+            b.name=NAME+' | Budget'; b.amount_micros=BUDGET; b.delivery_method=client.enums.BudgetDeliveryMethodEnum.STANDARD; b.explicitly_shared=False
+            bres=bs.mutate_campaign_budgets(customer_id=cid,operations=[bop]).results[0].resource_name
+
+            cs=client.get_service('CampaignService'); cop=client.get_type('CampaignOperation'); c=cop.create
+            c.name=NAME; c.status=client.enums.CampaignStatusEnum.PAUSED; c.advertising_channel_type=client.enums.AdvertisingChannelTypeEnum.SEARCH
+            c.campaign_budget=bres; c.manual_cpc.enhanced_cpc_enabled=False
+            c.network_settings.target_google_search=True; c.network_settings.target_search_network=False; c.network_settings.target_content_network=False; c.network_settings.target_partner_search_network=False
+            c.geo_target_type_setting.positive_geo_target_type=client.enums.PositiveGeoTargetTypeEnum.PRESENCE
+            c.geo_target_type_setting.negative_geo_target_type=client.enums.NegativeGeoTargetTypeEnum.PRESENCE
+            c.contains_eu_political_advertising=client.enums.EuPoliticalAdvertisingStatusEnum.DOES_NOT_CONTAIN_EU_POLITICAL_ADVERTISING
+            c.final_url_suffix='utm_source=google&utm_medium=cpc&utm_campaign=tp_sa_tire_inflator&utm_term={keyword}&utm_content={adgroupid}-{creative}&device={device}&matchtype={matchtype}'
+            cres=cs.mutate_campaigns(customer_id=cid,operations=[cop]).results[0].resource_name
+            camp_id=cres.rsplit('/',1)[-1]; camp_res=cres; print('CREATED_PAUSED_CAMPAIGN',camp_id)
+
+            crits=[]
+            z=client.get_type('CampaignCriterionOperation'); z.create.campaign=camp_res; z.create.location.geo_target_constant=sa_res; crits.append(z)
+            for code in ('ar','en'):
+              z=client.get_type('CampaignCriterionOperation'); z.create.campaign=camp_res; z.create.language.language_constant=langs[code]; crits.append(z)
+            client.get_service('CampaignCriterionService').mutate_campaign_criteria(customer_id=cid,operations=crits)
+
+            aop=client.get_type('AdGroupOperation'); ag=aop.create; ag.name='Tire Inflator | SA'; ag.campaign=camp_res; ag.status=client.enums.AdGroupStatusEnum.PAUSED; ag.type_=client.enums.AdGroupTypeEnum.SEARCH_STANDARD; ag.cpc_bid_micros=BID
+            ag_res=client.get_service('AdGroupService').mutate_ad_groups(customer_id=cid,operations=[aop]).results[0].resource_name
+
+            kops=[]
+            for text,bid in KEYWORDS:
+              op=client.get_type('AdGroupCriterionOperation'); kw=op.create; kw.ad_group=ag_res; kw.status=client.enums.AdGroupCriterionStatusEnum.PAUSED; kw.keyword.text=text; kw.keyword.match_type=client.enums.KeywordMatchTypeEnum.EXACT; kw.cpc_bid_micros=bid; kops.append(op)
+            client.get_service('AdGroupCriterionService').mutate_ad_group_criteria(customer_id=cid,operations=kops)
+
+            a=client.get_type('AdGroupAdOperation'); aa=a.create; aa.ad_group=ag_res; aa.status=client.enums.AdGroupAdStatusEnum.PAUSED; aa.ad.final_urls.append(LANDING); rsa=aa.ad.responsive_search_ad
+            for text in HEAD:
+              asset=client.get_type('AdTextAsset'); asset.text=text[:30]; rsa.headlines.append(asset)
+            for text in DESC:
+              asset=client.get_type('AdTextAsset'); asset.text=text[:90]; rsa.descriptions.append(asset)
+            client.get_service('AdGroupAdService').mutate_ad_group_ads(customer_id=cid,operations=[a])
+
+            nops=[]
+            for text in NEG:
+              op=client.get_type('CampaignCriterionOperation'); n=op.create; n.campaign=camp_res; n.negative=True; n.keyword.text=text; n.keyword.match_type=client.enums.KeywordMatchTypeEnum.BROAD; nops.append(op)
+            client.get_service('CampaignCriterionService').mutate_campaign_criteria(customer_id=cid,operations=nops)
+          else:
+            e=existing[0]; camp_id=str(e.campaign.id); camp_res=e.campaign.resource_name
+            if e.campaign.status.name not in ('PAUSED','ENABLED'): raise SystemExit('SAFETY STOP: existing pilot in unexpected status')
+            print('EXISTING_CAMPAIGN',camp_id,e.campaign.status.name)
+
+          # Complete safety read-back before enabling.
+          c=one(f"SELECT campaign.resource_name,campaign.status,campaign.advertising_channel_type,campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,campaign.geo_target_type_setting.positive_geo_target_type,campaign_budget.amount_micros,campaign.bidding_strategy_type FROM campaign WHERE campaign.id={camp_id}")
+          ags=rows(f"SELECT ad_group.resource_name,ad_group.status,ad_group.cpc_bid_micros FROM ad_group WHERE campaign.id={camp_id} AND ad_group.status!='REMOVED'")
+          kws=rows(f"SELECT ad_group_criterion.resource_name,ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status,ad_group_criterion.cpc_bid_micros FROM keyword_view WHERE campaign.id={camp_id}")
+          ads=rows(f"SELECT ad_group_ad.resource_name,ad_group_ad.status,ad_group_ad.ad.final_urls,ad_group_ad.policy_summary.approval_status FROM ad_group_ad WHERE campaign.id={camp_id} AND ad_group_ad.status!='REMOVED'")
+          crit=rows(f"SELECT campaign_criterion.location.geo_target_constant,campaign_criterion.language.language_constant,campaign_criterion.negative FROM campaign_criterion WHERE campaign.id={camp_id}")
+          loc=sorted({x.campaign_criterion.location.geo_target_constant for x in crit if getattr(x.campaign_criterion.location,'geo_target_constant','') and not x.campaign_criterion.negative})
+          active_lang=sorted({x.campaign_criterion.language.language_constant for x in crit if getattr(x.campaign_criterion.language,'language_constant','') and not x.campaign_criterion.negative})
+          guards=[
+            c.campaign.advertising_channel_type.name=='SEARCH',int(c.campaign_budget.amount_micros)==BUDGET,
+            c.campaign.network_settings.target_google_search is True,c.campaign.network_settings.target_search_network is False,
+            c.campaign.network_settings.target_content_network is False,c.campaign.network_settings.target_partner_search_network is False,
+            c.campaign.geo_target_type_setting.positive_geo_target_type.name=='PRESENCE',
+            loc==[sa_res],active_lang==sorted(langs.values()),len(ags)==1,len(kws)==len(KEYWORDS),len(ads)==1,
+            all(int(x.ad_group.cpc_bid_micros or 0)<=HARD_BID for x in ags),
+            all(int(x.ad_group_criterion.cpc_bid_micros or 0)<=HARD_BID and x.ad_group_criterion.keyword.match_type.name=='EXACT' for x in kws),
+            LANDING in list(ads[0].ad_group_ad.ad.final_urls),
+          ]
+          print('PRE_ENABLE_COUNTS','adgroups',len(ags),'keywords',len(kws),'ads',len(ads),'policy',ads[0].ad_group_ad.policy_summary.approval_status.name)
+          if not all(guards): raise SystemExit('SAFETY STOP: pre-enable verification failed')
+
+          # Enable spend-capable children first; campaign LAST. If it is already enabled, remain idempotent.
+          if c.campaign.status.name!='ENABLED':
+            ag_ops=[]
+            for x in ags:
+              op=client.get_type('AdGroupOperation'); op.update.resource_name=x.ad_group.resource_name; op.update.status=client.enums.AdGroupStatusEnum.ENABLED; op.update_mask.paths.append('status'); ag_ops.append(op)
+            client.get_service('AdGroupService').mutate_ad_groups(customer_id=cid,operations=ag_ops)
+            kw_ops=[]
+            for x in kws:
+              op=client.get_type('AdGroupCriterionOperation'); op.update.resource_name=x.ad_group_criterion.resource_name; op.update.status=client.enums.AdGroupCriterionStatusEnum.ENABLED; op.update_mask.paths.append('status'); kw_ops.append(op)
+            client.get_service('AdGroupCriterionService').mutate_ad_group_criteria(customer_id=cid,operations=kw_ops)
+            ad_ops=[]
+            for x in ads:
+              op=client.get_type('AdGroupAdOperation'); op.update.resource_name=x.ad_group_ad.resource_name; op.update.status=client.enums.AdGroupAdStatusEnum.ENABLED; op.update_mask.paths.append('status'); ad_ops.append(op)
+            client.get_service('AdGroupAdService').mutate_ad_group_ads(customer_id=cid,operations=ad_ops)
+            op=client.get_type('CampaignOperation'); op.update.resource_name=camp_res; op.update.status=client.enums.CampaignStatusEnum.ENABLED; op.update_mask.paths.append('status')
+            client.get_service('CampaignService').mutate_campaigns(customer_id=cid,operations=[op])
+            print('LAUNCH_ACTION|ENABLED')
+          else:
+            print('LAUNCH_ACTION|ALREADY_ENABLED')
+
+          post=one(f"SELECT campaign.status,campaign_budget.amount_micros,campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,campaign.geo_target_type_setting.positive_geo_target_type FROM campaign WHERE campaign.id={camp_id}")
+          p_ags=rows(f"SELECT ad_group.status,ad_group.cpc_bid_micros FROM ad_group WHERE campaign.id={camp_id} AND ad_group.status!='REMOVED'")
+          p_kws=rows(f"SELECT ad_group_criterion.status,ad_group_criterion.cpc_bid_micros FROM keyword_view WHERE campaign.id={camp_id}")
+          p_ads=rows(f"SELECT ad_group_ad.status,ad_group_ad.policy_summary.approval_status FROM ad_group_ad WHERE campaign.id={camp_id} AND ad_group_ad.status!='REMOVED'")
+          if post.campaign.status.name!='ENABLED' or int(post.campaign_budget.amount_micros)!=BUDGET: raise SystemExit('POST-VERIFY FAILED: campaign not safely enabled')
+          if any(x.ad_group.status.name!='ENABLED' or int(x.ad_group.cpc_bid_micros)>HARD_BID for x in p_ags): raise SystemExit('POST-VERIFY FAILED: adgroup')
+          if any(x.ad_group_criterion.status.name!='ENABLED' or int(x.ad_group_criterion.cpc_bid_micros)>HARD_BID for x in p_kws): raise SystemExit('POST-VERIFY FAILED: keywords')
+          if any(x.ad_group_ad.status.name!='ENABLED' for x in p_ads): raise SystemExit('POST-VERIFY FAILED: ad')
+          print('=== SA TIRE INFLATOR PILOT LIVE ===')
+          print('CAMPAIGN_ID',camp_id)
+          print('STATUS',post.campaign.status.name)
+          print('DAILY_BUDGET_USD',BUDGET/1e6)
+          print('INITIAL_MAX_CPC_USD',BID/1e6)
+          print('HARD_CPC_DESIGN_CEILING_USD',HARD_BID/1e6)
+          print('HARD_CUMULATIVE_SPEND_CAP_USD',6.00)
+          print('GEO|Saudi Arabia only|Presence only')
+          print('LANGUAGES|Arabic + English')
+          print('NETWORK|Google Search only|Search Partners OFF|Display OFF')
+          for x in p_ads: print('AD_POLICY',x.ad_group_ad.policy_summary.approval_status.name)
+          print('BRAND_BID|AliExpress terms excluded/negative')
+          PY
