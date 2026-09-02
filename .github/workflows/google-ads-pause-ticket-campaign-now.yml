@@ -1,0 +1,190 @@
+name: Google Ads Pause Ticket Campaign Now
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-pause-ticket-campaign-now.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-ads-ticket-campaign-pause
+  cancel-in-progress: false
+
+jobs:
+  pause:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+      - name: Pause ticket campaign safely
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from google.ads.googleads.client import GoogleAdsClient
+
+          CAMPAIGN_ID = 24190034111
+          CAMPAIGN_NAME = 'TrendPilot | GCC Big Matches | Search | 2026'
+          START_DATE = '2026-08-28'
+          BUDGET_MICROS = 5_000_000
+          NL_GEO = 'geoTargetConstants/2528'
+          DUTCH_LANG = 'languageConstants/1010'
+          MUSCAT = ZoneInfo('Asia/Muscat')
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          def read_campaign():
+              rows = list(ga.search(customer_id=cid, query=f'''
+                SELECT campaign.resource_name,campaign.id,campaign.name,campaign.status,
+                       campaign.advertising_channel_type,campaign.bidding_strategy_type,
+                       campaign.geo_target_type_setting.positive_geo_target_type,
+                       campaign.network_settings.target_google_search,
+                       campaign.network_settings.target_search_network,
+                       campaign.network_settings.target_content_network,
+                       campaign.network_settings.target_partner_search_network,
+                       campaign_budget.amount_micros
+                FROM campaign
+                WHERE campaign.id={CAMPAIGN_ID}
+                LIMIT 1
+              '''))
+              if len(rows) != 1:
+                  raise SystemExit('SAFETY STOP: target campaign not found exactly once')
+              return rows[0]
+
+          row = read_campaign()
+          c = row.campaign
+          checks = {
+              'name': c.name == CAMPAIGN_NAME,
+              'status_safe': c.status.name in ('ENABLED', 'PAUSED'),
+              'search': c.advertising_channel_type.name == 'SEARCH',
+              'manual_cpc': c.bidding_strategy_type.name == 'MANUAL_CPC',
+              'budget_exact_5': int(row.campaign_budget.amount_micros or 0) == BUDGET_MICROS,
+              'presence_only': c.geo_target_type_setting.positive_geo_target_type.name == 'PRESENCE',
+              'google_search_on': c.network_settings.target_google_search is True,
+              'search_network_off': c.network_settings.target_search_network is False,
+              'display_off': c.network_settings.target_content_network is False,
+              'partners_off': c.network_settings.target_partner_search_network is False,
+          }
+          failed = [k for k,v in checks.items() if not v]
+          if failed:
+              raise SystemExit('SAFETY STOP: protected campaign setting mismatch: ' + ','.join(failed))
+
+          locs = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.location.geo_target_constant,
+                   campaign_criterion.negative,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID}
+              AND campaign_criterion.type='LOCATION'
+              AND campaign_criterion.status!='REMOVED'
+          '''))
+          positive_geo = sorted({x.campaign_criterion.location.geo_target_constant for x in locs if not x.campaign_criterion.negative})
+          if positive_geo != [NL_GEO]:
+              raise SystemExit('SAFETY STOP: GEO is not Netherlands-only: ' + repr(positive_geo))
+
+          langs = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.language.language_constant,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID}
+              AND campaign_criterion.type='LANGUAGE'
+              AND campaign_criterion.status!='REMOVED'
+          '''))
+          active_langs = sorted({x.campaign_criterion.language.language_constant for x in langs})
+          if active_langs != [DUTCH_LANG]:
+              raise SystemExit('SAFETY STOP: language is not Dutch-only: ' + repr(active_langs))
+
+          today = datetime.now(MUSCAT).date().isoformat()
+          cost_rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT segments.date,metrics.cost_micros
+            FROM campaign
+            WHERE campaign.id={CAMPAIGN_ID}
+              AND segments.date BETWEEN '{START_DATE}' AND '{today}'
+          '''))
+          total_cost = sum(int(x.metrics.cost_micros or 0) for x in cost_rows) / 1_000_000
+          status_before = c.status.name
+
+          if status_before == 'ENABLED':
+              service = client.get_service('CampaignService')
+              op = client.get_type('CampaignOperation')
+              op.update.resource_name = c.resource_name
+              op.update.status = client.enums.CampaignStatusEnum.PAUSED
+              op.update_mask.paths.append('status')
+              service.mutate_campaigns(customer_id=cid, operations=[op])
+              action = 'TICKET CAMPAIGN PAUSED'
+          else:
+              action = 'TICKET CAMPAIGN ALREADY PAUSED'
+
+          post = read_campaign()
+          pc = post.campaign
+          if pc.status.name != 'PAUSED':
+              raise SystemExit('POST-VERIFY FAILED: campaign status is ' + pc.status.name)
+          post_checks = {
+              'search': pc.advertising_channel_type.name == 'SEARCH',
+              'manual_cpc': pc.bidding_strategy_type.name == 'MANUAL_CPC',
+              'budget_exact_5': int(post.campaign_budget.amount_micros or 0) == BUDGET_MICROS,
+              'presence_only': pc.geo_target_type_setting.positive_geo_target_type.name == 'PRESENCE',
+              'google_search_on': pc.network_settings.target_google_search is True,
+              'search_network_off': pc.network_settings.target_search_network is False,
+              'display_off': pc.network_settings.target_content_network is False,
+              'partners_off': pc.network_settings.target_partner_search_network is False,
+          }
+          post_failed = [k for k,v in post_checks.items() if not v]
+          if post_failed:
+              raise SystemExit('POST-VERIFY FAILED: protected setting drift: ' + ','.join(post_failed))
+
+          locs2 = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.location.geo_target_constant,
+                   campaign_criterion.negative,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID}
+              AND campaign_criterion.type='LOCATION'
+              AND campaign_criterion.status!='REMOVED'
+          '''))
+          positive_geo2 = sorted({x.campaign_criterion.location.geo_target_constant for x in locs2 if not x.campaign_criterion.negative})
+          if positive_geo2 != [NL_GEO]:
+              raise SystemExit('POST-VERIFY FAILED: GEO drifted: ' + repr(positive_geo2))
+
+          langs2 = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.language.language_constant,campaign_criterion.status
+            FROM campaign_criterion
+            WHERE campaign.id={CAMPAIGN_ID}
+              AND campaign_criterion.type='LANGUAGE'
+              AND campaign_criterion.status!='REMOVED'
+          '''))
+          active_langs2 = sorted({x.campaign_criterion.language.language_constant for x in langs2})
+          if active_langs2 != [DUTCH_LANG]:
+              raise SystemExit('POST-VERIFY FAILED: language drifted: ' + repr(active_langs2))
+
+          print(action)
+          print('Campaign status before:', status_before)
+          print('Campaign status: PAUSED')
+          print('Observed campaign cost before pause: $%.2f' % total_cost)
+          print('Daily budget unchanged: $5.00')
+          print('Hard spend guard preserved; this workflow does not alter or disable it.')
+          print('Google Search only | Search Partners OFF | Display OFF | Presence-only PASS')
+          print('GEO: Netherlands only | Language: Dutch only')
+          print('No bid, keyword, ad-group, budget, network, GEO or language increase/change performed.')
+          print('Remaining experiment budget reserved for Seller x Product x GEO long-tail pilot.')
+          PY
