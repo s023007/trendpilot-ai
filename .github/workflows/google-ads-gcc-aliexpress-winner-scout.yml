@@ -1,0 +1,136 @@
+name: Google Ads GCC AliExpress Winner Scout — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-gcc-aliexpress-winner-scout.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Compare GCC product keyword economics without mutations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, statistics
+          from collections import defaultdict
+          from google.ads.googleads.client import GoogleAdsClient
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+          kp = client.get_service('KeywordPlanIdeaService')
+
+          wanted_countries = {'SA':'Saudi Arabia','AE':'United Arab Emirates','OM':'Oman','KW':'Kuwait','QA':'Qatar','BH':'Bahrain'}
+          geo_rows = ga.search(customer_id=cid, query="""
+            SELECT geo_target_constant.resource_name, geo_target_constant.id,
+                   geo_target_constant.name, geo_target_constant.country_code,
+                   geo_target_constant.target_type, geo_target_constant.status
+            FROM geo_target_constant
+            WHERE geo_target_constant.country_code IN ('SA','AE','OM','KW','QA','BH')
+              AND geo_target_constant.target_type = 'Country'
+              AND geo_target_constant.status = 'ENABLED'
+          """)
+          geos = {}
+          for r in geo_rows:
+              g=r.geo_target_constant
+              geos[g.country_code]=g.resource_name
+          if set(geos) != set(wanted_countries):
+              raise SystemExit('SAFETY STOP: GCC GEO resolution incomplete: '+repr(geos))
+
+          lang_rows = ga.search(customer_id=cid, query="""
+            SELECT language_constant.resource_name, language_constant.id,
+                   language_constant.name, language_constant.code, language_constant.targetable
+            FROM language_constant
+            WHERE language_constant.code IN ('ar','en')
+          """)
+          langs={r.language_constant.code:r.language_constant.resource_name for r in lang_rows if r.language_constant.targetable}
+          if 'ar' not in langs or 'en' not in langs:
+              raise SystemExit('SAFETY STOP: Arabic/English language constants unresolved: '+repr(langs))
+
+          families = {
+            'wireless_carplay': {
+              'en':['wireless carplay adapter','carplay wireless adapter','wireless android auto adapter'],
+              'ar':['محول كاربلاي لاسلكي','كاربلاي لاسلكي','محول اندرويد اوتو لاسلكي','اندرويد اوتو لاسلكي']},
+            'tire_inflator': {
+              'en':['portable tire inflator','cordless tire inflator','car tire air compressor'],
+              'ar':['منفاخ اطارات سيارة','منفاخ كفرات','منفاخ هواء للسيارة','كمبروسر هواء للسيارة']},
+            'jump_starter': {
+              'en':['car jump starter','jump starter with air compressor','portable battery jump starter'],
+              'ar':['اشتراك بطارية سيارة','بوستر بطارية سيارة','شاحن بطارية سيارة متنقل','جهاز تشغيل بطارية السيارة']},
+            'car_vacuum': {
+              'en':['cordless car vacuum','car vacuum cleaner','portable car vacuum'],
+              'ar':['مكنسة سيارة لاسلكية','مكنسة سيارة','مكنسة محمولة للسيارة']},
+            'dash_cam': {
+              'en':['4k dash cam','car dash cam','dash camera for car'],
+              'ar':['داش كام 4k','داش كام للسيارة','كاميرا سيارة أمامية','كاميرا مراقبة للسيارة']},
+          }
+
+          totals=defaultdict(lambda:{'vol':0,'weighted_cpc':0.0,'weighted_comp':0.0,'rows':0})
+          print('=== GCC ALIEXPRESS WINNER SCOUT / GOOGLE ADS HISTORICAL METRICS ===')
+          print('MODE|READ_ONLY|NO_CAMPAIGN_MUTATIONS|NO_BUDGET_CHANGES')
+          for cc,country in wanted_countries.items():
+            for lang_code in ('ar','en'):
+              for family, by_lang in families.items():
+                req=client.get_type('GenerateKeywordHistoricalMetricsRequest')
+                req.customer_id=cid
+                req.keywords.extend(by_lang[lang_code])
+                req.geo_target_constants.append(geos[cc])
+                req.language=langs[lang_code]
+                req.keyword_plan_network=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+                resp=kp.generate_keyword_historical_metrics(request=req)
+                for row in resp.results:
+                  m=row.keyword_metrics
+                  vol=int(m.avg_monthly_searches or 0)
+                  low=float(m.low_top_of_page_bid_micros or 0)/1_000_000
+                  high=float(m.high_top_of_page_bid_micros or 0)/1_000_000
+                  comp_idx=int(m.competition_index or 0)
+                  cpc_mid=(low+high)/2 if (low or high) else 0.0
+                  print(f'KW|geo={cc}|lang={lang_code}|family={family}|text={row.text}|vol={vol}|comp={m.competition.name}|comp_idx={comp_idx}|low_cpc={low:.2f}|high_cpc={high:.2f}|mid_cpc={cpc_mid:.2f}')
+                  key=(cc,family)
+                  totals[key]['vol'] += vol
+                  totals[key]['weighted_cpc'] += cpc_mid * max(vol,1)
+                  totals[key]['weighted_comp'] += comp_idx * max(vol,1)
+                  totals[key]['rows'] += 1
+
+          print('=== FAMILY SUMMARY ===')
+          summary=[]
+          for (cc,family),v in totals.items():
+            denom=max(v['vol'],1)
+            avg_cpc=v['weighted_cpc']/denom
+            avg_comp=v['weighted_comp']/denom
+            # Experimental score: volume rewards demand, while CPC and competition are penalties.
+            score=v['vol']/((1+avg_comp/40.0)*(0.20+avg_cpc)) if v['vol'] else 0
+            summary.append((score,cc,family,v['vol'],avg_cpc,avg_comp))
+          for score,cc,family,vol,avg_cpc,avg_comp in sorted(summary, reverse=True):
+            print(f'FAMILY|geo={cc}|family={family}|combined_vol={vol}|weighted_mid_cpc={avg_cpc:.2f}|weighted_comp_idx={avg_comp:.1f}|score={score:.1f}')
+          print('=== TOP 10 ===')
+          for rank,(score,cc,family,vol,avg_cpc,avg_comp) in enumerate(sorted(summary, reverse=True)[:10],1):
+            print(f'RANK|{rank}|geo={cc}|family={family}|vol={vol}|mid_cpc={avg_cpc:.2f}|comp_idx={avg_comp:.1f}|score={score:.1f}')
+          print('=== END / READ ONLY ===')
+          PY
