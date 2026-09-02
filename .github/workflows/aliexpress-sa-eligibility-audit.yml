@@ -1,0 +1,65 @@
+name: AliExpress Saudi Eligibility Audit — Read Only
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/aliexpress-sa-eligibility-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+    steps:
+      - name: Verify Saudi Arabia action country and paid search policy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64,json,os,urllib.parse,urllib.request
+          def env(*names):
+            for n in names:
+              v=(os.environ.get(n) or '').strip()
+              if v:return v
+            return ''
+          cid=env('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT')
+          secret=env('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          if not cid or not secret: raise SystemExit('Missing Admitad credentials')
+          basic=base64.b64encode(f'{cid}:{secret}'.encode()).decode()
+          def req(url,method='GET',headers=None,data=None):
+            q=urllib.request.Request(url,data=data,method=method,headers={'Accept':'application/json','User-Agent':'TrendPilot-SA-Audit/1.0',**(headers or {})})
+            with urllib.request.urlopen(q,timeout=60) as x:return json.loads(x.read().decode('utf-8','replace'))
+          body=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':cid,'scope':'websites advcampaigns_for_website'}).encode()
+          tok=req('https://api.admitad.com/token/',method='POST',headers={'Authorization':f'Basic {basic}','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},data=body).get('access_token')
+          if not tok: raise SystemExit('No Admitad token')
+          page=req('https://api.admitad.com/advcampaigns/website/2980568/?limit=200&connection_status=active',headers={'Authorization':f'Bearer {tok}'})
+          row=next((r for r in page.get('results',[]) if str(r.get('name') or '').lower()=='aliexpress ww'),None)
+          if not row: raise SystemExit('AliExpress WW active program not found')
+          codes=[]
+          for c in row.get('action_countries') or []:
+            if isinstance(c,dict): codes.append(str(c.get('code') or c.get('name') or c.get('id') or ''))
+            else: codes.append(str(c))
+          traffic={str(t.get('id')):(str(t.get('name') or ''),bool(t.get('enabled'))) for t in row.get('traffics') or []}
+          print('PROGRAM|AliExpress WW|'+str(row.get('connection_status') or row.get('status')))
+          print('SAUDI_ACTION_COUNTRY|'+str('SA' in codes))
+          print('ALLOW_DEEPLINK|'+str(bool(row.get('allow_deeplink'))))
+          print('GEOTARGETING|'+str(bool(row.get('geotargeting'))))
+          for tid in ('42','3','6'):
+            name,enabled=traffic.get(tid,('MISSING',False)); print(f'TRAFFIC|id={tid}|name={name}|enabled={enabled}')
+          if 'SA' not in codes: raise SystemExit('SAFETY STOP: Saudi Arabia is not an action country')
+          if not traffic.get('42',(None,False))[1] or not traffic.get('3',(None,False))[1]: raise SystemExit('SAFETY STOP: Google Ads/contextual traffic not enabled')
+          if traffic.get('6',(None,False))[1]: raise SystemExit('SAFETY STOP: advertiser-brand contextual bidding unexpectedly enabled')
+          if not bool(row.get('allow_deeplink')): raise SystemExit('SAFETY STOP: deeplink not allowed')
+          print('SAUDI_ALIEXPRESS_ELIGIBILITY|PASS')
+          print('BRAND_BID_GUARD|PASS')
+          print('MODE|READ_ONLY')
+          PY
