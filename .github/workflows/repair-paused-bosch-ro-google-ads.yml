@@ -1,0 +1,234 @@
+name: Repair PAUSED Romania Bosch Google Ads Pilot
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/repair-paused-bosch-ro-google-ads.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair-paused:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Repair missing PAUSED children and verify fail-closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, urllib.request
+          from google.ads.googleads.client import GoogleAdsClient
+
+          NAME='TrendPilot | RO Bosch GBH2 Parts | Search | Pilot'
+          LANDING='https://trendpilotchoice.com/rare-products/bosch-gbh2-chuck/ro/'
+          RO_GEO='2642'
+          RO_LANG='1032'
+          BUDGET_MICROS=2_000_000
+          BID_MICROS=150_000
+          HARD_CPC_CEILING=250_000
+          AG_NAME='GBH2 Chuck Replacement | RO'
+
+          EXACT=[
+            'bosch gbh 2-20 chuck','bosch gbh 2-24 chuck','bosch gbh 2-26 chuck',
+            'gbh 2-26 chuck replacement','mandrina bosch gbh 2-20',
+            'mandrina bosch gbh 2-24','mandrina bosch gbh 2-26','mandrina sds gbh 2-26'
+          ]
+          PHRASE=[
+            'bosch gbh 2-26 chuck replacement','gbh 2-24 chuck replacement',
+            'mandrina bosch gbh 2-26','mandrina sds gbh 2-24'
+          ]
+          NEG=['free','manual','pdf','diagram','schematic','service manual']
+          HEAD=[
+            'Mandrina SDS pentru GBH2','Verifica modelul exact','GBH2-20 24 26 compatibil',
+            'Vezi oferta actuala','Verifica livrarea in RO','Piesa pentru modele GBH2'
+          ]
+          DESC=[
+            'Verifica piesa listata pentru GBH2-20, GBH2-24 si GBH2-26 inainte de comanda.',
+            'Vezi oferta exacta si confirma pretul, stocul si livrarea in Romania la vanzator.'
+          ]
+
+          # Public landing preflight; no Google Ads mutation occurs unless this passes.
+          req=urllib.request.Request(LANDING,headers={'User-Agent':'Mozilla/5.0 TrendPilot-RO-Repair/1.0','Accept-Language':'ro-RO,ro;q=0.9,en;q=0.7'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+            raw=r.read(700000).decode('utf-8','replace')
+            checks={
+              'http200':r.status==200,
+              'romanian':'Mandrină SDS compatibilă' in raw,
+              'models':all(x in raw for x in ('GBH2','20','24','26')),
+              'exact_item':'1005011859163692' in raw,
+              'tracking':'data-tp-outbound' in raw,
+              'disclosure':'comision' in raw.lower(),
+              'indexable':'noindex' not in raw.lower(),
+            }
+            print('LANDING_FINAL',r.geturl())
+            for k,v in checks.items(): print('LANDING_CHECK',k,v)
+            if not all(checks.values()): raise SystemExit('Safety stop: landing QA failed')
+
+          required=['GOOGLE_ADS_DEVELOPER_TOKEN','GOOGLE_ADS_CLIENT_ID','GOOGLE_ADS_CLIENT_SECRET','GOOGLE_ADS_REFRESH_TOKEN','GOOGLE_ADS_CUSTOMER_ID']
+          miss=[x for x in required if not (os.getenv(x) or '').strip()]
+          if miss: raise SystemExit('Missing Google Ads secrets: '+','.join(miss))
+          cfg={
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'use_proto_plus':True,
+          }
+          login=(os.getenv('GOOGLE_ADS_LOGIN_CUSTOMER_ID') or '').replace('-','').strip()
+          if login: cfg['login_customer_id']=login
+          client=GoogleAdsClient.load_from_dict(cfg)
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          ga=client.get_service('GoogleAdsService')
+
+          def rows(q): return list(ga.search(customer_id=cid,query=q))
+          def one(q):
+            r=rows(q)
+            return r[0] if r else None
+
+          acct=one('SELECT customer.descriptive_name, customer.currency_code, customer.time_zone FROM customer LIMIT 1')
+          print('ACCOUNT',acct.customer.descriptive_name,acct.customer.currency_code,acct.customer.time_zone)
+          if acct.customer.currency_code!='USD': raise SystemExit('Safety stop: expected USD account')
+
+          safe=NAME.replace("'","\\'")
+          cr=rows(f"""SELECT campaign.id,campaign.name,campaign.status,campaign.advertising_channel_type,
+            campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,
+            campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,
+            campaign.geo_target_type_setting.positive_geo_target_type,campaign.geo_target_type_setting.negative_geo_target_type,
+            campaign_budget.amount_micros,campaign.bidding_strategy_type
+            FROM campaign WHERE campaign.name='{safe}' AND campaign.status!='REMOVED'""")
+          if len(cr)!=1: raise SystemExit(f'Safety stop: expected exactly one campaign, found {len(cr)}')
+          c=cr[0].campaign; b=cr[0].campaign_budget
+          print('CAMPAIGN_FOUND',c.id,c.status.name,'budget',b.amount_micros)
+          guards=[
+            c.status.name=='PAUSED', c.advertising_channel_type.name=='SEARCH',
+            c.network_settings.target_google_search is True,
+            c.network_settings.target_search_network is False,
+            c.network_settings.target_content_network is False,
+            c.network_settings.target_partner_search_network is False,
+            c.geo_target_type_setting.positive_geo_target_type.name=='PRESENCE',
+            int(b.amount_micros)==BUDGET_MICROS,
+          ]
+          if not all(guards): raise SystemExit('Safety stop: campaign/budget/network/presence guard failed')
+          camp_res=f'customers/{cid}/campaigns/{c.id}'
+
+          # Ensure Romania and Romanian criteria. Use canonical resource strings; LanguageConstantService does not exist in v25.
+          crit=rows(f"SELECT campaign_criterion.resource_name,campaign_criterion.type,campaign_criterion.negative,campaign_criterion.location.geo_target_constant,campaign_criterion.language.language_constant FROM campaign_criterion WHERE campaign.id={c.id}")
+          has_ro=any(getattr(x.campaign_criterion.location,'geo_target_constant','')==f'geoTargetConstants/{RO_GEO}' and not x.campaign_criterion.negative for x in crit)
+          has_lang=any(getattr(x.campaign_criterion.language,'language_constant','')==f'languageConstants/{RO_LANG}' and not x.campaign_criterion.negative for x in crit)
+          cop=[]
+          if not has_ro:
+            op=client.get_type('CampaignCriterionOperation'); z=op.create; z.campaign=camp_res; z.location.geo_target_constant=f'geoTargetConstants/{RO_GEO}'; cop.append(op)
+          if not has_lang:
+            op=client.get_type('CampaignCriterionOperation'); z=op.create; z.campaign=camp_res; z.language.language_constant=f'languageConstants/{RO_LANG}'; cop.append(op)
+          if cop:
+            client.get_service('CampaignCriterionService').mutate_campaign_criteria(customer_id=cid,operations=cop)
+            print('TARGETS_REPAIRED',len(cop))
+          else: print('TARGETS_ALREADY_OK')
+
+          # Ensure one paused ad group.
+          ags=rows(f"SELECT ad_group.resource_name,ad_group.name,ad_group.status,ad_group.cpc_bid_micros FROM ad_group WHERE campaign.id={c.id} AND ad_group.status!='REMOVED'")
+          if len(ags)>1: raise SystemExit('Safety stop: unexpected multiple ad groups')
+          if not ags:
+            op=client.get_type('AdGroupOperation'); ag=op.create
+            ag.name=AG_NAME; ag.campaign=camp_res; ag.status=client.enums.AdGroupStatusEnum.PAUSED
+            ag.type_=client.enums.AdGroupTypeEnum.SEARCH_STANDARD; ag.cpc_bid_micros=BID_MICROS
+            rr=client.get_service('AdGroupService').mutate_ad_groups(customer_id=cid,operations=[op])
+            ag_res=rr.results[0].resource_name; print('ADGROUP_CREATED',ag_res)
+          else:
+            ag=ags[0].ad_group
+            if ag.status.name!='PAUSED' or int(ag.cpc_bid_micros)>HARD_CPC_CEILING: raise SystemExit('Safety stop: ad group not safely paused/capped')
+            ag_res=ag.resource_name; print('ADGROUP_EXISTING',ag_res)
+
+          # Ensure exact/phrase keyword set; create only missing, always PAUSED.
+          existing=rows(f"SELECT ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status,ad_group_criterion.cpc_bid_micros FROM keyword_view WHERE campaign.id={c.id}")
+          ex={(x.ad_group_criterion.keyword.text.lower(),x.ad_group_criterion.keyword.match_type.name):x for x in existing}
+          for x in existing:
+            if x.ad_group_criterion.status.name!='PAUSED' or int(x.ad_group_criterion.cpc_bid_micros)>HARD_CPC_CEILING:
+              raise SystemExit('Safety stop: existing keyword not safely paused/capped')
+          kops=[]
+          wanted=[]
+          for text in EXACT: wanted.append((text,'EXACT',client.enums.KeywordMatchTypeEnum.EXACT))
+          for text in PHRASE: wanted.append((text,'PHRASE',client.enums.KeywordMatchTypeEnum.PHRASE))
+          for text,mname,menum in wanted:
+            if (text.lower(),mname) in ex: continue
+            op=client.get_type('AdGroupCriterionOperation'); kw=op.create
+            kw.ad_group=ag_res; kw.status=client.enums.AdGroupCriterionStatusEnum.PAUSED
+            kw.keyword.text=text; kw.keyword.match_type=menum; kw.cpc_bid_micros=BID_MICROS; kops.append(op)
+          if kops:
+            client.get_service('AdGroupCriterionService').mutate_ad_group_criteria(customer_id=cid,operations=kops)
+            print('KEYWORDS_CREATED',len(kops))
+          else: print('KEYWORDS_ALREADY_OK')
+
+          # Ensure one paused RSA, create only if absent.
+          ads=rows(f"SELECT ad_group_ad.resource_name,ad_group_ad.status,ad_group_ad.ad.final_urls FROM ad_group_ad WHERE campaign.id={c.id} AND ad_group_ad.status!='REMOVED'")
+          if len(ads)>1: raise SystemExit('Safety stop: unexpected multiple ads')
+          if not ads:
+            op=client.get_type('AdGroupAdOperation'); aa=op.create; aa.ad_group=ag_res; aa.status=client.enums.AdGroupAdStatusEnum.PAUSED
+            aa.ad.final_urls.append(LANDING); rsa=aa.ad.responsive_search_ad
+            for text in HEAD:
+              a=client.get_type('AdTextAsset'); a.text=text[:30]; rsa.headlines.append(a)
+            for text in DESC:
+              a=client.get_type('AdTextAsset'); a.text=text[:90]; rsa.descriptions.append(a)
+            client.get_service('AdGroupAdService').mutate_ad_group_ads(customer_id=cid,operations=[op]); print('RSA_CREATED')
+          else:
+            a=ads[0].ad_group_ad
+            if a.status.name!='PAUSED' or LANDING not in list(a.ad.final_urls): raise SystemExit('Safety stop: existing ad not safely paused/routed')
+            print('RSA_ALREADY_OK')
+
+          # Add campaign negatives if missing. Never add AliExpress/brand terms here.
+          crit2=rows(f"SELECT campaign_criterion.keyword.text,campaign_criterion.keyword.match_type,campaign_criterion.negative FROM campaign_criterion WHERE campaign.id={c.id} AND campaign_criterion.type='KEYWORD'")
+          have_neg={x.campaign_criterion.keyword.text.lower() for x in crit2 if x.campaign_criterion.negative}
+          nops=[]
+          for text in NEG:
+            if text.lower() in have_neg: continue
+            op=client.get_type('CampaignCriterionOperation'); n=op.create; n.campaign=camp_res; n.negative=True
+            n.keyword.text=text; n.keyword.match_type=client.enums.KeywordMatchTypeEnum.BROAD; nops.append(op)
+          if nops:
+            client.get_service('CampaignCriterionService').mutate_campaign_criteria(customer_id=cid,operations=nops); print('NEGATIVES_CREATED',len(nops))
+          else: print('NEGATIVES_ALREADY_OK')
+
+          # Final read-back. Fail closed unless every spend-capable child is PAUSED.
+          final_c=one(f"SELECT campaign.status,campaign_budget.amount_micros FROM campaign WHERE campaign.id={c.id}")
+          final_ag=rows(f"SELECT ad_group.status,ad_group.cpc_bid_micros FROM ad_group WHERE campaign.id={c.id} AND ad_group.status!='REMOVED'")
+          final_kw=rows(f"SELECT ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status,ad_group_criterion.cpc_bid_micros FROM keyword_view WHERE campaign.id={c.id}")
+          final_ad=rows(f"SELECT ad_group_ad.status,ad_group_ad.policy_summary.approval_status,ad_group_ad.policy_summary.policy_topic_entries FROM ad_group_ad WHERE campaign.id={c.id} AND ad_group_ad.status!='REMOVED'")
+          final_crit=rows(f"SELECT campaign_criterion.location.geo_target_constant,campaign_criterion.language.language_constant,campaign_criterion.negative FROM campaign_criterion WHERE campaign.id={c.id}")
+          loc=[x.campaign_criterion.location.geo_target_constant for x in final_crit if getattr(x.campaign_criterion.location,'geo_target_constant','') and not x.campaign_criterion.negative]
+          langs=[x.campaign_criterion.language.language_constant for x in final_crit if getattr(x.campaign_criterion.language,'language_constant','') and not x.campaign_criterion.negative]
+          print('FINAL_COUNTS','adgroups',len(final_ag),'keywords',len(final_kw),'ads',len(final_ad))
+          print('FINAL_LOCATION',loc); print('FINAL_LANGUAGE',langs)
+          for x in final_ad:
+            print('AD_POLICY',x.ad_group_ad.policy_summary.approval_status.name,'status',x.ad_group_ad.status.name)
+          if final_c.campaign.status.name!='PAUSED' or int(final_c.campaign_budget.amount_micros)!=BUDGET_MICROS: raise SystemExit('Safety stop: campaign final guard')
+          if len(final_ag)!=1 or any(x.ad_group.status.name!='PAUSED' or int(x.ad_group.cpc_bid_micros)>HARD_CPC_CEILING for x in final_ag): raise SystemExit('Safety stop: ad group final guard')
+          if len(final_kw)!=len(EXACT)+len(PHRASE) or any(x.ad_group_criterion.status.name!='PAUSED' or int(x.ad_group_criterion.cpc_bid_micros)>HARD_CPC_CEILING for x in final_kw): raise SystemExit('Safety stop: keyword final guard')
+          if len(final_ad)!=1 or any(x.ad_group_ad.status.name!='PAUSED' for x in final_ad): raise SystemExit('Safety stop: ad final guard')
+          if loc!=[f'geoTargetConstants/{RO_GEO}'] or langs!=[f'languageConstants/{RO_LANG}']: raise SystemExit('Safety stop: GEO/language final guard')
+          print('PAUSED_BOSCH_RO_REPAIR_SUCCESS')
+          print('CAMPAIGN_ID',c.id)
+          print('DAILY_BUDGET_USD',BUDGET_MICROS/1e6)
+          print('INITIAL_CPC_USD',BID_MICROS/1e6)
+          print('HARD_CPC_CEILING_USD',HARD_CPC_CEILING/1e6)
+          print('NO_ENABLE_OPERATION_EXISTS_IN_THIS_WORKFLOW')
+          PY
+
+      - name: Safety statement
+        if: always()
+        run: |
+          echo 'This workflow never enables the campaign, ad group, keywords, or ad.'
+          echo 'Campaign must remain PAUSED; budget remains $2/day; CPC starts at $0.15 with $0.25 hard design ceiling.'
