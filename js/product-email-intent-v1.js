@@ -11,7 +11,7 @@
     productId:'1005012667041964',
     offerUrl:body.dataset.offerUrl||'',
     endpoint:'https://api.trendpilotchoice.com/save-search.php',
-    goEndpoint:'https://api.trendpilotchoice.com/api/go.php'
+    goEndpoint:'https://api.trendpilotchoice.com/go.php'
   };
 
   function qs(sel,ctx){return (ctx||document).querySelector(sel);}
@@ -116,7 +116,6 @@
 
   qsa('[data-email-success-seller]').forEach(function(a){a.addEventListener('click',function(){trackSeller('email_saved_continue');});});
 
-  // Returning from the saved-offer email: log the buy-intent client side, then let the API validate the saved lead and seller destination.
   (function handleEmailReturn(){
     var p=params();
     if(p.get('return')!=='email-buy') return;
