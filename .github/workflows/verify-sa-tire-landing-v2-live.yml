@@ -1,0 +1,61 @@
+name: Verify SA Tire Landing V2 Live
+
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-sa-tire-landing-v2-live.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - name: Verify live landing, tracking JS and API health
+        shell: bash
+        run: |
+          set -euo pipefail
+          PAGE='https://trendpilotchoice.com/products/car-tire-inflator/sa/'
+          JS='https://trendpilotchoice.com/js/product-email-intent-v1.js?v=1.0.0'
+          API='https://api.trendpilotchoice.com/save-search.php'
+          GO='https://api.trendpilotchoice.com/api/go.php'
+
+          fetch_retry() {
+            local url="$1" out="$2"
+            for i in 1 2 3 4 5 6; do
+              code=$(curl -L --max-time 30 -A 'TrendPilot-Live-QA/1.0' -sS -o "$out" -w '%{http_code}' "$url" || true)
+              echo "FETCH|$url|attempt=$i|http=$code|bytes=$(wc -c < "$out" 2>/dev/null || echo 0)"
+              if [ "$code" = '200' ]; then return 0; fi
+              sleep $((i*5))
+            done
+            return 1
+          }
+
+          fetch_retry "$PAGE" /tmp/page.html
+          grep -Fq 'TP_SA_INFLATOR_LP_V2' /tmp/page.html
+          grep -Fq '1005012667041964' /tmp/page.html
+          grep -Fq 'product-email-intent-v1.js' /tmp/page.html
+          grep -Fq 'analytics-cpc-v21-18.js' /tmp/page.html
+          grep -Fq 'tp-email-intent-modal' /tmp/page.html
+          grep -Fq 'أرسل رابط نفس المنتج إلى بريدك' /tmp/page.html
+          grep -Fq '≈ 100 ر.س' /tmp/page.html
+          echo 'LANDING_V2|PASS'
+
+          fetch_retry "$JS" /tmp/product-email.js
+          grep -Fq "sa_tire_inflator_aliexpress" /tmp/product-email.js
+          grep -Fq "PRODUCT_EMAIL_INTENT" /tmp/product-email.js
+          grep -Fq "EMAIL_BUY_INTENT" /tmp/product-email.js
+          grep -Fq "seller_outbound_click" /tmp/product-email.js
+          echo 'EMAIL_INTENT_JS|PASS'
+
+          api_code=$(curl --max-time 20 -sS -o /tmp/api.txt -w '%{http_code}' "$API" || true)
+          go_code=$(curl --max-time 20 -sS -o /tmp/go.txt -w '%{http_code}' "$GO?lead=invalid" || true)
+          echo "API_HEALTH|save_search_http=$api_code|go_http=$go_code"
+          test "$api_code" = '405'
+          test "$go_code" = '400'
+          echo 'API_ENDPOINTS|ALIVE'
+
+          echo 'LIVE_QA|PASS'
