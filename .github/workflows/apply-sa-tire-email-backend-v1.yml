@@ -1,0 +1,52 @@
+name: Apply SA Tire Email Backend V1
+
+on:
+  push:
+    paths:
+      - 'scripts/patch_sa_tire_email_backend_v1.py'
+      - '.github/workflows/apply-sa-tire-email-backend-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-sa-tire-email-backend-v1
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rebase latest main
+        run: |
+          git fetch origin main
+          git checkout main
+          git pull --rebase origin main
+      - name: Patch product email backend
+        run: python scripts/patch_sa_tire_email_backend_v1.py
+      - name: Validate PHP syntax
+        run: php -l api/save-search.php && php -l api/go.php
+      - name: Commit backend campaign spec
+        run: |
+          if git diff --quiet -- api/save-search.php; then
+            echo 'Backend already patched.'
+            exit 0
+          fi
+          git config user.name 'trendpilot-campaign-brain'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add api/save-search.php
+          git commit -m 'feat: support Saudi tire inflator saved-product emails'
+          for i in 1 2 3; do
+            git fetch origin main
+            if git rebase origin/main && git push origin HEAD:main; then
+              exit 0
+            fi
+            git rebase --abort || true
+            sleep $((i*3))
+          done
+          exit 1
