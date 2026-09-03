@@ -1,0 +1,103 @@
+name: Google Basic Planner BG Audi 0B5 Expansion
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-basic-planner-bg-audi-0b5-expansion.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Expand Bulgaria Audi part-number opportunity
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, re, time
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          svc=client.get_service('KeywordPlanIdeaService')
+          req=client.get_type('GenerateKeywordIdeasRequest')
+          req.customer_id=cid
+          req.language='languageConstants/1020'  # Bulgarian
+          req.geo_target_constants.append('geoTargetConstants/2100')
+          req.keyword_plan_network=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+          req.keyword_seed.keywords.extend([
+            '0B5 325 429 E',
+            '0B5325429E',
+            'Audi 0B5 325 429 E',
+            'DL501 transmission filter',
+            'Audi transmission filter kit',
+            'Audi gearbox filter 0B5',
+          ])
+
+          for attempt in range(5):
+            try:
+              results=list(svc.generate_keyword_ideas(request=req))
+              break
+            except ResourceExhausted:
+              wait=5*(attempt+1)
+              print(f'RATE_LIMIT|wait={wait}s|attempt={attempt+1}')
+              time.sleep(wait)
+          else:
+            raise RuntimeError('Planner rate limit persisted')
+
+          def metric(m,field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            v=getattr(m,field,None)
+            return int(v) if v is not None else None
+
+          rows=[]
+          for x in results:
+            m=x.keyword_idea_metrics
+            text=x.text.strip()
+            lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+            ci=metric(m,'competition_index')
+            s=int(m.avg_monthly_searches or 0)
+            tl=text.lower()
+            relevant=bool(re.search(r'0b5|325\s*429|dl501|transmission|gearbox|filter|audi|скорост|филт',tl,re.I))
+            if not relevant: continue
+            rows.append({
+              'keyword':text,'searches':s,
+              'competition':getattr(m.competition,'name',str(m.competition)),
+              'ci':ci,
+              'low':None if lo is None else round(lo/1e6,2),
+              'high':None if hi is None else round(hi/1e6,2),
+            })
+
+          rows.sort(key=lambda r:(-r['searches'],999 if r['ci'] is None else r['ci'],999 if r['high'] is None else r['high']))
+          print('BG_AUDI_0B5_EXPANSION|mode=READ_ONLY|ideas=%d|relevant=%d' % (len(results),len(rows)))
+          for r in rows[:60]:
+            gate='GREEN' if r['searches']>=10 and (r['ci'] is None or r['ci']<=35) and (r['high'] is None or r['high']<=0.75) else ('AMBER' if r['searches']>=10 and (r['ci'] is None or r['ci']<=60) else 'RED')
+            print('IDEA|gate=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s' % (gate,r['keyword'],r['searches'],r['competition'],r['ci'],r['low'],r['high']))
+          print('BASIC_PLANNER_ACCESS|PASS')
+          PY
