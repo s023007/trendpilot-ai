@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: pip install --disable-pip-version-check google-ads
-      - name: Read-only finalist validation
+      - name: Read-only US Canada diecast finalist comparison
         shell: bash
         run: |
           set -euo pipefail
@@ -33,7 +33,6 @@ jobs:
           import os,time
           from google.ads.googleads.client import GoogleAdsClient
           from google.api_core.exceptions import ResourceExhausted
-
           client=GoogleAdsClient.load_from_dict({
             'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
             'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
@@ -43,68 +42,44 @@ jobs:
             'use_proto_plus':True,
           })
           cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
-          svc=client.get_service('KeywordPlanIdeaService')
-          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
-
-          tests=[
-            ('Canada_Diecast','languageConstants/1000','geoTargetConstants/2124',[
-              'maisto diecast cars 1 18','maisto 1 18 scale diecast cars','buy maisto 1 18 canada',
-              '1 18 diecast cars canada','american muscle diecast cars 1 18','corvette diecast 1 18',
-              'corgi diecast aircraft','1 18 models canada'
-            ]),
-            ('Canada_Harfington','languageConstants/1000','geoTargetConstants/2124',[
-              'plastic hub centric rings','hub centric rings for aftermarket wheels','73.1 57.1 hub centric rings',
-              '66.6 57.1 hub centric rings','aftermarket wheel hub rings','transmission solenoid pack'
-            ]),
-            ('NewZealand_Harfington','languageConstants/1000','geoTargetConstants/2554',[
-              'transmission fluid filter kit','transmission filter and gasket','allison transmission filter kit',
-              'ignition lock cylinder','ignition switch cylinder'
-            ]),
+          svc=client.get_service('KeywordPlanIdeaService'); NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+          seeds=[
+            'american muscle diecast cars 1 18','american muscle 1 18 diecast cars','1 18 american muscle cars',
+            'auto world american muscle 1 18','1970 dodge charger american muscle 1 18',
+            'maisto diecast cars 1 18','maisto 1 18 special edition','2020 corvette c8 maisto 1 18',
+            'corvette diecast 1 18','corgi diecast aircraft'
           ]
-
+          tests=[
+            ('UnitedStates','geoTargetConstants/2840'),
+            ('Canada','geoTargetConstants/2124'),
+          ]
           def metric(m,field):
             pb=getattr(m,'_pb',m)
             try:
               if not pb.HasField(field): return None
             except Exception: pass
-            v=getattr(m,field,None)
-            return int(v) if v is not None else None
-
-          for label,lang,geo,seeds in tests:
-            req=client.get_type('GenerateKeywordIdeasRequest')
-            req.customer_id=cid
-            req.language=lang
-            req.geo_target_constants.append(geo)
-            req.keyword_plan_network=NET
+            v=getattr(m,field,None); return int(v) if v is not None else None
+          seed_norm={s.lower().replace(' ','') for s in seeds}
+          for label,geo in tests:
+            req=client.get_type('GenerateKeywordIdeasRequest'); req.customer_id=cid
+            req.language='languageConstants/1000'; req.geo_target_constants.append(geo); req.keyword_plan_network=NET
             req.keyword_seed.keywords.extend(seeds)
             for attempt in range(5):
-              try:
-                results=list(svc.generate_keyword_ideas(request=req)); break
-              except ResourceExhausted:
-                wait=5*(attempt+1); print(f'RATE_LIMIT|{label}|wait={wait}'); time.sleep(wait)
-            else:
-              raise RuntimeError('Planner rate limit persisted: '+label)
-
-            seed_norm={s.lower().replace(' ','') for s in seeds}
+              try: results=list(svc.generate_keyword_ideas(request=req)); break
+              except ResourceExhausted: time.sleep(5*(attempt+1))
+            else: raise RuntimeError('rate limit persisted '+label)
             rows=[]
             for x in results:
-              m=x.keyword_idea_metrics
-              s=int(m.avg_monthly_searches or 0)
+              m=x.keyword_idea_metrics; s=int(m.avg_monthly_searches or 0)
               if s<=0: continue
-              ci=metric(m,'competition_index')
-              lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
-              text=x.text.strip()
-              is_seed=text.lower().replace(' ','') in seed_norm
-              rows.append({
-                'keyword':text,'searches':s,'competition':getattr(m.competition,'name',str(m.competition)),
-                'ci':ci,'low':None if lo is None else round(lo/1e6,2),'high':None if hi is None else round(hi/1e6,2),
-                'seed':is_seed
-              })
-            rows.sort(key=lambda r:(0 if r['seed'] else 1,-r['searches'],999 if r['ci'] is None else r['ci']))
-            print(f'FINALIST_CLUSTER|{label}|ideas={len(results)}|nonzero={len(rows)}')
-            for r in rows[:50]:
-              gate='GREEN' if r['searches']>=10 and r['ci'] is not None and r['ci']<=35 and (r['high'] is None or r['high']<=1.00) else ('AMBER' if r['searches']>=10 and (r['ci'] is None or r['ci']<=60) and (r['high'] is None or r['high']<=1.50) else 'RED')
-              print('FINALIST|gate={}|seed={}|cluster={}|keyword={}|searches={}|competition={}|ci={}|low_usd={}|high_usd={}'.format(gate,r['seed'],label,r['keyword'],r['searches'],r['competition'],r['ci'],r['low'],r['high']))
+              ci=metric(m,'competition_index'); lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+              text=x.text.strip(); seed=text.lower().replace(' ','') in seed_norm
+              rows.append((seed,text,s,getattr(m.competition,'name',str(m.competition)),ci,None if lo is None else round(lo/1e6,2),None if hi is None else round(hi/1e6,2)))
+            rows.sort(key=lambda r:(0 if r[0] else 1,-r[2],999 if r[4] is None else r[4]))
+            print(f'MARKET|{label}|ideas={len(results)}|nonzero={len(rows)}')
+            for seed,text,s,comp,ci,lo,hi in rows[:60]:
+              gate='GREEN' if s>=10 and ci is not None and ci<=35 and (hi is None or hi<=1.00) else ('AMBER' if s>=10 and (ci is None or ci<=60) and (hi is None or hi<=1.50) else 'RED')
+              print(f'DIECAST|gate={gate}|seed={seed}|market={label}|keyword={text}|searches={s}|competition={comp}|ci={ci}|low_usd={lo}|high_usd={hi}')
             time.sleep(5)
           print('BASIC_PLANNER_ACCESS|PASS')
           print('MODE|READ_ONLY|NO_ADS_CREATED')
