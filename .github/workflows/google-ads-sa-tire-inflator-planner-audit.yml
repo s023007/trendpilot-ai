@@ -25,7 +25,7 @@ jobs:
       - name: Install Google Ads client
         run: pip install --disable-pip-version-check google-ads
 
-      - name: Saudi Basic Planner low-competition scout
+      - name: Saudi Basic Planner buyer-intent low-competition scout
         shell: bash
         run: |
           set -euo pipefail
@@ -49,120 +49,111 @@ jobs:
 
           groups=[
             ('AR','languageConstants/1019',[
-              'منفاخ كفرات','منفاخ هواء للسيارة','كمبروسر هواء سيارة',
-              'مضخة هواء للسيارة','منفاخ كفرات لاسلكي','منفاخ كفرات كهربائي',
-              'منفاخ كفرات قابل للشحن','منفاخ كفرات 12 فولت','منفاخ كفرات صغير',
-              'جهاز نفخ كفرات','منفاخ اطارات سيارة','منفاخ كفرات محمول',
-              'منفاخ كفرات 150 psi','منفاخ كفرات رقمي','كمبروسر صغير للسيارة'
+              'منفاخ كفرات','منفاخ هواء للسيارة','كمبروسر هواء سيارة','مضخة هواء للسيارة',
+              'منفاخ كفرات لاسلكي','منفاخ كفرات كهربائي','منفاخ كفرات قابل للشحن',
+              'منفاخ كفرات 12 فولت','منفاخ كفرات صغير','جهاز نفخ كفرات',
+              'منفاخ اطارات سيارة','منفاخ كفرات محمول','منفاخ كفرات 150 psi','منفاخ كفرات رقمي'
             ]),
             ('EN','languageConstants/1000',[
-              'tire inflator','car tire inflator','portable tire inflator',
-              'cordless tire inflator','rechargeable tire inflator','wireless tire inflator',
-              'digital tire inflator','150 psi tire inflator','12v tire inflator',
-              'mini tire inflator','automatic tire inflator','tire pump for car',
-              'air pump for car tires','portable air compressor for car','car air compressor',
+              'tire inflator','car tire inflator','portable tire inflator','cordless tire inflator',
+              'rechargeable tire inflator','wireless tire inflator','digital tire inflator',
+              '150 psi tire inflator','12v tire inflator','mini tire inflator','automatic tire inflator',
+              'tire pump for car','air pump for car tires','portable air compressor for car',
               'portable tyre inflator','car tyre inflator','electric tire pump'
             ])
           ]
 
-          def metric(m,field):
+          def field(m,name):
             pb=getattr(m,'_pb',m)
             try:
-              if not pb.HasField(field): return None
+              if not pb.HasField(name): return None
             except Exception: pass
-            z=getattr(m,field,None)
-            return int(z) if z is not None else None
+            v=getattr(m,name,None)
+            return int(v) if v is not None else None
 
-          def row(label,text,m,source):
-            ci=metric(m,'competition_index')
-            lo=metric(m,'low_top_of_page_bid_micros')
-            hi=metric(m,'high_top_of_page_bid_micros')
-            comp=getattr(m.competition,'name',str(m.competition))
+          def make(label,text,m,source):
+            ci=field(m,'competition_index')
+            lo=field(m,'low_top_of_page_bid_micros')
+            hi=field(m,'high_top_of_page_bid_micros')
             return {
-              'lang':label,'keyword':str(text).strip(),
-              'searches':int(m.avg_monthly_searches or 0),
-              'competition':comp,'ci':ci,
-              'low':None if lo is None else lo/1e6,
-              'high':None if hi is None else hi/1e6,
-              'source':source,
+              'lang':label,'keyword':str(text).strip(),'source':source,
+              'searches':int(m.avg_monthly_searches or 0),'ci':ci,
+              'competition':getattr(m.competition,'name',str(m.competition)),
+              'low':None if lo is None else lo/1e6,'high':None if hi is None else hi/1e6,
             }
 
-          def relevant(label,text):
-            t=str(text).lower()
-            if label=='AR':
-              return any(x in t for x in ('منفاخ','كمبروسر','مضخة','نفخ')) and any(x in t for x in ('كفر','اطار','إطار','سيار','هواء'))
-            return any(x in t for x in ('inflator','air compressor','air pump','tire pump','tyre pump','electric tire pump')) and any(x in t for x in ('tire','tyre','car','vehicle','air compressor'))
+          brand_bad=re.compile(r'\b(dewalt|milton|norshire|hyper tough|cornwell|ingco|porsche|husky|70mai|xiaomi|makita|ryobi|bosch|black.?decker)\b',re.I)
+          en_bad=re.compile(r'near me|gas station|petrol station|tyre shop|tire shop|garage|motor only|compressor motor|air chuck|chuck for|hose only|connector|adapter only|gauge only|nitrogen|industrial|truck|bus|mains tyre|220v',re.I)
+          ar_bad=re.compile(r'ساكو|محطة|ورشة|صيانة|تصليح|قطع غيار|شاحنة|باص|حافلة|كمبروسر صناعي',re.I)
 
-          print('PLANNER|mode=READ_ONLY|geo=Saudi Arabia|network=GOOGLE_SEARCH|strategy=LOW_COMPETITION_BUY_INTENT')
-          all_rows=[]
+          def buyer_relevant(r):
+            t=r['keyword'].lower()
+            if r['searches'] < 10: return False
+            if r['ci'] is not None and r['ci'] > 50: return False
+            if brand_bad.search(t): return False
+            if r['lang']=='EN':
+              if en_bad.search(t): return False
+              return bool(re.search(r'(tire|tyre).*(inflator|pump)|(inflator|pump).*(tire|tyre)|air compressor.*(car|vehicle|portable|12v)|portable air compressor',t,re.I))
+            if ar_bad.search(t): return False
+            return any(x in t for x in ('منفاخ','كمبروسر','مضخة','نفخ')) and any(x in t for x in ('كفر','اطار','إطار','سيار','هواء'))
+
+          def score(r):
+            ci=55 if r['ci'] is None else r['ci']
+            comp_factor=max(0.05,1-ci/100)
+            intent=1.0
+            t=r['keyword'].lower()
+            for q in ('cordless','rechargeable','portable','12v','digital','automatic','150 psi','hand held','handheld','mini','لاسلكي','قابل للشحن','محمول','12 فولت','رقمي','150'):
+              if q in t: intent += 0.08
+            if 'best ' in t or 'افضل' in t or 'أفضل' in t: intent += 0.05
+            bid=1.0
+            if r['high'] is not None:
+              bid=max(0.55,min(1.15,0.55/max(r['high'],0.05)))
+            return r['searches']*comp_factor*intent*bid
+
+          print('PLANNER|mode=READ_ONLY|geo=Saudi Arabia|network=GOOGLE_SEARCH|goal=LOW_COMPETITION_BUY_INTENT')
+          rows=[]
           try:
             for label,lang,seeds in groups:
-              # 1) Exact seed history.
               hist=client.get_type('GenerateKeywordHistoricalMetricsRequest')
-              hist.customer_id=cid
-              hist.keywords.extend(seeds)
-              hist.geo_target_constants.append(GEO)
-              hist.language=lang
-              hist.keyword_plan_network=NET
+              hist.customer_id=cid; hist.keywords.extend(seeds); hist.geo_target_constants.append(GEO)
+              hist.language=lang; hist.keyword_plan_network=NET
               for x in svc.generate_keyword_historical_metrics(request=hist).results:
-                all_rows.append(row(label,x.text,x.keyword_metrics,'seed'))
+                rows.append(make(label,x.text,x.keyword_metrics,'seed'))
 
-              # 2) Let Basic Planner discover additional Saudi queries from the same intent.
               ideas=client.get_type('GenerateKeywordIdeasRequest')
-              ideas.customer_id=cid
-              ideas.language=lang
-              ideas.geo_target_constants.append(GEO)
-              ideas.keyword_plan_network=NET
-              ideas.include_adult_keywords=False
+              ideas.customer_id=cid; ideas.language=lang; ideas.geo_target_constants.append(GEO)
+              ideas.keyword_plan_network=NET; ideas.include_adult_keywords=False
               ideas.keyword_seed.keywords.extend(seeds[:10])
-              response=svc.generate_keyword_ideas(request=ideas)
-              for x in response.results:
-                if relevant(label,x.text):
-                  all_rows.append(row(label,x.text,x.keyword_idea_metrics,'idea'))
+              for x in svc.generate_keyword_ideas(request=ideas).results:
+                rows.append(make(label,x.text,x.keyword_idea_metrics,'idea'))
 
-            # Dedupe by language + normalized keyword; retain the richest row.
             dedup={}
-            for r in all_rows:
-              key=(r['lang'],re.sub(r'\s+',' ',r['keyword'].lower()).strip())
-              old=dedup.get(key)
-              richness=(r['searches'], r['ci'] is not None, r['source']=='idea')
-              if old is None or richness > (old['searches'],old['ci'] is not None,old['source']=='idea'):
-                dedup[key]=r
+            for r in rows:
+              k=(r['lang'],re.sub(r'\s+',' ',r['keyword'].lower()).strip())
+              old=dedup.get(k)
+              if old is None or (r['searches'],r['ci'] is not None)>(old['searches'],old['ci'] is not None): dedup[k]=r
             rows=list(dedup.values())
+            keep=[r for r in rows if buyer_relevant(r)]
+            for r in keep: r['score']=score(r)
+            keep.sort(key=lambda r:(-r['score'],-r['searches'],999 if r['ci'] is None else r['ci']))
 
-            # Competition-first tiers. Zero-volume terms are never recommended.
-            def tier(r):
-              if r['searches'] < 10: return 9
-              ci=r['ci']
-              if ci is not None and ci <= 20: return 0
-              if ci is not None and ci <= 35: return 1
-              if ci is not None and ci <= 50: return 2
-              if ci is None: return 3
-              return 4
-
-            eligible=[r for r in rows if tier(r) <= 3]
-            eligible.sort(key=lambda r:(tier(r), -r['searches'], 999 if r['high'] is None else r['high'], r['keyword']))
-
-            print('SCOUT_SUMMARY|rows=%d|eligible=%d' % (len(rows),len(eligible)))
-            for r in eligible[:40]:
-              print('SCOUT|tier=%s|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|source=%s' % (
-                tier(r),r['lang'],r['keyword'],r['searches'],r['competition'],r['ci'],
+            print('SCOUT_SUMMARY|all=%d|buyer_low_comp=%d' % (len(rows),len(keep)))
+            for i,r in enumerate(keep[:30],1):
+              print('KEEP|rank=%d|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|score=%.2f|source=%s' % (
+                i,r['lang'],r['keyword'],r['searches'],r['competition'],r['ci'],
                 '' if r['low'] is None else f"{r['low']:.2f}",
-                '' if r['high'] is None else f"{r['high']:.2f}",r['source']))
+                '' if r['high'] is None else f"{r['high']:.2f}",r['score'],r['source']))
 
-            # Keep a small reference list of the highest-demand high-competition terms so we know what to avoid.
-            high=[r for r in rows if r['searches']>=10 and r['ci'] is not None and r['ci']>50]
-            high.sort(key=lambda r:(-r['searches'],r['ci']))
+            high=[r for r in rows if r['searches']>=10 and r['ci'] is not None and r['ci']>50 and buyer_relevant({**r,'ci':50})]
+            high.sort(key=lambda r:-r['searches'])
             for r in high[:15]:
               print('AVOID|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|high_usd=%s' % (
                 r['lang'],r['keyword'],r['searches'],r['competition'],r['ci'],
                 '' if r['high'] is None else f"{r['high']:.2f}"))
-
             print('BASIC_PLANNER_ACCESS|PASS')
           except GoogleAdsException as e:
             print('BASIC_PLANNER_ACCESS|FAIL')
             print('REQUEST_ID|'+str(e.request_id))
-            for er in e.failure.errors:
-              print('ERROR|'+str(er.error_code)+'|'+str(er.message))
+            for er in e.failure.errors: print('ERROR|'+str(er.error_code)+'|'+str(er.message))
             raise
           PY
