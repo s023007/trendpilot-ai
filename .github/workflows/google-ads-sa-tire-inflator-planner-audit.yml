@@ -24,12 +24,13 @@ jobs:
     steps:
       - name: Install Google Ads client
         run: pip install --disable-pip-version-check google-ads
-      - name: Saudi Keyword Planner read-only competition audit
+
+      - name: Saudi Basic Planner low-competition scout
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
-          import os
+          import os,re
           from google.ads.googleads.client import GoogleAdsClient
           from google.ads.googleads.errors import GoogleAdsException
 
@@ -43,36 +44,125 @@ jobs:
           })
           cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
           svc=client.get_service('KeywordPlanIdeaService')
+          GEO='geoTargetConstants/2682'
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+
           groups=[
-            ('AR','languageConstants/1019',['منفاخ كفرات سيارة','منفاخ هواء للسيارة','منفاخ اطارات سيارة','منفاخ كفرات محمول','كمبروسر هواء سيارة','منفاخ كفرات 150 psi','منفاخ كفرات رقمي']),
-            ('EN','languageConstants/1000',['tire inflator','car tire inflator','portable tire inflator','cordless tire inflator','digital tire inflator','150 psi tire inflator','car air compressor'])
+            ('AR','languageConstants/1019',[
+              'منفاخ كفرات','منفاخ هواء للسيارة','كمبروسر هواء سيارة',
+              'مضخة هواء للسيارة','منفاخ كفرات لاسلكي','منفاخ كفرات كهربائي',
+              'منفاخ كفرات قابل للشحن','منفاخ كفرات 12 فولت','منفاخ كفرات صغير',
+              'جهاز نفخ كفرات','منفاخ اطارات سيارة','منفاخ كفرات محمول',
+              'منفاخ كفرات 150 psi','منفاخ كفرات رقمي','كمبروسر صغير للسيارة'
+            ]),
+            ('EN','languageConstants/1000',[
+              'tire inflator','car tire inflator','portable tire inflator',
+              'cordless tire inflator','rechargeable tire inflator','wireless tire inflator',
+              'digital tire inflator','150 psi tire inflator','12v tire inflator',
+              'mini tire inflator','automatic tire inflator','tire pump for car',
+              'air pump for car tires','portable air compressor for car','car air compressor',
+              'portable tyre inflator','car tyre inflator','electric tire pump'
+            ])
           ]
-          print('PLANNER|mode=READ_ONLY|geo=Saudi Arabia|network=GOOGLE_SEARCH')
+
+          def metric(m,field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            z=getattr(m,field,None)
+            return int(z) if z is not None else None
+
+          def row(label,text,m,source):
+            ci=metric(m,'competition_index')
+            lo=metric(m,'low_top_of_page_bid_micros')
+            hi=metric(m,'high_top_of_page_bid_micros')
+            comp=getattr(m.competition,'name',str(m.competition))
+            return {
+              'lang':label,'keyword':str(text).strip(),
+              'searches':int(m.avg_monthly_searches or 0),
+              'competition':comp,'ci':ci,
+              'low':None if lo is None else lo/1e6,
+              'high':None if hi is None else hi/1e6,
+              'source':source,
+            }
+
+          def relevant(label,text):
+            t=str(text).lower()
+            if label=='AR':
+              return any(x in t for x in ('منفاخ','كمبروسر','مضخة','نفخ')) and any(x in t for x in ('كفر','اطار','إطار','سيار','هواء'))
+            return any(x in t for x in ('inflator','air compressor','air pump','tire pump','tyre pump','electric tire pump')) and any(x in t for x in ('tire','tyre','car','vehicle','air compressor'))
+
+          print('PLANNER|mode=READ_ONLY|geo=Saudi Arabia|network=GOOGLE_SEARCH|strategy=LOW_COMPETITION_BUY_INTENT')
+          all_rows=[]
           try:
-            for label,lang,keywords in groups:
-              req=client.get_type('GenerateKeywordHistoricalMetricsRequest')
-              req.customer_id=cid
-              req.keywords.extend(keywords)
-              req.geo_target_constants.append('geoTargetConstants/2682')
-              req.language=lang
-              req.keyword_plan_network=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
-              res=svc.generate_keyword_historical_metrics(request=req)
-              for x in res.results:
-                m=x.keyword_metrics
-                def v(field):
-                  pb=getattr(m,'_pb',m)
-                  try:
-                    if not pb.HasField(field): return None
-                  except Exception: pass
-                  z=getattr(m,field,None); return int(z) if z is not None else None
-                lo=v('low_top_of_page_bid_micros'); hi=v('high_top_of_page_bid_micros'); ci=v('competition_index')
-                print('KW|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s' % (
-                  label,x.text,int(m.avg_monthly_searches or 0),getattr(m.competition,'name',str(m.competition)),ci,
-                  '' if lo is None else f'{lo/1e6:.2f}','' if hi is None else f'{hi/1e6:.2f}'))
+            for label,lang,seeds in groups:
+              # 1) Exact seed history.
+              hist=client.get_type('GenerateKeywordHistoricalMetricsRequest')
+              hist.customer_id=cid
+              hist.keywords.extend(seeds)
+              hist.geo_target_constants.append(GEO)
+              hist.language=lang
+              hist.keyword_plan_network=NET
+              for x in svc.generate_keyword_historical_metrics(request=hist).results:
+                all_rows.append(row(label,x.text,x.keyword_metrics,'seed'))
+
+              # 2) Let Basic Planner discover additional Saudi queries from the same intent.
+              ideas=client.get_type('GenerateKeywordIdeasRequest')
+              ideas.customer_id=cid
+              ideas.language=lang
+              ideas.geo_target_constants.append(GEO)
+              ideas.keyword_plan_network=NET
+              ideas.include_adult_keywords=False
+              ideas.keyword_seed.keywords.extend(seeds[:10])
+              response=svc.generate_keyword_ideas(request=ideas)
+              for x in response.results:
+                if relevant(label,x.text):
+                  all_rows.append(row(label,x.text,x.keyword_idea_metrics,'idea'))
+
+            # Dedupe by language + normalized keyword; retain the richest row.
+            dedup={}
+            for r in all_rows:
+              key=(r['lang'],re.sub(r'\s+',' ',r['keyword'].lower()).strip())
+              old=dedup.get(key)
+              richness=(r['searches'], r['ci'] is not None, r['source']=='idea')
+              if old is None or richness > (old['searches'],old['ci'] is not None,old['source']=='idea'):
+                dedup[key]=r
+            rows=list(dedup.values())
+
+            # Competition-first tiers. Zero-volume terms are never recommended.
+            def tier(r):
+              if r['searches'] < 10: return 9
+              ci=r['ci']
+              if ci is not None and ci <= 20: return 0
+              if ci is not None and ci <= 35: return 1
+              if ci is not None and ci <= 50: return 2
+              if ci is None: return 3
+              return 4
+
+            eligible=[r for r in rows if tier(r) <= 3]
+            eligible.sort(key=lambda r:(tier(r), -r['searches'], 999 if r['high'] is None else r['high'], r['keyword']))
+
+            print('SCOUT_SUMMARY|rows=%d|eligible=%d' % (len(rows),len(eligible)))
+            for r in eligible[:40]:
+              print('SCOUT|tier=%s|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|source=%s' % (
+                tier(r),r['lang'],r['keyword'],r['searches'],r['competition'],r['ci'],
+                '' if r['low'] is None else f"{r['low']:.2f}",
+                '' if r['high'] is None else f"{r['high']:.2f}",r['source']))
+
+            # Keep a small reference list of the highest-demand high-competition terms so we know what to avoid.
+            high=[r for r in rows if r['searches']>=10 and r['ci'] is not None and r['ci']>50]
+            high.sort(key=lambda r:(-r['searches'],r['ci']))
+            for r in high[:15]:
+              print('AVOID|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|high_usd=%s' % (
+                r['lang'],r['keyword'],r['searches'],r['competition'],r['ci'],
+                '' if r['high'] is None else f"{r['high']:.2f}"))
+
             print('BASIC_PLANNER_ACCESS|PASS')
           except GoogleAdsException as e:
             print('BASIC_PLANNER_ACCESS|FAIL')
             print('REQUEST_ID|'+str(e.request_id))
-            for er in e.failure.errors: print('ERROR|'+str(er.error_code)+'|'+str(er.message))
+            for er in e.failure.errors:
+              print('ERROR|'+str(er.error_code)+'|'+str(er.message))
             raise
           PY
