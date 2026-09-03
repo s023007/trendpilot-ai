@@ -1,0 +1,157 @@
+name: Google Ads SA Tire Inflator Low Competition Reconcile
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-ads-sa-tire-inflator-low-competition-reconcile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Apply Basic Planner low-competition portfolio
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          NAME='TrendPilot | SA Tire Inflator | AliExpress | Search | Pilot'
+          HARD_BID=300_000
+          MAX_DAILY_BUDGET=2_000_000
+          MAX_RECENT_COST=6_000_000
+
+          # Basic Planner Saudi / Google Search audit, 2026-09-03.
+          # Only terms compatible with verified landing-page facts are allowed here.
+          # We intentionally exclude cordless/rechargeable/12V despite CI=0 until the product source proves those attributes.
+          TARGET={
+            'vehicle tire inflator':140_000,                 # 10/mo, LOW, CI 0
+            'tire inflator with digital gauge':140_000,      # 10/mo, LOW, CI 21
+            'digital gauge tire inflator':140_000,           # 10/mo, LOW, CI 21
+            'air tyre inflator':130_000,                     # 10/mo, LOW, CI 29
+            'tyre inflator with gauge':120_000,              # 10/mo, MEDIUM, CI 33
+            '150 psi tire inflator':140_000,                 # 10/mo; exact verified 150PSI intent
+          }
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          ga=client.get_service('GoogleAdsService')
+          def rows(q): return list(ga.search(customer_id=cid,query=q))
+          def one(q):
+            r=rows(q)
+            return r[0] if r else None
+
+          acct=one('SELECT customer.currency_code,customer.time_zone FROM customer LIMIT 1')
+          if not acct or acct.customer.currency_code!='USD': raise SystemExit('SAFETY STOP: expected USD account')
+
+          safe=NAME.replace("'","\\'")
+          camps=rows(f"SELECT campaign.resource_name,campaign.id,campaign.status,campaign.advertising_channel_type,campaign.network_settings.target_google_search,campaign.network_settings.target_search_network,campaign.network_settings.target_content_network,campaign.network_settings.target_partner_search_network,campaign.geo_target_type_setting.positive_geo_target_type,campaign_budget.amount_micros FROM campaign WHERE campaign.name='{safe}' AND campaign.status!='REMOVED'")
+          if len(camps)!=1: raise SystemExit('SAFETY STOP: expected exactly one inflator pilot campaign')
+          c=camps[0]
+          camp_id=str(c.campaign.id); camp_res=c.campaign.resource_name; previous=c.campaign.status.name
+          guards=[
+            c.campaign.advertising_channel_type.name=='SEARCH',
+            c.campaign.network_settings.target_google_search is True,
+            c.campaign.network_settings.target_search_network is False,
+            c.campaign.network_settings.target_content_network is False,
+            c.campaign.network_settings.target_partner_search_network is False,
+            c.campaign.geo_target_type_setting.positive_geo_target_type.name=='PRESENCE',
+            int(c.campaign_budget.amount_micros or 0)<=MAX_DAILY_BUDGET,
+            previous in ('ENABLED','PAUSED'),
+            all(int(v)<=HARD_BID for v in TARGET.values()),
+          ]
+          if not all(guards): raise SystemExit('SAFETY STOP: campaign guard mismatch')
+
+          cost=one(f"SELECT campaign.id,metrics.cost_micros FROM campaign WHERE campaign.id={camp_id} AND segments.date DURING LAST_30_DAYS")
+          recent=int(cost.metrics.cost_micros or 0) if cost else 0
+          print('SAFETY|recent_cost_usd=%.2f|daily_budget_usd=%.2f|previous=%s' % (recent/1e6,int(c.campaign_budget.amount_micros)/1e6,previous))
+          if recent>MAX_RECENT_COST: raise SystemExit('SAFETY STOP: recent campaign cost exceeds $6 guard')
+
+          # Saudi-only + Arabic/English guard.
+          crit=rows(f"SELECT campaign_criterion.location.geo_target_constant,campaign_criterion.language.language_constant,campaign_criterion.negative FROM campaign_criterion WHERE campaign.id={camp_id}")
+          loc=sorted({x.campaign_criterion.location.geo_target_constant for x in crit if getattr(x.campaign_criterion.location,'geo_target_constant','') and not x.campaign_criterion.negative})
+          langs=sorted({x.campaign_criterion.language.language_constant for x in crit if getattr(x.campaign_criterion.language,'language_constant','') and not x.campaign_criterion.negative})
+          if loc!=['geoTargetConstants/2682']: raise SystemExit('SAFETY STOP: campaign is not Saudi-only')
+          if langs!=['languageConstants/1000','languageConstants/1019']: raise SystemExit('SAFETY STOP: campaign languages changed')
+
+          ags=rows(f"SELECT ad_group.resource_name,ad_group.id,ad_group.status,ad_group.cpc_bid_micros FROM ad_group WHERE campaign.id={camp_id} AND ad_group.status!='REMOVED'")
+          if len(ags)!=1: raise SystemExit('SAFETY STOP: expected one ad group')
+          ag=ags[0]; ag_res=ag.ad_group.resource_name
+          if int(ag.ad_group.cpc_bid_micros or 0)>HARD_BID: raise SystemExit('SAFETY STOP: ad group bid exceeds cap')
+
+          # Pause campaign during keyword mutation; children and ads remain otherwise untouched.
+          if previous=='ENABLED':
+            op=client.get_type('CampaignOperation'); op.update.resource_name=camp_res; op.update.status=client.enums.CampaignStatusEnum.PAUSED; op.update_mask.paths.append('status')
+            client.get_service('CampaignService').mutate_campaigns(customer_id=cid,operations=[op])
+            print('MUTATION_GUARD|campaign_paused')
+
+          kws=rows(f"SELECT ad_group_criterion.resource_name,ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status,ad_group_criterion.cpc_bid_micros FROM keyword_view WHERE campaign.id={camp_id}")
+          current={x.ad_group_criterion.keyword.text.strip().lower():x for x in kws if x.ad_group_criterion.status.name!='REMOVED'}
+
+          # Pause every old positive keyword that is not in the Basic Planner portfolio.
+          updates=[]
+          for text,x in current.items():
+            cr=x.ad_group_criterion
+            if text not in TARGET and cr.status.name!='PAUSED':
+              op=client.get_type('AdGroupCriterionOperation'); op.update.resource_name=cr.resource_name; op.update.status=client.enums.AdGroupCriterionStatusEnum.PAUSED; op.update_mask.paths.append('status'); updates.append(op)
+              print('PAUSE_OLD|'+cr.keyword.text)
+          if updates: client.get_service('AdGroupCriterionService').mutate_ad_group_criteria(customer_id=cid,operations=updates)
+
+          # Enable/update existing target terms; create missing ones as EXACT only.
+          updates=[]; creates=[]
+          for text,bid in TARGET.items():
+            x=current.get(text)
+            if x:
+              cr=x.ad_group_criterion
+              if cr.keyword.match_type.name!='EXACT': raise SystemExit('SAFETY STOP: target term already exists with non-EXACT match')
+              op=client.get_type('AdGroupCriterionOperation'); op.update.resource_name=cr.resource_name; op.update.status=client.enums.AdGroupCriterionStatusEnum.ENABLED; op.update.cpc_bid_micros=bid; op.update_mask.paths.extend(['status','cpc_bid_micros']); updates.append(op)
+            else:
+              op=client.get_type('AdGroupCriterionOperation'); cr=op.create; cr.ad_group=ag_res; cr.status=client.enums.AdGroupCriterionStatusEnum.ENABLED; cr.keyword.text=text; cr.keyword.match_type=client.enums.KeywordMatchTypeEnum.EXACT; cr.cpc_bid_micros=bid; creates.append(op)
+              print('ADD_LOW_COMP|%s|bid_usd=%.2f' % (text,bid/1e6))
+          svc=client.get_service('AdGroupCriterionService')
+          if updates: svc.mutate_ad_group_criteria(customer_id=cid,operations=updates)
+          if creates: svc.mutate_ad_group_criteria(customer_id=cid,operations=creates)
+
+          # Verify the enabled positive-keyword set exactly matches the low-competition portfolio.
+          after=rows(f"SELECT ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status,ad_group_criterion.cpc_bid_micros FROM keyword_view WHERE campaign.id={camp_id}")
+          enabled=[x.ad_group_criterion for x in after if x.ad_group_criterion.status.name=='ENABLED']
+          enabled_map={x.keyword.text.strip().lower():x for x in enabled}
+          if set(enabled_map)!=set(TARGET): raise SystemExit('SAFETY STOP: enabled keyword set mismatch after reconcile')
+          for text,bid in TARGET.items():
+            x=enabled_map[text]
+            if x.keyword.match_type.name!='EXACT' or int(x.cpc_bid_micros or 0)!=bid or int(x.cpc_bid_micros or 0)>HARD_BID:
+              raise SystemExit('SAFETY STOP: keyword verification failed: '+text)
+
+          # Restore campaign to its previous state only after successful verification.
+          if previous=='ENABLED':
+            op=client.get_type('CampaignOperation'); op.update.resource_name=camp_res; op.update.status=client.enums.CampaignStatusEnum.ENABLED; op.update_mask.paths.append('status')
+            client.get_service('CampaignService').mutate_campaigns(customer_id=cid,operations=[op])
+            print('MUTATION_GUARD|campaign_restored_enabled')
+
+          print('BASIC_PLANNER_PORTFOLIO|PASS|enabled=%d' % len(enabled_map))
+          for text in TARGET: print('ACTIVE_EXACT|'+text)
+          PY
