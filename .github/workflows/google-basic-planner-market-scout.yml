@@ -29,9 +29,9 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import os, math
+          import os, math, time
           from google.ads.googleads.client import GoogleAdsClient
-          from google.ads.googleads.errors import GoogleAdsException
+          from google.api_core.exceptions import ResourceExhausted
 
           client=GoogleAdsClient.load_from_dict({
             'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
@@ -43,60 +43,45 @@ jobs:
           })
           cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
           idea=client.get_service('KeywordPlanIdeaService')
-          geo=client.get_service('GeoTargetConstantService')
           NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
 
           markets={
-            'Ireland': [('EN','languageConstants/1000')],
-            'Canada': [('EN','languageConstants/1000')],
-            'Poland': [('PL','languageConstants/1030'),('EN','languageConstants/1000')],
-            'Bulgaria': [('BG','languageConstants/1020'),('EN','languageConstants/1000')],
-            'Romania': [('RO','languageConstants/1032'),('EN','languageConstants/1000')],
+            'Ireland':  [('EN','languageConstants/1000'),'geoTargetConstants/2372'],
+            'Canada':   [('EN','languageConstants/1000'),'geoTargetConstants/2124'],
+            'Poland':   [('PL','languageConstants/1030'),('EN','languageConstants/1000'),'geoTargetConstants/2616'],
+            'Bulgaria': [('BG','languageConstants/1020'),('EN','languageConstants/1000'),'geoTargetConstants/2100'],
+            'Romania':  [('RO','languageConstants/1032'),('EN','languageConstants/1000'),'geoTargetConstants/2642'],
           }
-          country_codes={'Ireland':'IE','Canada':'CA','Poland':'PL','Bulgaria':'BG','Romania':'RO'}
 
           families={
-            'HARF_OEM_15298923': ['15298923 ignition lock cylinder','15298923 ignition switch','GMC 15298923'],
-            'HARF_MERC_2059056811': ['2059056811 window switch','Mercedes 2059056811','W205 2059056811 switch'],
-            'HARF_AUDI_0B5325429E': ['0B5325429E','Audi 0B5325429E filter','0B5 325 429 E'],
-            'HARF_HUB_110_1_76_1': ['110.1 76.1 hub centric rings','110.1mm to 76.1mm hub rings'],
-            'HARF_HOSE_70MM': ['70mm silicone hose 4 ply','70mm ID silicone hose 500mm','2.75 inch silicone hose 4 ply'],
-            'HARF_HOSE_89_114': ['89mm to 114mm silicone reducer','3.5 to 4.5 silicone reducer hose'],
-            'HARF_VAC_6MM': ['6mm ID silicone vacuum hose 10ft','1/4 6mm silicone vacuum hose'],
-            'HARF_BEARING_51100': ['51100 thrust ball bearing','10x24x9 thrust bearing 51100'],
-            'HARF_DISPLAY_LED': ['acrylic display case LED 4 tier','LED acrylic display case collectibles'],
-            'HARF_VENT_16X16': ['16x16 aluminum return air grille filter','16x16 aluminum vent cover'],
-            'DIECAST_SAUDIA_MD90': ['Saudia MD-90 HZ-API 1:200 GeminiJets','HZ-API model plane'],
-            'DIECAST_SAUDIA_787': ['Saudia 787-9 HZ-ARB 1:400 GeminiJets','HZ-ARB model plane'],
-            'DIECAST_UAE_C17': ['UAE Air Force C-17 1:200 GeminiJets','UAE C17 diecast model'],
-            'DIECAST_EMIRATES_A380': ['Emirates A380 1:400 model','Emirates A380 GeminiJets 1:400'],
-            'DIECAST_ETIHAD_787': ['Etihad 787 model 1:400','Etihad Boeing 787 GeminiJets'],
-            'DIECAST_QATAR_A350': ['Qatar Airways A350 1:400 model','Qatar A350 GeminiJets'],
-            'DIECAST_F1_SAUDI_LECLERC': ['Charles Leclerc Saudi Arabia GP 2024 1:18 LookSmart','LS18F1057'],
-            'DIECAST_F1_ABUDHABI_MAX': ['Max Verstappen Abu Dhabi GP 2023 1:18 Minichamps','RB19 Abu Dhabi GP 2023 1:18'],
-            'DIECAST_F1_QATAR_MAX': ['Max Verstappen Qatar GP 2023 1:18 Minichamps','RB19 Qatar GP 2023 1:18'],
-            'DIECAST_F1_BAHRAIN_PEREZ': ['Sergio Perez Bahrain GP 2024 1:18 Minichamps','RB20 Bahrain GP 2024 1:18'],
-            'DIECAST_CANADA_RCMP': ['RCMP diecast 1:64 Greenlight','Royal Canadian Mounted Police diecast model'],
-            'DIECAST_CANADA_OPP': ['Ontario Provincial Police diecast 1:64','OPP diecast Greenlight'],
-            'DIECAST_CANADA_WESTJET': ['WestJet 737 model plane','WestJet Boeing 737 diecast model'],
-            'DIECAST_CANADA_CCG': ['Canada Coast Guard diecast model','Canadian Coast Guard model vehicle'],
+            'HARF_OEM_15298923':['15298923 ignition lock cylinder','15298923 ignition switch','GMC 15298923'],
+            'HARF_MERC_2059056811':['2059056811 window switch','Mercedes 2059056811','W205 2059056811 switch'],
+            'HARF_AUDI_0B5325429E':['0B5325429E','Audi 0B5325429E filter','0B5 325 429 E'],
+            'HARF_HUB_110_1_76_1':['110.1 76.1 hub centric rings','110.1mm to 76.1mm hub rings'],
+            'HARF_HOSE_70MM':['70mm silicone hose 4 ply','70mm ID silicone hose 500mm','2.75 inch silicone hose 4 ply'],
+            'HARF_HOSE_89_114':['89mm to 114mm silicone reducer','3.5 to 4.5 silicone reducer hose'],
+            'HARF_VAC_6MM':['6mm ID silicone vacuum hose 10ft','1/4 6mm silicone vacuum hose'],
+            'HARF_BEARING_51100':['51100 thrust ball bearing','10x24x9 thrust bearing 51100'],
+            'HARF_DISPLAY_LED':['acrylic display case LED 4 tier','LED acrylic display case collectibles'],
+            'HARF_VENT_16X16':['16x16 aluminum return air grille filter','16x16 aluminum vent cover'],
+            'DIECAST_SAUDIA_MD90':['Saudia MD-90 HZ-API 1:200 GeminiJets','HZ-API model plane'],
+            'DIECAST_SAUDIA_787':['Saudia 787-9 HZ-ARB 1:400 GeminiJets','HZ-ARB model plane'],
+            'DIECAST_UAE_C17':['UAE Air Force C-17 1:200 GeminiJets','UAE C17 diecast model'],
+            'DIECAST_EMIRATES_A380':['Emirates A380 1:400 model','Emirates A380 GeminiJets 1:400'],
+            'DIECAST_ETIHAD_787':['Etihad 787 model 1:400','Etihad Boeing 787 GeminiJets'],
+            'DIECAST_QATAR_A350':['Qatar Airways A350 1:400 model','Qatar A350 GeminiJets'],
+            'DIECAST_F1_SAUDI_LECLERC':['Charles Leclerc Saudi Arabia GP 2024 1:18 LookSmart','LS18F1057'],
+            'DIECAST_F1_ABUDHABI_MAX':['Max Verstappen Abu Dhabi GP 2023 1:18 Minichamps','RB19 Abu Dhabi GP 2023 1:18'],
+            'DIECAST_F1_QATAR_MAX':['Max Verstappen Qatar GP 2023 1:18 Minichamps','RB19 Qatar GP 2023 1:18'],
+            'DIECAST_F1_BAHRAIN_PEREZ':['Sergio Perez Bahrain GP 2024 1:18 Minichamps','RB20 Bahrain GP 2024 1:18'],
+            'DIECAST_CANADA_RCMP':['RCMP diecast 1:64 Greenlight','Royal Canadian Mounted Police diecast model'],
+            'DIECAST_CANADA_OPP':['Ontario Provincial Police diecast 1:64','OPP diecast Greenlight'],
+            'DIECAST_CANADA_WESTJET':['WestJet 737 model plane','WestJet Boeing 737 diecast model'],
+            'DIECAST_CANADA_CCG':['Canada Coast Guard diecast model','Canadian Coast Guard model vehicle'],
           }
 
-          def georef(country):
-            req=client.get_type('SuggestGeoTargetConstantsRequest')
-            req.locale='en'
-            req.country_code=country_codes[country]
-            req.location_names.names.append(country)
-            res=geo.suggest_geo_target_constants(request=req)
-            picks=[]
-            for s in res.geo_target_constant_suggestions:
-              g=s.geo_target_constant
-              picks.append((g.target_type=='Country', g.name.lower()==country.lower(), g.resource_name, g.name, g.target_type))
-            if not picks: raise RuntimeError('No geo target for '+country)
-            picks.sort(reverse=True)
-            chosen=picks[0]
-            print('GEO|country=%s|resource=%s|name=%s|type=%s' % (country,chosen[2],chosen[3],chosen[4]))
-            return chosen[2]
+          seed_to_family={s.lower():fam for fam,seeds in families.items() for s in seeds}
+          all_seeds=[s for seeds in families.values() for s in seeds]
 
           def metric(m,field):
             pb=getattr(m,'_pb',m)
@@ -106,50 +91,46 @@ jobs:
             v=getattr(m,field,None)
             return int(v) if v is not None else None
 
-          def hist(country, lang, seeds):
+          def call_batch(market, lang_ref, geo_ref):
             req=client.get_type('GenerateKeywordHistoricalMetricsRequest')
             req.customer_id=cid
-            req.keywords.extend(seeds)
-            req.geo_target_constants.append(geos[country])
-            req.language=lang
+            req.keywords.extend(all_seeds)
+            req.geo_target_constants.append(geo_ref)
+            req.language=lang_ref
             req.keyword_plan_network=NET
-            out=[]
-            for x in idea.generate_keyword_historical_metrics(request=req).results:
-              m=x.keyword_metrics
-              ci=metric(m,'competition_index')
-              lo=metric(m,'low_top_of_page_bid_micros')
-              hi=metric(m,'high_top_of_page_bid_micros')
-              out.append({
-                'keyword':x.text,
-                'searches':int(m.avg_monthly_searches or 0),
-                'competition':getattr(m.competition,'name',str(m.competition)),
-                'ci':ci,
-                'low_usd':None if lo is None else round(lo/1e6,2),
-                'high_usd':None if hi is None else round(hi/1e6,2),
-              })
-            return out
+            for attempt in range(5):
+              try:
+                return idea.generate_keyword_historical_metrics(request=req).results
+              except ResourceExhausted:
+                wait=5*(attempt+1)
+                print(f'RATE_LIMIT|market={market}|wait={wait}s|attempt={attempt+1}')
+                time.sleep(wait)
+            raise RuntimeError('Planner rate limit persisted for '+market)
 
-          def score(row):
-            s=row['searches']
-            if s<=0:return -999
-            ci=55 if row['ci'] is None else row['ci']
+          def score(r):
+            if r['searches']<=0:return -999
+            ci=55 if r['ci'] is None else r['ci']
             comp=max(.08,1-ci/100)
-            bid=row['high_usd'] if row['high_usd'] is not None else .75
-            bid_factor=max(.35,min(1.2,.75/max(bid,.05)))
-            return round(math.log10(s+10)*comp*bid_factor*100,2)
+            bid=r['high_usd'] if r['high_usd'] is not None else .75
+            return round(math.log10(r['searches']+10)*comp*max(.35,min(1.2,.75/max(bid,.05)))*100,2)
 
-          geos={m:georef(m) for m in markets}
           rows=[]
-          for market,langs in markets.items():
-            for fam,seeds in families.items():
-              for lang_label,lang_ref in langs:
-                try:
-                  for r in hist(market,lang_ref,seeds):
-                    r.update(market=market,language=lang_label,family=fam,score=0)
-                    r['score']=score(r)
-                    rows.append(r)
-                except GoogleAdsException as e:
-                  print('PLANNER_ERROR|market=%s|family=%s|lang=%s|request=%s' % (market,fam,lang_label,e.request_id))
+          for market,vals in markets.items():
+            geo_ref=vals[-1]
+            for lang_label,lang_ref in vals[:-1]:
+              results=call_batch(market,lang_ref,geo_ref)
+              print(f'BATCH|market={market}|lang={lang_label}|results={len(results)}')
+              for x in results:
+                fam=seed_to_family.get(x.text.lower())
+                if not fam: continue
+                m=x.keyword_metrics
+                lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+                r={'market':market,'language':lang_label,'family':fam,'keyword':x.text,
+                   'searches':int(m.avg_monthly_searches or 0),'competition':getattr(m.competition,'name',str(m.competition)),
+                   'ci':metric(m,'competition_index'),'low_usd':None if lo is None else round(lo/1e6,2),
+                   'high_usd':None if hi is None else round(hi/1e6,2)}
+                r['score']=score(r); rows.append(r)
+              time.sleep(5)
 
           best={}
           for r in rows:
@@ -161,7 +142,6 @@ jobs:
           print('SUMMARY|families=%d|market_family_pairs=%d' % (len(families),len(ranked)))
           for r in ranked:
             gate='GREEN' if r['searches']>=10 and (r['ci'] is None or r['ci']<=35) and (r['high_usd'] is None or r['high_usd']<=1.50) else ('AMBER' if r['searches']>=10 and (r['ci'] is None or r['ci']<=60) else 'RED')
-            print('RESULT|gate=%s|market=%s|family=%s|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|score=%s' % (
-              gate,r['market'],r['family'],r['language'],r['keyword'],r['searches'],r['competition'],r['ci'],r['low_usd'],r['high_usd'],r['score']))
+            print('RESULT|gate=%s|market=%s|family=%s|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|score=%s' % (gate,r['market'],r['family'],r['language'],r['keyword'],r['searches'],r['competition'],r['ci'],r['low_usd'],r['high_usd'],r['score']))
           print('BASIC_PLANNER_ACCESS|PASS')
           PY
