@@ -29,8 +29,7 @@ jobs:
         run: |
           set -euo pipefail
           python - <<'PY'
-          import os, json, re, math
-          from pathlib import Path
+          import os, math
           from google.ads.googleads.client import GoogleAdsClient
           from google.ads.googleads.errors import GoogleAdsException
 
@@ -47,7 +46,6 @@ jobs:
           geo=client.get_service('GeoTargetConstantService')
           NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
 
-          # Languages: English for Ireland/Canada; local language plus English for PL/BG/RO.
           markets={
             'Ireland': [('EN','languageConstants/1000')],
             'Canada': [('EN','languageConstants/1000')],
@@ -55,9 +53,8 @@ jobs:
             'Bulgaria': [('BG','languageConstants/1020'),('EN','languageConstants/1000')],
             'Romania': [('RO','languageConstants/1032'),('EN','languageConstants/1000')],
           }
+          country_codes={'Ireland':'IE','Canada':'CA','Poland':'PL','Bulgaria':'BG','Romania':'RO'}
 
-          # Product-intent families selected from TrendPilot Harfington/Diecast catalogs.
-          # We deliberately prefer exact part numbers, exact dimensions and collector model identifiers.
           families={
             'HARF_OEM_15298923': ['15298923 ignition lock cylinder','15298923 ignition switch','GMC 15298923'],
             'HARF_MERC_2059056811': ['2059056811 window switch','Mercedes 2059056811','W205 2059056811 switch'],
@@ -69,7 +66,6 @@ jobs:
             'HARF_BEARING_51100': ['51100 thrust ball bearing','10x24x9 thrust bearing 51100'],
             'HARF_DISPLAY_LED': ['acrylic display case LED 4 tier','LED acrylic display case collectibles'],
             'HARF_VENT_16X16': ['16x16 aluminum return air grille filter','16x16 aluminum vent cover'],
-
             'DIECAST_SAUDIA_MD90': ['Saudia MD-90 HZ-API 1:200 GeminiJets','HZ-API model plane'],
             'DIECAST_SAUDIA_787': ['Saudia 787-9 HZ-ARB 1:400 GeminiJets','HZ-ARB model plane'],
             'DIECAST_UAE_C17': ['UAE Air Force C-17 1:200 GeminiJets','UAE C17 diecast model'],
@@ -89,17 +85,18 @@ jobs:
           def georef(country):
             req=client.get_type('SuggestGeoTargetConstantsRequest')
             req.locale='en'
-            req.country_code=''
+            req.country_code=country_codes[country]
             req.location_names.names.append(country)
             res=geo.suggest_geo_target_constants(request=req)
-            # Choose COUNTRY target first; otherwise first exact-name suggestion.
             picks=[]
             for s in res.geo_target_constant_suggestions:
               g=s.geo_target_constant
               picks.append((g.target_type=='Country', g.name.lower()==country.lower(), g.resource_name, g.name, g.target_type))
             if not picks: raise RuntimeError('No geo target for '+country)
             picks.sort(reverse=True)
-            return picks[0][2]
+            chosen=picks[0]
+            print('GEO|country=%s|resource=%s|name=%s|type=%s' % (country,chosen[2],chosen[3],chosen[4]))
+            return chosen[2]
 
           def metric(m,field):
             pb=getattr(m,'_pb',m)
@@ -133,7 +130,6 @@ jobs:
             return out
 
           def score(row):
-            # No volume = diagnostic only, never green. Competition-first, then demand and bid.
             s=row['searches']
             if s<=0:return -999
             ci=55 if row['ci'] is None else row['ci']
@@ -155,7 +151,6 @@ jobs:
                 except GoogleAdsException as e:
                   print('PLANNER_ERROR|market=%s|family=%s|lang=%s|request=%s' % (market,fam,lang_label,e.request_id))
 
-          # Summarize by market/family using best keyword result.
           best={}
           for r in rows:
             k=(r['market'],r['family'])
