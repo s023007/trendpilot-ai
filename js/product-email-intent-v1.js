@@ -1,28 +1,24 @@
 (function(){
   'use strict';
-  var root=document.documentElement;
   var body=document.body;
   if(!body||body.dataset.tpPage!=='sa-aliexpress-product-pilot') return;
 
   var cfg={
     campaign:'sa_tire_inflator_aliexpress',
     seller:'AliExpress',
-    price:body.dataset.defaultPrice||'',
-    productId:body.dataset.defaultProductId||'',
-    title:body.dataset.defaultProductTitle||'منفاخ إطارات',
-    offerUrl:body.dataset.offerUrl||'',
-    endpoint:'https://api.trendpilotchoice.com/save-search.php',
-    goEndpoint:'https://api.trendpilotchoice.com/go.php'
+    productId:'',title:'',price:'',offerUrl:'',
+    endpoint:'https://api.trendpilotchoice.com/save-search.php'
   };
 
   function qs(sel,ctx){return (ctx||document).querySelector(sel);}
   function qsa(sel,ctx){return Array.prototype.slice.call((ctx||document).querySelectorAll(sel));}
-  function params(){return new URLSearchParams(location.search||'');}
   function clean(v,n){return String(v||'').trim().slice(0,n||300);}
+  function params(){return new URLSearchParams(location.search||'');}
   function push(name,data){
     var payload=Object.assign({event:name,product_id:cfg.productId,merchant:cfg.seller,product_title:cfg.title},data||{});
-    window.dataLayer=window.dataLayer||[]; window.dataLayer.push(payload);
-    try{if(typeof window.gtag==='function') window.gtag('event',name,Object.assign({product_id:cfg.productId,merchant:cfg.seller,product_title:cfg.title},data||{}));}catch(e){}
+    window.dataLayer=window.dataLayer||[];
+    window.dataLayer.push(payload);
+    try{if(typeof window.gtag==='function')window.gtag('event',name,payload);}catch(e){}
   }
   function paidContext(){
     var p=params(),keys=['gclid','gbraid','wbraid','utm_source','utm_medium','utm_campaign','utm_term','utm_content'],out={};
@@ -33,79 +29,76 @@
     }catch(e){}
     return out;
   }
-  function remember(source){
-    try{sessionStorage.setItem('tp_last_product_intent',JSON.stringify({at:Date.now(),product_id:cfg.productId,product_title:cfg.title,merchant:cfg.seller,source:source||'unknown'}));}catch(e){}
-  }
-  function trackSeller(source){remember(source);push('seller_outbound_click',{source:source||'landing',page_path:location.pathname});}
 
   var modal=qs('#tp-email-intent-modal');
   var form=qs('#tp-email-intent-form');
   var email=qs('#tp-email-intent-email');
   var status=qs('#tp-email-intent-status');
   var submit=qs('#tp-email-intent-submit');
-  var fallback=qs('#tp-email-intent-fallback');
-  var modalProduct=qs('#tp-email-product-name');
+  var direct=qs('#tp-email-direct');
+  var productName=qs('#tp-email-product-name');
 
-  function selectProduct(button){
-    if(!button) return;
-    cfg.productId=clean(button.dataset.productId||cfg.productId,120);
-    cfg.title=clean(button.dataset.productTitle||cfg.title,220);
-    cfg.price=clean(button.dataset.price||cfg.price,80);
-    cfg.seller=clean(button.dataset.seller||cfg.seller,80)||'AliExpress';
-    cfg.offerUrl=button.dataset.offerUrl||cfg.offerUrl;
-    if(modalProduct) modalProduct.textContent=cfg.title;
-    if(fallback&&cfg.offerUrl) fallback.href=cfg.offerUrl;
+  function selectProduct(a){
+    cfg.productId=clean(a&&a.dataset.productId,120);
+    cfg.title=clean(a&&a.dataset.productTitle,220)||'منفاخ إطارات';
+    cfg.price=clean(a&&a.dataset.price,80);
+    cfg.seller=clean(a&&a.dataset.seller,80)||'AliExpress';
+    cfg.offerUrl=(a&&a.dataset.offerUrl)||(a&&a.href)||'';
+    if(productName)productName.textContent=cfg.title;
+    if(direct&&cfg.offerUrl)direct.href=cfg.offerUrl;
   }
 
-  function openModal(button){
+  function openModal(a){
     if(!modal)return;
-    selectProduct(button);
-    modal.dataset.source=(button&&button.dataset.source)||'purchase_cta';
+    selectProduct(a);
+    modal.dataset.source=(a&&a.dataset.source)||'product_card';
     if(status){status.textContent='';status.className='tp-email-status';}
-    if(submit){submit.disabled=false;submit.textContent='احفظ الرابط وافتح السعر';}
-    if(fallback)fallback.hidden=true;
+    if(submit){submit.disabled=false;submit.textContent='احفظ وافتح العرض';}
     modal.hidden=false;
-    body.classList.add('tp-modal-open');root.classList.add('tp-modal-open');
     push('purchase_email_modal_open',{source:modal.dataset.source});
-    setTimeout(function(){if(email)email.focus();},50);
+    setTimeout(function(){if(email)email.focus();},80);
   }
-  function closeModal(){
-    if(!modal)return;
-    modal.hidden=true;body.classList.remove('tp-modal-open');root.classList.remove('tp-modal-open');
-  }
+  function closeModal(){if(modal)modal.hidden=true;}
 
-  qsa('[data-open-email-intent]').forEach(function(b){
-    b.addEventListener('click',function(e){e.preventDefault();openModal(b);});
+  qsa('[data-email-gate]').forEach(function(a){
+    a.addEventListener('click',function(e){
+      if(!modal)return;
+      e.preventDefault();
+      openModal(a);
+    });
   });
-  qsa('[data-close-email-intent]').forEach(function(b){b.addEventListener('click',closeModal);});
+  qsa('[data-close-email-intent]').forEach(function(el){el.addEventListener('click',closeModal);});
   if(modal)modal.addEventListener('click',function(e){if(e.target===modal)closeModal();});
   document.addEventListener('keydown',function(e){if(e.key==='Escape'&&modal&&!modal.hidden)closeModal();});
 
-  function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)&&v.length<=190;}
-  function goToOffer(source){
-    if(!cfg.offerUrl)return;
-    trackSeller(source||'email_purchase_continue');
-    location.assign(cfg.offerUrl);
+  if(direct){
+    direct.addEventListener('click',function(){
+      push('seller_outbound_click',{source:'continue_without_email',page_path:location.pathname});
+    });
   }
 
+  function validEmail(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)&&v.length<=190;}
   if(form){
     form.addEventListener('submit',async function(e){
       e.preventDefault();
       var value=clean(email&&email.value,190);
       if(!validEmail(value)){
         if(status){status.textContent='اكتب بريدًا إلكترونيًا صحيحًا.';status.className='tp-email-status is-error';}
-        if(email)email.focus();return;
+        if(email)email.focus();
+        return;
       }
-      if(!cfg.offerUrl){if(status){status.textContent='تعذر تجهيز رابط المنتج.';status.className='tp-email-status is-error';}return;}
+      if(!cfg.offerUrl){
+        if(status){status.textContent='تعذر تجهيز رابط العرض.';status.className='tp-email-status is-error';}
+        return;
+      }
       if(submit){submit.disabled=true;submit.textContent='لحظة…';}
-      if(fallback)fallback.hidden=true;
-      if(status){status.textContent='';status.className='tp-email-status';}
       var ctx=paidContext();
       var payload=Object.assign({
         campaign_id:cfg.campaign,
         email:value,
         updates:'exact_product_link',
-        lang:'ar',seller:cfg.seller,price:cfg.price,product_id:cfg.productId,product_title:cfg.title,offer_url:cfg.offerUrl,
+        lang:'ar',seller:cfg.seller,price:cfg.price,
+        product_id:cfg.productId,product_title:cfg.title,offer_url:cfg.offerUrl,
         page_url:location.origin+location.pathname+location.search,
         alert_opt_in:false,
         source_event:'PURCHASE_EMAIL_INTENT',
@@ -116,24 +109,13 @@
         var data={};try{data=await r.json();}catch(_e){}
         if(!r.ok||!data||data.ok!==true)throw new Error((data&&data.error)||('HTTP_'+r.status));
         push('PURCHASE_EMAIL_INTENT',{source:payload.source_label,lead_id:clean(data.lead_id,32),has_gclid:!!ctx.gclid});
-        if(status){status.textContent='✓ تم الحفظ. نفتح السعر الآن…';status.className='tp-email-status is-success';}
-        setTimeout(function(){goToOffer('email_purchase_continue');},300);
+        if(status){status.textContent='✓ تم الحفظ — نفتح العرض الآن.';status.className='tp-email-status is-success';}
+        setTimeout(function(){location.assign(cfg.offerUrl);},260);
       }catch(err){
         push('purchase_email_intent_error',{reason:clean(err&&err.message,120)});
-        if(status){status.textContent='تعذر حفظ البريد الآن.';status.className='tp-email-status is-error';}
-        if(fallback)fallback.hidden=false;
+        if(status){status.textContent='تعذر حفظ البريد الآن. يمكنك المتابعة للعرض مباشرة.';status.className='tp-email-status is-error';}
         if(submit){submit.disabled=false;submit.textContent='حاول مرة أخرى';}
       }
     });
   }
-  if(fallback)fallback.addEventListener('click',function(e){e.preventDefault();goToOffer('email_capture_fallback');});
-
-  (function handleEmailReturn(){
-    var p=params();if(p.get('return')!=='email-buy')return;
-    var lead=clean(p.get('lead'),32),campaign=clean(p.get('campaign'),80),to=clean(p.get('to'),4000);
-    push('EMAIL_BUY_INTENT',{source:'saved_email',lead_id:lead,campaign_id:campaign||cfg.campaign,has_destination:!!to});
-    if(!lead||!to)return;
-    var u=cfg.goEndpoint+'?lead='+encodeURIComponent(lead)+'&campaign='+encodeURIComponent(campaign||cfg.campaign)+'&mode=direct_buy&to='+encodeURIComponent(to);
-    setTimeout(function(){location.replace(u);},120);
-  })();
 })();
