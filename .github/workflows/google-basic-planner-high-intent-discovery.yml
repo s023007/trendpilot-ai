@@ -1,0 +1,153 @@
+name: Google Basic Planner High-Intent Product Discovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-basic-planner-high-intent-discovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Read-only high-intent discovery
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, time, math, re
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          svc=client.get_service('KeywordPlanIdeaService')
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+
+          markets={
+            'Bulgaria': ('languageConstants/1020','geoTargetConstants/2100'),
+            'Ireland': ('languageConstants/1000','geoTargetConstants/2372'),
+            'Canada': ('languageConstants/1000','geoTargetConstants/2124'),
+            'UnitedKingdom': ('languageConstants/1000','geoTargetConstants/2826'),
+            'NewZealand': ('languageConstants/1000','geoTargetConstants/2554'),
+          }
+
+          clusters={
+            'HARFINGTON_HIGH_INTENT':[
+              'transmission filter kit',
+              'transmission solenoid kit',
+              'automatic transmission oil pan kit',
+              'gearbox filter kit',
+              'acrylic display case for collectibles',
+              'large acrylic display case',
+              'hub centric rings',
+              'silicone reducer hose',
+              'thrust bearing 51100',
+              'audi window switch',
+              'ignition lock cylinder',
+            ],
+            'DIECAST_COLLECTOR':[
+              '1 18 diecast model cars',
+              '1 18 f1 diecast',
+              'minichamps 1 18',
+              'autoart 1 18',
+              'norev 1 18',
+              'geminijets 1 400',
+              '1 400 model aircraft',
+              'airline model plane 1 400',
+              'limited edition diecast 1 18',
+              'diecast model aircraft',
+            ],
+          }
+
+          def metric(m,field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            v=getattr(m,field,None)
+            return int(v) if v is not None else None
+
+          def ideas(market, lang, geo, seeds):
+            req=client.get_type('GenerateKeywordIdeasRequest')
+            req.customer_id=cid
+            req.language=lang
+            req.geo_target_constants.append(geo)
+            req.keyword_plan_network=NET
+            req.keyword_seed.keywords.extend(seeds)
+            for attempt in range(5):
+              try:
+                return list(svc.generate_keyword_ideas(request=req))
+              except ResourceExhausted:
+                wait=5*(attempt+1)
+                print(f'RATE_LIMIT|market={market}|wait={wait}|attempt={attempt+1}')
+                time.sleep(wait)
+            raise RuntimeError('Planner rate limit persisted: '+market)
+
+          def score(r):
+            s=r['searches']
+            if s<=0:return -999
+            ci=50 if r['ci'] is None else r['ci']
+            high=.80 if r['high'] is None else max(.05,r['high'])
+            return round(math.log10(s+10) * max(.08,1-ci/100) * max(.25,min(1.25,.60/high))*100,2)
+
+          def gate(r):
+            if r['searches']>=10 and r['ci'] is not None and r['ci']<=35 and (r['high'] is None or r['high']<=1.00): return 'GREEN'
+            if r['searches']>=10 and (r['ci'] is None or r['ci']<=60) and (r['high'] is None or r['high']<=1.50): return 'AMBER'
+            return 'RED'
+
+          all_rows=[]
+          for market,(lang,geo) in markets.items():
+            for cluster,seeds in clusters.items():
+              results=ideas(market,lang,geo,seeds)
+              rows=[]
+              for x in results:
+                m=x.keyword_idea_metrics
+                searches=int(m.avg_monthly_searches or 0)
+                if searches<=0: continue
+                ci=metric(m,'competition_index')
+                lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+                row={
+                  'market':market,'cluster':cluster,'keyword':x.text.strip(),'searches':searches,
+                  'competition':getattr(m.competition,'name',str(m.competition)),'ci':ci,
+                  'low':None if lo is None else round(lo/1e6,2),
+                  'high':None if hi is None else round(hi/1e6,2),
+                }
+                row['score']=score(row); row['gate']=gate(row); rows.append(row); all_rows.append(row)
+              rows.sort(key=lambda r:(0 if r['gate']=='GREEN' else 1 if r['gate']=='AMBER' else 2,-r['score'],-r['searches']))
+              print(f'CLUSTER|market={market}|cluster={cluster}|ideas={len(results)}|nonzero={len(rows)}')
+              for r in rows[:25]:
+                print('IDEA|gate={gate}|market={market}|cluster={cluster}|keyword={keyword}|searches={searches}|competition={competition}|ci={ci}|low_usd={low}|high_usd={high}|score={score}'.format(**r))
+              time.sleep(5)
+
+          good=[r for r in all_rows if r['gate'] in ('GREEN','AMBER')]
+          good.sort(key=lambda r:(0 if r['gate']=='GREEN' else 1,-r['score'],-r['searches']))
+          print(f'SUMMARY|total_nonzero={len(all_rows)}|green_amber={len(good)}')
+          print('TOP_SHORTLIST_BEGIN')
+          for r in good[:40]:
+            print('SHORTLIST|gate={gate}|market={market}|cluster={cluster}|keyword={keyword}|searches={searches}|competition={competition}|ci={ci}|low_usd={low}|high_usd={high}|score={score}'.format(**r))
+          print('TOP_SHORTLIST_END')
+          print('BASIC_PLANNER_ACCESS|PASS')
+          PY
