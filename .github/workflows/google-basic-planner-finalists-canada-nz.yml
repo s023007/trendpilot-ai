@@ -1,0 +1,101 @@
+name: Google Basic Planner Finalists Canada NZ
+
+on:
+  push:
+    paths:
+      - '.github/workflows/google-basic-planner-finalists-canada-nz.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  scout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Validate finalist buyer-intent terms
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, time
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          svc=client.get_service('KeywordPlanIdeaService')
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+
+          tests=[
+            ('Canada_Diecast','languageConstants/1000','geoTargetConstants/2124',[
+              'maisto diecast cars 1 18','maisto 1 18 scale diecast cars','buy maisto 1 18 canada',
+              '1 18 diecast cars canada','american muscle diecast cars 1 18','corvette diecast 1 18',
+              'corgi diecast aircraft','1 18 models canada'
+            ]),
+            ('Canada_Harfington','languageConstants/1000','geoTargetConstants/2124',[
+              'plastic hub centric rings','hub centric rings for aftermarket wheels','73.1 57.1 hub centric rings',
+              '66.6 57.1 hub centric rings','aftermarket wheel hub rings','transmission solenoid pack'
+            ]),
+            ('NewZealand_Harfington','languageConstants/1000','geoTargetConstants/2554',[
+              'transmission fluid filter kit','transmission filter and gasket','allison transmission filter kit',
+              'ignition lock cylinder','ignition switch cylinder'
+            ]),
+          ]
+
+          def metric(m, field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            v=getattr(m,field,None)
+            return int(v) if v is not None else None
+
+          for label,lang,geo,seeds in tests:
+            req=client.get_type('GenerateKeywordIdeasRequest')
+            req.customer_id=cid
+            req.language=lang
+            req.geo_target_constants.append(geo)
+            req.keyword_plan_network=NET
+            req.keyword_seed.keywords.extend(seeds)
+            for attempt in range(5):
+              try:
+                rows=list(svc.generate_keyword_ideas(request=req)); break
+              except ResourceExhausted:
+                time.sleep(5*(attempt+1))
+            else:
+              raise RuntimeError('rate limit persisted')
+            out=[]
+            for x in rows:
+              m=x.keyword_idea_metrics
+              s=int(m.avg_monthly_searches or 0)
+              if s<=0: continue
+              ci=metric(m,'competition_index')
+              lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+              out.append((x.text.strip(),s,getattr(m.competition,'name',str(m.competition)),ci,None if lo is None else round(lo/1e6,2),None if hi is None else round(hi/1e6,2)))
+            out.sort(key=lambda r:(-r[1],999 if r[3] is None else r[3],999 if r[5] is None else r[5]))
+            print(f'FINALIST_CLUSTER|{label}|ideas={len(rows)}|nonzero={len(out)}')
+            for kw,s,comp,ci,lo,hi in out[:35]:
+              gate='GREEN' if s>=10 and ci is not None and ci<=35 and (hi is None or hi<=1.00) else ('AMBER' if s>=10 and (ci is None or ci<=60) and (hi is None or hi<=1.50) else 'RED')
+              print(f'FINALIST|gate={gate}|cluster={label}|keyword={kw}|searches={s}|competition={comp}|ci={ci}|low_usd={lo}|high_usd={hi}')
+            time.sleep(5)
+          print('BASIC_PLANNER_ACCESS|PASS')
+          print('MODE|READ_ONLY|NO_ADS_CREATED')
+          PY
