@@ -30,7 +30,7 @@ jobs:
 
           API='https://api.admitad.com'
           WID=int(os.environ['EXPECTED_WEBSITE_ID'])
-          targets=('aliexpress','alibaba','govee','harfington','sunsky','lenovo','geekbuying')
+          targets=('wau','aliexpress','alibaba','govee','harfington','sunsky','lenovo','geekbuying')
 
           def env(*names):
               for n in names:
