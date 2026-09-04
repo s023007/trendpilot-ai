@@ -1,0 +1,147 @@
+name: Google Basic Planner | WAU Generic Non-Brand Validator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-basic-planner-wau-generic-validator.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Validate WAU generic non-brand keywords (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,time
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted
+
+          # READ ONLY. KeywordPlanIdeaService historical metrics only.
+          COMMISSION=0.09
+          CVR=0.009
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          svc=client.get_service('KeywordPlanIdeaService')
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+
+          locales=[
+            ('Bulgaria','BG','geoTargetConstants/2100','languageConstants/1020'),
+            ('Bulgaria','EN','geoTargetConstants/2100','languageConstants/1000'),
+            ('Romania','RO','geoTargetConstants/2642','languageConstants/1032'),
+            ('Romania','EN','geoTargetConstants/2642','languageConstants/1000'),
+            ('Poland','PL','geoTargetConstants/2616','languageConstants/1030'),
+            ('Poland','EN','geoTargetConstants/2616','languageConstants/1000'),
+            ('Ireland','EN','geoTargetConstants/2372','languageConstants/1000'),
+            ('Canada','EN','geoTargetConstants/2124','languageConstants/1000'),
+            ('UK','EN','geoTargetConstants/2826','languageConstants/1000'),
+          ]
+
+          seeds={
+            'EN':[
+              'led face mask','red light face mask','red light therapy mask','led light therapy mask',
+              'led face mask for wrinkles','red light mask for face','at home led face mask',
+              'microcurrent facial device','microcurrent face device','face lifting device','facial toning device',
+              'at home facial device','anti aging facial device','ultrasonic facial scrubber',
+              'scalp massager','hair scalp massager','scalp massager for hair growth',
+              'sonic toothbrush','electric sonic toothbrush','oral irrigator','portable oral irrigator','water flosser','best water flosser',
+              'compact electric shaver','mini electric shaver','cordless hair straightener','body massager'
+            ],
+            'BG':[
+              'led маска за лице','маска с червена светлина','терапия с червена светлина за лице','led маска за лице и шия',
+              'микротоков уред за лице','уред за лифтинг на лице','уред за стягане на лице','ултразвукова шпатула за лице',
+              'масажор за скалп','масажор за глава и скалп','масажор за скалп за растеж на косата',
+              'звукова четка за зъби','електрическа звукова четка за зъби','орален иригатор','преносим орален иригатор',
+              'електрическа самобръсначка','безжична преса за коса','електрически масажор за тяло'
+            ],
+            'RO':[
+              'masca led fata','masca cu lumina rosie','masca terapie lumina rosie fata','masca led fata si gat',
+              'dispozitiv microcurent fata','aparat facial cu microcurenti','aparat lifting facial','dispozitiv tonifiere faciala','spatula ultrasonica faciala',
+              'masajer scalp','masaj scalp','masajer scalp pentru cresterea parului',
+              'periuta sonica','periuta electrica sonica','irigator oral','irigator oral portabil','dus bucal',
+              'aparat de ras electric','placa de par fara fir','masajer corporal'
+            ],
+            'PL':[
+              'maska led na twarz','maska z czerwonym światłem','terapia czerwonym światłem twarz','maska led na twarz i szyję',
+              'urządzenie mikroprądowe do twarzy','mikroprądy twarz urządzenie','urządzenie liftingujące do twarzy','urządzenie do ujędrniania twarzy','szpatułka ultradźwiękowa do twarzy',
+              'masażer skóry głowy','masażer do głowy','masażer skóry głowy na porost włosów',
+              'szczoteczka soniczna','elektryczna szczoteczka soniczna','irygator do zębów','przenośny irygator do zębów',
+              'golarka elektryczna','bezprzewodowa prostownica','masażer do ciała'
+            ]
+          }
+
+          def metric(m,field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            v=getattr(m,field,None)
+            return int(v) if v is not None else None
+
+          def call(market,lang,geo,language):
+            req=client.get_type('GenerateKeywordHistoricalMetricsRequest')
+            req.customer_id=cid
+            req.keywords.extend(seeds[lang])
+            req.geo_target_constants.append(geo)
+            req.language=language
+            req.keyword_plan_network=NET
+            for attempt in range(6):
+              try:return svc.generate_keyword_historical_metrics(request=req).results
+              except ResourceExhausted:
+                wait=7*(attempt+1); print(f'RATE_LIMIT|{market}|{lang}|{wait}'); time.sleep(wait)
+            raise RuntimeError('rate limit persisted')
+
+          aov_scenarios=(150,300,500)
+          print('WAU_GENERIC_VALIDATOR|mode=READ_ONLY|commission=9pct|cvr=0.9pct')
+          print('ECON|aov150_break_even=0.1215|aov300_break_even=0.2430|aov500_break_even=0.4050')
+          print('ECON_SAFE60|aov150=0.0729|aov300=0.1458|aov500=0.2430')
+          allrows=[]
+          for market,lang,geo,language in locales:
+            rows=call(market,lang,geo,language)
+            print(f'BATCH|market={market}|lang={lang}|results={len(rows)}')
+            for x in rows:
+              m=x.keyword_metrics
+              lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+              lo=None if lo is None else round(lo/1e6,2)
+              hi=None if hi is None else round(hi/1e6,2)
+              searches=int(m.avg_monthly_searches or 0)
+              ci=metric(m,'competition_index')
+              comp=getattr(m.competition,'name',str(m.competition))
+              # Conservative gate: low bid must fit 60% of break-even at AOV $300, with some demand.
+              if searches>=20 and ci is not None and ci<=35 and lo is not None and lo<=0.15: gate='GREEN'
+              elif searches>=10 and ci is not None and ci<=60 and lo is not None and lo<=0.24: gate='AMBER'
+              else: gate='RED'
+              allrows.append((gate,market,lang,x.text,searches,comp,ci,lo,hi))
+            time.sleep(4)
+
+          order={'GREEN':0,'AMBER':1,'RED':2}
+          allrows.sort(key=lambda r:(order[r[0]],-r[4],999 if r[6] is None else r[6],999 if r[7] is None else r[7]))
+          greens=sum(r[0]=='GREEN' for r in allrows); ambers=sum(r[0]=='AMBER' for r in allrows)
+          print(f'SUMMARY|rows={len(allrows)}|green={greens}|amber={ambers}')
+          for r in allrows:
+            print('RESULT|gate=%s|market=%s|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s' % r)
+          print('WAU_GENERIC_VALIDATOR_ACCESS|PASS')
+          PY
