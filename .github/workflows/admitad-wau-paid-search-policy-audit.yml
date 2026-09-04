@@ -1,0 +1,85 @@
+name: Admitad WAU Paid Search Policy Audit — Read Only
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/admitad-wau-paid-search-policy-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      EXPECTED_WEBSITE_ID: "2980568"
+    steps:
+      - name: Read WAU active-program fields safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64,json,os,re,urllib.parse,urllib.request
+          API='https://api.admitad.com'; WID=int(os.environ['EXPECTED_WEBSITE_ID'])
+          def env(*names):
+              for n in names:
+                  v=(os.environ.get(n) or '').strip()
+                  if v:return v
+              return ''
+          cid=env('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT'); secret=env('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          if not cid or not secret: raise SystemExit('Missing Admitad credentials')
+          def req(url,method='GET',headers=None,data=None):
+              r=urllib.request.Request(url,data=data,method=method,headers={'Accept':'application/json','User-Agent':'TrendPilot-WAU-Policy-Audit/1.0',**(headers or {})})
+              with urllib.request.urlopen(r,timeout=60) as resp:return json.loads(resp.read().decode('utf-8','replace'))
+          basic=base64.b64encode(f'{cid}:{secret}'.encode()).decode()
+          body=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':cid,'scope':'websites advcampaigns_for_website'}).encode()
+          token=req(f'{API}/token/',method='POST',headers={'Authorization':f'Basic {basic}','Content-Type':'application/x-www-form-urlencoded;charset=UTF-8'},data=body).get('access_token')
+          if not token: raise SystemExit('No access token')
+          auth={'Authorization':f'Bearer {token}'}
+          rows=[]; offset=0
+          while True:
+              q=urllib.parse.urlencode({'limit':200,'offset':offset,'connection_status':'active'})
+              page=req(f'{API}/advcampaigns/website/{WID}/?{q}',headers=auth)
+              batch=page.get('results',[]) if isinstance(page,dict) else []
+              rows.extend(x for x in batch if isinstance(x,dict))
+              if len(batch)<200:break
+              offset+=200
+          matches=[r for r in rows if 'wau' in str(r.get('name') or '').lower()]
+          print(f'WAU_POLICY_AUDIT|website_id={WID}|active_programs={len(rows)}|matches={len(matches)}')
+          interesting=re.compile(r'(traffic|context|ppc|paid|search|brand|trademark|keyword|rule|prohibit|forbid|allow|deny|banned|negative|coupon|deeplink|geo|countr|commission|rate|cookie)',re.I)
+          sensitive=re.compile(r'(token|secret|password|csv_link|xml_link|products_csv|products_xml|authorization)',re.I)
+          def scalar(v): return isinstance(v,(str,int,float,bool)) or v is None
+          def walk(obj,path=''):
+              out=[]
+              if isinstance(obj,dict):
+                  for k,v in obj.items():
+                      kp=f'{path}.{k}' if path else str(k)
+                      if sensitive.search(kp):continue
+                      if interesting.search(kp):
+                          if scalar(v):out.append((kp,v))
+                          elif isinstance(v,(list,dict)):
+                              txt=json.dumps(v,ensure_ascii=False,separators=(',',':'))
+                              if len(txt)<=4000:out.append((kp,txt))
+                      out.extend(walk(v,kp))
+              elif isinstance(obj,list):
+                  for i,v in enumerate(obj):out.extend(walk(v,f'{path}[{i}]'))
+              return out
+          for r in matches:
+              print(f'PROGRAM|id={r.get("id")}|name={r.get("name")}|status={r.get("connection_status") or r.get("status")}|allow_deeplink={bool(r.get("allow_deeplink"))}')
+              print('TOP_KEYS|'+','.join(sorted(str(k) for k in r.keys())))
+              seen=set(); vals=[]
+              for p,v in walk(r):
+                  key=(p,str(v))
+                  if key in seen:continue
+                  seen.add(key);vals.append((p,v))
+              if not vals:print('POLICY|NO_RELEVANT_FIELDS_IN_LIST_RESPONSE')
+              for p,v in vals[:120]:print(f'POLICY|{p}|{str(v).replace(chr(10)," ")[:4000]}')
+          print('WAU_POLICY_AUDIT|PASS')
+          PY
