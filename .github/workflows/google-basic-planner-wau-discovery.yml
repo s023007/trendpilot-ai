@@ -1,0 +1,217 @@
+name: Google Basic Planner | WAU Global Discovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-basic-planner-wau-discovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Discover WAU opportunities with Basic Planner (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, math, time, re
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted, GoogleAPICallError
+
+          # READ ONLY: KeywordPlanIdeaService only. No Google Ads campaign mutations.
+          COMMISSION = 0.09
+          PROGRAM_CVR = 0.009
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          idea=client.get_service('KeywordPlanIdeaService')
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+
+          locales=[
+            ('Romania','RO','geoTargetConstants/2642','languageConstants/1032'),
+            ('Romania','EN','geoTargetConstants/2642','languageConstants/1000'),
+            ('Bulgaria','BG','geoTargetConstants/2100','languageConstants/1020'),
+            ('Bulgaria','EN','geoTargetConstants/2100','languageConstants/1000'),
+            ('Poland','PL','geoTargetConstants/2616','languageConstants/1030'),
+            ('Poland','EN','geoTargetConstants/2616','languageConstants/1000'),
+            ('Ireland','EN','geoTargetConstants/2372','languageConstants/1000'),
+            ('Canada','EN','geoTargetConstants/2124','languageConstants/1000'),
+            ('UK','EN','geoTargetConstants/2826','languageConstants/1000'),
+          ]
+
+          seeds_by_lang={
+            'EN':[
+              'led face mask','red light therapy mask','red light face mask','led light therapy mask',
+              'microcurrent facial device','microcurrent face device','face lifting device','facial toning device',
+              'ultrasonic facial scrubber','at home facial device','anti aging facial device',
+              'scalp massager','hair scalp massager','sonic toothbrush','oral irrigator','water flosser',
+              'compact electric shaver','wireless hair straightener','body lifting massager','beauty device for home'
+            ],
+            'RO':[
+              'masca LED fata','masca terapie lumina rosie','masca lumina rosie fata','dispozitiv microcurent fata',
+              'aparat microcurent facial','aparat lifting facial','dispozitiv tonifiere faciala','spatula ultrasonica faciala',
+              'aparat facial acasa','dispozitiv anti imbatranire fata','masaj scalp','masajer scalp',
+              'periuta sonica','irigator oral','dus bucal','aparat de ras electric compact','placa de par fara fir',
+              'masajer corporal','dispozitiv beauty acasa'
+            ],
+            'BG':[
+              'LED маска за лице','маска с червена светлина','терапия с червена светлина лице','микротоков уред за лице',
+              'уред за лифтинг на лице','уред за стягане на лице','ултразвукова шпатула за лице','уред за лице у дома',
+              'уред против стареене лице','масажор за скалп','масажор за глава','звукова четка за зъби',
+              'орален иригатор','душ за зъби','електрическа самобръсначка','безжична преса за коса',
+              'масажор за тяло','уред за красота у дома'
+            ],
+            'PL':[
+              'maska LED na twarz','maska z czerwonym światłem','terapia czerwonym światłem twarz','urządzenie mikroprądowe do twarzy',
+              'mikroprądy twarz urządzenie','urządzenie liftingujące do twarzy','urządzenie do ujędrniania twarzy','szpatułka ultradźwiękowa do twarzy',
+              'peeling kawitacyjny urządzenie','urządzenie do twarzy w domu','urządzenie anti aging do twarzy','masażer skóry głowy',
+              'masażer do głowy','szczoteczka soniczna','irygator do zębów','golarka elektryczna kompaktowa',
+              'bezprzewodowa prostownica','masażer do ciała','urządzenie beauty do domu'
+            ]
+          }
+
+          family_rules=[
+            ('LED_MASK',[r'led',r'czerwonym świat',r'lumina rosie',r'червена светлина']),
+            ('MICROCURRENT',[r'microcurrent',r'microcurent',r'mikropr',r'микроток']),
+            ('FACIAL_LIFT',[r'lift',r'toning',r'ujędr',r'tonifi',r'стяган']),
+            ('ULTRASONIC_FACE',[r'ultrasonic',r'ultrason',r'kawitacyj',r'ултразвук']),
+            ('SCALP',[r'scalp',r'skóry głowy',r'scalp',r'скалп',r'голова',r'cap']),
+            ('ORAL',[r'toothbrush',r'water flosser',r'oral irrigator',r'periuta',r'irigator',r'dus bucal',r'szczoteczka',r'irygator',r'четка за зъби',r'иригатор']),
+            ('SHAVER',[r'shaver',r'golarka',r'aparat de ras',r'самобръснач']),
+            ('HAIR_STYLING',[r'hair straightener',r'prostownica',r'placa de par',r'преса за коса']),
+            ('BODY',[r'body massager',r'masajer corporal',r'masażer do ciała',r'масажор за тяло']),
+            ('BEAUTY_DEVICE',[r'beauty device',r'facial device',r'aparat facial',r'urządzenie do twarzy',r'уред за лице'])
+          ]
+
+          buy_terms=re.compile(r'\b(buy|best|price|sale|shop|device|mask|massager|toothbrush|irrigator|flosser|shaver|prostownica|maska|urządzenie|cena|kup|masca|aparat|dispozitiv|pret|cumpara|маска|уред|цена|купи)\b',re.I)
+          irrelevant=re.compile(r'\b(job|jobs|salary|course|meaning|definition|repair|manual|pdf|free download|amazon|temu|aliexpress|ebay|walmart)\b',re.I)
+
+          def metric(m,field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            v=getattr(m,field,None)
+            return int(v) if v is not None else None
+
+          def family(text):
+            t=text.lower()
+            for fam,pats in family_rules:
+              if any(re.search(p,t,re.I) for p in pats): return fam
+            return 'OTHER'
+
+          def call_locale(market,lang,geo,language):
+            req=client.get_type('GenerateKeywordIdeasRequest')
+            req.customer_id=cid
+            req.geo_target_constants.append(geo)
+            req.language=language
+            req.keyword_plan_network=NET
+            req.keyword_seed.keywords.extend(seeds_by_lang[lang])
+            for attempt in range(6):
+              try:
+                return list(idea.generate_keyword_ideas(request=req))
+              except ResourceExhausted:
+                wait=8*(attempt+1)
+                print(f'RATE_LIMIT|market={market}|lang={lang}|wait={wait}s|attempt={attempt+1}')
+                time.sleep(wait)
+              except GoogleAPICallError as e:
+                print(f'API_RETRY|market={market}|lang={lang}|attempt={attempt+1}|error={type(e).__name__}')
+                if attempt==5: raise
+                time.sleep(5*(attempt+1))
+            raise RuntimeError('Planner request failed for '+market+' '+lang)
+
+          def required_aov(cpc,cvr):
+            if cpc is None or cpc<=0:return None
+            return round(cpc/(COMMISSION*cvr),2)
+
+          def score(r):
+            if r['searches']<10 or r['family']=='OTHER': return -999
+            ci=55 if r['ci'] is None else r['ci']
+            low=.40 if r['low_usd'] is None else max(.01,r['low_usd'])
+            demand=min(3.5,math.log10(r['searches']+10))
+            comp=max(.12,1-ci/110)
+            econ=max(.12,min(1.5,.25/low))
+            intent=1.20 if r['commercial'] else .82
+            return round(demand*comp*econ*intent*100,2)
+
+          rows=[]
+          for market,lang,geo,language in locales:
+            results=call_locale(market,lang,geo,language)
+            print(f'WAU_BATCH|market={market}|lang={lang}|ideas={len(results)}')
+            for x in results:
+              text=x.text.strip()
+              if irrelevant.search(text): continue
+              fam=family(text)
+              if fam=='OTHER': continue
+              m=x.keyword_idea_metrics
+              lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+              r={
+                'market':market,'lang':lang,'family':fam,'keyword':text,
+                'searches':int(m.avg_monthly_searches or 0),
+                'competition':getattr(m.competition,'name',str(m.competition)),
+                'ci':metric(m,'competition_index'),
+                'low_usd':None if lo is None else round(lo/1e6,2),
+                'high_usd':None if hi is None else round(hi/1e6,2),
+                'commercial':bool(buy_terms.search(text)),
+              }
+              r['req_aov_0_5']=required_aov(r['low_usd'],.005)
+              r['req_aov_0_9']=required_aov(r['low_usd'],PROGRAM_CVR)
+              r['req_aov_1_5']=required_aov(r['low_usd'],.015)
+              r['score']=score(r)
+              rows.append(r)
+            time.sleep(5)
+
+          def gate(r):
+            if r['searches']<10 or r['score']<0:return 'RED'
+            ci=99 if r['ci'] is None else r['ci']
+            a09=99999 if r['req_aov_0_9'] is None else r['req_aov_0_9']
+            a15=99999 if r['req_aov_1_5'] is None else r['req_aov_1_5']
+            # WAU devices currently span roughly EUR 130-720. Green favors economics viable near program CVR.
+            if ci<=35 and r['commercial'] and (a09<=350 or a15<=220): return 'GREEN'
+            if ci<=55 and (a09<=550 or a15<=350): return 'AMBER'
+            return 'RED'
+
+          good=[r for r in rows if r['searches']>=10]
+          for r in good:r['gate']=gate(r)
+          ranked=sorted(good,key=lambda r:({'GREEN':0,'AMBER':1,'RED':2}[r['gate']],-r['score'],-r['searches'],999 if r['ci'] is None else r['ci']))
+
+          print('WAU_BASIC_PLANNER|mode=READ_ONLY|commission=9pct|program_cvr=0.9pct')
+          print('WAU_NOTE|bid_fields=Google top-of-page bid estimates; not actual CPC')
+          print('WAU_SUMMARY|ideas_total=%d|qualified=%d|green=%d|amber=%d' % (len(rows),len(good),sum(r['gate']=='GREEN' for r in good),sum(r['gate']=='AMBER' for r in good)))
+
+          for r in ranked[:100]:
+            print('WAU_RESULT|gate=%s|market=%s|lang=%s|family=%s|commercial=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|req_aov_0_5=%s|req_aov_0_9=%s|req_aov_1_5=%s|score=%s' % (
+              r['gate'],r['market'],r['lang'],r['family'],str(r['commercial']).lower(),r['keyword'],r['searches'],r['competition'],r['ci'],r['low_usd'],r['high_usd'],r['req_aov_0_5'],r['req_aov_0_9'],r['req_aov_1_5'],r['score']))
+
+          best={}
+          for r in ranked:
+            k=(r['market'],r['lang'],r['family'])
+            if k not in best: best[k]=r
+          for r in sorted(best.values(),key=lambda x:({'GREEN':0,'AMBER':1,'RED':2}[x['gate']],-x['score'])):
+            print('WAU_CLUSTER|gate=%s|market=%s|lang=%s|family=%s|keyword=%s|searches=%s|ci=%s|low_usd=%s|high_usd=%s|req_aov_0_9=%s' % (
+              r['gate'],r['market'],r['lang'],r['family'],r['keyword'],r['searches'],r['ci'],r['low_usd'],r['high_usd'],r['req_aov_0_9']))
+
+          print('WAU_BASIC_PLANNER_ACCESS|PASS')
+          PY
