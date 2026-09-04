@@ -1,0 +1,137 @@
+name: Google Basic Planner | PandaHall Clean Intent Validator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-basic-planner-pandahall-clean-validator.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Validate non-brand collection intents with historical metrics (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,time
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted
+
+          COMMISSION=.02
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          svc=client.get_service('KeywordPlanIdeaService')
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+          language='languageConstants/1000'
+          markets={
+            'US':'geoTargetConstants/2840','Canada':'geoTargetConstants/2124',
+            'UK':'geoTargetConstants/2826','Australia':'geoTargetConstants/2036',
+            'Ireland':'geoTargetConstants/2372','NewZealand':'geoTargetConstants/2554',
+          }
+          candidates={
+            'WATCH_CHARMS':['watch band charms wholesale','wholesale watch band charms','apple watch band charms wholesale'],
+            'FINDINGS':['wholesale brass jewelry findings','brass findings wholesale','stainless steel jewelry findings wholesale','wholesale stainless steel jewelry supplies','earring findings wholesale','gold findings wholesale','jewelry chain wholesale'],
+            'STERLING':['925 silver earrings wholesale','sterling silver charms wholesale','sterling silver beads wholesale'],
+            'FINISHED':['gold plated fashion jewelry wholesale','stainless steel jewelry wholesale','tarnish free jewelry wholesale'],
+            'BEADS_CHARMS':['acrylic beads wholesale','resin charms wholesale','cubic zirconia stones wholesale'],
+            'BULK_RESALE':['bulk jewelry for resale'],
+          }
+          kw_to_group={k.lower():g for g,ks in candidates.items() for k in ks}
+          keywords=[k for ks in candidates.values() for k in ks]
+
+          def metric(m,f):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(f):return None
+            except Exception:pass
+            v=getattr(m,f,None)
+            return int(v) if v is not None else None
+
+          def req_aov(cpc,cvr):
+            if cpc is None or cpc<=0:return None
+            return round(cpc/(COMMISSION*cvr),2)
+
+          def get(market,geo):
+            req=client.get_type('GenerateKeywordHistoricalMetricsRequest')
+            req.customer_id=cid
+            req.keywords.extend(keywords)
+            req.geo_target_constants.append(geo)
+            req.language=language
+            req.keyword_plan_network=NET
+            for attempt in range(5):
+              try:return svc.generate_keyword_historical_metrics(request=req).results
+              except ResourceExhausted:
+                w=6*(attempt+1); print(f'RATE_LIMIT|market={market}|wait={w}');time.sleep(w)
+            raise RuntimeError('rate limit '+market)
+
+          rows=[]
+          for market,geo in markets.items():
+            rr=get(market,geo)
+            print(f'CLEAN_BATCH|market={market}|results={len(rr)}')
+            for x in rr:
+              m=x.keyword_metrics
+              lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+              monthly=[]
+              for mv in (m.monthly_search_volumes or []):
+                monthly.append(int(mv.monthly_searches or 0))
+              recent3=sum(monthly[:3])/max(1,min(3,len(monthly))) if monthly else None
+              prev3=sum(monthly[3:6])/max(1,min(3,max(0,len(monthly)-3))) if len(monthly)>3 else None
+              trend=None
+              if recent3 is not None and prev3 not in (None,0):trend=round((recent3-prev3)/prev3*100,1)
+              r={
+                'market':market,'keyword':x.text,'group':kw_to_group.get(x.text.lower(),'UNKNOWN'),
+                'searches':int(m.avg_monthly_searches or 0),
+                'competition':getattr(m.competition,'name',str(m.competition)),
+                'ci':metric(m,'competition_index'),
+                'low':None if lo is None else round(lo/1e6,2),
+                'high':None if hi is None else round(hi/1e6,2),
+                'trend':trend,
+              }
+              r['aov1']=req_aov(r['low'],.01);r['aov2']=req_aov(r['low'],.02);r['aov3']=req_aov(r['low'],.03)
+              rows.append(r)
+            time.sleep(5)
+
+          def gate(r):
+            if r['searches']<10:return 'RED'
+            ci=99 if r['ci'] is None else r['ci']
+            if r['low'] is None:
+              return 'DATA_GAP' if ci<=30 else 'RED'
+            # 2% commission: require conservative economics, not merely low competition.
+            if ci<=30 and r['low']<=.12 and r['aov2']<=300:return 'GREEN'
+            if ci<=45 and r['low']<=.20 and r['aov2']<=500:return 'AMBER'
+            return 'RED'
+
+          for r in rows:r['gate']=gate(r)
+          rank={'GREEN':0,'AMBER':1,'DATA_GAP':2,'RED':3}
+          rows.sort(key=lambda r:(rank[r['gate']],-r['searches'],999 if r['ci'] is None else r['ci'],999 if r['low'] is None else r['low']))
+          print('PANDAHALL_CLEAN_VALIDATOR|mode=READ_ONLY|commission=2pct')
+          print('CLEAN_SUMMARY|rows=%d|green=%d|amber=%d|data_gap=%d' % (len(rows),sum(r['gate']=='GREEN' for r in rows),sum(r['gate']=='AMBER' for r in rows),sum(r['gate']=='DATA_GAP' for r in rows)))
+          for r in rows:
+            if r['searches']>=10 or r['gate']!='RED':
+              print('CLEAN_RESULT|gate=%s|market=%s|group=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|trend_pct=%s|required_aov_1pct=%s|required_aov_2pct=%s|required_aov_3pct=%s' % (
+                r['gate'],r['market'],r['group'],r['keyword'],r['searches'],r['competition'],r['ci'],r['low'],r['high'],r['trend'],r['aov1'],r['aov2'],r['aov3']))
+          print('PANDAHALL_CLEAN_VALIDATOR_ACCESS|PASS')
+          PY
