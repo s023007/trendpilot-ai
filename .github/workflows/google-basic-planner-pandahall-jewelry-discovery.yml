@@ -30,7 +30,6 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           import os, math, time, re
-          from collections import defaultdict
           from google.ads.googleads.client import GoogleAdsClient
           from google.api_core.exceptions import ResourceExhausted, GoogleAPICallError
 
@@ -48,7 +47,6 @@ jobs:
           idea=client.get_service('KeywordPlanIdeaService')
           NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
 
-          # English-first markets: enough scale to test, while allowing Planner to reveal CPC/competition differences.
           markets={
             'US':'geoTargetConstants/2840',
             'Canada':'geoTargetConstants/2124',
@@ -59,22 +57,30 @@ jobs:
           }
           language='languageConstants/1000'
 
-          # Intentionally bias discovery toward wholesale/bulk/high-basket intent because PandaHall CJ commission is 2%.
+          # GenerateKeywordIdeas accepts max 20 keyword seeds. These are deliberately broad
+          # commercial seeds so Google can discover the lower-competition long tail for us.
+          # Wholesale/bulk intent is emphasized because PandaHall CJ commission is only 2%.
           seeds=[
-            'wholesale jewelry','bulk jewelry for resale','jewelry wholesale supplier','wholesale jewelry lots',
-            'stainless steel jewelry wholesale','gold plated stainless steel jewelry wholesale','stainless steel findings wholesale',
-            'waterproof jewelry wholesale','tarnish free jewelry wholesale','non tarnish jewelry wholesale','hypoallergenic jewelry wholesale',
-            'sterling silver jewelry wholesale','925 silver jewelry wholesale','925 silver rings wholesale','925 silver earrings wholesale',
-            "men's jewelry wholesale","men's stainless steel jewelry wholesale","wholesale men's bracelets",
-            'wholesale rings','rings in bulk','adjustable rings wholesale',
-            'earrings wholesale','bulk earrings','hoop earrings wholesale','earring findings wholesale',
-            'necklaces wholesale','bulk necklaces for resale','pendants wholesale',
-            'bracelets wholesale','bulk bracelets for resale',
-            'charms wholesale','enamel charms wholesale','letter charms wholesale','initial charms wholesale','birthstone charms wholesale',
-            'watch band charms','charms for watch bands','watch charms wholesale','watch band charms wholesale',
-            'jewelry making supplies wholesale','jewelry findings wholesale','ring blanks wholesale',
-            'beads wholesale','bulk beads for jewelry making','jewelry chain wholesale','bulk jewelry chain','chain by meter jewelry',
-            'DIY charm bracelet kits','jewelry making kits bulk','bracelet making kits bulk','cubic zirconia jewelry wholesale'
+            'wholesale jewelry',
+            'bulk jewelry for resale',
+            'stainless steel jewelry wholesale',
+            'waterproof jewelry wholesale',
+            'tarnish free jewelry wholesale',
+            'sterling silver jewelry wholesale',
+            "men's jewelry wholesale",
+            'wholesale rings',
+            'earrings wholesale',
+            'necklaces wholesale',
+            'bracelets wholesale',
+            'charms wholesale',
+            'watch band charms',
+            'jewelry making supplies wholesale',
+            'jewelry findings wholesale',
+            'beads wholesale',
+            'jewelry chain wholesale',
+            'jewelry making kits bulk',
+            'cubic zirconia jewelry wholesale',
+            'gold plated jewelry wholesale',
           ]
 
           family_rules=[
@@ -82,6 +88,7 @@ jobs:
             ('WATERPROOF_TARNISH',[r'waterproof',r'tarnish',r'non tarnish',r'non-tarnish']),
             ('STERLING_925',[r'sterling',r'925',r'silver jewelry',r'silver rings?',r'silver earrings?']),
             ('STAINLESS',[r'stainless steel']),
+            ('GOLD_PLATED',[r'gold plated',r'gold-filled',r'gold filled']),
             ('MENS',[r"men'?s ",r'for men']),
             ('EARRINGS',[r'earrings?',r'ear wires?',r'earring findings?']),
             ('RINGS',[r'\brings?\b',r'ring blanks?']),
@@ -171,7 +178,7 @@ jobs:
               rows.append(r)
             time.sleep(6)
 
-          # Commission-aware screening. Low top-of-page bid is only a planning estimate, NOT actual CPC.
+          # Commission-aware screening. Low top-of-page bid is a Google planning estimate, not actual CPC.
           def gate(r):
             if r['searches']<10 or r['score']<0:return 'RED'
             ci=99 if r['ci'] is None else r['ci']
@@ -190,12 +197,10 @@ jobs:
           print('PANDAHALL_NOTE|bid_fields=Google top-of-page bid estimates; not actual CPC')
           print('PANDAHALL_SUMMARY|ideas_total=%d|commercial_jewelry_ideas=%d|green=%d|amber=%d' % (len(rows),len(good),sum(r['gate']=='GREEN' for r in good),sum(r['gate']=='AMBER' for r in good)))
 
-          # Top 80 global opportunities, enough to see clusters without flooding logs.
           for r in ranked[:80]:
             print('PANDAHALL_RESULT|gate=%s|market=%s|family=%s|wholesale=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|req_aov_2=%s|req_aov_3=%s|req_aov_5=%s|score=%s' % (
               r['gate'],r['market'],r['family'],str(r['wholesale']).lower(),r['keyword'],r['searches'],r['competition'],r['ci'],r['low_usd'],r['high_usd'],r['req_aov_2'],r['req_aov_3'],r['req_aov_5'],r['score']))
 
-          # One best keyword per market/family for collection-page grouping decisions.
           best={}
           for r in ranked:
             k=(r['market'],r['family'])
