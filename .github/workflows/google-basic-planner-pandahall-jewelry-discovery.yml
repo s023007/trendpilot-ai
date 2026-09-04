@@ -1,0 +1,208 @@
+name: Google Basic Planner | PandaHall Jewelry Discovery
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-basic-planner-pandahall-jewelry-discovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Discover PandaHall jewelry opportunities with Basic Planner (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, math, time, re
+          from collections import defaultdict
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted, GoogleAPICallError
+
+          # READ ONLY: this workflow only calls KeywordPlanIdeaService. It never mutates Google Ads.
+          COMMISSION = 0.02
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          idea=client.get_service('KeywordPlanIdeaService')
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+
+          # English-first markets: enough scale to test, while allowing Planner to reveal CPC/competition differences.
+          markets={
+            'US':'geoTargetConstants/2840',
+            'Canada':'geoTargetConstants/2124',
+            'UK':'geoTargetConstants/2826',
+            'Australia':'geoTargetConstants/2036',
+            'Ireland':'geoTargetConstants/2372',
+            'NewZealand':'geoTargetConstants/2554',
+          }
+          language='languageConstants/1000'
+
+          # Intentionally bias discovery toward wholesale/bulk/high-basket intent because PandaHall CJ commission is 2%.
+          seeds=[
+            'wholesale jewelry','bulk jewelry for resale','jewelry wholesale supplier','wholesale jewelry lots',
+            'stainless steel jewelry wholesale','gold plated stainless steel jewelry wholesale','stainless steel findings wholesale',
+            'waterproof jewelry wholesale','tarnish free jewelry wholesale','non tarnish jewelry wholesale','hypoallergenic jewelry wholesale',
+            'sterling silver jewelry wholesale','925 silver jewelry wholesale','925 silver rings wholesale','925 silver earrings wholesale',
+            "men's jewelry wholesale","men's stainless steel jewelry wholesale","wholesale men's bracelets",
+            'wholesale rings','rings in bulk','adjustable rings wholesale',
+            'earrings wholesale','bulk earrings','hoop earrings wholesale','earring findings wholesale',
+            'necklaces wholesale','bulk necklaces for resale','pendants wholesale',
+            'bracelets wholesale','bulk bracelets for resale',
+            'charms wholesale','enamel charms wholesale','letter charms wholesale','initial charms wholesale','birthstone charms wholesale',
+            'watch band charms','charms for watch bands','watch charms wholesale','watch band charms wholesale',
+            'jewelry making supplies wholesale','jewelry findings wholesale','ring blanks wholesale',
+            'beads wholesale','bulk beads for jewelry making','jewelry chain wholesale','bulk jewelry chain','chain by meter jewelry',
+            'DIY charm bracelet kits','jewelry making kits bulk','bracelet making kits bulk','cubic zirconia jewelry wholesale'
+          ]
+
+          family_rules=[
+            ('WATCH_CHARMS',[r'watch band',r'watch charm',r'charms? for watch']),
+            ('WATERPROOF_TARNISH',[r'waterproof',r'tarnish',r'non tarnish',r'non-tarnish']),
+            ('STERLING_925',[r'sterling',r'925',r'silver jewelry',r'silver rings?',r'silver earrings?']),
+            ('STAINLESS',[r'stainless steel']),
+            ('MENS',[r"men'?s ",r'for men']),
+            ('EARRINGS',[r'earrings?',r'ear wires?',r'earring findings?']),
+            ('RINGS',[r'\brings?\b',r'ring blanks?']),
+            ('NECKLACES_PENDANTS',[r'necklaces?',r'pendants?']),
+            ('BRACELETS',[r'bracelets?',r'bangles?']),
+            ('CHARMS',[r'charms?',r'pendant charms?']),
+            ('BEADS',[r'beads?']),
+            ('FINDINGS',[r'findings?',r'clasps?',r'jump rings?',r'connectors?']),
+            ('CHAINS',[r'\bchains?\b',r'chain by']),
+            ('DIY_KITS',[r'kits?',r'jewelry making']),
+            ('CZ',[r'cubic zirconia',r'\bcz\b']),
+          ]
+          wholesale_terms=re.compile(r'\b(wholesale|bulk|supplier|suppliers|resale|lot|lots|factory|distributor|business|b2b)\b',re.I)
+          irrelevant=re.compile(r'\b(job|jobs|salary|course|meaning|definition|repair|near me|amazon|etsy|temu|shein|aliexpress|walmart)\b',re.I)
+
+          def metric(m,field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            v=getattr(m,field,None)
+            return int(v) if v is not None else None
+
+          def family(text):
+            t=text.lower()
+            for fam,pats in family_rules:
+              if any(re.search(p,t) for p in pats): return fam
+            if wholesale_terms.search(t): return 'WHOLESALE_CORE'
+            return 'OTHER'
+
+          def call_market(market,geo):
+            req=client.get_type('GenerateKeywordIdeasRequest')
+            req.customer_id=cid
+            req.geo_target_constants.append(geo)
+            req.language=language
+            req.keyword_plan_network=NET
+            req.keyword_seed.keywords.extend(seeds)
+            for attempt in range(6):
+              try:
+                return list(idea.generate_keyword_ideas(request=req))
+              except ResourceExhausted:
+                wait=8*(attempt+1)
+                print(f'RATE_LIMIT|market={market}|wait={wait}s|attempt={attempt+1}')
+                time.sleep(wait)
+              except GoogleAPICallError as e:
+                print(f'API_RETRY|market={market}|attempt={attempt+1}|error={type(e).__name__}')
+                if attempt==5: raise
+                time.sleep(5*(attempt+1))
+            raise RuntimeError('Planner request failed for '+market)
+
+          def req_aov(cpc,cvr):
+            if cpc is None or cpc<=0:return None
+            return round(cpc/(COMMISSION*cvr),2)
+
+          def score(r):
+            if r['searches']<10 or r['family']=='OTHER': return -999
+            ci=55 if r['ci'] is None else r['ci']
+            low=.35 if r['low_usd'] is None else max(.01,r['low_usd'])
+            intent=1.35 if r['wholesale'] else .72
+            demand=min(3.5, math.log10(r['searches']+10))
+            comp=max(.12,1-ci/110)
+            econ=max(.15,min(1.4,.16/low))
+            return round(demand*comp*econ*intent*100,2)
+
+          rows=[]
+          for market,geo in markets.items():
+            results=call_market(market,geo)
+            print(f'PANDAHALL_BATCH|market={market}|ideas={len(results)}')
+            for x in results:
+              text=x.text.strip()
+              if irrelevant.search(text): continue
+              m=x.keyword_idea_metrics
+              lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+              r={
+                'market':market,'family':family(text),'keyword':text,
+                'searches':int(m.avg_monthly_searches or 0),
+                'competition':getattr(m.competition,'name',str(m.competition)),
+                'ci':metric(m,'competition_index'),
+                'low_usd':None if lo is None else round(lo/1e6,2),
+                'high_usd':None if hi is None else round(hi/1e6,2),
+                'wholesale':bool(wholesale_terms.search(text)),
+              }
+              r['req_aov_2']=req_aov(r['low_usd'],.02)
+              r['req_aov_3']=req_aov(r['low_usd'],.03)
+              r['req_aov_5']=req_aov(r['low_usd'],.05)
+              r['score']=score(r)
+              rows.append(r)
+            time.sleep(6)
+
+          # Commission-aware screening. Low top-of-page bid is only a planning estimate, NOT actual CPC.
+          def gate(r):
+            if r['searches']<10 or r['score']<0:return 'RED'
+            ci=99 if r['ci'] is None else r['ci']
+            a3=99999 if r['req_aov_3'] is None else r['req_aov_3']
+            a5=99999 if r['req_aov_5'] is None else r['req_aov_5']
+            if r['wholesale'] and ci<=35 and (a3<=300 or a5<=200): return 'GREEN'
+            if r['wholesale'] and ci<=60 and (a3<=500 or a5<=300): return 'AMBER'
+            if (not r['wholesale']) and ci<=25 and r['low_usd'] is not None and r['low_usd']<=.08 and r['searches']>=50:return 'AMBER'
+            return 'RED'
+
+          good=[r for r in rows if r['family']!='OTHER' and r['searches']>=10]
+          for r in good:r['gate']=gate(r)
+          ranked=sorted(good,key=lambda r:({'GREEN':0,'AMBER':1,'RED':2}[r['gate']],-r['score'],-r['searches'],999 if r['ci'] is None else r['ci']))
+
+          print('PANDAHALL_BASIC_PLANNER|mode=READ_ONLY|commission=2pct|markets='+','.join(markets))
+          print('PANDAHALL_NOTE|bid_fields=Google top-of-page bid estimates; not actual CPC')
+          print('PANDAHALL_SUMMARY|ideas_total=%d|commercial_jewelry_ideas=%d|green=%d|amber=%d' % (len(rows),len(good),sum(r['gate']=='GREEN' for r in good),sum(r['gate']=='AMBER' for r in good)))
+
+          # Top 80 global opportunities, enough to see clusters without flooding logs.
+          for r in ranked[:80]:
+            print('PANDAHALL_RESULT|gate=%s|market=%s|family=%s|wholesale=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_usd=%s|high_usd=%s|req_aov_2=%s|req_aov_3=%s|req_aov_5=%s|score=%s' % (
+              r['gate'],r['market'],r['family'],str(r['wholesale']).lower(),r['keyword'],r['searches'],r['competition'],r['ci'],r['low_usd'],r['high_usd'],r['req_aov_2'],r['req_aov_3'],r['req_aov_5'],r['score']))
+
+          # One best keyword per market/family for collection-page grouping decisions.
+          best={}
+          for r in ranked:
+            k=(r['market'],r['family'])
+            if k not in best: best[k]=r
+          for r in sorted(best.values(),key=lambda x:({'GREEN':0,'AMBER':1,'RED':2}[x['gate']],-x['score'])):
+            print('PANDAHALL_CLUSTER|gate=%s|market=%s|family=%s|keyword=%s|searches=%s|ci=%s|low_usd=%s|high_usd=%s|req_aov_3=%s' % (
+              r['gate'],r['market'],r['family'],r['keyword'],r['searches'],r['ci'],r['low_usd'],r['high_usd'],r['req_aov_3']))
+
+          print('PANDAHALL_BASIC_PLANNER_ACCESS|PASS')
+          PY
