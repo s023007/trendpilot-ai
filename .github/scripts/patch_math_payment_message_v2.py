@@ -24,3 +24,4 @@ for a,b in repls.items():
 if missing:
     raise SystemExit('Missing expected strings: '+repr(missing))
 p.write_text(s)
+# trigger workflow after creation
