@@ -28,8 +28,16 @@ jobs:
         run: |
           git fetch origin main
           git rebase origin/main
-      - name: Build landing + email handoff
+      - name: Build landing support + email handoff
         run: python scripts/build_wau_led_bg_landing.py
+      - name: Preserve curated conversion page
+        shell: bash
+        run: |
+          set -euo pipefail
+          # The builder maintains assets/API wiring. The public HTML is now a hand-curated
+          # conversion page based on the current WAU offer and should not be overwritten
+          # by the older generated layout on future workflow runs.
+          git checkout HEAD -- products/led-face-mask/bg/index.html
       - name: Validate generated files
         shell: bash
         run: |
@@ -43,7 +51,7 @@ jobs:
           php -l api/save-search.php
           php -l api/go.php
           git diff --check
-      - name: Commit generated landing
+      - name: Commit generated support files
         shell: bash
         run: |
           set -euo pipefail
@@ -57,10 +65,10 @@ jobs:
             api/save-search.php \
             api/go.php
           if git diff --cached --quiet; then
-            echo 'No landing changes to commit.'
+            echo 'No landing support changes to commit.'
             exit 0
           fi
-          git commit -m 'feat: publish warm WAU LED Bulgaria landing'
+          git commit -m 'feat: refresh WAU LED Bulgaria landing support'
           for i in 1 2 3; do
             git fetch origin main
             git rebase origin/main && git push origin HEAD:main && exit 0
