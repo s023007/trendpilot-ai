@@ -1,0 +1,44 @@
+name: Verify Math Live V3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-math-live-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify live redesigned math page
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import time, urllib.request
+          url='https://trendpilotchoice.com/math/?verify=v3-'+str(int(time.time()))
+          req=urllib.request.Request(url,headers={'User-Agent':'TrendPilotMathVerify/3.0','Cache-Control':'no-cache'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+              body=r.read().decode('utf-8','replace')
+              assert r.status == 200, r.status
+          markers=[
+              'افهم الرياضيات بطريقة',
+              'math-services-v2.css',
+              '30 دقيقة</span><strong>4 ',
+              '60 دقيقة</span><strong>5 ',
+              '4 حصص × 60 دقيقة</span><strong>20 ',
+              '8 حصص × 60 دقيقة</span><strong>30 ',
+              'مراجعة مكثفة 90 دقيقة</span><strong>14 ',
+              'data-en-src="https://images.pexels.com/photos/5538616',
+              'الخدمة مخصصة للتعليم والشرح والتدريب والمراجعة فقط'
+          ]
+          missing=[m for m in markers if m not in body]
+          if missing:
+              raise SystemExit('Missing live markers: '+repr(missing))
+          print('LIVE_MATH_V3_OK')
+          PY
