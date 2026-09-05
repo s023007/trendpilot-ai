@@ -1,0 +1,57 @@
+name: Apply Math RTL Root Fix V4
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-math-rtl-root-fix-v4.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Restore normal responsive page and bust upload cache
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('math/index-v3.html')
+          s=p.read_text()
+          s=s.replace('<meta name="viewport" content="width=device-width,initial-scale=1,minimum-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">','<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">',1)
+          start=s.find('    /* Mobile width guard:')
+          marker=s.find('    /* MOBILE_SCALE_LOCK_V2 */')
+          if start!=-1 and marker!=-1 and marker>start:
+              s=s[:start]+s[marker:]
+          start=s.find('    /* MOBILE_SCALE_LOCK_V2 */')
+          end=s.find('  </style>',start) if start!=-1 else -1
+          if start!=-1 and end!=-1:
+              s=s[:start]+s[end:]
+          s=s.replace('*{box-sizing:border-box}html{scroll-behavior:smooth;width:100%;max-width:100%;overflow-x:hidden}body{margin:0;width:100%;max-width:100%;overflow-x:hidden;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.55}body[dir="ltr"]{font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}.shell{width:min(1120px,calc(100% - 28px));max-width:1120px;margin-left:auto;margin-right:auto}','*{box-sizing:border-box}html{scroll-behavior:smooth;overflow-x:hidden}body{margin:0;overflow-x:hidden;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.55}body[dir="ltr"]{font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}.shell{width:min(1120px,calc(100% - 28px));margin:auto}',1)
+          for old in ['math-upload-v1.css?v=1.0.0','math-upload-v1.css?v=1.1.0']:
+              s=s.replace(old,'math-upload-v1.css?v=1.2.0')
+          for old in ['math-upload-v1.js?v=1.0.0','math-upload-v1.js?v=1.1.0']:
+              s=s.replace(old,'math-upload-v1.js?v=1.2.0')
+          p.write_text(s)
+          assert 'maximum-scale=1' not in s
+          assert 'Mobile width guard:' not in s
+          assert 'MOBILE_SCALE_LOCK_V2' not in s
+          assert 'math-upload-v1.css?v=1.2.0' in s
+          assert 'math-upload-v1.js?v=1.2.0' in s
+          PY
+      - name: Commit page cleanup
+        run: |
+          git config user.name 'trendpilot-rtl-root-fix'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index-v3.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: finalize RTL mobile layout after upload fix'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
