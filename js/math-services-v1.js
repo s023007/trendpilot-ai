@@ -1,60 +1,95 @@
 (()=>{
   const body=document.body;
-  const langButton=document.querySelector('[data-math-lang]');
   const form=document.querySelector('[data-math-form]');
   const result=document.querySelector('[data-math-result]');
   const summaryEl=document.querySelector('[data-math-summary]');
   const copyBtn=document.querySelector('[data-math-copy]');
   const waBtn=document.querySelector('[data-math-whatsapp]');
-  const translations={
-    ar:{
-      navPricing:'الأسعار',navRequest:'أرسل سؤالك',heroEyebrow:'رياضيات أوضح. خطوة بخطوة.',heroTitle:'مسألة رياضيات أوقفتك؟ <span>أرسلها وافهمها.</span>',heroLead:'حصص فردية، شرح مسائل، فيديوهات مخصصة، أوراق عمل واختبارات — اختر نوع المساعدة التي تحتاجها وابدأ من 2 ر.ع فقط.',heroCta1:'📷 أرسل سؤالك الآن',heroCta2:'شاهد الأسعار',trust1:'✓ عربي & English',trust2:'✓ شرح فردي',trust3:'✓ مدرسة وجامعة',quickTitle:'ابدأ بسؤال واحد',quickText:'لا تحتاج لحجز حصة كاملة. أرسل المسألة أولًا وحدد نوع الشرح الذي تريده.',startingFrom:'يبدأ من',omr:'ر.ع',quickCta:'ابدأ الآن',servicesEyebrow:'اختر ما تحتاجه',servicesTitle:'أربع طرق للحصول على مساعدة رياضية مناسبة لك.',servicesLead:'لا تدفع لخدمة أكبر من حاجتك. ابدأ بسؤال، فيديو، حصة، أو ملف مخصص.',s1Title:'شرح مسألة',s1Text:'أرسل صورة السؤال واحصل على شرح مرتب خطوة بخطوة.',s1Price:'من 2 ر.ع',s2Title:'حصة فردية',s2Text:'شرح مباشر ومراجعة وتمارين حسب مستواك وهدفك.',s2Price:'من 6 ر.ع',s3Title:'فيديو مخصص',s3Text:'فيديو مسجل خصيصًا لسؤالك أو موضوعك لتراجعه في أي وقت.',s3Price:'من 3 ر.ع',s4Title:'أوراق عمل وكتيبات',s4Text:'اختبارات، أوراق عمل، بنوك أسئلة وكتيبات مراجعة مخصصة.',s4Price:'من 5 ر.ع',choose:'اختر هذه الخدمة ←',popular:'الأكثر طلبًا',pricingEyebrow:'أسعار واضحة',pricingTitle:'اعرف السعر قبل أن تبدأ.',pricingLead:'الخدمات البسيطة بسعر ثابت. الأعمال الكبيرة أو المتقدمة يتم تسعيرها بعد رؤية المتطلبات.',pLessons:'🎓 الحصص الفردية',pL1:'30 دقيقة',pL2:'60 دقيقة',pL3:'4 حصص × 60 دقيقة',pL4:'8 حصص × 60 دقيقة',pL5:'مراجعة مكثفة 90 دقيقة',pProblems:'📷 شرح المسائل',pP1:'سؤال واحد + شرح مكتوب',pP2:'3 أسئلة',pP3:'5 أسئلة',pP4:'مسألة متقدمة / جامعية',pP5:'مجموعة كبيرة',from3:'من 3 ر.ع',customPrice:'سعر مخصص',pVideos:'🎥 فيديو شرح مخصص',pV1:'حتى 5 دقائق',pV2:'حتى 10 دقائق',pV3:'حتى 20 دقيقة',pV4:'درس 30–40 دقيقة',pContent:'📘 محتوى للطلاب والمعلمين',pC1:'Worksheet قصيرة 1–2 صفحة',pC2:'Worksheet حتى 5 صفحات',pC3:'اختبار 10 أسئلة + الحل',pC4:'اختبار 20 سؤالًا + الحل',pC5:'كتيب 10 صفحات',from18:'من 18 ر.ع',launchOffer:'عرض البداية',offerTitle:'أول حصة 30 دقيقة بـ 4 ر.ع بدل 6 ر.ع',offerText:'فرصة لتجربة أسلوب الشرح قبل حجز باقة أكبر.',offerCta:'احجز العرض',topicsEyebrow:'الموضوعات',topicsTitle:'من أساسيات المدرسة إلى الرياضيات المتقدمة.',howEyebrow:'كيف تعمل الخدمة؟',howTitle:'ثلاث خطوات فقط.',step1Title:'أرسل',step1Text:'اختر الخدمة واكتب السؤال أو ما تحتاجه.',step2Title:'نحدد المطلوب',step2Text:'للأعمال غير الثابتة يتم تأكيد السعر والوقت أولًا.',step3Title:'تعلّم',step3Text:'تحصل على الشرح أو الحصة أو الملف بالطريقة المتفق عليها.',requestEyebrow:'ابدأ الآن',requestTitle:'أخبرني ما الذي تحتاجه في الرياضيات.',requestLead:'املأ التفاصيل الأساسية فقط. لا تدفع قبل معرفة الخدمة والسعر المناسبين لطلبك.',promiseTitle:'مهم',promiseText:'الخدمة للتعليم والشرح والمراجعة. لا نقوم بأداء الاختبارات أو التقييمات نيابة عن الطالب.',fService:'نوع الخدمة',fChoose:'اختر خدمة',fProblem:'شرح مسألة',fLesson:'حصة فردية',fVideo:'فيديو شرح',fContent:'Worksheet / اختبار / كتيب',fLevel:'المستوى',fSchool:'مدرسة',fUniversity:'جامعة',fTeacher:'معلم / محتوى تعليمي',fLanguage:'لغة الشرح',fTopic:'الموضوع',fTopicPh:'مثال: Calculus, Geometry, Trigonometry',fDetails:'اشرح المطلوب باختصار',fDetailsPh:'اكتب السؤال أو وصف ما تحتاجه. يمكنك إرسال صورة المسألة بعد التواصل.',fSubmit:'جهّز طلبي',fNote:'سيتم تجهيز ملخص للطلب. سيتم تفعيل الإرسال المباشر عبر WhatsApp عند إضافة رقم التواصل المخصص للخدمة.',resultTitle:'ملخص طلبك جاهز',sendWhatsapp:'إرسال عبر WhatsApp',copyRequest:'نسخ الطلب',faqTitle:'أسئلة شائعة',faq1q:'هل يجب أن أحجز حصة كاملة لسؤال واحد؟',faq1a:'لا. يمكنك طلب شرح سؤال واحد فقط ابتداءً من 2 ر.ع.',faq2q:'هل الشرح متوفر بالعربية والإنجليزية؟',faq2a:'نعم، اختر اللغة المناسبة لك عند إرسال الطلب.',faq3q:'هل تساعدون طلاب الجامعة؟',faq3a:'نعم، ويمكن تسعير المسائل الجامعية المتقدمة بعد الاطلاع عليها.',faq4q:'هل أستطيع طلب اختبار أو Worksheet مخصصة؟',faq4a:'نعم. يمكن إعداد أوراق عمل، اختبارات، حلول نموذجية وبنوك أسئلة وكتيبات مراجعة.',faq5q:'هل تحلون اختبارًا نيابة عن الطالب؟',faq5a:'لا. الخدمة مخصصة للتعليم والشرح والتدريب والمراجعة، وليس أداء التقييمات نيابة عن الطالب.',finalTitle:'لا تحصل على الإجابة فقط. افهم الرياضيات.',finalText:'ابدأ بسؤال واحد، ثم اختر مستوى المساعدة الذي يناسبك.',finalCta:'أرسل سؤالك الآن',footerText:'خدمات تعليم رياضيات أونلاين — شرح، حصص ومحتوى تعليمي مخصص.',mobileCta:'📷 أرسل سؤالك'
-    },
-    en:{
-      navPricing:'Pricing',navRequest:'Send a question',heroEyebrow:'Clearer math. Step by step.',heroTitle:'Stuck on a math problem? <span>Send it. Understand it.</span>',heroLead:'One-to-one lessons, step-by-step problem explanations, personalized videos, worksheets and tests — choose the help you need from just OMR 2.',heroCta1:'📷 Send your question',heroCta2:'View pricing',trust1:'✓ Arabic & English',trust2:'✓ One-to-one support',trust3:'✓ School & university',quickTitle:'Start with one question',quickText:'You do not need to book a full lesson. Send the problem first and choose the type of explanation you want.',startingFrom:'Starting from',omr:'OMR',quickCta:'Start now',servicesEyebrow:'Choose what you need',servicesTitle:'Four ways to get the right level of math support.',servicesLead:'Do not pay for more help than you need. Start with a question, video, lesson or custom resource.',s1Title:'Problem explanation',s1Text:'Send your question and get a clear step-by-step explanation.',s1Price:'From OMR 2',s2Title:'Private lesson',s2Text:'Live explanation, revision and practice tailored to your level and goal.',s2Price:'From OMR 6',s3Title:'Personalized video',s3Text:'A recorded explanation made specifically for your question or topic.',s3Price:'From OMR 3',s4Title:'Worksheets & booklets',s4Text:'Custom tests, worksheets, question banks and revision booklets.',s4Price:'From OMR 5',choose:'Choose this service →',popular:'Most popular',pricingEyebrow:'Clear pricing',pricingTitle:'Know the price before you start.',pricingLead:'Simple services have fixed prices. Larger or advanced requests are quoted after reviewing the requirements.',pLessons:'🎓 Private lessons',pL1:'30 minutes',pL2:'60 minutes',pL3:'4 × 60-minute lessons',pL4:'8 × 60-minute lessons',pL5:'90-minute intensive review',pProblems:'📷 Problem explanations',pP1:'One question + written explanation',pP2:'3 questions',pP3:'5 questions',pP4:'Advanced / university problem',pP5:'Large question set',from3:'From OMR 3',customPrice:'Custom quote',pVideos:'🎥 Personalized video',pV1:'Up to 5 minutes',pV2:'Up to 10 minutes',pV3:'Up to 20 minutes',pV4:'30–40 minute lesson',pContent:'📘 Student & teacher resources',pC1:'Short 1–2 page worksheet',pC2:'Worksheet up to 5 pages',pC3:'10-question test + answers',pC4:'20-question test + answers',pC5:'10-page booklet',from18:'From OMR 18',launchOffer:'Launch offer',offerTitle:'Your first 30-minute lesson: OMR 4 instead of OMR 6',offerText:'Try the teaching style before booking a larger package.',offerCta:'Book the offer',topicsEyebrow:'Topics',topicsTitle:'From school foundations to advanced mathematics.',howEyebrow:'How it works',howTitle:'Only three steps.',step1Title:'Send',step1Text:'Choose the service and describe the question or resource you need.',step2Title:'Confirm',step2Text:'For custom work, the price and scope are confirmed before starting.',step3Title:'Learn',step3Text:'Receive the explanation, lesson or resource in the agreed format.',requestEyebrow:'Start now',requestTitle:'Tell me what you need help with in mathematics.',requestLead:'Complete only the essential details. You do not pay before the service and price are clear.',promiseTitle:'Important',promiseText:'This service is for teaching, explanation, practice and revision. We do not take tests or graded assessments on a student’s behalf.',fService:'Service',fChoose:'Choose a service',fProblem:'Problem explanation',fLesson:'Private lesson',fVideo:'Video explanation',fContent:'Worksheet / test / booklet',fLevel:'Level',fSchool:'School',fUniversity:'University',fTeacher:'Teacher / educational content',fLanguage:'Explanation language',fTopic:'Topic',fTopicPh:'Example: Calculus, Geometry, Trigonometry',fDetails:'Briefly describe what you need',fDetailsPh:'Write the question or describe what you need. You can send an image after contact is established.',fSubmit:'Prepare my request',fNote:'A request summary will be prepared. Direct WhatsApp sending will be enabled once the dedicated service contact number is added.',resultTitle:'Your request summary is ready',sendWhatsapp:'Send via WhatsApp',copyRequest:'Copy request',faqTitle:'Frequently asked questions',faq1q:'Do I need to book a full lesson for one question?',faq1a:'No. You can request a single question explanation from OMR 2.',faq2q:'Is support available in Arabic and English?',faq2a:'Yes. Choose your preferred language when sending the request.',faq3q:'Do you help university students?',faq3a:'Yes. Advanced university problems can be quoted after review.',faq4q:'Can I request a custom test or worksheet?',faq4a:'Yes. Worksheets, tests, answer keys, question banks and revision booklets can be created.',faq5q:'Will you take a test on behalf of a student?',faq5a:'No. The service is for teaching, explanation, practice and revision, not taking graded assessments for a student.',finalTitle:'Do not just get the answer. Understand the math.',finalText:'Start with one question, then choose the level of support that fits you.',finalCta:'Send your question',footerText:'Online math education services — explanations, lessons and custom learning resources.',mobileCta:'📷 Send your question'
-    }
+  const langButton=document.querySelector('[data-math-lang]');
+  const EMAIL='hello@trendpilotchoice.com';
+
+  const ar={};
+  const arPlaceholders={};
+  document.querySelectorAll('[data-i18n]').forEach(el=>{ar[el.dataset.i18n]=el.innerHTML;});
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{arPlaceholders[el.dataset.i18nPlaceholder]=el.placeholder;});
+
+  const en={
+    navPricing:'Pricing',navRequest:'Send a question',heroEyebrow:'Clearer math. Step by step.',heroTitle:'Stuck on a math problem? <span>Send it. Understand it.</span>',heroLead:'One-to-one lessons, step-by-step problem explanations, personalized videos, worksheets and tests — choose the help you need from just OMR 2.',heroCta1:'📷 Send your question',heroCta2:'View pricing',trust1:'✓ Arabic & English',trust2:'✓ One-to-one support',trust3:'✓ School & university',quickTitle:'Start with one question',quickText:'You do not need to book a full lesson. Send the problem first and choose the type of explanation you want.',startingFrom:'Starting from',omr:'OMR',quickCta:'Start now',servicesEyebrow:'Choose what you need',servicesTitle:'Four ways to get the right level of math support.',servicesLead:'Do not pay for more help than you need. Start with a question, video, lesson or custom resource.',s1Title:'Problem explanation',s1Text:'Send your question and get a clear step-by-step explanation.',s1Price:'From OMR 2',s2Title:'Private lesson',s2Text:'Live explanation, revision and practice tailored to your level and goal.',s2Price:'From OMR 6',s3Title:'Personalized video',s3Text:'A recorded explanation made specifically for your question or topic.',s3Price:'From OMR 3',s4Title:'Worksheets & booklets',s4Text:'Custom tests, worksheets, question banks and revision booklets.',s4Price:'From OMR 5',choose:'Choose this service →',popular:'Most popular',pricingEyebrow:'Clear pricing',pricingTitle:'Know the price before you start.',pricingLead:'Simple services have fixed prices. Larger or advanced requests are quoted after reviewing the requirements.',pLessons:'🎓 Private lessons',pL1:'30 minutes',pL2:'60 minutes',pL3:'4 × 60-minute lessons',pL4:'8 × 60-minute lessons',pL5:'90-minute intensive review',pProblems:'📷 Problem explanations',pP1:'One question + written explanation',pP2:'3 questions',pP3:'5 questions',pP4:'Advanced / university problem',pP5:'Large question set',from3:'From OMR 3',customPrice:'Custom quote',pVideos:'🎥 Personalized video',pV1:'Up to 5 minutes',pV2:'Up to 10 minutes',pV3:'Up to 20 minutes',pV4:'30–40 minute lesson',pContent:'📘 Student & teacher resources',pC1:'Short 1–2 page worksheet',pC2:'Worksheet up to 5 pages',pC3:'10-question test + answers',pC4:'20-question test + answers',pC5:'10-page booklet',from18:'From OMR 18',launchOffer:'Launch offer',offerTitle:'Your first 30-minute lesson: OMR 4 instead of OMR 6',offerText:'Try the teaching style before booking a larger package.',offerCta:'Book the offer',topicsEyebrow:'Topics',topicsTitle:'From school foundations to advanced mathematics.',howEyebrow:'How it works',howTitle:'Only three steps.',step1Title:'Send',step1Text:'Choose the service and describe the question or resource you need.',step2Title:'Confirm',step2Text:'For custom work, the price and scope are confirmed before starting.',step3Title:'Learn',step3Text:'Receive the explanation, lesson or resource in the agreed format.',requestEyebrow:'Start now',requestTitle:'Tell me what you need help with in mathematics.',requestLead:'Complete only the essential details. You do not pay before the service and price are clear.',promiseTitle:'Important',promiseText:'This service is for teaching, explanation, practice and revision. We do not take tests or graded assessments on a student’s behalf.',fService:'Service',fChoose:'Choose a service',fProblem:'Problem explanation',fLesson:'Private lesson',fVideo:'Video explanation',fContent:'Worksheet / test / booklet',fLevel:'Level',fSchool:'School',fUniversity:'University',fTeacher:'Teacher / educational content',fLanguage:'Explanation language',fTopic:'Topic',fTopicPh:'Example: Calculus, Geometry, Trigonometry',fDetails:'Briefly describe what you need',fDetailsPh:'Write the question or describe what you need. You can attach an image after contact is established.',fSubmit:'Prepare my request',fNote:'Your request can be sent by email now. Direct WhatsApp sending will appear as soon as a dedicated service number is added.',resultTitle:'Your request summary is ready',sendWhatsapp:'Send via WhatsApp',copyRequest:'Copy request',faqTitle:'Frequently asked questions',faq1q:'Do I need to book a full lesson for one question?',faq1a:'No. You can request a single question explanation from OMR 2.',faq2q:'Is support available in Arabic and English?',faq2a:'Yes. Choose your preferred language when sending the request.',faq3q:'Do you help university students?',faq3a:'Yes. Advanced university problems can be quoted after review.',faq4q:'Can I request a custom test or worksheet?',faq4a:'Yes. Worksheets, tests, answer keys, question banks and revision booklets can be created.',faq5q:'Will you take a test on behalf of a student?',faq5a:'No. The service is for teaching, explanation, practice and revision, not taking graded assessments for a student.',finalTitle:'Do not just get the answer. Understand the math.',finalText:'Start with one question, then choose the level of support that fits you.',finalCta:'Send your question',footerText:'Online math education services — explanations, lessons and custom learning resources.',mobileCta:'📷 Send your question'
   };
+  const enPlaceholders={fTopicPh:en.fTopicPh,fDetailsPh:en.fDetailsPh};
   const serviceNames={ar:{problem:'شرح مسألة',lesson:'حصة فردية',video:'فيديو شرح',content:'Worksheet / اختبار / كتيب'},en:{problem:'Problem explanation',lesson:'Private lesson',video:'Video explanation',content:'Worksheet / test / booklet'}};
   const levelNames={ar:{school:'مدرسة',university:'جامعة',teacher:'معلم / محتوى تعليمي'},en:{school:'School',university:'University',teacher:'Teacher / educational content'}};
-  let currentLang=(localStorage.getItem('tp-math-lang')||((navigator.language||'').toLowerCase().startsWith('ar')?'ar':'ar'));
+  let currentLang=localStorage.getItem('tp-math-lang')==='en'?'en':'ar';
+
   function setLang(lang){
     currentLang=lang;
     localStorage.setItem('tp-math-lang',lang);
     document.documentElement.lang=lang;
     document.documentElement.dir=lang==='ar'?'rtl':'ltr';
     body.dir=lang==='ar'?'rtl':'ltr';
-    document.querySelectorAll('[data-i18n]').forEach(el=>{const key=el.dataset.i18n;const value=translations[lang][key];if(value!==undefined) el.innerHTML=value;});
-    document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const key=el.dataset.i18nPlaceholder;const value=translations[lang][key];if(value!==undefined) el.placeholder=value;});
-    if(langButton) langButton.textContent=lang==='ar'?'EN':'ع';
+    const dict=lang==='ar'?ar:en;
+    const placeholders=lang==='ar'?arPlaceholders:enPlaceholders;
+    document.querySelectorAll('[data-i18n]').forEach(el=>{const v=dict[el.dataset.i18n];if(v!==undefined)el.innerHTML=v;});
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el=>{const v=placeholders[el.dataset.i18nPlaceholder];if(v!==undefined)el.placeholder=v;});
+    if(langButton)langButton.textContent=lang==='ar'?'EN':'ع';
     document.title=lang==='ar'?'مساعدة الرياضيات أونلاين | حصص، شرح مسائل وفيديوهات مخصصة':'Online Math Help | Lessons, Problem Explanations & Custom Videos';
+    updateDynamicLabels();
   }
+
+  function updateDynamicLabels(){
+    if(copyBtn)copyBtn.textContent=currentLang==='ar'?'نسخ الطلب':'Copy request';
+    if(waBtn)waBtn.textContent=currentLang==='ar'?'إرسال عبر WhatsApp':'Send via WhatsApp';
+    const emailBtn=document.querySelector('[data-math-email]');
+    if(emailBtn)emailBtn.textContent=currentLang==='ar'?'إرسال بالبريد الإلكتروني':'Send by email';
+    const note=document.querySelector('[data-i18n="fNote"]');
+    if(note)note.textContent=currentLang==='ar'?'يمكن إرسال طلبك الآن بالبريد الإلكتروني. وسيظهر خيار WhatsApp مباشرة عند إضافة رقم مخصص للخدمة.':en.fNote;
+  }
+
   setLang(currentLang);
-  if(langButton) langButton.addEventListener('click',()=>setLang(currentLang==='ar'?'en':'ar'));
-  document.querySelectorAll('[data-service]').forEach(link=>link.addEventListener('click',()=>{const select=form?.elements?.service;if(select) select.value=link.dataset.service;}));
+  if(langButton)langButton.addEventListener('click',()=>setLang(currentLang==='ar'?'en':'ar'));
+
+  document.querySelectorAll('[data-service]').forEach(link=>link.addEventListener('click',()=>{if(form?.elements?.service)form.elements.service.value=link.dataset.service;}));
+  document.querySelectorAll('a[href="/contact"]').forEach(a=>a.href='/contact.html');
+  document.querySelectorAll('a[href="/privacy"]').forEach(a=>a.href='/privacy.html');
+
+  let emailBtn=null;
+  const actionWrap=result?.querySelector('.math-result-actions');
+  if(actionWrap){
+    emailBtn=document.createElement('a');
+    emailBtn.className='math-btn math-btn-primary';
+    emailBtn.setAttribute('data-math-email','');
+    emailBtn.textContent=currentLang==='ar'?'إرسال بالبريد الإلكتروني':'Send by email';
+    actionWrap.insertBefore(emailBtn,copyBtn||null);
+  }
+
   function buildSummary(data){
-    const t=currentLang==='ar';
     const service=serviceNames[currentLang][data.get('service')]||data.get('service');
     const level=levelNames[currentLang][data.get('level')]||data.get('level');
-    if(t){return `طلب مساعدة رياضيات\nالخدمة: ${service}\nالمستوى: ${level}\nلغة الشرح: ${data.get('language')||''}\nالموضوع: ${data.get('topic')||'غير محدد'}\nالتفاصيل: ${data.get('details')||''}`;}
+    if(currentLang==='ar')return `طلب مساعدة رياضيات\nالخدمة: ${service}\nالمستوى: ${level}\nلغة الشرح: ${data.get('language')||''}\nالموضوع: ${data.get('topic')||'غير محدد'}\nالتفاصيل: ${data.get('details')||''}`;
     return `Math help request\nService: ${service}\nLevel: ${level}\nExplanation language: ${data.get('language')||''}\nTopic: ${data.get('topic')||'Not specified'}\nDetails: ${data.get('details')||''}`;
   }
-  if(form) form.addEventListener('submit',e=>{
+
+  if(form)form.addEventListener('submit',e=>{
     e.preventDefault();
-    if(!form.reportValidity()) return;
+    if(!form.reportValidity())return;
     const data=new FormData(form);
     const summary=buildSummary(data);
     summaryEl.textContent=summary;
     result.hidden=false;
+    const subject=currentLang==='ar'?'طلب خدمة رياضيات':'Math service request';
+    if(emailBtn)emailBtn.href=`mailto:${EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(summary)}`;
     const number=(body.dataset.whatsapp||'').replace(/\D/g,'');
-    if(number){waBtn.hidden=false;waBtn.onclick=()=>{window.open(`https://wa.me/${number}?text=${encodeURIComponent(summary)}`,'_blank','noopener');};}
-    else{waBtn.hidden=true;}
+    if(number){waBtn.hidden=false;waBtn.onclick=()=>window.open(`https://wa.me/${number}?text=${encodeURIComponent(summary)}`,'_blank','noopener');}
+    else waBtn.hidden=true;
     result.scrollIntoView({behavior:'smooth',block:'nearest'});
     try{window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:'math_request_prepared',math_service:data.get('service'),math_level:data.get('level'),page_path:location.pathname});}catch(_e){}
   });
-  if(copyBtn) copyBtn.addEventListener('click',async()=>{
+
+  if(copyBtn)copyBtn.addEventListener('click',async()=>{
     const text=summaryEl.textContent||'';
-    if(!text) return;
-    try{await navigator.clipboard.writeText(text);copyBtn.textContent=currentLang==='ar'?'تم النسخ ✓':'Copied ✓';setTimeout(()=>copyBtn.textContent=translations[currentLang].copyRequest,1800);}catch(_e){window.prompt(currentLang==='ar'?'انسخ الطلب:':'Copy the request:',text);}
+    if(!text)return;
+    try{await navigator.clipboard.writeText(text);copyBtn.textContent=currentLang==='ar'?'تم النسخ ✓':'Copied ✓';setTimeout(updateDynamicLabels,1800);}catch(_e){window.prompt(currentLang==='ar'?'انسخ الطلب:':'Copy the request:',text);}
   });
+
   document.querySelectorAll('[data-track]').forEach(el=>el.addEventListener('click',()=>{try{window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:'math_cta_click',cta:el.dataset.track,page_path:location.pathname});}catch(_e){}}));
 })();
