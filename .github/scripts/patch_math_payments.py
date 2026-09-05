@@ -97,3 +97,5 @@ assert 'id="payment"' in html
 assert 'payIntlTitle' in js
 assert '.mobile-cta.is-hidden' in css
 assert 'IntersectionObserver' in js
+
+# trigger: 2026-09-05 payment section v1
