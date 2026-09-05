@@ -1,0 +1,54 @@
+name: Deploy WAU LED Bulgaria Now
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-wau-led-bg-now.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Configure SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+          EOF
+          chmod 600 ~/.ssh/config
+      - name: Publish WAU landing
+        run: |
+          set -euo pipefail
+          tar -czf - products/led-face-mask/bg | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+      - name: Verify files
+        run: |
+          set -euo pipefail
+          ssh trendpilot-namecheap "test -f '$STATIC_ROOT/products/led-face-mask/bg/index.html' && test -f '$STATIC_ROOT/products/led-face-mask/bg/editorial-picks.js'"
+          echo 'WAU_LED_BG_DEPLOY_OK'
