@@ -1,0 +1,111 @@
+name: Patch Math Pricing V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-math-pricing-v2.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Apply revised lesson pricing
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          html_path = Path('math/index.html')
+          js_path = Path('js/math-services-v1.js')
+          html = html_path.read_text(encoding='utf-8')
+          js = js_path.read_text(encoding='utf-8')
+
+          html_replacements = {
+              '{"@type":"Offer","name":"30-minute private lesson","price":"6","priceCurrency":"OMR"}': '{"@type":"Offer","name":"30-minute private lesson","price":"4","priceCurrency":"OMR"}',
+              '{"@type":"Offer","name":"60-minute private lesson","price":"10","priceCurrency":"OMR"}': '{"@type":"Offer","name":"60-minute private lesson","price":"5","priceCurrency":"OMR"}',
+              'data-i18n="s2Price">من 6 ر.ع</b>': 'data-i18n="s2Price">من 4 ر.ع</b>',
+              '<li><span data-i18n="pL1">30 دقيقة</span><strong>6 ر.ع</strong></li>': '<li><span data-i18n="pL1">30 دقيقة</span><strong>4 ر.ع</strong></li>',
+              '<li><span data-i18n="pL2">60 دقيقة</span><strong>10 ر.ع</strong></li>': '<li><span data-i18n="pL2">60 دقيقة</span><strong>5 ر.ع</strong></li>',
+              '<li><span data-i18n="pL3">4 حصص × 60 دقيقة</span><strong>36 ر.ع</strong></li>': '<li><span data-i18n="pL3">4 حصص × 60 دقيقة</span><strong>20 ر.ع</strong></li>',
+              '<li><span data-i18n="pL4">8 حصص × 60 دقيقة</span><strong>68 ر.ع</strong></li>': '<li><span data-i18n="pL4">8 حصص × 60 دقيقة</span><strong>30 ر.ع</strong></li>',
+              '<span data-i18n="launchOffer">عرض البداية</span><h3 data-i18n="offerTitle">أول حصة 30 دقيقة بـ 4 ر.ع بدل 6 ر.ع</h3><p data-i18n="offerText">فرصة لتجربة أسلوب الشرح قبل حجز باقة أكبر.</p>': '<span data-i18n="launchOffer">حصة قصيرة</span><h3 data-i18n="offerTitle">حصة فردية لمدة 30 دقيقة بـ 4 ر.ع</h3><p data-i18n="offerText">خيار مناسب للشرح السريع أو مراجعة موضوع محدد.</p>',
+              'data-i18n="offerCta">احجز العرض</a>': 'data-i18n="offerCta">احجز 30 دقيقة</a>',
+          }
+          for old, new in html_replacements.items():
+              if old not in html:
+                  raise SystemExit(f'Missing expected HTML pattern: {old[:90]}')
+              html = html.replace(old, new, 1)
+
+          js_replacements = {
+              "s2Price:'From OMR 6'": "s2Price:'From OMR 4'",
+              "launchOffer:'Launch offer'": "launchOffer:'30-minute lesson'",
+              "offerTitle:'Your first 30-minute lesson: OMR 4 instead of OMR 6'": "offerTitle:'30-minute private lesson: OMR 4'",
+              "offerText:'Try the teaching style before booking a larger package.'": "offerText:'A focused option for a quick explanation or review.'",
+              "offerCta:'Book the offer'": "offerCta:'Book 30 minutes'",
+          }
+          for old, new in js_replacements.items():
+              if old not in js:
+                  raise SystemExit(f'Missing expected JS pattern: {old[:90]}')
+              js = js.replace(old, new, 1)
+
+          marker = "  let currentLang=localStorage.getItem('tp-math-lang')==='en'?'en':'ar';\n\n"
+          insertion = "  let currentLang=localStorage.getItem('tp-math-lang')==='en'?'en':'ar';\n\n  // Official private-lesson prices (OMR): 30m=4, 60m=5, 4x60m=20, 8x60m=30, 90m review=14.\n  ar.s2Price='من 4 ر.ع';\n  ar.launchOffer='حصة قصيرة';\n  ar.offerTitle='حصة فردية لمدة 30 دقيقة بـ 4 ر.ع';\n  ar.offerText='خيار مناسب للشرح السريع أو مراجعة موضوع محدد.';\n  ar.offerCta='احجز 30 دقيقة';\n\n  function updateLessonPrices(){\n    const prices=currentLang==='ar'?['4 ر.ع','5 ر.ع','20 ر.ع','30 ر.ع','14 ر.ع']:['OMR 4','OMR 5','OMR 20','OMR 30','OMR 14'];\n    document.querySelectorAll('.math-price-groups > .math-price-panel:first-child li strong').forEach((el,i)=>{if(prices[i])el.textContent=prices[i];});\n  }\n\n"
+          if 'function updateLessonPrices()' not in js:
+              if marker not in js:
+                  raise SystemExit('Missing currentLang marker in JS')
+              js = js.replace(marker, insertion, 1)
+
+          target = "    document.title=lang==='ar'?'مساعدة الرياضيات أونلاين | حصص، شرح مسائل وفيديوهات مخصصة':'Online Math Help | Lessons, Problem Explanations & Custom Videos';\n    updateDynamicLabels();"
+          replacement = "    document.title=lang==='ar'?'مساعدة الرياضيات أونلاين | حصص، شرح مسائل وفيديوهات مخصصة':'Online Math Help | Lessons, Problem Explanations & Custom Videos';\n    updateLessonPrices();\n    updateDynamicLabels();"
+          if '    updateLessonPrices();\n    updateDynamicLabels();' not in js:
+              if target not in js:
+                  raise SystemExit('Missing setLang update marker in JS')
+              js = js.replace(target, replacement, 1)
+
+          html_path.write_text(html, encoding='utf-8')
+          js_path.write_text(js, encoding='utf-8')
+          PY
+
+      - name: Verify revised prices
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '<span data-i18n="pL1">30 دقيقة</span><strong>4 ر.ع</strong>' math/index.html
+          grep -q '<span data-i18n="pL2">60 دقيقة</span><strong>5 ر.ع</strong>' math/index.html
+          grep -q '<span data-i18n="pL3">4 حصص × 60 دقيقة</span><strong>20 ر.ع</strong>' math/index.html
+          grep -q '<span data-i18n="pL4">8 حصص × 60 دقيقة</span><strong>30 ر.ع</strong>' math/index.html
+          grep -q '<span data-i18n="pL5">مراجعة مكثفة 90 دقيقة</span><strong>14 ر.ع</strong>' math/index.html
+          node --check js/math-services-v1.js
+
+      - name: Commit pricing update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-pricing'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index.html js/math-services-v1.js
+          if git diff --cached --quiet; then
+            echo 'Pricing already up to date.'
+            exit 0
+          fi
+          git commit -m 'feat: revise math tutoring lesson prices'
+          for i in 1 2 3; do
+            git fetch origin main
+            if git rebase origin/main && git push origin HEAD:main; then
+              exit 0
+            fi
+            git rebase --abort || true
+            sleep $((i*3))
+          done
+          exit 1
