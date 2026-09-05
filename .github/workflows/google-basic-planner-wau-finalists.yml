@@ -1,0 +1,99 @@
+name: Google Basic Planner | WAU Finalists
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-basic-planner-wau-finalists.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  finalists:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Validate WAU finalist terms (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os,time
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          idea=client.get_service('KeywordPlanIdeaService')
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+
+          tests={
+            ('CANADA_ATAMA','geoTargetConstants/2124','languageConstants/1000'):[
+              'scalp massager for hair growth','electric scalp massager','red light scalp massager','led scalp massager',
+              'ems scalp massager','scalp massager with red light','scalp massager with led light','scalp massager with ems',
+              'rechargeable scalp massager','electric head massager','scalp care massager','hair scalp massager',
+              'wau scalp massager','wau atama','atama scalp massager','wau global hair massager'
+            ],
+            ('BULGARIA_LED_BG','geoTargetConstants/2100','languageConstants/1020'):[
+              'led маска за лице','led маска за фототерапия','фототерапевтична маска за лице','маска с червена светлина',
+              'маска за светлинна терапия','led маска за лице цена','led маска за лице у дома','фототерапия за лице у дома',
+              'червена светлина за лице','маска с led светлина за лице'
+            ],
+            ('BULGARIA_LED_EN','geoTargetConstants/2100','languageConstants/1000'):[
+              'led face mask','red light face mask','led phototherapy mask','light therapy face mask','led face mask price',
+              'led face mask home use','red light therapy face mask','phototherapy face mask','wau led mask','wau face mask',
+              'wau global led mask','wau led face mask'
+            ],
+          }
+
+          def metric(m,field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            v=getattr(m,field,None)
+            return int(v) if v is not None else None
+
+          print('WAU_FINALISTS|mode=READ_ONLY|currency=USD')
+          for (group,geo,lang),keywords in tests.items():
+            req=client.get_type('GenerateKeywordHistoricalMetricsRequest')
+            req.customer_id=cid; req.keywords.extend(keywords); req.geo_target_constants.append(geo); req.language=lang; req.keyword_plan_network=NET
+            results=None
+            for attempt in range(5):
+              try:
+                results=idea.generate_keyword_historical_metrics(request=req).results; break
+              except ResourceExhausted:
+                time.sleep(5*(attempt+1))
+            if results is None: raise RuntimeError('rate limit')
+            for x in results:
+              m=x.keyword_metrics
+              lo=metric(m,'low_top_of_page_bid_micros'); hi=metric(m,'high_top_of_page_bid_micros')
+              lo=None if lo is None else round(lo/1e6,2); hi=None if hi is None else round(hi/1e6,2)
+              ci=metric(m,'competition_index'); searches=int(m.avg_monthly_searches or 0)
+              if searches<=0: gate='RED'
+              elif ci is not None and ci<=35 and lo is not None and lo<=0.20: gate='GREEN'
+              elif ci is not None and ci<=60 and lo is not None and lo<=0.35: gate='AMBER'
+              else: gate='RED'
+              print('FINALIST_RESULT|group=%s|gate=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_USD=%s|high_USD=%s' % (
+                group,gate,x.text,searches,getattr(m.competition,'name',str(m.competition)),ci,lo,hi))
+            time.sleep(3)
+          print('WAU_FINALISTS_ACCESS|PASS')
+          PY
