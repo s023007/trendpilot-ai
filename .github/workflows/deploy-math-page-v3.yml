@@ -1,0 +1,74 @@
+name: Deploy Math Page V3
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'math/**'
+      - '.github/workflows/deploy-math-page-v3.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY is missing'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+      - name: Publish math page
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf - math | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+          ssh trendpilot-namecheap "test -f '$STATIC_ROOT/math/index-v3.html' && test -f '$STATIC_ROOT/math/.htaccess'"
+      - name: Verify live page
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import time, urllib.request
+          url='https://trendpilotchoice.com/math/?payment='+str(int(time.time()))
+          req=urllib.request.Request(url,headers={'User-Agent':'TrendPilotMathDeploy/3.0','Cache-Control':'no-cache'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+              body=r.read().decode('utf-8','replace')
+              assert r.status == 200
+          markers=['طريقة الدفع تُرسل لك بعد مراجعة طلبك.','التحويل عبر رقم الهاتف متاح داخل عُمان','طريقة الدفع تُرسل بعد تأكيد الطلب']
+          for m in markers:
+              assert m in body, m
+          assert 'Google Pay' not in body
+          assert 'Visa / Mastercard' not in body
+          print('MATH_PAYMENT_WORDING_OK')
+          PY
