@@ -29,6 +29,7 @@
     @media(max-width:720px){.nav{min-height:66px}.navlinks{display:none}.brand{font-size:19px}.brand img{width:38px;height:38px}.hero{padding:34px 0 28px}.hero-grid{gap:26px}.hero h1{font-size:39px}.lead{font-size:16px}.actions{display:grid;grid-template-columns:1fr 1fr}.service-img{height:120px}.section{padding:52px 0!important}.section-head h2{font-size:30px}.price-grid,.steps,.payment-grid,.policy-grid,.row{grid-template-columns:1fr}.offer{flex-direction:column;align-items:stretch}.offer .btn{width:100%}.request-visual img{min-height:280px;max-height:330px}.formbox{padding:19px}.final-inner{flex-direction:column;align-items:flex-start}.final .btn{width:100%}.topic-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.mobile-cta{display:block}.footer{padding-bottom:84px}.footer-title{font-size:17px}.result-actions .btn{width:100%}}
     @media(max-width:430px){.actions{grid-template-columns:1fr}.services{grid-template-columns:1fr}.service-img{height:170px}.price-card{padding:15px}.payment-card,.policy{padding:17px}}
   </style>
+  <link rel="stylesheet" href="/math/math-upload-v1.css?v=1.0.0">
 </head>
 <body data-whatsapp="">
   <header class="header"><div class="shell nav"><a class="brand" href="/"><img src="/images/logo-v4.svg" alt=""><span>TrendPilot <em>AI</em></span></a><nav class="navlinks"><a href="#services" data-t="nav1">الخدمات</a><a href="#pricing" data-t="nav2">الأسعار</a><a href="#payment" data-t="nav3">الدفع</a><a href="#request" data-t="nav4">أرسل طلبك</a></nav><button class="lang" type="button" data-lang>EN</button></div></header>
@@ -83,5 +84,6 @@
       const floating=document.querySelector('[data-floating]'),targets=document.querySelectorAll('.final,.footer');if(floating&&'IntersectionObserver' in window){const visible=new Set();const obs=new IntersectionObserver(entries=>{entries.forEach(x=>x.isIntersecting?visible.add(x.target):visible.delete(x.target));floating.classList.toggle('hide',visible.size>0)},{threshold:.08});targets.forEach(x=>obs.observe(x))}
     })();
   </script>
+  <script src="/math/math-upload-v1.js?v=1.0.0"></script>
 </body>
 </html>
