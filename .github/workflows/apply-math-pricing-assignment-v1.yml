@@ -1,0 +1,155 @@
+name: Apply Math Pricing Assignment V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-math-pricing-assignment-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: Update math problem pricing and assignment support
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'missing replacement target: {label}')
+              return text.replace(old, new, 1)
+
+          html_path=Path('math/index.html')
+          html=html_path.read_text()
+
+          html=replace_once(
+              html,
+              '{"@type":"Offer","name":"Single math problem explanation","price":"2","priceCurrency":"OMR"},',
+              '{"@type":"Offer","name":"Up to 5 math problems with explanations","price":"2","priceCurrency":"OMR"},\n      {"@type":"Offer","name":"College or university assignment tutoring support","price":"10","priceCurrency":"OMR"},',
+              'schema problem offer'
+          )
+          html=replace_once(
+              html,
+              '<p data-i18n="servicesLead">ابدأ بسؤال واحد، حصة فردية، فيديو مخصص أو ملف تعليمي — بدون دفع مقابل خدمة أكبر مما تحتاج.</p>',
+              '<p data-i18n="servicesLead">ابدأ بمجموعة مسائل، حصة فردية، فيديو مخصص أو ملف تعليمي — واختر فقط مستوى المساعدة الذي تحتاجه.</p>',
+              'services lead'
+          )
+          html=replace_once(
+              html,
+              '<div class="service-body"><div class="service-top"><span class="service-icon">✎</span><span class="price-pill" data-i18n="s1Price">من 2 ر.ع</span></div><h3 data-i18n="s1Title">شرح مسألة</h3><p data-i18n="s1Text">أرسل صورة السؤال واحصل على شرح واضح ومنظم خطوة بخطوة.</p><a href="#request" data-service="problem" data-i18n="choose">اختر هذه الخدمة</a></div>',
+              '<div class="service-body"><div class="service-top"><span class="service-icon">✎</span><span class="price-pill" data-i18n="s1Price">من 2 ر.ع</span></div><h3 data-i18n="s1Title">حل وشرح المسائل</h3><p data-i18n="s1Text">أرسل حتى 5 مسائل واحصل على حل مشروح ومنظم خطوة بخطوة.</p><a href="#request" data-service="problem" data-i18n="choose">اختر هذه الخدمة</a></div>',
+              'problem service card'
+          )
+
+          new_problem_block='''<article class="price-card blue"><h3 data-i18n="pProblems">حل وشرح المسائل</h3><ul>
+            <li><span data-i18n="pP1">حتى 5 أسئلة</span><strong>2 <small data-i18n="omr">ر.ع</small></strong></li>
+            <li><span data-i18n="pP2">من 6 إلى 10 أسئلة</span><strong>4 <small data-i18n="omr">ر.ع</small></strong></li>
+            <li><span data-i18n="pP3">أكثر من 10 أسئلة</span><strong data-i18n="customPrice">حسب الاتفاق</strong></li>
+            <li class="assignment-row"><span data-i18n="pP4">مساعدة وشرح Assignment لطلاب الكليات والجامعات</span><strong>10 <small data-i18n="omr">ر.ع</small> <small data-i18n="unitSuffix">/ وحدة</small></strong></li>
+          </ul></article>'''
+          html, n = re.subn(r'<article class="price-card blue"><h3 data-i18n="pProblems">.*?</article>', new_problem_block, html, count=1, flags=re.S)
+          if n != 1:
+              raise SystemExit('problem pricing block replacement failed')
+
+          html=replace_once(
+              html,
+              '<option value="problem" data-i18n="fProblem">شرح مسألة</option><option value="lesson" data-i18n="fLesson">حصة فردية</option>',
+              '<option value="problem" data-i18n="fProblem">حل وشرح مسائل</option><option value="assignment" data-i18n="fAssignment">مساعدة وشرح Assignment جامعي</option><option value="lesson" data-i18n="fLesson">حصة فردية</option>',
+              'assignment form option'
+          )
+          html=replace_once(
+              html,
+              '<details><summary data-i18n="faq1q">هل يجب أن أحجز حصة كاملة لسؤال واحد؟</summary><p data-i18n="faq1a">لا. يمكنك طلب شرح سؤال واحد فقط ابتداءً من 2 ر.ع.</p></details>',
+              '<details><summary data-i18n="faq1q">كم عدد الأسئلة المشمولة في خدمة حل المسائل؟</summary><p data-i18n="faq1a">حتى 5 أسئلة بـ 2 ر.ع، ومن 6 إلى 10 أسئلة بـ 4 ر.ع، وما زاد عن ذلك يتم تسعيره حسب الاتفاق.</p></details>',
+              'faq problem pricing'
+          )
+          html=replace_once(
+              html,
+              '<p data-i18n="finalText">ابدأ بسؤال واحد، ثم اختر مستوى المساعدة الذي يناسبك.</p>',
+              '<p data-i18n="finalText">ابدأ بطلب بسيط، ثم اختر مستوى المساعدة الذي يناسبك.</p>',
+              'final cta text'
+          )
+          html=html.replace('/css/math-services-v2.css?v=2.0.0','/css/math-services-v2.css?v=2.1.0',1)
+          html=html.replace('/js/math-services-v2.js?v=2.0.0','/js/math-services-v2.js?v=2.1.0',1)
+          html_path.write_text(html)
+
+          js_path=Path('js/math-services-v2.js')
+          js=js_path.read_text()
+          js=replace_once(js,
+              "servicesEyebrow:'Our services',servicesTitle:'Choose the type of math support that fits your needs.',servicesLead:'Start with one question, a private lesson, a personalized video or a custom learning resource — without paying for more support than you need.',",
+              "servicesEyebrow:'Our services',servicesTitle:'Choose the type of math support that fits your needs.',servicesLead:'Start with a set of problems, a private lesson, a personalized video or a custom learning resource — and choose only the level of support you need.',",
+              'english services lead')
+          js=replace_once(js,
+              "s1Title:'Problem Explanation',s1Text:'Send your question and receive a clear, structured, step-by-step explanation.',s1Price:'From 2 OMR'",
+              "s1Title:'Problem Solving & Explanations',s1Text:'Send up to 5 problems and receive clear, structured, step-by-step explanations.',s1Price:'From 2 OMR'",
+              'english problem card')
+          js=replace_once(js,
+              "pProblems:'Problem Explanations',pP1:'One question + written explanation',pP2:'3 questions',pP3:'5 questions',pP4:'Advanced / university problem',pP5:'Large question set',from3:'From 3 OMR',customPrice:'Custom quote'",
+              "pProblems:'Problem Solving & Explanations',pP1:'Up to 5 questions',pP2:'6 to 10 questions',pP3:'More than 10 questions',pP4:'College / university assignment tutoring support',customPrice:'By agreement',unitSuffix:'/ unit'",
+              'english problem prices')
+          js=replace_once(js,
+              "fService:'Service type',fChoose:'Choose a service',fProblem:'Problem explanation',fLesson:'1-on-1 lesson'",
+              "fService:'Service type',fChoose:'Choose a service',fProblem:'Problem solving & explanations',fAssignment:'College / university assignment support',fLesson:'1-on-1 lesson'",
+              'english assignment form')
+          js=replace_once(js,
+              "faqTitle:'Frequently asked questions',faq1q:'Do I need to book a full lesson for one question?',faq1a:'No. You can request an explanation for a single question from 2 OMR.'",
+              "faqTitle:'Frequently asked questions',faq1q:'How many questions are included in the problem-solving service?',faq1a:'Up to 5 questions cost 2 OMR, 6 to 10 questions cost 4 OMR, and larger sets are priced by agreement.'",
+              'english faq')
+          js=replace_once(js,
+              "finalTitle:'Don’t just get the answer — understand the math.',finalText:'Start with one question, then choose the level of support that fits you.'",
+              "finalTitle:'Don’t just get the answer — understand the math.',finalText:'Start with a simple request, then choose the level of support that fits you.'",
+              'english final text')
+          js=replace_once(js,
+              "const serviceNames={ar:{problem:'شرح مسألة',lesson:'حصة فردية',video:'فيديو شرح',content:'ورقة عمل / اختبار / كتيب'},en:{problem:'Problem explanation',lesson:'1-on-1 lesson',video:'Video explanation',content:'Worksheet / test / booklet'}};",
+              "const serviceNames={ar:{problem:'حل وشرح مسائل',assignment:'مساعدة وشرح Assignment جامعي',lesson:'حصة فردية',video:'فيديو شرح',content:'ورقة عمل / اختبار / كتيب'},en:{problem:'Problem solving & explanations',assignment:'College / university assignment support',lesson:'1-on-1 lesson',video:'Video explanation',content:'Worksheet / test / booklet'}};",
+              'service names')
+          js_path.write_text(js)
+
+          css_path=Path('css/math-services-v2.css')
+          css=css_path.read_text()
+          css=replace_once(css,
+              '.mobile-cta .btn{pointer-events:auto;display:flex;margin-inline:auto;width:min(360px,100%);min-height:54px;box-shadow:0 16px 36px rgba(20,82,67,.25)}',
+              '.mobile-cta .btn{pointer-events:auto;display:flex;margin-inline:auto;width:min(220px,62vw);min-height:46px;padding:0 16px;font-size:14px;box-shadow:0 12px 30px rgba(20,82,67,.22)}.assignment-row strong{white-space:normal;line-height:1.25}.assignment-row strong small:last-child{display:block;margin-top:2px}',
+              'compact mobile cta')
+          css_path.write_text(css)
+
+          # Sanity checks
+          html=html_path.read_text()
+          for marker in ['حتى 5 أسئلة','من 6 إلى 10 أسئلة','أكثر من 10 أسئلة','مساعدة وشرح Assignment لطلاب الكليات والجامعات','10 <small data-i18n="omr">ر.ع</small> <small data-i18n="unitSuffix">/ وحدة</small>']:
+              if marker not in html:
+                  raise SystemExit('missing html marker: '+marker)
+          js=js_path.read_text()
+          for marker in ["fAssignment:'College / university assignment support'","unitSuffix:'/ unit'","assignment:'مساعدة وشرح Assignment جامعي'"]:
+              if marker not in js:
+                  raise SystemExit('missing js marker: '+marker)
+          PY
+          node --check js/math-services-v2.js
+
+      - name: Commit math pricing update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-pricing'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index.html js/math-services-v2.js css/math-services-v2.css
+          if git diff --cached --quiet; then
+            echo 'No math pricing changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat: update math problem pricing and assignment support'
+          git push origin HEAD:main
