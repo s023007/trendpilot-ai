@@ -1,0 +1,49 @@
+name: Patch Namecheap Math Marker V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/patch-namecheap-math-marker-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Update redesigned math verification marker
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('.github/workflows/namecheap-full-static-auto-deploy.yml')
+          s=p.read_text()
+          old="'/math/': ['مسألة رياضيات أوقفتك؟']"
+          new="'/math/': ['افهم الرياضيات بطريقة']"
+          if old in s:
+              p.write_text(s.replace(old,new,1))
+          elif new not in s:
+              raise SystemExit('math verification marker not found')
+          PY
+      - name: Commit and push verifier update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-redesign'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add .github/workflows/namecheap-full-static-auto-deploy.yml
+          if git diff --cached --quiet; then
+            echo 'Verifier already current.'
+            exit 0
+          fi
+          git commit -m 'fix: verify redesigned math page marker'
+          git pull --rebase origin main
+          git push origin HEAD:main
