@@ -1,0 +1,144 @@
+name: Apply Math Payments and CTA V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-math-payments-cta-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch math page payment section and mobile CTA behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          html_path=Path('math/index.html')
+          css_path=Path('css/math-services-v2.css')
+          js_path=Path('js/math-services-v2.js')
+
+          html=html_path.read_text()
+          css=css_path.read_text()
+          js=js_path.read_text()
+
+          html=html.replace('/css/math-services-v2.css?v=2.0.0','/css/math-services-v2.css?v=2.2.0')
+          html=html.replace('/js/math-services-v2.js?v=2.1.0','/js/math-services-v2.js?v=2.2.0')
+          html=html.replace('{"@type":"Offer","name":"Single math problem explanation","price":"2","priceCurrency":"OMR"}', '{"@type":"Offer","name":"Up to 5 math questions with explanation","price":"2","priceCurrency":"OMR"}')
+          if 'College / university assignment tutoring support' not in html.split('</script>',1)[0]:
+              html=html.replace('{"@type":"Offer","name":"Personalized video explanation","price":"3","priceCurrency":"OMR"}', '{"@type":"Offer","name":"College / university assignment tutoring support","price":"10","priceCurrency":"OMR"},\n      {"@type":"Offer","name":"Personalized video explanation","price":"3","priceCurrency":"OMR"}')
+
+          payment_section='''
+    <section class="math-section payment-section" id="payment">
+      <div class="math-shell">
+        <div class="section-head centered">
+          <span class="eyebrow" data-i18n="paymentEyebrow">الدفع والحجز</span>
+          <h2 data-i18n="paymentTitle">الدفع بسيط، ويتم بعد تأكيد الطلب والسعر.</h2>
+          <p data-i18n="paymentLead">لا نطلب بيانات البطاقة داخل المحادثة. يتم أولًا مراجعة طلبك وتأكيد السعر وطريقة التنفيذ، ثم نرسل لك طريقة الدفع المناسبة.</p>
+        </div>
+        <div class="payment-grid">
+          <article class="payment-card local-payment">
+            <div class="payment-icon">OM</div>
+            <h3 data-i18n="payOmanTitle">للعملاء داخل عُمان</h3>
+            <p data-i18n="payOmanText">بعد تأكيد الطلب والسعر، يمكن الدفع بتحويل محلي عبر رقم الهاتف. تُرسل بيانات التحويل بعد الاتفاق على الخدمة.</p>
+            <span class="payment-badge" data-i18n="payOmanBadge">تحويل محلي عبر رقم الهاتف</span>
+          </article>
+          <article class="payment-card international-payment">
+            <div class="payment-icon">G</div>
+            <h3 data-i18n="payIntlTitle">للعملاء خارج عُمان</h3>
+            <p data-i18n="payIntlText">سيتم توفير الدفع الدولي عبر بوابة دفع آمنة تدعم Google Pay والبطاقات بعد تفعيل حساب التاجر. لا يتم إدخال بيانات البطاقة في الموقع حاليًا.</p>
+            <span class="payment-badge pending" data-i18n="payIntlBadge">Google Pay / Visa / Mastercard — بعد التفعيل</span>
+          </article>
+        </div>
+
+        <div class="payment-policy">
+          <h3 data-i18n="policyTitle">سياسة الدفع والحجز</h3>
+          <div class="policy-grid">
+            <div><strong data-i18n="policy1Title">تأكيد السعر أولًا</strong><p data-i18n="policy1Text">يتم توضيح الخدمة والسعر ووقت التنفيذ قبل أي دفع.</p></div>
+            <div><strong data-i18n="policy2Title">الخدمات الصغيرة</strong><p data-i18n="policy2Text">الخدمات ذات السعر الثابت تُدفع بالكامل قبل بدء التنفيذ.</p></div>
+            <div><strong data-i18n="policy3Title">الأعمال الكبيرة والمخصصة</strong><p data-i18n="policy3Text">يمكن دفع 50% مقدمًا، والباقي قبل التسليم النهائي بعد الاتفاق على نطاق العمل.</p></div>
+            <div><strong data-i18n="policy4Title">الإلغاء والاسترجاع</strong><p data-i18n="policy4Text">إذا تم الإلغاء قبل بدء التنفيذ يمكن استرداد المبلغ. بعد بدء التنفيذ يكون الاسترداد مرتبطًا بالجزء الذي لم يتم تنفيذه.</p></div>
+            <div><strong data-i18n="policy5Title">إعادة جدولة الحصص</strong><p data-i18n="policy5Text">يمكن إعادة جدولة الحصة بالتنسيق المسبق حسب المواعيد المتاحة.</p></div>
+            <div><strong data-i18n="policy6Title">خدمة تعليمية</strong><p data-i18n="policy6Text">جميع الخدمات للشرح والتعلّم والمراجعة والتدريب، وليست لأداء الاختبارات أو التقييمات نيابةً عن الطالب.</p></div>
+          </div>
+        </div>
+      </div>
+    </section>
+'''
+          marker='''    <section class="final-cta">'''
+          if 'id="payment"' not in html:
+              if marker not in html:
+                  raise SystemExit('final CTA marker missing')
+              html=html.replace(marker,payment_section+'\n'+marker,1)
+
+          css_add='''
+.payment-section{background:#fff}.payment-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.payment-card{border:1px solid var(--line);border-radius:24px;padding:24px;background:#fff;box-shadow:0 8px 28px rgba(32,62,93,.06)}.payment-card.local-payment{background:linear-gradient(135deg,#f0fcf8,#fff)}.payment-card.international-payment{background:linear-gradient(135deg,#f3f7ff,#fff)}.payment-icon{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;background:#e1faf3;color:#087a67;font-weight:900;margin-bottom:16px}.international-payment .payment-icon{background:#e8f1ff;color:#275ea9}.payment-card h3{font-size:23px;margin:0 0 10px}.payment-card p{margin:0 0 16px;color:var(--muted);line-height:1.75}.payment-badge{display:inline-flex;align-items:center;border-radius:999px;background:#dff8f1;color:#087864;padding:7px 11px;font-size:12px;font-weight:900}.payment-badge.pending{background:#eef2fb;color:#4d5f7b}.payment-policy{margin-top:22px;border:1px solid #e1e9ef;border-radius:24px;padding:24px;background:#f9fbfc}.payment-policy h3{font-size:24px;margin:0 0 18px}.policy-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.policy-grid>div{background:#fff;border:1px solid #e5edf2;border-radius:16px;padding:16px}.policy-grid strong{display:block;margin-bottom:6px;color:var(--ink)}.policy-grid p{margin:0;color:var(--muted);font-size:14px;line-height:1.65}.mobile-cta{transition:opacity .2s ease,transform .2s ease,visibility .2s ease}.mobile-cta.is-hidden{opacity:0;transform:translateY(16px);visibility:hidden}.math-footer .math-brand{gap:8px}
+@media(max-width:720px){.payment-grid,.policy-grid{grid-template-columns:1fr}.payment-card,.payment-policy{padding:18px}.math-footer .math-brand img{display:none}.math-footer .math-brand{font-size:18px}.mobile-cta{bottom:10px}.mobile-cta .btn{width:min(200px,58vw);min-height:44px}}
+'''
+          if '.payment-section{background:#fff}' not in css:
+              css += '\n'+css_add+'\n'
+
+          old="""    faqTitle:'Frequently asked questions'"""
+          payment_en="""    paymentEyebrow:'Payment & booking',paymentTitle:'Payment is simple and only happens after your request and price are confirmed.',paymentLead:'We never ask for card details in chat. Your request, price and delivery method are confirmed first, then the appropriate payment method is provided.',payOmanTitle:'Customers in Oman',payOmanText:'After the request and price are confirmed, local payment can be made by phone-number transfer. Transfer details are shared after the service is agreed.',payOmanBadge:'Local phone-number transfer',payIntlTitle:'Customers outside Oman',payIntlText:'International checkout through a secure gateway supporting Google Pay and cards will be available after merchant activation. Card details are not collected on this site yet.',payIntlBadge:'Google Pay / Visa / Mastercard — after activation',policyTitle:'Payment & booking policy',policy1Title:'Price confirmed first',policy1Text:'The service, price and expected delivery time are confirmed before any payment.',policy2Title:'Small fixed-price services',policy2Text:'Fixed-price services are paid in full before work begins.',policy3Title:'Larger custom work',policy3Text:'A 50% deposit may be paid first, with the balance due before final delivery, once the scope is agreed.',policy4Title:'Cancellation & refunds',policy4Text:'If cancelled before work starts, the payment can be refunded. After work begins, any refund is limited to the uncompleted portion.',policy5Title:'Lesson rescheduling',policy5Text:'Lessons can be rescheduled with prior coordination, subject to available times.',policy6Title:'Educational service',policy6Text:'All services are for teaching, explanation, practice and review, not for taking tests or assessments on behalf of a student.',\n    faqTitle:'Frequently asked questions'"""
+          if "paymentEyebrow:'Payment & booking'" not in js:
+              if old not in js:
+                  raise SystemExit('English FAQ marker missing in JS')
+              js=js.replace(old,payment_en,1)
+
+          observer_code='''
+  const floatingCta=document.querySelector('.mobile-cta');
+  const ctaHideTargets=document.querySelectorAll('.final-cta,.math-footer');
+  if(floatingCta&&ctaHideTargets.length&&'IntersectionObserver' in window){
+    const visible=new Set();
+    const observer=new IntersectionObserver(entries=>{
+      entries.forEach(entry=>{if(entry.isIntersecting)visible.add(entry.target);else visible.delete(entry.target);});
+      floatingCta.classList.toggle('is-hidden',visible.size>0);
+    },{threshold:.08});
+    ctaHideTargets.forEach(el=>observer.observe(el));
+  }
+'''
+          if "const floatingCta=document.querySelector('.mobile-cta')" not in js:
+              anchor="  document.querySelectorAll('[data-track]').forEach(el=>el.addEventListener('click',()=>{try{window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:'math_cta_click',cta:el.dataset.track,language:currentLang,page_path:location.pathname});}catch(_e){}}));\n})();"
+              if anchor not in js:
+                  raise SystemExit('JS end anchor missing')
+              js=js.replace(anchor,"  document.querySelectorAll('[data-track]').forEach(el=>el.addEventListener('click',()=>{try{window.dataLayer=window.dataLayer||[];window.dataLayer.push({event:'math_cta_click',cta:el.dataset.track,language:currentLang,page_path:location.pathname});}catch(_e){}}));\n"+observer_code+"})();",1)
+
+          html_path.write_text(html)
+          css_path.write_text(css)
+          js_path.write_text(js)
+
+          assert 'id="payment"' in html
+          assert 'payIntlTitle' in js
+          assert '.mobile-cta.is-hidden' in css
+          assert 'IntersectionObserver' in js
+          PY
+          node --check js/math-services-v2.js
+
+      - name: Commit payment and CTA improvements
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-payments'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index.html css/math-services-v2.css js/math-services-v2.js
+          if git diff --cached --quiet; then
+            echo 'No changes.'
+            exit 0
+          fi
+          git commit -m 'feat: add math payment policy and clean mobile footer CTA'
+          git pull --rebase origin main
+          git push origin HEAD:main
