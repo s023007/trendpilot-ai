@@ -1,0 +1,79 @@
+name: WAU Admitad Link Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wau-admitad-link-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      WEBSITE_ID: '2980568'
+      CAMPAIGN_ID: '191147'
+    steps:
+      - name: Inspect WAU campaign tracking fields (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64,json,os,urllib.parse,urllib.request
+          API='https://api.admitad.com'
+          def env(*names):
+              for n in names:
+                  v=(os.environ.get(n) or '').strip()
+                  if v:return v
+              return ''
+          cid=env('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT')
+          sec=env('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          if not cid or not sec: raise SystemExit('Missing Admitad credentials')
+          basic=base64.b64encode(f'{cid}:{sec}'.encode()).decode()
+          data=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':cid,'scope':'websites advcampaigns_for_website banners deeplink_generator'}).encode()
+          req=urllib.request.Request(API+'/token/',data=data,method='POST',headers={'Authorization':'Basic '+basic,'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','Accept':'application/json','User-Agent':'TrendPilot-WAU-Link-Audit/1.0'})
+          with urllib.request.urlopen(req,timeout=60) as r: token=json.loads(r.read().decode())['access_token']
+          auth={'Authorization':'Bearer '+token,'Accept':'application/json','User-Agent':'TrendPilot-WAU-Link-Audit/1.0'}
+          wid=os.environ['WEBSITE_ID']; target=int(os.environ['CAMPAIGN_ID'])
+          def get(url):
+              q=urllib.request.Request(url,headers=auth)
+              with urllib.request.urlopen(q,timeout=60) as r:return json.loads(r.read().decode('utf-8','replace'))
+          p=get(f'{API}/advcampaigns/website/{wid}/?limit=200&connection_status=active')
+          rows=p.get('results',[]) if isinstance(p,dict) else p
+          c=next((x for x in rows if int(x.get('id') or 0)==target),None)
+          if not c: raise SystemExit('WAU campaign not found')
+          safe_keys=sorted(k for k in c if not any(s in k.lower() for s in ['token','secret','password']))
+          print('WAU_CAMPAIGN|id=%s|name=%s|allow_deeplink=%s|status=%s' % (c.get('id'),c.get('name'),c.get('allow_deeplink'),c.get('connection_status') or c.get('status')))
+          print('WAU_KEYS|'+'|'.join(safe_keys))
+          for k in ['site_url','gotolink','url','landing_pages','landing_page','links','actions','action_countries']:
+              if k in c:
+                  v=c[k]
+                  text=json.dumps(v,ensure_ascii=False) if isinstance(v,(dict,list)) else str(v)
+                  if len(text)>4000:text=text[:4000]+'...'
+                  print('WAU_FIELD|%s=%s' % (k,text))
+          # Try banner/creative endpoint only for this campaign and site; print link-related fields only.
+          for endpoint in [
+              f'{API}/banners/{target}/?website={wid}&limit=20',
+              f'{API}/banners/?campaign={target}&website={wid}&limit=20',
+          ]:
+              try:
+                  b=get(endpoint)
+                  items=b.get('results',[]) if isinstance(b,dict) else (b if isinstance(b,list) else [])
+                  print('WAU_BANNERS|endpoint=%s|count=%d' % (endpoint.split(API)[-1],len(items)))
+                  for i,x in enumerate(items[:10]):
+                      if not isinstance(x,dict): continue
+                      vals={k:x.get(k) for k in x if k.lower() in {'id','name','gotolink','link','url','target_url','image','image_url','banner'} }
+                      print('WAU_BANNER|%d|%s' % (i,json.dumps(vals,ensure_ascii=False)))
+                  if items: break
+              except Exception as e:
+                  print('WAU_BANNER_ENDPOINT_FAIL|%s|%s' % (endpoint.split(API)[-1],type(e).__name__))
+          print('WAU_LINK_AUDIT|PASS')
+          PY
