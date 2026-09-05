@@ -1,0 +1,62 @@
+name: Fix WAU CTA Direct Link
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-wau-cta-direct-link.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Patch WAU landing CTA links
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('products/led-face-mask/bg/index.html')
+          s = p.read_text(encoding='utf-8')
+          old = 'class="btn btn-primary" href="#offer">Провери текущата оферта →</a>'
+          new = 'class="btn btn-primary" href="https://axavl.com/g/p5q0qhi27e179d0dbedcd7a7e9fcda/" target="_blank" rel="sponsored nofollow noopener">Провери текущата оферта →</a>'
+          count = s.count(old)
+          if count != 2:
+              raise SystemExit(f'Expected exactly 2 direct-offer CTA matches, found {count}. Refusing broad patch.')
+          s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+          print('Patched direct WAU offer CTAs:', count)
+          print('Email/save-offer form remains unchanged and still uses #offer flow.')
+          PY
+
+      - name: Verify links
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -n 'axavl.com/g/p5q0qhi27e179d0dbedcd7a7e9fcda' products/led-face-mask/bg/index.html
+          grep -n 'id="offer"' products/led-face-mask/bg/index.html
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add products/led-face-mask/bg/index.html
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git commit -m "fix: link WAU offer CTAs directly to Admitad"
+          git push origin HEAD:main
