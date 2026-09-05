@@ -1,6 +1,6 @@
 name: Namecheap Full Static Auto Deploy
 
-# deploy-revision: wau-led-bg-2026-09-05
+# deploy-revision: math-services-2026-09-05
 on:
   workflow_dispatch:
   push:
@@ -24,6 +24,7 @@ on:
       - 'price-watch/**'
       - 'rare-used/**'
       - 'coupons/**'
+      - 'math/**'
       - 'index.html'
       - '404.html'
       - 'manifest.webmanifest'
@@ -64,6 +65,7 @@ jobs:
           test -f index.html
           test -f tickets/index.html
           test -f handoff/index.html
+          test -f math/index.html
           test -f js/seller-handoff-v21-15.js
           test -f events/manchester-derby-2026/en-gb/index.html
           test -f products/index.html
@@ -105,7 +107,7 @@ jobs:
         run: |
           set -euo pipefail
           dirs=()
-          for d in css js images data item find compare deals products sourcing events tickets handoff guides software price-watch rare-used coupons; do
+          for d in css js images data item find compare deals products sourcing events tickets handoff guides software price-watch rare-used coupons math; do
             [ -d "$d" ] && dirs+=("$d")
           done
           printf 'Deploying directories:\n'; printf ' - %s\n' "${dirs[@]}"
@@ -125,6 +127,7 @@ jobs:
             test -f '$STATIC_ROOT/index.html' && \
             test -f '$STATIC_ROOT/tickets/index.html' && \
             test -f '$STATIC_ROOT/handoff/index.html' && \
+            test -f '$STATIC_ROOT/math/index.html' && \
             test -f '$STATIC_ROOT/js/seller-handoff-v21-15.js' && \
             test -f '$STATIC_ROOT/events/manchester-derby-2026/en-gb/index.html' && \
             test -f '$STATIC_ROOT/products/index.html' && \
@@ -145,6 +148,7 @@ jobs:
             '/': ['TrendPilot'],
             '/tickets/': ['TrendPilot'],
             '/handoff/': ['Continue to seller'],
+            '/math/': ['مسألة رياضيات أوقفتك؟'],
             '/events/manchester-derby-2026/en-gb/': ['Manchester Derby 2026'],
             '/events/liverpool-v-manchester-united-2026/ar/': ['ليفربول'],
             '/events/madrid-derby-2026/ar/': ['مدريد'],
