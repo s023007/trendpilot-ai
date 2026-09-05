@@ -1,0 +1,139 @@
+name: Google Basic Planner | WAU Clean Validator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/google-basic-planner-wau-clean-validator.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+      GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+      GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+      GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+      GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+      GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install --disable-pip-version-check google-ads
+      - name: Validate clean generic WAU terms with Basic Planner (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import os, time
+          from google.ads.googleads.client import GoogleAdsClient
+          from google.api_core.exceptions import ResourceExhausted
+
+          client=GoogleAdsClient.load_from_dict({
+            'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+            'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],
+            'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+            'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+            'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),
+            'use_proto_plus':True,
+          })
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip()
+          idea=client.get_service('KeywordPlanIdeaService')
+          ga=client.get_service('GoogleAdsService')
+          NET=client.enums.KeywordPlanNetworkEnum.GOOGLE_SEARCH
+
+          currency='UNKNOWN'
+          for row in ga.search(customer_id=cid, query='SELECT customer.currency_code FROM customer LIMIT 1'):
+            currency=row.customer.currency_code
+            break
+          print('ACCOUNT_CURRENCY|'+currency)
+
+          locales={
+            ('Bulgaria','BG'):('geoTargetConstants/2100','languageConstants/1020',[
+              'led маска за лице','маска с червена светлина','микротоков уред за лице',
+              'уред за лифтинг на лице','ултразвукова шпатула за лице','масажор за скалп',
+              'орален иригатор','звукова четка за зъби','безжична преса за коса'
+            ]),
+            ('Bulgaria','EN'):('geoTargetConstants/2100','languageConstants/1000',[
+              'led face mask','red light face mask','microcurrent facial device','face lifting device',
+              'ultrasonic facial scrubber','scalp massager','scalp massager for hair growth',
+              'oral irrigator','water flosser','best water flosser','sonic toothbrush'
+            ]),
+            ('Poland','PL'):('geoTargetConstants/2616','languageConstants/1030',[
+              'maska LED na twarz','maska z czerwonym światłem','urządzenie mikroprądowe do twarzy',
+              'urządzenie liftingujące do twarzy','szpatułka ultradźwiękowa do twarzy',
+              'masażer skóry głowy','irygator do zębów','szczoteczka soniczna','bezprzewodowa prostownica'
+            ]),
+            ('Romania','RO'):('geoTargetConstants/2642','languageConstants/1032',[
+              'masca LED fata','masca terapie lumina rosie','aparat microcurent facial','aparat lifting facial',
+              'spatula ultrasonica faciala','masajer scalp','irigator oral','periuta sonica','placa de par fara fir'
+            ]),
+            ('Canada','EN'):('geoTargetConstants/2124','languageConstants/1000',[
+              'led face mask','red light face mask','microcurrent facial device','face lifting device',
+              'ultrasonic facial scrubber','scalp massager','scalp massager for hair growth',
+              'oral irrigator','water flosser','sonic toothbrush'
+            ]),
+            ('Ireland','EN'):('geoTargetConstants/2372','languageConstants/1000',[
+              'led face mask','red light face mask','microcurrent facial device','face lifting device',
+              'ultrasonic facial scrubber','scalp massager','oral irrigator','water flosser','sonic toothbrush'
+            ]),
+          }
+
+          def metric(m,field):
+            pb=getattr(m,'_pb',m)
+            try:
+              if not pb.HasField(field): return None
+            except Exception: pass
+            v=getattr(m,field,None)
+            return int(v) if v is not None else None
+
+          rows=[]
+          for (market,lang),(geo,language,keywords) in locales.items():
+            req=client.get_type('GenerateKeywordHistoricalMetricsRequest')
+            req.customer_id=cid
+            req.keywords.extend(keywords)
+            req.geo_target_constants.append(geo)
+            req.language=language
+            req.keyword_plan_network=NET
+            results=None
+            for attempt in range(5):
+              try:
+                results=idea.generate_keyword_historical_metrics(request=req).results
+                break
+              except ResourceExhausted:
+                time.sleep(5*(attempt+1))
+            if results is None:
+              raise RuntimeError('Planner rate limit persisted')
+            for x in results:
+              m=x.keyword_metrics
+              lo=metric(m,'low_top_of_page_bid_micros')
+              hi=metric(m,'high_top_of_page_bid_micros')
+              rows.append({
+                'market':market,'lang':lang,'keyword':x.text,
+                'searches':int(m.avg_monthly_searches or 0),
+                'competition':getattr(m.competition,'name',str(m.competition)),
+                'ci':metric(m,'competition_index'),
+                'low':None if lo is None else round(lo/1e6,2),
+                'high':None if hi is None else round(hi/1e6,2),
+              })
+            time.sleep(3)
+
+          def rank(r):
+            ci=999 if r['ci'] is None else r['ci']
+            lo=999 if r['low'] is None else r['low']
+            return (-r['searches'],ci,lo)
+
+          print('WAU_CLEAN_VALIDATOR|mode=READ_ONLY|currency='+currency)
+          for r in sorted(rows,key=rank):
+            if r['searches']<=0: gate='RED'
+            elif r['ci'] is not None and r['ci']<=35 and r['low'] is not None and r['low']<=0.20: gate='GREEN'
+            elif r['ci'] is not None and r['ci']<=60 and r['low'] is not None and r['low']<=0.35: gate='AMBER'
+            else: gate='RED'
+            print('CLEAN_RESULT|gate=%s|market=%s|lang=%s|keyword=%s|searches=%s|competition=%s|ci=%s|low_%s=%s|high_%s=%s' % (
+              gate,r['market'],r['lang'],r['keyword'],r['searches'],r['competition'],r['ci'],currency,r['low'],currency,r['high']))
+          print('WAU_CLEAN_VALIDATOR_ACCESS|PASS')
+          PY
