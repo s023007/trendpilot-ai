@@ -1,0 +1,110 @@
+name: Fix Math Mobile Width V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/fix-math-mobile-width-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Repair mobile width CSS
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('math/index-v3.html')
+          s=p.read_text()
+          old="*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.55}body[dir=\"ltr\"]{font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}.shell{width:min(1120px,calc(100% - 28px));margin:auto}"
+          new="*{box-sizing:border-box}html{scroll-behavior:smooth;width:100%;max-width:100%;overflow-x:hidden}body{margin:0;width:100%;max-width:100%;overflow-x:hidden;background:var(--bg);color:var(--ink);font-family:Tahoma,Arial,sans-serif;line-height:1.55}body[dir=\"ltr\"]{font-family:Inter,system-ui,-apple-system,Segoe UI,Arial,sans-serif}.shell{width:min(1120px,calc(100vw - 28px));max-width:calc(100vw - 28px);margin-left:auto;margin-right:auto}"
+          if old in s:
+              s=s.replace(old,new,1)
+          elif 'calc(100vw - 28px)' not in s:
+              raise SystemExit('base layout marker not found')
+
+          guard='''\n    /* Mobile width guard: use the physical interaction mode as a fallback when a mobile browser reports an unusual layout viewport. */\n    @media (hover:none) and (pointer:coarse){\n      html,body{width:100vw!important;max-width:100vw!important;overflow-x:hidden!important}\n      .header,main,.footer,section{width:100%!important;max-width:100%!important}\n      .shell{width:calc(100vw - 24px)!important;max-width:none!important;margin-left:12px!important;margin-right:12px!important}\n      .navlinks{display:none!important}\n      .hero-grid,.request-grid{grid-template-columns:1fr!important}\n      .services{grid-template-columns:1fr!important}\n      .pricing-intro,.price-grid,.steps,.payment-grid,.policy-grid,.row{grid-template-columns:1fr!important}\n      .topic-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}\n      .hero h1{font-size:clamp(34px,10vw,46px)!important}\n      .mobile-cta{display:block!important}\n    }\n'''
+          if 'Mobile width guard:' not in s:
+              s=s.replace('  </style>',guard+'  </style>',1)
+          p.write_text(s)
+          assert 'calc(100vw - 24px)' in s
+          assert 'pointer:coarse' in s
+          PY
+
+      - name: Commit repaired page
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-mobile-fix'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index-v3.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: force full-width mobile math layout'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY missing'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish math directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf - math | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+
+      - name: Verify live width guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import time, urllib.request
+          u='https://trendpilotchoice.com/math/?mobilefix='+str(int(time.time()))
+          req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/152 Mobile Safari/537.36','Cache-Control':'no-cache'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+              b=r.read().decode('utf-8','replace')
+              assert r.status==200
+          assert 'Mobile width guard:' in b
+          assert 'calc(100vw - 24px)' in b
+          assert 'pointer:coarse' in b
+          assert '<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">' in b
+          print('MATH_MOBILE_WIDTH_OK')
+          PY
