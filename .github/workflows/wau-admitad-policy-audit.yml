@@ -1,0 +1,55 @@
+name: WAU Admitad Paid Search Policy Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wau-admitad-policy-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      WEBSITE_ID: '2980568'
+      CAMPAIGN_ID: '191147'
+    steps:
+      - name: Inspect WAU traffic rules (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64,json,os,re,urllib.parse,urllib.request
+          API='https://api.admitad.com'
+          def pick(*ns):
+            for n in ns:
+              v=(os.environ.get(n) or '').strip()
+              if v:return v
+            return ''
+          cid=pick('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT'); sec=pick('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          basic=base64.b64encode(f'{cid}:{sec}'.encode()).decode()
+          body=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':cid,'scope':'websites advcampaigns_for_website'}).encode()
+          r=urllib.request.Request(API+'/token/',data=body,method='POST',headers={'Authorization':'Basic '+basic,'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','Accept':'application/json'})
+          with urllib.request.urlopen(r,timeout=60) as x: token=json.loads(x.read().decode())['access_token']
+          q=urllib.request.Request(f"{API}/advcampaigns/website/{os.environ['WEBSITE_ID']}/?limit=200&connection_status=active",headers={'Authorization':'Bearer '+token,'Accept':'application/json'})
+          with urllib.request.urlopen(q,timeout=60) as x: data=json.loads(x.read().decode('utf-8','replace'))
+          rows=data.get('results',[]) if isinstance(data,dict) else data
+          c=next(x for x in rows if int(x.get('id') or 0)==int(os.environ['CAMPAIGN_ID']))
+          print('WAU_POLICY|id=%s|name=%s|status=%s|allow_deeplink=%s' % (c.get('id'),c.get('name'),c.get('connection_status'),c.get('allow_deeplink')))
+          print('WAU_TRAFFICS|'+json.dumps(c.get('traffics'),ensure_ascii=False))
+          for k in ['description','raw_description','landing_title','landing_code','geotargeting','regions','actions_detail']:
+            if k in c:
+              v=c.get(k)
+              s=json.dumps(v,ensure_ascii=False) if isinstance(v,(dict,list)) else str(v or '')
+              s=re.sub(r'\s+',' ',s)
+              print('WAU_POLICY_FIELD|%s=%s' % (k,s[:12000]))
+          print('WAU_POLICY_AUDIT|PASS')
+          PY
