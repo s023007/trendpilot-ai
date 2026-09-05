@@ -1,0 +1,55 @@
+name: Apply Math Upload UI V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-math-upload-ui-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Add upload assets to math page
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('math/index-v3.html')
+          s=p.read_text()
+          css='  <link rel="stylesheet" href="/math/math-upload-v1.css?v=1.0.0">\n'
+          js='  <script src="/math/math-upload-v1.js?v=1.0.0"></script>\n'
+          if 'math-upload-v1.css' not in s:
+              s=s.replace('</head>',css+'</head>',1)
+          if 'math-upload-v1.js' not in s:
+              s=s.replace('</body>',js+'</body>',1)
+          p.write_text(s)
+          assert 'math-upload-v1.css' in s
+          assert 'math-upload-v1.js' in s
+          PY
+          node --check math/math-upload-v1.js
+          php -l math/submit-request.php
+      - name: Commit upload UI
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-upload'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index-v3.html
+          if git diff --cached --quiet; then
+            echo 'Already patched.'
+            exit 0
+          fi
+          git commit -m 'feat: connect math request form to file upload and email backend'
+          git pull --rebase origin main
+          git push origin HEAD:main
