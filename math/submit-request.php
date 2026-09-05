@@ -163,7 +163,7 @@ $meta=[
 @file_put_contents($requestDir.'/request.json',json_encode($meta,JSON_UNESCAPED_UNICODE|JSON_PRETTY_PRINT),LOCK_EX);
 @chmod($requestDir.'/request.json',0600);
 
-$adminEmail='hello@trendpilotchoice.com';
+$adminEmail='trendpilotchoice@gmail.com';
 $fromEmail='hello@trendpilotchoice.com';
 $fileLines=$fileMeta ? implode("\n",array_map(fn($f)=>'- '.$f['original_name'].' ('.number_format($f['size']/1048576,2).' MB)',$fileMeta)) : '- No files';
 $adminBody="New math service request\n\nRequest ID: {$requestId}\nName: ".($customerName?:'Not provided')."\nEmail: {$customerEmail}\nService: {$service}\nLevel: {$level}\nExplanation language: {$explainLang}\nTopic: ".($topic?:'Not specified')."\n\nDetails:\n{$details}\n\nFiles:\n{$fileLines}\n\nA private backup is stored outside the public website under math-service-requests/{$requestId}.";
@@ -171,10 +171,10 @@ $adminSent=send_multipart_mail($adminEmail,"Math request {$requestId} - {$servic
 
 if ($lang==='ar') {
     $confirmSubject="تم استلام طلبك | {$requestId}";
-    $confirmBody="مرحبًا".($customerName!==''?' '.$customerName:'').",\n\nتم استلام طلبك وملفاتك بنجاح.\nرقم الطلب: {$requestId}\n\nسنراجع التفاصيل ثم نرسل لك السعر النهائي وطريقة الدفع المناسبة قبل بدء التنفيذ.\n\nيرجى عدم إرسال بيانات بطاقة أو معلومات مالية حساسة عبر البريد.\n\nTrendPilot Math\nhello@trendpilotchoice.com";
+    $confirmBody="مرحبًا".($customerName!==''?' '.$customerName:'').",\n\nتم استلام طلبك وملفاتك بنجاح.\nرقم الطلب: {$requestId}\n\nسنراجع التفاصيل ثم نرسل لك السعر النهائي وطريقة الدفع المناسبة قبل بدء التنفيذ.\n\nيرجى عدم إرسال بيانات بطاقة أو معلومات مالية حساسة عبر البريد.\n\nTrendPilot Math\ntrendpilotchoice@gmail.com";
 } else {
     $confirmSubject="We received your math request | {$requestId}";
-    $confirmBody="Hello".($customerName!==''?' '.$customerName:'').",\n\nYour request and files have been received successfully.\nRequest ID: {$requestId}\n\nWe will review the details and then send you the confirmed price and appropriate payment instructions before work begins.\n\nPlease do not send card details or sensitive financial information by email.\n\nTrendPilot Math\nhello@trendpilotchoice.com";
+    $confirmBody="Hello".($customerName!==''?' '.$customerName:'').",\n\nYour request and files have been received successfully.\nRequest ID: {$requestId}\n\nWe will review the details and then send you the confirmed price and appropriate payment instructions before work begins.\n\nPlease do not send card details or sensitive financial information by email.\n\nTrendPilot Math\ntrendpilotchoice@gmail.com";
 }
 $confirmHeaders='From: TrendPilot Math <'.$fromEmail.">\r\n".'Reply-To: '.$adminEmail."\r\n".'Content-Type: text/plain; charset=UTF-8';
 $confirmationSent=@mail($customerEmail,encoded_subject($confirmSubject),$confirmBody,$confirmHeaders);
