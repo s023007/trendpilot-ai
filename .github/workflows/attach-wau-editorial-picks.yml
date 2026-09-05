@@ -1,0 +1,39 @@
+name: Attach WAU Editorial Picks
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/attach-wau-editorial-picks.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  attach:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Add module script tag
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('products/led-face-mask/bg/index.html')
+          s=p.read_text(encoding='utf-8')
+          tag='  <script src="editorial-picks.js" defer></script>\n'
+          if 'editorial-picks.js' not in s:
+              s=s.replace('</body>',tag+'</body>',1)
+              p.write_text(s,encoding='utf-8')
+          PY
+      - name: Commit
+        run: |
+          git config user.name "trendpilot-campaign-brain"
+          git config user.email "39025908+s023007@users.noreply.github.com"
+          git add products/led-face-mask/bg/index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "landing: load WAU editorial picks module"
+          git push origin HEAD:main
