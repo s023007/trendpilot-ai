@@ -64,6 +64,7 @@ $allowedAliExpressHosts = [
     'rzekl.com','www.rzekl.com',
     's.click.aliexpress.com','www.aliexpress.com','aliexpress.com'
 ];
+$allowedWauHosts = ['axavl.com','www.axavl.com'];
 if ($campaign === 'manchester_derby_2026' && !in_array($host, $allowedTicketHosts, true)) {
     http_response_code(400);
     exit('Seller link not allowed');
@@ -80,10 +81,14 @@ if ($campaign === 'sa_tire_inflator_aliexpress' && !in_array($host, $allowedAliE
     http_response_code(400);
     exit('Seller link not allowed');
 }
+if ($campaign === 'wau_led_mask_bg' && !in_array($host, $allowedWauHosts, true)) {
+    http_response_code(400);
+    exit('Seller link not allowed');
+}
 
 $click = [
     'created_at' => gmdate('c'),
-    'event' => $campaign === 'sa_tire_inflator_aliexpress' ? 'EMAIL_BUY_INTENT' : 'email_affiliate_handoff',
+    'event' => in_array($campaign, ['sa_tire_inflator_aliexpress','wau_led_mask_bg'], true) ? 'EMAIL_BUY_INTENT' : 'email_affiliate_handoff',
     'lead_id' => $lead,
     'campaign_id' => $campaign,
     'seller' => (string)($match['seller'] ?? ''),
