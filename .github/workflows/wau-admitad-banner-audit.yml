@@ -1,0 +1,63 @@
+name: WAU Admitad Creative Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/wau-admitad-banner-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    env:
+      ADMITAD_CLIENT_ID_PRIMARY: ${{ secrets.ADMITAD_CLIENT_ID }}
+      ADMITAD_CLIENT_ID_ALT: ${{ secrets.client_id }}
+      ADMITAD_CLIENT_SECRET_PRIMARY: ${{ secrets.ADMITAD_CLIENT_SECRET }}
+      ADMITAD_CLIENT_SECRET_ALT: ${{ secrets.client_secret }}
+      WEBSITE_ID: '2980568'
+      CAMPAIGN_ID: '191147'
+    steps:
+      - name: Inspect creative fields (READ ONLY)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import base64,json,os,urllib.parse,urllib.request,re
+          API='https://api.admitad.com'
+          def pick(*ns):
+            for n in ns:
+              v=(os.environ.get(n) or '').strip()
+              if v:return v
+            return ''
+          cid=pick('ADMITAD_CLIENT_ID_PRIMARY','ADMITAD_CLIENT_ID_ALT'); sec=pick('ADMITAD_CLIENT_SECRET_PRIMARY','ADMITAD_CLIENT_SECRET_ALT')
+          basic=base64.b64encode(f'{cid}:{sec}'.encode()).decode()
+          body=urllib.parse.urlencode({'grant_type':'client_credentials','client_id':cid,'scope':'websites advcampaigns_for_website banners'}).encode()
+          req=urllib.request.Request(API+'/token/',data=body,method='POST',headers={'Authorization':'Basic '+basic,'Content-Type':'application/x-www-form-urlencoded;charset=UTF-8','Accept':'application/json'})
+          with urllib.request.urlopen(req,timeout=60) as r: token=json.loads(r.read().decode())['access_token']
+          auth={'Authorization':'Bearer '+token,'Accept':'application/json'}
+          def get(url):
+            q=urllib.request.Request(url,headers=auth)
+            with urllib.request.urlopen(q,timeout=60) as r:return json.loads(r.read().decode('utf-8','replace'))
+          wid=os.environ['WEBSITE_ID']; cidn=os.environ['CAMPAIGN_ID']
+          data=get(f'{API}/banners/{cidn}/?website={wid}&limit=20')
+          items=data.get('results',[]) if isinstance(data,dict) else data
+          print('WAU_CREATIVE_COUNT|%d' % len(items))
+          for i,x in enumerate(items):
+            if not isinstance(x,dict):continue
+            print('WAU_CREATIVE_KEYS|%d|%s' % (i,'|'.join(sorted(x.keys()))))
+            safe={}
+            for k,v in x.items():
+              kl=k.lower()
+              if any(s in kl for s in ['token','secret','password']):continue
+              if any(s in kl for s in ['url','link','code','html','image','src','name','id','size','width','height']):
+                s=json.dumps(v,ensure_ascii=False) if isinstance(v,(dict,list)) else str(v)
+                s=re.sub(r'\s+',' ',s)
+                safe[k]=s[:5000]
+            print('WAU_CREATIVE|%d|%s' % (i,json.dumps(safe,ensure_ascii=False)))
+          print('WAU_CREATIVE_AUDIT|PASS')
+          PY
