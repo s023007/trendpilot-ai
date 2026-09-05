@@ -1,0 +1,51 @@
+name: Set Math Request Email V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/set-math-request-email-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Set recipient and reply email
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('math/submit-request.php')
+          s=p.read_text()
+          s=s.replace("$adminEmail='hello@trendpilotchoice.com';", "$adminEmail='trendpilotchoice@gmail.com';")
+          s=s.replace('TrendPilot Math\\nhello@trendpilotchoice.com', 'TrendPilot Math\\ntrendpilotchoice@gmail.com')
+          p.write_text(s)
+          assert "$adminEmail='trendpilotchoice@gmail.com';" in s
+          assert '$fromEmail=\'hello@trendpilotchoice.com\';' in s
+          assert 'TrendPilot Math\\ntrendpilotchoice@gmail.com' in s
+          PY
+          php -l math/submit-request.php
+      - name: Commit email update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-email'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/submit-request.php
+          if git diff --cached --quiet; then
+            echo 'Recipient already current.'
+            exit 0
+          fi
+          git commit -m 'fix: send math requests to TrendPilot Gmail inbox'
+          git pull --rebase origin main
+          git push origin HEAD:main
