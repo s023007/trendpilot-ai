@@ -1,7 +1,7 @@
-DirectoryIndex index-v3.html index.html
+DirectoryIndex index.php index-v3.html index.html
 
 <IfModule mod_headers.c>
-  <FilesMatch "^(index-v3\.html)$">
+  <FilesMatch "^(index\.php|index-v3\.html|submit-request\.php)$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires "0"
