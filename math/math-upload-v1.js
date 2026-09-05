@@ -25,7 +25,7 @@
     <div class="upload-files" data-file-list hidden></div>
     <p class="upload-limit" data-upload-t="limit">الحد الأقصى: 6 MB للملف الواحد و12 MB لجميع الملفات.</p>
     <div class="upload-privacy"><i>🔒</i><span data-upload-t="privacy">تُستخدم الملفات لمراجعة طلبك فقط، وتُحفظ نسخة احتياطية خاصة لمدة محدودة.</span></div>
-    <input type="text" name="website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+    <input type="text" name="website" value="" tabindex="-1" autocomplete="off" style="position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;clip-path:inset(50%)" aria-hidden="true">
     <input type="hidden" name="page_lang" value="ar" data-page-lang>
   `;
 
