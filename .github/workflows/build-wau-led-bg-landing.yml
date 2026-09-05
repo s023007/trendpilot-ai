@@ -1,0 +1,69 @@
+name: Build WAU Bulgaria LED Landing
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/build_wau_led_bg_landing.py'
+      - '.github/workflows/build-wau-led-bg-landing.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-wau-led-bg-landing
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Rebase latest main
+        run: |
+          git fetch origin main
+          git rebase origin/main
+      - name: Build landing + email handoff
+        run: python scripts/build_wau_led_bg_landing.py
+      - name: Validate generated files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s products/led-face-mask/bg/index.html
+          test -s products/led-face-mask/bg/assets/hero.png
+          test -s products/led-face-mask/bg/assets/care.png
+          grep -q 'wau_led_mask_bg' api/save-search.php
+          grep -q 'allowedWauHosts' api/go.php
+          grep -q 'products/led-face-mask/bg/' products/sitemap.xml
+          php -l api/save-search.php
+          php -l api/go.php
+          git diff --check
+      - name: Commit generated landing
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-wau-landing-bot'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            products/led-face-mask/bg/index.html \
+            products/led-face-mask/bg/assets/hero.png \
+            products/led-face-mask/bg/assets/care.png \
+            products/sitemap.xml \
+            api/save-search.php \
+            api/go.php
+          if git diff --cached --quiet; then
+            echo 'No landing changes to commit.'
+            exit 0
+          fi
+          git commit -m 'feat: publish warm WAU LED Bulgaria landing'
+          for i in 1 2 3; do
+            git fetch origin main
+            git rebase origin/main && git push origin HEAD:main && exit 0
+            sleep 3
+          done
+          exit 1
