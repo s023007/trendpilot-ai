@@ -1,6 +1,6 @@
 name: Namecheap Full Static Auto Deploy
 
-# deploy-revision: math-services-2026-09-05
+# deploy-revision: math-services-payment-message-2026-09-05
 on:
   workflow_dispatch:
   push:
@@ -58,6 +58,12 @@ jobs:
           ref: main
           fetch-depth: 1
 
+      - name: Apply current math payment wording before deploy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/patch_math_payment_message_v2.py
+
       - name: Validate critical public files
         shell: bash
         run: |
@@ -66,6 +72,9 @@ jobs:
           test -f tickets/index.html
           test -f handoff/index.html
           test -f math/index.html
+          test -f math/index-v3.html
+          test -f math/.htaccess
+          grep -q 'طريقة الدفع تُرسل لك بعد مراجعة طلبك' math/index-v3.html
           test -f js/seller-handoff-v21-15.js
           test -f events/manchester-derby-2026/en-gb/index.html
           test -f products/index.html
@@ -128,6 +137,9 @@ jobs:
             test -f '$STATIC_ROOT/tickets/index.html' && \
             test -f '$STATIC_ROOT/handoff/index.html' && \
             test -f '$STATIC_ROOT/math/index.html' && \
+            test -f '$STATIC_ROOT/math/index-v3.html' && \
+            test -f '$STATIC_ROOT/math/.htaccess' && \
+            grep -q 'طريقة الدفع تُرسل لك بعد مراجعة طلبك' '$STATIC_ROOT/math/index-v3.html' && \
             test -f '$STATIC_ROOT/js/seller-handoff-v21-15.js' && \
             test -f '$STATIC_ROOT/events/manchester-derby-2026/en-gb/index.html' && \
             test -f '$STATIC_ROOT/products/index.html' && \
@@ -148,7 +160,7 @@ jobs:
             '/': ['TrendPilot'],
             '/tickets/': ['TrendPilot'],
             '/handoff/': ['Continue to seller'],
-            '/math/': ['مسألة رياضيات أوقفتك؟'],
+            '/math/': ['طريقة الدفع تُرسل لك بعد مراجعة طلبك'],
             '/events/manchester-derby-2026/en-gb/': ['Manchester Derby 2026'],
             '/events/liverpool-v-manchester-united-2026/ar/': ['ليفربول'],
             '/events/madrid-derby-2026/ar/': ['مدريد'],
