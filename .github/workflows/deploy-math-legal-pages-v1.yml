@@ -1,0 +1,116 @@
+name: Deploy Math Legal Pages V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/deploy-math-legal-pages-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Add math legal links to footer
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('math/index-v3.html')
+          s=p.read_text()
+          old='<p class="footer-links"><a href="/privacy.html">Privacy</a><span>•</span><a href="/contact.html">Contact</a><span>•</span><a href="/">TrendPilotChoice.com</a></p>'
+          new='<p class="footer-links"><a href="/math/about.html" data-t="footerAbout">عن الخدمة</a><span>•</span><a href="/math/privacy.html" data-t="footerPrivacy">الخصوصية</a><span>•</span><a href="/math/terms.html" data-t="footerTerms">الشروط</a><span>•</span><a href="mailto:trendpilotchoice@gmail.com" data-t="footerContact">تواصل</a></p>'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif '/math/about.html' not in s:
+              raise SystemExit('footer marker not found')
+          marker="footerText:'Online math education services — explanations, lessons and custom learning resources.',mobileCta:'Send Your Request'"
+          replacement="footerText:'Online math education services — explanations, lessons and custom learning resources.',footerAbout:'About',footerPrivacy:'Privacy',footerTerms:'Terms',footerContact:'Contact',mobileCta:'Send Your Request'"
+          if marker in s:
+              s=s.replace(marker,replacement,1)
+          elif "footerAbout:'About'" not in s:
+              raise SystemExit('English footer dictionary marker not found')
+          p.write_text(s)
+          assert '/math/privacy.html' in s and '/math/terms.html' in s and '/math/about.html' in s
+          PY
+
+      - name: Commit footer links
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-legal'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index-v3.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: link math about privacy and terms pages'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY missing'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish math directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf - math | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+
+      - name: Verify live legal pages
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import time, urllib.request
+          base='https://trendpilotchoice.com/math/'
+          checks={
+            'about.html':'رياضيات أوضح',
+            'privacy.html':'كيف نتعامل مع بياناتك',
+            'terms.html':'قواعد واضحة',
+            '':'/math/privacy.html'
+          }
+          for path,needle in checks.items():
+              u=base+path+('?v='+str(int(time.time())))
+              req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0','Cache-Control':'no-cache'})
+              with urllib.request.urlopen(req,timeout=30) as r:
+                  body=r.read().decode('utf-8','replace')
+                  assert r.status==200
+                  assert needle in body,(path,needle)
+          print('MATH_LEGAL_PAGES_OK')
+          PY
