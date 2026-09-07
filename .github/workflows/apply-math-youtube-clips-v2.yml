@@ -1,0 +1,114 @@
+name: Apply Math YouTube Clips V2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-math-youtube-clips-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Trim YouTube samples to short clips
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('math/index-v3.html')
+          s=p.read_text()
+
+          replacements={
+            'https://www.youtube-nocookie.com/embed/hc0DOtbJzqo?rel=0':'https://www.youtube-nocookie.com/embed/hc0DOtbJzqo?rel=0&start=45&end=115&playsinline=1',
+            'https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0':'https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0&start=60&end=130&playsinline=1',
+            'https://www.youtube-nocookie.com/embed/azLfqvxQbXk?rel=0':'https://www.youtube-nocookie.com/embed/azLfqvxQbXk?rel=0&start=50&end=120&playsinline=1',
+          }
+          for old,new in replacements.items():
+              if old in s:
+                  s=s.replace(old,new,1)
+              elif new not in s:
+                  raise SystemExit(f'embed marker not found: {old}')
+
+          s=s.replace('ثلاثة نماذج من شروحات فعلية على YouTube لتتعرف على أسلوب الشرح خطوة بخطوة.','ثلاثة مقاطع قصيرة مختارة من شروحات فعلية لتتعرف على أسلوب الشرح خطوة بخطوة دون مشاهدة الدرس كاملًا.')
+          s=s.replace('هذه الفيديوهات للمعاينة فقط، ويمكن طلب شرح مخصص لسؤالك أو موضوعك من النموذج أدناه.','كل نموذج يعرض نحو دقيقة فقط من الشرح كمعاينة، ويمكن طلب شرح مخصص لسؤالك أو موضوعك من النموذج أدناه.')
+
+          p.write_text(s)
+          for marker in ['start=45&end=115','start=60&end=130','start=50&end=120','كل نموذج يعرض نحو دقيقة فقط']:
+              assert marker in s, marker
+          PY
+
+      - name: Commit page update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-clips'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index-v3.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: show short YouTube teaching clips on math page'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY missing'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish math directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf - math | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+
+      - name: Verify live clips
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import time, urllib.request
+          u='https://trendpilotchoice.com/math/?clips='+str(int(time.time()))
+          req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0','Cache-Control':'no-cache'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+              b=r.read().decode('utf-8','replace')
+              assert r.status==200
+          for marker in ['start=45&amp;end=115','start=60&amp;end=130','start=50&amp;end=120','كل نموذج يعرض نحو دقيقة فقط']:
+              if marker not in b and marker.replace('&amp;','&') not in b:
+                  raise AssertionError(marker)
+          print('MATH_YOUTUBE_CLIPS_OK')
+          PY
