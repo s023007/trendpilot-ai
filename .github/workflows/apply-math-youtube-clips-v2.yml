@@ -27,7 +27,7 @@ jobs:
           ref: main
           fetch-depth: 0
 
-      - name: Trim YouTube samples to short clips
+      - name: Set arc length sample timing
         shell: bash
         run: |
           set -euo pipefail
@@ -35,24 +35,15 @@ jobs:
           from pathlib import Path
           p=Path('math/index-v3.html')
           s=p.read_text()
-
-          replacements={
-            'https://www.youtube-nocookie.com/embed/hc0DOtbJzqo?rel=0':'https://www.youtube-nocookie.com/embed/hc0DOtbJzqo?rel=0&start=45&end=115&playsinline=1',
-            'https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0':'https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0&start=60&end=130&playsinline=1',
-            'https://www.youtube-nocookie.com/embed/azLfqvxQbXk?rel=0':'https://www.youtube-nocookie.com/embed/azLfqvxQbXk?rel=0&start=50&end=120&playsinline=1',
-          }
-          for old,new in replacements.items():
-              if old in s:
-                  s=s.replace(old,new,1)
-              elif new not in s:
-                  raise SystemExit(f'embed marker not found: {old}')
-
-          s=s.replace('ثلاثة نماذج من شروحات فعلية على YouTube لتتعرف على أسلوب الشرح خطوة بخطوة.','ثلاثة مقاطع قصيرة مختارة من شروحات فعلية لتتعرف على أسلوب الشرح خطوة بخطوة دون مشاهدة الدرس كاملًا.')
-          s=s.replace('هذه الفيديوهات للمعاينة فقط، ويمكن طلب شرح مخصص لسؤالك أو موضوعك من النموذج أدناه.','كل نموذج يعرض نحو دقيقة فقط من الشرح كمعاينة، ويمكن طلب شرح مخصص لسؤالك أو موضوعك من النموذج أدناه.')
-
+          old='https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0&start=60&end=130&playsinline=1'
+          new='https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0&start=3177&end=3254&playsinline=1'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif new not in s:
+              raise SystemExit('Current arc-length embed URL not found')
           p.write_text(s)
-          for marker in ['start=45&end=115','start=60&end=130','start=50&end=120','كل نموذج يعرض نحو دقيقة فقط']:
-              assert marker in s, marker
+          assert new in s
+          assert old not in s
           PY
 
       - name: Commit page update
@@ -63,7 +54,7 @@ jobs:
           git config user.email '39025908+s023007@users.noreply.github.com'
           git add math/index-v3.html
           if ! git diff --cached --quiet; then
-            git commit -m 'feat: show short YouTube teaching clips on math page'
+            git commit -m 'fix: set arc length sample to 52m57s-54m14s'
             git pull --rebase origin main
             git push origin HEAD:main
           fi
@@ -96,19 +87,19 @@ jobs:
           set -euo pipefail
           tar -czf - math | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
 
-      - name: Verify live clips
+      - name: Verify live arc length clip
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import time, urllib.request
-          u='https://trendpilotchoice.com/math/?clips='+str(int(time.time()))
+          u='https://trendpilotchoice.com/math/?arcclip='+str(int(time.time()))
           req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0','Cache-Control':'no-cache'})
           with urllib.request.urlopen(req,timeout=30) as r:
               b=r.read().decode('utf-8','replace')
               assert r.status==200
-          for marker in ['start=45&amp;end=115','start=60&amp;end=130','start=50&amp;end=120','كل نموذج يعرض نحو دقيقة فقط']:
-              if marker not in b and marker.replace('&amp;','&') not in b:
+          for marker in ['start=3177&end=3254','ghEY13kuez0']:
+              if marker not in b and marker.replace('&','&amp;') not in b:
                   raise AssertionError(marker)
-          print('MATH_YOUTUBE_CLIPS_OK')
+          print('MATH_ARC_LENGTH_CLIP_OK')
           PY
