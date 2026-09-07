@@ -1,0 +1,118 @@
+name: Apply Math YouTube Samples V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-math-youtube-samples-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Add YouTube teaching samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('math/index-v3.html')
+          s=p.read_text()
+
+          css='''\n    /* Real teaching samples */\n    .samples{background:linear-gradient(180deg,#f7fbfa,#eef8f5)}\n    .sample-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px}\n    .sample-card{background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;box-shadow:0 7px 26px rgba(30,57,86,.06)}\n    .sample-video{position:relative;aspect-ratio:16/9;background:#0f172a}\n    .sample-video iframe{position:absolute;inset:0;width:100%;height:100%;border:0}\n    .sample-body{padding:17px}\n    .sample-body h3{font-size:18px;margin:0 0 6px}\n    .sample-body p{margin:0;color:var(--muted);font-size:13px;line-height:1.7}\n    .sample-note{margin-top:18px;text-align:center;color:var(--muted);font-size:12px}\n    @media(max-width:900px){.sample-grid{grid-template-columns:1fr}}\n'''
+          if '/* Real teaching samples */' not in s:
+              s=s.replace('  </style>',css+'  </style>',1)
+
+          section='''\n    <section class="section samples" id="samples" data-video-samples>\n      <div class="shell">\n        <div class="section-head center">\n          <span class="eyebrow">نماذج شرح حقيقية</span>\n          <h2>شاهد طريقة الشرح قبل أن تطلب الخدمة.</h2>\n          <p>ثلاثة نماذج من شروحات فعلية على YouTube لتتعرف على أسلوب الشرح خطوة بخطوة.</p>\n        </div>\n        <div class="sample-grid">\n          <article class="sample-card">\n            <div class="sample-video"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/hc0DOtbJzqo?rel=0" title="نموذج شرح رياضيات 1" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>\n            <div class="sample-body"><h3>نموذج شرح 1</h3><p>مثال حقيقي على طريقة الشرح وتنظيم خطوات الحل.</p></div>\n          </article>\n          <article class="sample-card">\n            <div class="sample-video"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0" title="نموذج شرح رياضيات 2" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>\n            <div class="sample-body"><h3>نموذج شرح 2</h3><p>نموذج إضافي يوضح أسلوب التدرج في الفكرة والحل.</p></div>\n          </article>\n          <article class="sample-card">\n            <div class="sample-video"><iframe loading="lazy" src="https://www.youtube-nocookie.com/embed/azLfqvxQbXk?rel=0" title="نموذج شرح رياضيات 3" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>\n            <div class="sample-body"><h3>نموذج شرح 3</h3><p>مثال آخر من المحتوى التعليمي الحقيقي المستخدم في الشرح.</p></div>\n          </article>\n        </div>\n        <p class="sample-note">هذه الفيديوهات للمعاينة فقط، ويمكن طلب شرح مخصص لسؤالك أو موضوعك من النموذج أدناه.</p>\n      </div>\n    </section>\n'''
+          if 'data-video-samples' not in s:
+              marker='    <section class="section topics">'
+              if marker not in s: raise SystemExit('topics marker not found')
+              s=s.replace(marker,section+'\n'+marker,1)
+
+          # Hide Arabic YouTube samples while English mode is active until English samples are recorded.
+          if 'videoSamples.hidden' not in s:
+              old="langBtn.textContent=v==='ar'?'EN':'AR'}setLang(lang);"
+              new="langBtn.textContent=v==='ar'?'EN':'AR';const videoSamples=document.querySelector('[data-video-samples]');if(videoSamples)videoSamples.hidden=(v==='en')}setLang(lang);"
+              if old not in s: raise SystemExit('language toggle marker not found')
+              s=s.replace(old,new,1)
+
+          p.write_text(s)
+          assert 'youtube-nocookie.com/embed/hc0DOtbJzqo' in s
+          assert 'youtube-nocookie.com/embed/ghEY13kuez0' in s
+          assert 'youtube-nocookie.com/embed/azLfqvxQbXk' in s
+          assert 'videoSamples.hidden' in s
+          PY
+
+      - name: Commit page update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-samples'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index-v3.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'feat: add real YouTube teaching samples to math page'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY missing'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish math directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf - math | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+
+      - name: Verify live samples
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import time, urllib.request
+          u='https://trendpilotchoice.com/math/?samples='+str(int(time.time()))
+          req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0','Cache-Control':'no-cache'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+              b=r.read().decode('utf-8','replace')
+              assert r.status==200
+          for marker in ['youtube-nocookie.com/embed/hc0DOtbJzqo','youtube-nocookie.com/embed/ghEY13kuez0','youtube-nocookie.com/embed/azLfqvxQbXk','نماذج شرح حقيقية']:
+              assert marker in b, marker
+          print('MATH_YOUTUBE_SAMPLES_OK')
+          PY
