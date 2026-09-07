@@ -1,0 +1,106 @@
+name: Apply Math Arc Length Clip V1
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/apply-math-arc-length-clip-v1.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CPANEL_HOST: 198.54.120.162
+      CPANEL_PORT: '21098'
+      CPANEL_USER: kehwgbpo
+      STATIC_ROOT: /home/kehwgbpo/trendpilotchoice.com
+      DEPLOY_KEY: ${{ secrets.NAMECHEAP_SSH_PRIVATE_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set arc length sample timing
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('math/index-v3.html')
+          s=p.read_text()
+          old='https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0&start=60&end=130&playsinline=1'
+          new='https://www.youtube-nocookie.com/embed/ghEY13kuez0?rel=0&start=3177&end=3254&playsinline=1'
+          if old in s:
+              s=s.replace(old,new,1)
+          elif new not in s:
+              raise SystemExit('Current arc-length embed URL not found')
+          p.write_text(s)
+          assert new in s
+          assert 'start=60&end=130' not in s
+          PY
+
+      - name: Commit page update
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'trendpilot-math-arc-clip'
+          git config user.email '39025908+s023007@users.noreply.github.com'
+          git add math/index-v3.html
+          if ! git diff --cached --quiet; then
+            git commit -m 'fix: set arc length teaching sample to 52m57s-54m14s'
+            git pull --rebase origin main
+            git push origin HEAD:main
+          fi
+
+      - name: Configure SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_KEY:-}" || { echo 'NAMECHEAP_SSH_PRIVATE_KEY missing'; exit 1; }
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/namecheap_deploy
+          chmod 600 ~/.ssh/namecheap_deploy
+          cat > ~/.ssh/config <<EOF
+          Host trendpilot-namecheap
+            HostName $CPANEL_HOST
+            Port $CPANEL_PORT
+            User $CPANEL_USER
+            IdentityFile ~/.ssh/namecheap_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            ConnectTimeout 20
+            StrictHostKeyChecking accept-new
+            UserKnownHostsFile ~/.ssh/known_hosts
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Publish math directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -czf - math | ssh trendpilot-namecheap "tar -xzf - -C '$STATIC_ROOT'"
+
+      - name: Verify live arc-length clip
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import time, urllib.request
+          u='https://trendpilotchoice.com/math/?arcclip='+str(int(time.time()))
+          req=urllib.request.Request(u,headers={'User-Agent':'Mozilla/5.0','Cache-Control':'no-cache'})
+          with urllib.request.urlopen(req,timeout=30) as r:
+              b=r.read().decode('utf-8','replace')
+              assert r.status==200
+          ok=('ghEY13kuez0?rel=0&start=3177&end=3254&playsinline=1' in b or
+              'ghEY13kuez0?rel=0&amp;start=3177&amp;end=3254&amp;playsinline=1' in b)
+          assert ok, 'new arc-length timing not live'
+          assert 'ghEY13kuez0?rel=0&start=60&end=130&playsinline=1' not in b
+          print('MATH_ARC_LENGTH_CLIP_OK')
+          PY
