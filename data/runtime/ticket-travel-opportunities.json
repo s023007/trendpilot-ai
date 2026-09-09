@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-08T08:12:30.435086+00:00",
+  "generated_at": "2026-09-09T08:15:48.984694+00:00",
   "policy_version": 3,
   "publication_threshold": 27,
   "source_report": [
@@ -19,13 +19,13 @@
       "id": "la-liga",
       "url": "https://sportsevents365.com/dock/competition/la-liga",
       "http": 200,
-      "candidates": 11
+      "candidates": 10
     },
     {
       "id": "champions-league",
       "url": "https://sportsevents365.com/dock/competition/champions-league",
       "http": 200,
-      "candidates": 15
+      "candidates": 12
     },
     {
       "id": "serie-a",
@@ -49,7 +49,7 @@
       "id": "saudi-arabia",
       "url": "https://sportsevents365.com/events/country/1143",
       "http": 200,
-      "candidates": 3
+      "candidates": 5
     },
     {
       "id": "formula-one",
@@ -58,37 +58,9 @@
       "candidates": 6
     }
   ],
-  "candidate_count": 104,
-  "recommended_count": 27,
+  "candidate_count": 102,
+  "recommended_count": 26,
   "top_recommendations": [
-    {
-      "event_id": "393720",
-      "title": "English Premier League (Football (Soccer)) Brentford vs Chelsea London, England - Brentford Community Stadium (Gtech) Fri, 18 Sep 2026 20:00",
-      "event_date": "2026-09-18T20:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/393720",
-      "source_group": "premier-league",
-      "source_geo": "GB",
-      "target_markets": [
-        "GB",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM",
-        "IE"
-      ],
-      "context_preview": "English Premier League (Football (Soccer)) Brentford vs Chelsea London, England - Brentford Community Stadium (Gtech) Fri, 18 Sep 2026 20:00 From USD $ 371",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
     {
       "event_id": "393088",
       "title": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Aston Villa London, England - Tottenham Hotspur Stadium Sat, 19 Sep 2026 12:30",
@@ -105,7 +77,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Aston Villa London, England - Tottenham Hotspur Stadium Sat, 19 Sep 2026 12:30 From USD $ 164",
+      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Aston Villa London, England - Tottenham Hotspur Stadium Sat, 19 Sep 2026 12:30 From USD $ 165",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -189,7 +161,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Ipswich Town Liverpool, England - Hill Dickinson Stadium Sat, 19 Sep 2026 15:00 From USD $ 164",
+      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Ipswich Town Liverpool, England - Hill Dickinson Stadium Sat, 19 Sep 2026 15:00 From USD $ 165",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -199,6 +171,62 @@
         "freshness": 5
       },
       "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "402327",
+      "title": "UEFA Champions League (Football (Soccer)) Arsenal vs Lille LOSC London, England - Emirates Stadium Tue, 13 Oct 2026 21:00",
+      "event_date": "2026-10-13T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402327",
+      "source_group": "champions-league",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "UEFA Champions League (Football (Soccer)) Arsenal vs Lille LOSC London, England - Emirates Stadium Tue, 13 Oct 2026 21:00 From USD $ 270",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "402413",
+      "title": "UEFA Champions League (Football (Soccer)) RC Lens vs Sporting Club Portugal (Lisbon) Lens, France - Stade Felix Bollaert Tue, 13 Oct 2026 18:45",
+      "event_date": "2026-10-13T18:45:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402413",
+      "source_group": "champions-league",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "UEFA Champions League (Football (Soccer)) RC Lens vs Sporting Club Portugal (Lisbon) Lens, France - Stade Felix Bollaert Tue, 13 Oct 2026 18:45 From USD $ 136",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
       "recommended": true
     },
     {
@@ -252,62 +280,6 @@
       "recommended": true
     },
     {
-      "event_id": "395698",
-      "title": "German Bundesliga (Football (Soccer)) Bayern Munich vs Union Berlin Munich, Germany - Allianz Arena Fri, 18 Sep 2026 20:30",
-      "event_date": "2026-09-18T20:30:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395698",
-      "source_group": "bundesliga",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Bayern Munich vs Union Berlin Munich, Germany - Allianz Arena Fri, 18 Sep 2026 20:30 From USD $ 142",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "event_id": "391565",
-      "title": "Italian Serie A (Football (Soccer)) A.C. Monza vs Sassuolo Monza, Italy - U-Power Stadium (Stadio Brianteo) Fri, 18 Sep 2026 20:45",
-      "event_date": "2026-09-18T20:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391565",
-      "source_group": "serie-a",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Italian Serie A (Football (Soccer)) A.C. Monza vs Sassuolo Monza, Italy - U-Power Stadium (Stadio Brianteo) Fri, 18 Sep 2026 20:45 Only a few tickets left From USD $ 100",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
       "event_id": "391561",
       "title": "Italian Serie A (Football (Soccer)) Bologna FC vs Torino FC Bologna, Italy - Stadio Renato DallAra Sat, 19 Sep 2026 15:00",
       "event_date": "2026-09-19T15:00:00+00:00",
@@ -323,7 +295,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Bologna FC vs Torino FC Bologna, Italy - Stadio Renato DallAra Sat, 19 Sep 2026 15:00 From USD $ 56",
+      "context_preview": "Italian Serie A (Football (Soccer)) Bologna FC vs Torino FC Bologna, Italy - Stadio Renato DallAra Sat, 19 Sep 2026 15:00 From USD $ 55",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -351,7 +323,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Udinese vs Cagliari Udine, Italy - Stadio Friuli - Bluenergy Stadium Sat, 19 Sep 2026 15:00 From USD $ 69",
+      "context_preview": "Italian Serie A (Football (Soccer)) Udinese vs Cagliari Udine, Italy - Stadio Friuli - Bluenergy Stadium Sat, 19 Sep 2026 15:00 From USD $ 68",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -379,7 +351,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Mönchengladbach vs FSV Mainz Monchengladbach, Germany - Borussia Park Sat, 19 Sep 2026 15:30 From USD $ 73",
+      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Mönchengladbach vs FSV Mainz Monchengladbach, Germany - Borussia Park Sat, 19 Sep 2026 15:30 From USD $ 74",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -463,7 +435,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Werder Bremen vs FC Augsburg Bremen, Germany - Weserstadion Sat, 19 Sep 2026 15:30 Only a few tickets left From USD $ 125",
+      "context_preview": "German Bundesliga (Football (Soccer)) Werder Bremen vs FC Augsburg Bremen, Germany - Weserstadion Sat, 19 Sep 2026 15:30 From USD $ 125",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -519,7 +491,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) AS Roma vs Inter Rome, Italy - Stadio Olimpico (Roma) Sat, 19 Sep 2026 18:00 From USD $ 260",
+      "context_preview": "Italian Serie A (Football (Soccer)) AS Roma vs Inter Rome, Italy - Stadio Olimpico (Roma) Sat, 19 Sep 2026 18:00 From USD $ 299",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -814,34 +786,6 @@
   ],
   "all_candidates": [
     {
-      "event_id": "393720",
-      "title": "English Premier League (Football (Soccer)) Brentford vs Chelsea London, England - Brentford Community Stadium (Gtech) Fri, 18 Sep 2026 20:00",
-      "event_date": "2026-09-18T20:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/393720",
-      "source_group": "premier-league",
-      "source_geo": "GB",
-      "target_markets": [
-        "GB",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM",
-        "IE"
-      ],
-      "context_preview": "English Premier League (Football (Soccer)) Brentford vs Chelsea London, England - Brentford Community Stadium (Gtech) Fri, 18 Sep 2026 20:00 From USD $ 371",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 29,
-      "recommended": true
-    },
-    {
       "event_id": "393088",
       "title": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Aston Villa London, England - Tottenham Hotspur Stadium Sat, 19 Sep 2026 12:30",
       "event_date": "2026-09-19T12:30:00+00:00",
@@ -857,7 +801,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Aston Villa London, England - Tottenham Hotspur Stadium Sat, 19 Sep 2026 12:30 From USD $ 164",
+      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Aston Villa London, England - Tottenham Hotspur Stadium Sat, 19 Sep 2026 12:30 From USD $ 165",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -941,7 +885,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Ipswich Town Liverpool, England - Hill Dickinson Stadium Sat, 19 Sep 2026 15:00 From USD $ 164",
+      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Ipswich Town Liverpool, England - Hill Dickinson Stadium Sat, 19 Sep 2026 15:00 From USD $ 165",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -951,6 +895,62 @@
         "freshness": 5
       },
       "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "402327",
+      "title": "UEFA Champions League (Football (Soccer)) Arsenal vs Lille LOSC London, England - Emirates Stadium Tue, 13 Oct 2026 21:00",
+      "event_date": "2026-10-13T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402327",
+      "source_group": "champions-league",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "UEFA Champions League (Football (Soccer)) Arsenal vs Lille LOSC London, England - Emirates Stadium Tue, 13 Oct 2026 21:00 From USD $ 270",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "402413",
+      "title": "UEFA Champions League (Football (Soccer)) RC Lens vs Sporting Club Portugal (Lisbon) Lens, France - Stade Felix Bollaert Tue, 13 Oct 2026 18:45",
+      "event_date": "2026-10-13T18:45:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402413",
+      "source_group": "champions-league",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "UEFA Champions League (Football (Soccer)) RC Lens vs Sporting Club Portugal (Lisbon) Lens, France - Stade Felix Bollaert Tue, 13 Oct 2026 18:45 From USD $ 136",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 28,
       "recommended": true
     },
     {
@@ -1004,62 +1004,6 @@
       "recommended": true
     },
     {
-      "event_id": "395698",
-      "title": "German Bundesliga (Football (Soccer)) Bayern Munich vs Union Berlin Munich, Germany - Allianz Arena Fri, 18 Sep 2026 20:30",
-      "event_date": "2026-09-18T20:30:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395698",
-      "source_group": "bundesliga",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Bayern Munich vs Union Berlin Munich, Germany - Allianz Arena Fri, 18 Sep 2026 20:30 From USD $ 142",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "event_id": "391565",
-      "title": "Italian Serie A (Football (Soccer)) A.C. Monza vs Sassuolo Monza, Italy - U-Power Stadium (Stadio Brianteo) Fri, 18 Sep 2026 20:45",
-      "event_date": "2026-09-18T20:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/391565",
-      "source_group": "serie-a",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Italian Serie A (Football (Soccer)) A.C. Monza vs Sassuolo Monza, Italy - U-Power Stadium (Stadio Brianteo) Fri, 18 Sep 2026 20:45 Only a few tickets left From USD $ 100",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
       "event_id": "391561",
       "title": "Italian Serie A (Football (Soccer)) Bologna FC vs Torino FC Bologna, Italy - Stadio Renato DallAra Sat, 19 Sep 2026 15:00",
       "event_date": "2026-09-19T15:00:00+00:00",
@@ -1075,7 +1019,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Bologna FC vs Torino FC Bologna, Italy - Stadio Renato DallAra Sat, 19 Sep 2026 15:00 From USD $ 56",
+      "context_preview": "Italian Serie A (Football (Soccer)) Bologna FC vs Torino FC Bologna, Italy - Stadio Renato DallAra Sat, 19 Sep 2026 15:00 From USD $ 55",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1103,7 +1047,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Udinese vs Cagliari Udine, Italy - Stadio Friuli - Bluenergy Stadium Sat, 19 Sep 2026 15:00 From USD $ 69",
+      "context_preview": "Italian Serie A (Football (Soccer)) Udinese vs Cagliari Udine, Italy - Stadio Friuli - Bluenergy Stadium Sat, 19 Sep 2026 15:00 From USD $ 68",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1131,7 +1075,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Mönchengladbach vs FSV Mainz Monchengladbach, Germany - Borussia Park Sat, 19 Sep 2026 15:30 From USD $ 73",
+      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Mönchengladbach vs FSV Mainz Monchengladbach, Germany - Borussia Park Sat, 19 Sep 2026 15:30 From USD $ 74",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1215,7 +1159,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Werder Bremen vs FC Augsburg Bremen, Germany - Weserstadion Sat, 19 Sep 2026 15:30 Only a few tickets left From USD $ 125",
+      "context_preview": "German Bundesliga (Football (Soccer)) Werder Bremen vs FC Augsburg Bremen, Germany - Weserstadion Sat, 19 Sep 2026 15:30 From USD $ 125",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1271,7 +1215,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) AS Roma vs Inter Rome, Italy - Stadio Olimpico (Roma) Sat, 19 Sep 2026 18:00 From USD $ 260",
+      "context_preview": "Italian Serie A (Football (Soccer)) AS Roma vs Inter Rome, Italy - Stadio Olimpico (Roma) Sat, 19 Sep 2026 18:00 From USD $ 299",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1564,34 +1508,6 @@
       "recommended": true
     },
     {
-      "event_id": "402453",
-      "title": "UEFA Champions League (Football (Soccer)) FC Porto vs Manchester City Porto, Portugal - Estadio do Dragao Tue, 08 Sep 2026 21:00",
-      "event_date": "2026-09-08T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402453",
-      "source_group": "champions-league",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GB",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM",
-        "IE"
-      ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) FC Porto vs Manchester City Porto, Portugal - Estadio do Dragao Tue, 08 Sep 2026 21:00 From USD $ 151",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 26,
-      "recommended": false
-    },
-    {
       "event_id": "402347",
       "title": "UEFA Champions League (Football (Soccer)) Liverpool vs Atletico Madrid Liverpool, England - Anfield Wed, 09 Sep 2026 20:00",
       "event_date": "2026-09-09T20:00:00+00:00",
@@ -1620,6 +1536,34 @@
       "recommended": false
     },
     {
+      "event_id": "402497",
+      "title": "UEFA Champions League (Football (Soccer)) Manchester United vs Sabah FC Manchester, England - Old Trafford Thu, 10 Sep 2026 21:00",
+      "event_date": "2026-09-10T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402497",
+      "source_group": "champions-league",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "UEFA Champions League (Football (Soccer)) Manchester United vs Sabah FC Manchester, England - Old Trafford Thu, 10 Sep 2026 21:00 From USD $ 113",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
       "event_id": "392493",
       "title": "English Premier League (Football (Soccer)) Crystal Palace vs Ipswich Town London, England - Selhurst Park Sat, 12 Sep 2026 15:00",
       "event_date": "2026-09-12T15:00:00+00:00",
@@ -1635,7 +1579,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Crystal Palace vs Ipswich Town London, England - Selhurst Park Sat, 12 Sep 2026 15:00 From USD $ 96",
+      "context_preview": "English Premier League (Football (Soccer)) Crystal Palace vs Ipswich Town London, England - Selhurst Park Sat, 12 Sep 2026 15:00 From USD $ 102",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1691,7 +1635,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Aston Villa vs Nottingham Forest Birmingham, England - Villa Park Sat, 12 Sep 2026 15:00 Only a few tickets left From USD $ 113",
+      "context_preview": "English Premier League (Football (Soccer)) Aston Villa vs Nottingham Forest Birmingham, England - Villa Park Sat, 12 Sep 2026 15:00 Only a few tickets left From USD $ 124",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1831,7 +1775,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Manchester United vs Manchester City Manchester, England - Old Trafford Sun, 13 Sep 2026 16:30 From USD $ 281",
+      "context_preview": "English Premier League (Football (Soccer)) Manchester United vs Manchester City Manchester, England - Old Trafford Sun, 13 Sep 2026 16:30 From USD $ 253",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1859,7 +1803,35 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Leeds United vs Newcastle United Leeds, England - Elland Road Mon, 14 Sep 2026 20:00 Not Final Date not final From USD $ 274",
+      "context_preview": "English Premier League (Football (Soccer)) Leeds United vs Newcastle United Leeds, England - Elland Road Mon, 14 Sep 2026 20:00 Not Final Date not final Only a few tickets left From USD $ 274",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
+      "event_id": "393720",
+      "title": "English Premier League (Football (Soccer)) Brentford vs Chelsea London, England - Brentford Community Stadium (Gtech) Fri, 18 Sep 2026 20:00",
+      "event_date": "2026-09-18T20:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/393720",
+      "source_group": "premier-league",
+      "source_geo": "GB",
+      "target_markets": [
+        "GB",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM",
+        "IE"
+      ],
+      "context_preview": "English Premier League (Football (Soccer)) Brentford vs Chelsea London, England - Brentford Community Stadium (Gtech) Fri, 18 Sep 2026 20:00 From USD $ 371",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1924,6 +1896,58 @@
       "recommended": false
     },
     {
+      "event_id": "401998",
+      "title": "Arabian Gulf Cup (Football (Soccer)) Round 1: United Arab Emirates vs Yemen Jeddah, Saudi Arabia - King Abdullah Sports City Thu, 24 Sep 2026 18:00",
+      "event_date": "2026-09-24T18:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/401998",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Arabian Gulf Cup (Football (Soccer)) Round 1: United Arab Emirates vs Yemen Jeddah, Saudi Arabia - King Abdullah Sports City Thu, 24 Sep 2026 18:00 Only a few tickets left From USD $ 119",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
+      "event_id": "401999",
+      "title": "Arabian Gulf Cup (Football (Soccer)) Round 1: Qatar vs Bahrain Jeddah, Saudi Arabia - Prince Abdullah Al Faisal Stadium Thu, 24 Sep 2026 21:00",
+      "event_date": "2026-09-24T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/401999",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Arabian Gulf Cup (Football (Soccer)) Round 1: Qatar vs Bahrain Jeddah, Saudi Arabia - Prince Abdullah Al Faisal Stadium Thu, 24 Sep 2026 21:00 Only a few tickets left From USD $ 119",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
       "event_id": "369294",
       "title": "Formula 1 (Car Racing) Azerbaijan Grand Prix: 24-26 September Baku, Azerbaijan - Baku City Circuit Sat, 26 Sep 2026 15:00",
       "event_date": "2026-09-26T15:00:00+00:00",
@@ -1933,12 +1957,38 @@
       "target_markets": [
         "GLOBAL"
       ],
-      "context_preview": "Formula 1 (Car Racing) Azerbaijan Grand Prix: 24-26 September Baku, Azerbaijan - Baku City Circuit Sat, 26 Sep 2026 15:00 From USD $ 552",
+      "context_preview": "Formula 1 (Car Racing) Azerbaijan Grand Prix: 24-26 September Baku, Azerbaijan - Baku City Circuit Sat, 26 Sep 2026 15:00 From USD $ 553",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
         "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
+      "event_id": "398897",
+      "title": "Arabian Gulf Cup (Football (Soccer)) ROUND 2: Kuwait vs Iraq Jeddah, Saudi Arabia - Prince Abdullah Al Faisal Stadium Sat, 26 Sep 2026 18:00",
+      "event_date": "2026-09-26T18:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398897",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Arabian Gulf Cup (Football (Soccer)) ROUND 2: Kuwait vs Iraq Jeddah, Saudi Arabia - Prince Abdullah Al Faisal Stadium Sat, 26 Sep 2026 18:00 Only a few tickets left From USD $ 119",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
         "visual_potential": 5,
         "freshness": 5
       },
@@ -1955,7 +2005,7 @@
       "target_markets": [
         "GLOBAL"
       ],
-      "context_preview": "Formula 1 (Car Racing) Kuala Lumpur, Malaysia - Sepang International Circuit Sun, 04 Oct 2026 15:00 Only a few tickets left From USD $ 926",
+      "context_preview": "Formula 1 (Car Racing) Kuala Lumpur, Malaysia - Sepang International Circuit Sun, 04 Oct 2026 15:00 Only a few tickets left From USD $ 927",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2062,118 +2112,6 @@
       "recommended": false
     },
     {
-      "event_id": "402372",
-      "title": "UEFA Champions League (Football (Soccer)) Real Madrid vs Inter Madrid, Spain - El Estadio Santiago Bernabeu Tue, 08 Sep 2026 21:00",
-      "event_date": "2026-09-08T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402372",
-      "source_group": "champions-league",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Real Madrid vs Inter Madrid, Spain - El Estadio Santiago Bernabeu Tue, 08 Sep 2026 21:00 From USD $ 145",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 25,
-      "recommended": false
-    },
-    {
-      "event_id": "402385",
-      "title": "UEFA Champions League (Football (Soccer)) Borussia Dortmund vs Villarreal FC Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Tue, 08 Sep 2026 21:00",
-      "event_date": "2026-09-08T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402385",
-      "source_group": "champions-league",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Borussia Dortmund vs Villarreal FC Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Tue, 08 Sep 2026 21:00 From USD $ 70",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 25,
-      "recommended": false
-    },
-    {
-      "event_id": "402417",
-      "title": "UEFA Champions League (Football (Soccer)) Lille LOSC vs Real Betis Balompie Lille, France - Stade Pierre-Mauroy Tue, 08 Sep 2026 21:00",
-      "event_date": "2026-09-08T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402417",
-      "source_group": "champions-league",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Lille LOSC vs Real Betis Balompie Lille, France - Stade Pierre-Mauroy Tue, 08 Sep 2026 21:00 From USD $ 32",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 25,
-      "recommended": false
-    },
-    {
-      "event_id": "402365",
-      "title": "UEFA Champions League (Football (Soccer)) FC Barcelona vs Feyenoord Barcelona, Spain - Camp Nou Wed, 09 Sep 2026 18:45",
-      "event_date": "2026-09-09T18:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402365",
-      "source_group": "champions-league",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) FC Barcelona vs Feyenoord Barcelona, Spain - Camp Nou Wed, 09 Sep 2026 18:45 Only a few tickets left From USD $ 318",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 25,
-      "recommended": false
-    },
-    {
       "event_id": "402394",
       "title": "UEFA Champions League (Football (Soccer)) VfB Stuttgart vs Viking FK Stuttgart, Germany - MHPArena Wed, 09 Sep 2026 18:45",
       "event_date": "2026-09-09T18:45:00+00:00",
@@ -2189,7 +2127,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) VfB Stuttgart vs Viking FK Stuttgart, Germany - MHPArena Wed, 09 Sep 2026 18:45 Only a few tickets left From USD $ 212",
+      "context_preview": "UEFA Champions League (Football (Soccer)) VfB Stuttgart vs Viking FK Stuttgart, Germany - MHPArena Wed, 09 Sep 2026 18:45 Only a few tickets left From USD $ 181",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2217,7 +2155,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) SSC Napoli vs Arsenal Naples, Italy - Stadio Diego Armando Maradona Wed, 09 Sep 2026 21:00 Only a few tickets left From USD $ 203",
+      "context_preview": "UEFA Champions League (Football (Soccer)) SSC Napoli vs Arsenal Naples, Italy - Stadio Diego Armando Maradona Wed, 09 Sep 2026 21:00 Only a few tickets left From USD $ 126",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2245,7 +2183,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Paris SG vs Slovan Bratislava Paris, France - Parc des Princes Wed, 09 Sep 2026 21:00 From USD $ 112",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Paris SG vs Slovan Bratislava Paris, France - Parc des Princes Wed, 09 Sep 2026 21:00 From USD $ 104",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2273,7 +2211,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) PSV Eindhoven vs Shakhtar Donetsk Eindhoven, Netherlands - Philips Stadion Thu, 10 Sep 2026 18:45 Only a few tickets left From USD $ 169",
+      "context_preview": "UEFA Champions League (Football (Soccer)) PSV Eindhoven vs Shakhtar Donetsk Eindhoven, Netherlands - Philips Stadion Thu, 10 Sep 2026 18:45 Only a few tickets left From USD $ 135",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2301,7 +2239,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Bayern Munich vs FK Bodo/Glimt Munich, Germany - Allianz Arena Thu, 10 Sep 2026 21:00 From USD $ 116",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Bayern Munich vs FK Bodo/Glimt Munich, Germany - Allianz Arena Thu, 10 Sep 2026 21:00 From USD $ 113",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2413,7 +2351,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Elche CF vs Real Madrid Elche, Spain - Estadio Manuel Martinez Valero Tue, 15 Sep 2026 21:30 From USD $ 278",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Elche CF vs Real Madrid Elche, Spain - Estadio Manuel Martinez Valero Tue, 15 Sep 2026 21:30 From USD $ 453",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2519,7 +2457,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Olympique de Marseille ( OM ) Rennes, France - Roazhon Park Fri, 11 Sep 2026 20:45 Only a few tickets left From USD $ 136",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Olympique de Marseille ( OM ) Rennes, France - Roazhon Park Fri, 11 Sep 2026 20:45 From USD $ 131",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2547,7 +2485,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Sevilla FC vs Valencia CF Seville, Spain - Estadio Ramon Sanchez Pizjuan Fri, 11 Sep 2026 21:00 From USD $ 89",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Sevilla FC vs Valencia CF Seville, Spain - Estadio Ramon Sanchez Pizjuan Fri, 11 Sep 2026 21:00 From USD $ 85",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2603,7 +2541,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Dortmund vs SC Paderborn Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Sat, 12 Sep 2026 15:30 From USD $ 92",
+      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Dortmund vs SC Paderborn Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Sat, 12 Sep 2026 15:30 From USD $ 93",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2659,7 +2597,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) 1899 Hoffenheim vs VfB Stuttgart Sinsheim, Germany - PreZero Arena Sat, 12 Sep 2026 15:30 From USD $ 73",
+      "context_preview": "German Bundesliga (Football (Soccer)) 1899 Hoffenheim vs VfB Stuttgart Sinsheim, Germany - PreZero Arena Sat, 12 Sep 2026 15:30 From USD $ 74",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2687,7 +2625,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) FSV Mainz vs Eintracht Frankfurt Mainz, Germany - Mewa Arena (ex Opel arena) Sat, 12 Sep 2026 15:30 Only a few tickets left From USD $ 534",
+      "context_preview": "German Bundesliga (Football (Soccer)) FSV Mainz vs Eintracht Frankfurt Mainz, Germany - Mewa Arena (ex Opel arena) Sat, 12 Sep 2026 15:30 Only a few tickets left From USD $ 535",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2715,7 +2653,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) CA Osasuna vs RCD Espanyol Pamplona, Spain - El Sadar Stadium Sat, 12 Sep 2026 16:15 Only a few tickets left From USD $ 70",
+      "context_preview": "Spanish La Liga (Football (Soccer)) CA Osasuna vs RCD Espanyol Pamplona, Spain - El Sadar Stadium Sat, 12 Sep 2026 16:15 Only a few tickets left From USD $ 64",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2743,7 +2681,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) RC Strasbourg vs AS Monaco ( ASM ) Strasbourg, France - Stade de la Meinau Sat, 12 Sep 2026 17:15 Only a few tickets left From USD $ 104",
+      "context_preview": "French Ligue 1 (Football (Soccer)) RC Strasbourg vs AS Monaco ( ASM ) Strasbourg, France - Stade de la Meinau Sat, 12 Sep 2026 17:15 Only a few tickets left From USD $ 101",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2771,7 +2709,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Sassuolo vs Juventus FC Reggio Emilia, Italy - Mapei Stadium (Stadio Città del Tricolore) Sat, 12 Sep 2026 18:00 Only a few tickets left From USD $ 136",
+      "context_preview": "Italian Serie A (Football (Soccer)) Sassuolo vs Juventus FC Reggio Emilia, Italy - Mapei Stadium (Stadio Città del Tricolore) Sat, 12 Sep 2026 18:00 Only a few tickets left From USD $ 223",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2799,7 +2737,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Athletic Club Bilbao vs Elche CF Bilbao, Spain - Estadio San Mames Sat, 12 Sep 2026 18:30 From USD $ 89",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Athletic Club Bilbao vs Elche CF Bilbao, Spain - Estadio San Mames Sat, 12 Sep 2026 18:30 From USD $ 85",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2967,7 +2905,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Paris FC vs Lyon Paris, France - Stade Jean Bouin Sat, 12 Sep 2026 20:45 From USD $ 51",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Paris FC vs Lyon Paris, France - Stade Jean Bouin Sat, 12 Sep 2026 20:45 From USD $ 50",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2995,35 +2933,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Torino FC vs AS Roma Turin, Italy - Stadio Olimpico Grande Torino Sun, 13 Sep 2026 12:30 From USD $ 95",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 24,
-      "recommended": false
-    },
-    {
-      "event_id": "395291",
-      "title": "Spanish La Liga (Football (Soccer)) Celta de Vigo vs Malaga CF Vigo, Spain - Estadio Municipal de Balaidos Sun, 13 Sep 2026 14:00",
-      "event_date": "2026-09-13T14:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/395291",
-      "source_group": "la-liga",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Celta de Vigo vs Malaga CF Vigo, Spain - Estadio Municipal de Balaidos Sun, 13 Sep 2026 14:00 Only a few tickets left From USD $ 83",
+      "context_preview": "Italian Serie A (Football (Soccer)) Torino FC vs AS Roma Turin, Italy - Stadio Olimpico Grande Torino Sun, 13 Sep 2026 12:30 From USD $ 90",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -3051,7 +2961,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Celta de Vigo vs Malaga CF Vigo, Spain - Estadio Abanca Balaídos Sun, 13 Sep 2026 14:00 Only a few tickets left From USD $ 64",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Celta de Vigo vs Malaga CF Vigo, Spain - Estadio Abanca Balaídos Sun, 13 Sep 2026 14:00 Only a few tickets left From USD $ 56",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -3191,7 +3101,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) SS Lazio vs AC Milan Rome, Italy - Stadio Olimpico (Roma) Sun, 13 Sep 2026 20:45 From USD $ 73",
+      "context_preview": "Italian Serie A (Football (Soccer)) SS Lazio vs AC Milan Rome, Italy - Stadio Olimpico (Roma) Sun, 13 Sep 2026 20:45 From USD $ 74",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -3275,7 +3185,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Inter vs Udinese Milan, Italy - Stadio San Siro (Giuseppe Meazza) Mon, 14 Sep 2026 20:45 From USD $ 46",
+      "context_preview": "Italian Serie A (Football (Soccer)) Inter vs Udinese Milan, Italy - Stadio San Siro (Giuseppe Meazza) Mon, 14 Sep 2026 20:45 From USD $ 45",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -3344,6 +3254,62 @@
       "recommended": false
     },
     {
+      "event_id": "395698",
+      "title": "German Bundesliga (Football (Soccer)) Bayern Munich vs Union Berlin Munich, Germany - Allianz Arena Fri, 18 Sep 2026 20:30",
+      "event_date": "2026-09-18T20:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/395698",
+      "source_group": "bundesliga",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "German Bundesliga (Football (Soccer)) Bayern Munich vs Union Berlin Munich, Germany - Allianz Arena Fri, 18 Sep 2026 20:30 From USD $ 142",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "391565",
+      "title": "Italian Serie A (Football (Soccer)) A.C. Monza vs Sassuolo Monza, Italy - U-Power Stadium (Stadio Brianteo) Fri, 18 Sep 2026 20:45",
+      "event_date": "2026-09-18T20:45:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391565",
+      "source_group": "serie-a",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Italian Serie A (Football (Soccer)) A.C. Monza vs Sassuolo Monza, Italy - U-Power Stadium (Stadio Brianteo) Fri, 18 Sep 2026 20:45 Only a few tickets left From USD $ 100",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
       "event_id": "388449",
       "title": "Rugby Italy vs France Six Nations Stadio Olimpico (Roma) Rome, Italy Sat, 06 Mar 2027",
       "event_date": "2027-03-06T00:00:00+00:00",
@@ -3369,76 +3335,6 @@
         "freshness": 4
       },
       "total_score": 24,
-      "recommended": false
-    },
-    {
-      "event_id": "402472",
-      "title": "UEFA Champions League (Football (Soccer)) AEK Athens vs Lask Athens, Greece - OPAP Arena (Agia Sophia) Tue, 08 Sep 2026 18:45",
-      "event_date": "2026-09-08T18:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402472",
-      "source_group": "champions-league",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GLOBAL"
-      ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) AEK Athens vs Lask Athens, Greece - OPAP Arena (Agia Sophia) Tue, 08 Sep 2026 18:45 Only a few tickets left From USD $ 286",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 2,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 23,
-      "recommended": false
-    },
-    {
-      "event_id": "402474",
-      "title": "UEFA Champions League (Football (Soccer)) Club Brugge vs Aston Villa Brugge, Belgium - Jan Breydel Stadion Tue, 08 Sep 2026 18:45",
-      "event_date": "2026-09-08T18:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402474",
-      "source_group": "champions-league",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GLOBAL"
-      ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Club Brugge vs Aston Villa Brugge, Belgium - Jan Breydel Stadion Tue, 08 Sep 2026 18:45 Only a few tickets left From USD $ 164",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 2,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 23,
-      "recommended": false
-    },
-    {
-      "event_id": "398753",
-      "title": "Saudi Pro League (Football (Soccer)) Al Qadsiah vs Al-Ahli Saudi FC Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Tue, 08 Sep 2026 21:00",
-      "event_date": "2026-09-08T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/398753",
-      "source_group": "saudi-arabia",
-      "source_geo": "SA",
-      "target_markets": [
-        "SA",
-        "AE",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Saudi Pro League (Football (Soccer)) Al Qadsiah vs Al-Ahli Saudi FC Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Tue, 08 Sep 2026 21:00 Only a few tickets left From USD $ 119",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 2,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 23,
       "recommended": false
     },
     {
@@ -3474,6 +3370,28 @@
         "GLOBAL"
       ],
       "context_preview": "UEFA Champions League (Football (Soccer)) Fenerbahce SK vs AS Roma Istanbul, Turkey - Fenerbahce Sukru Saracoglu Stadyumu Thu, 10 Sep 2026 18:45 Only a few tickets left From USD $ 216",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "402492",
+      "title": "UEFA Champions League (Football (Soccer)) Slavia Prague vs RC Lens Prague, Czech Republic - Fortuna Arena (ex Sinobo Stadium) Thu, 10 Sep 2026 21:00",
+      "event_date": "2026-09-10T21:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402492",
+      "source_group": "champions-league",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "UEFA Champions League (Football (Soccer)) Slavia Prague vs RC Lens Prague, Czech Republic - Fortuna Arena (ex Sinobo Stadium) Thu, 10 Sep 2026 21:00 From USD $ 169",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
