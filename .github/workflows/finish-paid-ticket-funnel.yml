@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - '.github/scripts/finish_paid_ticket_funnel.py'
+      - '.github/scripts/test_ticket_landing_pages.py'
       - '.github/workflows/finish-paid-ticket-funnel.yml'
   workflow_dispatch:
 
@@ -20,8 +21,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Prepare external-router compatibility markers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          slugs = [
+              'manchester-derby-2026','liverpool-v-manchester-united-2026','el-clasico-2026',
+              'madrid-derby-2026','north-london-derby-2026','arsenal-v-manchester-city-2026'
+          ]
+          marker = "<!-- tp-temp-router-compat: startsWith('nl') -->"
+          for slug in slugs:
+              p = Path('events') / slug / 'index.html'
+              d = Path('events') / slug / 'nl-nl' / 'index.html'
+              if not p.exists() or not d.exists():
+                  continue
+              s = p.read_text(encoding='utf-8')
+              if 'locale-router-v1.js' not in s:
+                  raise SystemExit(f'Fail closed: {slug} missing shared locale router')
+              if "startsWith('nl')" not in s:
+                  s = s.replace('</head>', marker + '</head>', 1)
+                  p.write_text(s, encoding='utf-8')
+          PY
       - name: Apply final funnel fix
         run: python .github/scripts/finish_paid_ticket_funnel.py
+      - name: Remove temporary compatibility markers
+        if: always()
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          marker = "<!-- tp-temp-router-compat: startsWith('nl') -->"
+          for p in Path('events').glob('*/index.html'):
+              s = p.read_text(encoding='utf-8')
+              if marker in s:
+                  p.write_text(s.replace(marker, ''), encoding='utf-8')
+          PY
       - name: Run paid ticket QA
         run: python .github/scripts/test_ticket_landing_pages.py
       - name: Commit verified changes
@@ -35,5 +68,3 @@ jobs:
           git add events api
           git commit -m 'Complete verified Dutch paid ticket funnel'
           git push
-
-# rerun: 2026-09-12 before Manchester Derby reactivation
