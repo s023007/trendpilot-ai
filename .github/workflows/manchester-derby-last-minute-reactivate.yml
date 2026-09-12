@@ -1,0 +1,304 @@
+name: Reactivate Manchester Derby Last-Minute NL
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/manchester-derby-last-minute-reactivate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reactivate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Validate intended mutation before implementation
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          # This step is intentionally read-only. It must pass before any mutation step runs.
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          MAIN_ID = 24190034111
+          DRAFT_ID = 24184313195
+          TARGET_GROUP_ID = 204879016492
+          TARGET_GROUP = 'manchester_derby | NL'
+          NL_GEO = 'geoTargetConstants/2528'
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          rows = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign.id, campaign.name, campaign.status,
+                   campaign.advertising_channel_type, campaign.bidding_strategy_type,
+                   campaign_budget.amount_micros,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network
+            FROM campaign
+            WHERE campaign.id IN ({MAIN_ID},{DRAFT_ID})
+          '''))
+          by_id = {r.campaign.id:r for r in rows}
+          assert MAIN_ID in by_id and DRAFT_ID in by_id, 'Expected campaign identities missing'
+          main, draft = by_id[MAIN_ID], by_id[DRAFT_ID]
+          assert main.campaign.name == 'TrendPilot | GCC Big Matches | Search | 2026'
+          assert main.campaign.status.name in ('PAUSED','ENABLED')
+          assert main.campaign.advertising_channel_type.name == 'SEARCH'
+          assert main.campaign.bidding_strategy_type.name == 'MANUAL_CPC'
+          assert int(main.campaign_budget.amount_micros) == 5_000_000, 'Daily budget must remain exactly $5'
+          assert main.campaign.network_settings.target_google_search is True
+          assert main.campaign.network_settings.target_search_network is False
+          assert main.campaign.network_settings.target_content_network is False
+          assert main.campaign.network_settings.target_partner_search_network is False
+          assert draft.campaign.status.name == 'PAUSED', 'Old $10 draft must remain paused'
+
+          locs = list(ga.search(customer_id=cid, query=f'''
+            SELECT campaign_criterion.location.geo_target_constant,
+                   campaign_criterion.negative, campaign_criterion.type
+            FROM campaign_criterion
+            WHERE campaign.id = {MAIN_ID}
+              AND campaign_criterion.type = 'LOCATION'
+          '''))
+          positive = {r.campaign_criterion.location.geo_target_constant for r in locs if not r.campaign_criterion.negative}
+          print('POSITIVE_LOCATIONS=', sorted(positive))
+          assert positive == {NL_GEO}, f'Campaign is not Netherlands-only: {positive}'
+
+          groups = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.id, ad_group.name, ad_group.status, ad_group.cpc_bid_micros
+            FROM ad_group
+            WHERE campaign.id = {MAIN_ID}
+              AND ad_group.status != 'REMOVED'
+          '''))
+          target = [r for r in groups if r.ad_group.id == TARGET_GROUP_ID]
+          assert len(target) == 1 and target[0].ad_group.name == TARGET_GROUP, 'NL Manchester group identity mismatch'
+          assert int(target[0].ad_group.cpc_bid_micros) == 350_000, 'Target group CPC must remain $0.35'
+
+          kws = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.id, ad_group_criterion.keyword.text,
+                   ad_group_criterion.keyword.match_type,
+                   ad_group_criterion.status, ad_group_criterion.negative
+            FROM keyword_view
+            WHERE campaign.id = {MAIN_ID}
+              AND ad_group_criterion.status != 'REMOVED'
+          '''))
+          for r in kws:
+              if r.ad_group.id == TARGET_GROUP_ID and not r.ad_group_criterion.negative:
+                  assert r.ad_group_criterion.keyword.match_type.name != 'BROAD', 'Broad match found in target group'
+
+          ads = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group_ad.ad.final_urls,
+                   ad_group_ad.ad.responsive_search_ad.headlines,
+                   ad_group_ad.status
+            FROM ad_group_ad
+            WHERE ad_group.id = {TARGET_GROUP_ID}
+              AND ad_group_ad.status != 'REMOVED'
+              AND ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'
+          '''))
+          nl_urls = [u for r in ads for u in r.ad_group_ad.ad.final_urls if '/events/manchester-derby-2026/nl-nl/' in u]
+          assert nl_urls, 'No existing RSA points to the Dutch Manchester Derby landing page'
+
+          spend = list(ga.search(customer_id=cid, query=f'''
+            SELECT segments.date, metrics.cost_micros
+            FROM campaign
+            WHERE campaign.id = {MAIN_ID}
+              AND segments.date BETWEEN '2026-08-28' AND '2026-09-12'
+          '''))
+          total = sum(int(r.metrics.cost_micros or 0) for r in spend)/1_000_000
+          print('TOTAL_SPEND_USD=', round(total,2))
+          assert total < 18.0, f'Hard spend guard reached: ${total:.2f}'
+
+          heads = ['Manchester Derby Tickets','Last-Minute Derby Tickets','Vergelijk Ticketprijzen','Man United vs Man City','Tickets Voor 13 September','Vergelijk Prijs & Stoel']
+          descs = ['Vergelijk actuele ticketprijzen en stoelen voor Manchester United vs Manchester City.','Bekijk aanbieders en controleer de eindprijs voordat je boekt.']
+          assert all(len(x) <= 30 for x in heads), [(x,len(x)) for x in heads]
+          assert all(len(x) <= 90 for x in descs), [(x,len(x)) for x in descs]
+          print('VALIDATION PASS — mutation may proceed')
+          PY
+
+      - name: Apply scoped Manchester Derby mutation and enable main campaign
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          MAIN_ID = 24190034111
+          DRAFT_ID = 24184313195
+          TARGET_GROUP_ID = 204879016492
+          TARGET_GROUP = 'manchester_derby | NL'
+          CPC = 350_000
+          MARKER = 'Last-Minute Derby Tickets'
+
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          # 1) Ensure every other ad group stays paused. This prevents any other fixture from waking up.
+          groups = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.resource_name, ad_group.id, ad_group.name, ad_group.status
+            FROM ad_group
+            WHERE campaign.id = {MAIN_ID}
+              AND ad_group.status != 'REMOVED'
+          '''))
+          ag_ops = []
+          for r in groups:
+              g = r.ad_group
+              desired = client.enums.AdGroupStatusEnum.ENABLED if g.id == TARGET_GROUP_ID else client.enums.AdGroupStatusEnum.PAUSED
+              if g.status != desired:
+                  op = client.get_type('AdGroupOperation')
+                  op.update.resource_name = g.resource_name
+                  op.update.status = desired
+                  op.update_mask.paths.append('status')
+                  ag_ops.append(op)
+          if ag_ops:
+              client.get_service('AdGroupService').mutate_ad_groups(customer_id=cid, operations=ag_ops)
+              print('AD_GROUP_STATUS_MUTATIONS=', len(ag_ops))
+
+          target = [r for r in groups if r.ad_group.id == TARGET_GROUP_ID]
+          assert len(target) == 1 and target[0].ad_group.name == TARGET_GROUP
+          target_resource = target[0].ad_group.resource_name
+
+          # 2) Add only two tight last-minute terms; never Broad.
+          existing = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group_criterion.keyword.text, ad_group_criterion.keyword.match_type,
+                   ad_group_criterion.status
+            FROM keyword_view
+            WHERE ad_group.id = {TARGET_GROUP_ID}
+              AND ad_group_criterion.status != 'REMOVED'
+          '''))
+          have = {(r.ad_group_criterion.keyword.text.lower(), r.ad_group_criterion.keyword.match_type.name) for r in existing}
+          wanted = [
+              ('manchester derby last minute tickets','EXACT'),
+              ('man utd man city last minute tickets','PHRASE'),
+          ]
+          kw_ops = []
+          for text, mt in wanted:
+              if (text, mt) in have:
+                  continue
+              op = client.get_type('AdGroupCriterionOperation')
+              c = op.create
+              c.ad_group = target_resource
+              c.status = client.enums.AdGroupCriterionStatusEnum.ENABLED
+              c.keyword.text = text
+              c.keyword.match_type = getattr(client.enums.KeywordMatchTypeEnum, mt)
+              c.cpc_bid_micros = CPC
+              kw_ops.append(op)
+          if kw_ops:
+              client.get_service('AdGroupCriterionService').mutate_ad_group_criteria(customer_id=cid, operations=kw_ops)
+              print('KEYWORDS_CREATED=', len(kw_ops))
+          else:
+              print('KEYWORDS_CREATED=0 already present')
+
+          # 3) Add one last-minute RSA challenger, preserving all existing ads.
+          ads = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group_ad.ad.final_urls,
+                   ad_group_ad.ad.responsive_search_ad.headlines,
+                   ad_group_ad.status
+            FROM ad_group_ad
+            WHERE ad_group.id = {TARGET_GROUP_ID}
+              AND ad_group_ad.status != 'REMOVED'
+              AND ad_group_ad.ad.type = 'RESPONSIVE_SEARCH_AD'
+          '''))
+          marker_exists = any(MARKER in [h.text for h in r.ad_group_ad.ad.responsive_search_ad.headlines] for r in ads)
+          nl_urls = [u for r in ads for u in r.ad_group_ad.ad.final_urls if '/events/manchester-derby-2026/nl-nl/' in u]
+          assert nl_urls
+          if not marker_exists:
+              heads = ['Manchester Derby Tickets','Last-Minute Derby Tickets','Vergelijk Ticketprijzen','Man United vs Man City','Tickets Voor 13 September','Vergelijk Prijs & Stoel']
+              descs = ['Vergelijk actuele ticketprijzen en stoelen voor Manchester United vs Manchester City.','Bekijk aanbieders en controleer de eindprijs voordat je boekt.']
+              op = client.get_type('AdGroupAdOperation')
+              aga = op.create
+              aga.ad_group = target_resource
+              aga.status = client.enums.AdGroupAdStatusEnum.ENABLED
+              aga.ad.final_urls.append(nl_urls[0])
+              for text in heads:
+                  asset = client.get_type('AdTextAsset'); asset.text = text
+                  aga.ad.responsive_search_ad.headlines.append(asset)
+              for text in descs:
+                  asset = client.get_type('AdTextAsset'); asset.text = text
+                  aga.ad.responsive_search_ad.descriptions.append(asset)
+              client.get_service('AdGroupAdService').mutate_ad_group_ads(customer_id=cid, operations=[op])
+              print('RSA_CHALLENGER_CREATED=1')
+          else:
+              print('RSA_CHALLENGER_CREATED=0 already present')
+
+          # 4) Enable ONLY the main $5/day campaign. The old $10 draft is never touched.
+          campaign_resource = client.get_service('CampaignService').campaign_path(cid, MAIN_ID)
+          op = client.get_type('CampaignOperation')
+          op.update.resource_name = campaign_resource
+          op.update.status = client.enums.CampaignStatusEnum.ENABLED
+          op.update_mask.paths.append('status')
+          client.get_service('CampaignService').mutate_campaigns(customer_id=cid, operations=[op])
+          print('MAIN_CAMPAIGN_ENABLED=', MAIN_ID)
+          print('OLD_DRAFT_UNTOUCHED=', DRAFT_ID)
+          PY
+
+      - name: Verify live state after activation
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+          MAIN_ID=24190034111; DRAFT_ID=24184313195; TARGET=204879016492
+          client=GoogleAdsClient.load_from_dict({'developer_token':os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],'client_id':os.environ['GOOGLE_ADS_CLIENT_ID'],'client_secret':os.environ['GOOGLE_ADS_CLIENT_SECRET'],'refresh_token':os.environ['GOOGLE_ADS_REFRESH_TOKEN'],'login_customer_id':os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-','').strip(),'use_proto_plus':True})
+          cid=os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-','').strip(); ga=client.get_service('GoogleAdsService')
+          cs=list(ga.search(customer_id=cid,query=f"SELECT campaign.id,campaign.name,campaign.status,campaign_budget.amount_micros FROM campaign WHERE campaign.id IN ({MAIN_ID},{DRAFT_ID})"))
+          states={r.campaign.id:(r.campaign.status.name,int(r.campaign_budget.amount_micros)) for r in cs}
+          assert states[MAIN_ID]==('ENABLED',5_000_000),states
+          assert states[DRAFT_ID][0]=='PAUSED',states
+          groups=list(ga.search(customer_id=cid,query=f"SELECT ad_group.id,ad_group.name,ad_group.status,ad_group.cpc_bid_micros FROM ad_group WHERE campaign.id={MAIN_ID} AND ad_group.status!='REMOVED'"))
+          for r in groups:
+              if r.ad_group.id==TARGET:
+                  assert r.ad_group.status.name=='ENABLED'
+                  assert int(r.ad_group.cpc_bid_micros)==350_000
+              else:
+                  assert r.ad_group.status.name=='PAUSED',f'Unexpected active group: {r.ad_group.name}'
+          kws=list(ga.search(customer_id=cid,query=f"SELECT ad_group_criterion.keyword.text,ad_group_criterion.keyword.match_type,ad_group_criterion.status FROM keyword_view WHERE ad_group.id={TARGET} AND ad_group_criterion.status!='REMOVED'"))
+          have={(r.ad_group_criterion.keyword.text.lower(),r.ad_group_criterion.keyword.match_type.name) for r in kws}
+          assert ('manchester derby last minute tickets','EXACT') in have
+          assert ('man utd man city last minute tickets','PHRASE') in have
+          assert all(mt!='BROAD' for _,mt in have)
+          ads=list(ga.search(customer_id=cid,query=f"SELECT ad_group_ad.ad.responsive_search_ad.headlines,ad_group_ad.status FROM ad_group_ad WHERE ad_group.id={TARGET} AND ad_group_ad.status!='REMOVED' AND ad_group_ad.ad.type='RESPONSIVE_SEARCH_AD'"))
+          assert any('Last-Minute Derby Tickets' in [h.text for h in r.ad_group_ad.ad.responsive_search_ad.headlines] for r in ads)
+          print('VERIFY PASS — main campaign ENABLED; only Manchester Derby NL active; $5/day; $0.35 CPC; no Broad; old $10 draft PAUSED')
+          PY
