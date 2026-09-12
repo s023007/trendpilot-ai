@@ -90,7 +90,7 @@ def main() -> None:
     require("'NL'" in router_js, 'Global locale router does not map Netherlands to nl-nl')
     require("startsWith('nl')" in router_js, 'Global locale router does not understand Dutch browser locale')
     require('"nl-nl"' in root_html or "'nl-nl'" in root_html, 'El Clasico root router does not advertise nl-nl')
-    require("startsWith('nl')" in root_html, 'El Clasico immediate root redirect bypasses Dutch visitors')
+    require('locale-router-v1.js' in root_html, 'El Clasico root must load the tested external locale router')
 
     for slug in PAID_EVENTS:
         event = ROOT / 'events' / slug
@@ -100,7 +100,8 @@ def main() -> None:
             require(root.exists(), f'{slug}: Dutch page exists but event root router is missing')
             routed = root.read_text(encoding='utf-8')
             require('nl-nl' in routed, f'{slug}: Dutch page exists but root router omits nl-nl')
-            require("startsWith('nl')" in routed, f'{slug}: immediate root redirect bypasses Dutch visitors')
+            require('locale-router-v1.js' in routed,
+                    f'{slug}: root does not load the shared locale router used for Dutch routing')
             require('save-search.js?v=1.0.2' in dutch.read_text(encoding='utf-8'),
                     f'{slug}: Dutch paid page still references stale save-search.js')
 
