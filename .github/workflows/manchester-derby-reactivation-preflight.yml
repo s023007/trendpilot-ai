@@ -1,0 +1,129 @@
+name: Manchester Derby Reactivation Preflight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/manchester-derby-reactivation-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: google-ads-paused-create
+    steps:
+      - name: Install Google Ads client
+        run: pip install --disable-pip-version-check google-ads
+
+      - name: Read-only Manchester Derby preflight
+        env:
+          GOOGLE_ADS_DEVELOPER_TOKEN: ${{ secrets.GOOGLE_ADS_DEVELOPER_TOKEN }}
+          GOOGLE_ADS_CLIENT_ID: ${{ secrets.GOOGLE_ADS_CLIENT_ID }}
+          GOOGLE_ADS_CLIENT_SECRET: ${{ secrets.GOOGLE_ADS_CLIENT_SECRET }}
+          GOOGLE_ADS_REFRESH_TOKEN: ${{ secrets.GOOGLE_ADS_REFRESH_TOKEN }}
+          GOOGLE_ADS_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_CUSTOMER_ID }}
+          GOOGLE_ADS_LOGIN_CUSTOMER_ID: ${{ secrets.GOOGLE_ADS_LOGIN_CUSTOMER_ID }}
+        run: |
+          python - <<'PY'
+          import os
+          from google.ads.googleads.client import GoogleAdsClient
+
+          MAIN_ID = 24190034111
+          MAIN_NAME = 'TrendPilot | GCC Big Matches | Search | 2026'
+          client = GoogleAdsClient.load_from_dict({
+              'developer_token': os.environ['GOOGLE_ADS_DEVELOPER_TOKEN'],
+              'client_id': os.environ['GOOGLE_ADS_CLIENT_ID'],
+              'client_secret': os.environ['GOOGLE_ADS_CLIENT_SECRET'],
+              'refresh_token': os.environ['GOOGLE_ADS_REFRESH_TOKEN'],
+              'login_customer_id': os.environ['GOOGLE_ADS_LOGIN_CUSTOMER_ID'].replace('-', '').strip(),
+              'use_proto_plus': True,
+          })
+          cid = os.environ['GOOGLE_ADS_CUSTOMER_ID'].replace('-', '').strip()
+          ga = client.get_service('GoogleAdsService')
+
+          # Discover every campaign whose name mentions Manchester or Derby; do not guess which one to enable.
+          campaigns = list(ga.search(customer_id=cid, query='''
+            SELECT campaign.id, campaign.name, campaign.status,
+                   campaign.advertising_channel_type, campaign.bidding_strategy_type,
+                   campaign_budget.amount_micros,
+                   campaign.network_settings.target_google_search,
+                   campaign.network_settings.target_search_network,
+                   campaign.network_settings.target_content_network,
+                   campaign.network_settings.target_partner_search_network
+            FROM campaign
+            WHERE campaign.status != 'REMOVED'
+          '''))
+          print('=== MATCHING CAMPAIGNS ===')
+          for r in campaigns:
+              n = r.campaign.name.lower()
+              if 'manchester' in n or 'derby' in n or r.campaign.id == MAIN_ID:
+                  print('CAMPAIGN', r.campaign.id, '|', r.campaign.name, '| status=', r.campaign.status.name,
+                        '| channel=', r.campaign.advertising_channel_type.name,
+                        '| bid=', r.campaign.bidding_strategy_type.name,
+                        '| budget=', int(r.campaign_budget.amount_micros)/1_000_000,
+                        '| google=', r.campaign.network_settings.target_google_search,
+                        '| search_partners=', r.campaign.network_settings.target_search_network,
+                        '| display=', r.campaign.network_settings.target_content_network,
+                        '| partner_search=', r.campaign.network_settings.target_partner_search_network)
+
+          main = [r for r in campaigns if r.campaign.id == MAIN_ID]
+          assert len(main) == 1, 'Main six-match campaign missing'
+          m = main[0]
+          assert m.campaign.name == MAIN_NAME, f'Unexpected main campaign name: {m.campaign.name}'
+          assert m.campaign.advertising_channel_type.name == 'SEARCH', 'Main campaign is no longer Search'
+          assert m.campaign.bidding_strategy_type.name == 'MANUAL_CPC', 'Main campaign is no longer Manual CPC'
+          assert int(m.campaign_budget.amount_micros) <= 5_000_000, 'Daily budget exceeds $5 safety ceiling'
+          assert m.campaign.network_settings.target_google_search is True, 'Google Search disabled'
+          assert m.campaign.network_settings.target_search_network is False, 'Search Partners unexpectedly enabled'
+          assert m.campaign.network_settings.target_content_network is False, 'Display unexpectedly enabled'
+          assert m.campaign.network_settings.target_partner_search_network is False, 'Partner Search unexpectedly enabled'
+
+          groups = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.id, ad_group.name, ad_group.status, ad_group.cpc_bid_micros
+            FROM ad_group
+            WHERE campaign.id = {MAIN_ID}
+              AND ad_group.status != 'REMOVED'
+          '''))
+          derby = [r for r in groups if r.ad_group.name.startswith('manchester_derby |')]
+          assert derby, 'No Manchester Derby ad groups found in main campaign'
+          assert all(r.ad_group.name in ('manchester_derby | AR','manchester_derby | EN') for r in derby), 'Unexpected Manchester Derby ad-group identity'
+          print('=== MAIN CAMPAIGN MANCHESTER GROUPS ===')
+          for r in derby:
+              print('ADGROUP', r.ad_group.id, '|', r.ad_group.name, '| status=', r.ad_group.status.name,
+                    '| cpc=', int(r.ad_group.cpc_bid_micros or 0)/1_000_000)
+
+          kws = list(ga.search(customer_id=cid, query=f'''
+            SELECT ad_group.name, ad_group_criterion.resource_name,
+                   ad_group_criterion.status, ad_group_criterion.keyword.text,
+                   ad_group_criterion.keyword.match_type,
+                   ad_group_criterion.cpc_bid_micros,
+                   ad_group_criterion.negative
+            FROM keyword_view
+            WHERE campaign.id = {MAIN_ID}
+              AND ad_group_criterion.status != 'REMOVED'
+          '''))
+          print('=== MANCHESTER KEYWORDS ===')
+          for r in kws:
+              if r.ad_group.name.startswith('manchester_derby |'):
+                  print('KW', r.ad_group.name, '|', r.ad_group_criterion.keyword.text,
+                        '|', r.ad_group_criterion.keyword.match_type.name,
+                        '| status=', r.ad_group_criterion.status.name,
+                        '| negative=', bool(r.ad_group_criterion.negative),
+                        '| cpc=', int(r.ad_group_criterion.cpc_bid_micros or 0)/1_000_000)
+                  assert r.ad_group_criterion.keyword.match_type.name != 'BROAD', 'Broad match found in Manchester Derby group; fail closed'
+
+          spend = list(ga.search(customer_id=cid, query=f'''
+            SELECT metrics.cost_micros
+            FROM campaign
+            WHERE campaign.id = {MAIN_ID}
+              AND segments.date BETWEEN '2026-08-28' AND '2026-09-12'
+          '''))
+          total = sum(int(r.metrics.cost_micros or 0) for r in spend)/1_000_000
+          print('MAIN_CAMPAIGN_TOTAL_SPEND_USD=', round(total, 2))
+          assert total < 18.0, f'Hard spend guard would pause campaign: total=${total:.2f}'
+          print('PREFLIGHT PASS — safe to prepare a scoped Manchester Derby-only mutation')
+          PY
