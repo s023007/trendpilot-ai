@@ -8,6 +8,7 @@
   const countryToLocale = country => {
     const c = String(country || '').toUpperCase();
     if (['OM','AE','SA','QA','KW','BH'].includes(c)) return 'ar';
+    if (c === 'NL') return 'nl-nl';
     if (['GB','IE'].includes(c)) return 'en-gb';
     if (['DE','AT','CH'].includes(c)) return 'de-de';
     if (['FR','BE','LU','MC'].includes(c)) return 'fr-fr';
@@ -21,6 +22,7 @@
       if (l.startsWith('de')) return 'de-de';
       if (l.startsWith('fr')) return 'fr-fr';
       if (l.startsWith('es')) return 'es-es';
+      if (l.startsWith('nl')) return 'nl-nl';
       if (l.startsWith('en')) return 'en-gb';
     }
     return 'en-gb';
