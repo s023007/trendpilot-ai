@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-09-18T07:29:22Z",
+  "generated_at": "2026-09-19T07:25:27Z",
   "source": "Admitad Publisher API",
   "ad_space": {
     "id": 2980568,
@@ -10,7 +10,7 @@
   },
   "api": {
     "pages_fetched": 1,
-    "raw_records": 244,
+    "raw_records": 260,
     "token_expires_in_seconds": 604800
   },
   "active_coupons": 244,
@@ -35,7 +35,9 @@
     "other": 6,
     "tools": 25
   },
-  "rejected_records": {},
+  "rejected_records": {
+    "not_started": 16
+  },
   "public_blocklist": [
     "Joom",
     "Temu",
