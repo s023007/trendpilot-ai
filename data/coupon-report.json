@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "generated_at": "2026-10-01T09:07:27Z",
+  "generated_at": "2026-10-02T08:41:20Z",
   "source": "Admitad Publisher API",
   "ad_space": {
     "id": 2980568,
@@ -10,15 +10,15 @@
   },
   "api": {
     "pages_fetched": 1,
-    "raw_records": 94,
+    "raw_records": 226,
     "token_expires_in_seconds": 604800
   },
-  "active_coupons": 94,
-  "with_codes": 94,
+  "active_coupons": 225,
+  "with_codes": 225,
   "automatic_deals": 0,
   "coupons_by_merchant": {
     "alibaba_ww": 2,
-    "aliexpress_ww": 34,
+    "aliexpress_ww": 165,
     "geekbuying_ww": 13,
     "giftmio_lifetime_many_geos": 1,
     "global_yo_ww": 2,
@@ -30,11 +30,13 @@
   "coupons_by_category": {
     "computers": 14,
     "electronics": 13,
-    "marketplace": 36,
+    "marketplace": 167,
     "other": 6,
     "tools": 25
   },
-  "rejected_records": {},
+  "rejected_records": {
+    "not_started": 1
+  },
   "public_blocklist": [
     "Joom",
     "Temu",
