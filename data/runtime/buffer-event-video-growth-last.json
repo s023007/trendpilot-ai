@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-10-18T18:44:46.733Z",
+  "generated_at": "2026-10-19T15:47:50.405Z",
   "event_name": "schedule",
-  "status": "no-slot",
+  "status": "nothing-new",
   "channels": [
     {
       "service": "pinterest",
@@ -19,6 +19,11 @@
       "paused": false
     }
   ],
-  "posts": [],
+  "posts": [
+    {
+      "service": "tiktok",
+      "status": "nothing-new"
+    }
+  ],
   "error": null
 }
