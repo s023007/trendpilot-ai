@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-29T10:12:54.975396+00:00",
+  "generated_at": "2026-10-30T10:15:12.124128+00:00",
   "policy_version": 3,
   "publication_threshold": 27,
   "source_report": [
@@ -19,19 +19,19 @@
       "id": "la-liga",
       "url": "https://sportsevents365.com/dock/competition/la-liga",
       "http": 200,
-      "candidates": 11
+      "candidates": 12
     },
     {
       "id": "champions-league",
       "url": "https://sportsevents365.com/dock/competition/champions-league",
       "http": 200,
-      "candidates": 15
+      "candidates": 14
     },
     {
       "id": "serie-a",
       "url": "https://sportsevents365.com/dock/competition/serie-a",
       "http": 200,
-      "candidates": 9
+      "candidates": 11
     },
     {
       "id": "bundesliga",
@@ -49,16 +49,16 @@
       "id": "saudi-arabia",
       "url": "https://sportsevents365.com/events/country/1143",
       "http": 200,
-      "candidates": 2
+      "candidates": 9
     },
     {
       "id": "formula-one",
       "url": "https://sportsevents365.com/events/type/1003",
       "http": 200,
-      "candidates": 6
+      "candidates": 5
     }
   ],
-  "candidate_count": 99,
+  "candidate_count": 107,
   "recommended_count": 10,
   "top_recommendations": [
     {
@@ -71,7 +71,59 @@
       "target_markets": [
         "US"
       ],
-      "context_preview": "Formula 1 (Car Racing) Formula 1 Las Vegas Grand Prix - 3 Day Pass (11/19 - 11/21) Las Vegas, NV, USA - Las Vegas Street Circuit Thu, 19 Nov 2026 07:45 Only a few tickets left From USD $ 2,346",
+      "context_preview": "Formula 1 (Car Racing) Formula 1 Las Vegas Grand Prix - 3 Day Pass (11/19 - 11/21) Las Vegas, NV, USA - Las Vegas Street Circuit Thu, 19 Nov 2026 07:45 Only a few tickets left From USD $ 2,358",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "398792",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al Diriyah Riyadh, Saudi Arabia - Kingdom Arena Fri, 20 Nov 2026 19:00 Not Final Date not final",
+      "event_date": "2026-11-20T19:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398792",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al Diriyah Riyadh, Saudi Arabia - Kingdom Arena Fri, 20 Nov 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "398794",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Qadsiah Riyadh, Saudi Arabia - King Saud University Fri, 20 Nov 2026 19:00 Not Final Date not final",
+      "event_date": "2026-11-20T19:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398794",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Qadsiah Riyadh, Saudi Arabia - King Saud University Fri, 20 Nov 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 164",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -134,31 +186,31 @@
       "recommended": true
     },
     {
-      "event_id": "402350",
-      "title": "Football (Soccer) Liverpool vs RC Lens UEFA Champions League Anfield Liverpool, England Wed, 27 Jan 2027",
-      "event_date": "2027-01-27T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402350",
+      "event_id": "402457",
+      "title": "Football (Soccer) Sporting Club Portugal (Lisbon) vs FC Barcelona UEFA Champions League Est&aacute;dio Jos&eacute; Alvalade Lisbon, Portugal Wed, 20 Jan 2027",
+      "event_date": "2027-01-20T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402457",
       "source_group": "top-events",
       "source_geo": "GLOBAL",
       "target_markets": [
         "GB",
+        "EU",
         "AE",
         "SA",
         "QA",
         "KW",
-        "OM",
-        "IE"
+        "OM"
       ],
-      "context_preview": "Football (Soccer) Liverpool vs RC Lens UEFA Champions League Anfield Liverpool, England Wed, 27 Jan 2027",
+      "context_preview": "Football (Soccer) Sporting Club Portugal (Lisbon) vs FC Barcelona UEFA Champions League Est&aacute;dio Jos&eacute; Alvalade Lisbon, Portugal Wed, 20 Jan 2027",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
-        "geo_fit": 5,
+        "geo_fit": 4,
         "visual_potential": 5,
         "freshness": 5
       },
-      "total_score": 29,
+      "total_score": 28,
       "recommended": true
     },
     {
@@ -215,62 +267,6 @@
         "freshness": 5
       },
       "total_score": 28,
-      "recommended": true
-    },
-    {
-      "event_id": "392240",
-      "title": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Lille LOSC Rennes, France - Roazhon Park Sun, 08 Nov 2026 15:00",
-      "event_date": "2026-11-08T15:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392240",
-      "source_group": "ligue-1",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Lille LOSC Rennes, France - Roazhon Park Sun, 08 Nov 2026 15:00 Only a few tickets left From USD $ 88",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "event_id": "392233",
-      "title": "French Ligue 1 (Football (Soccer)) Angers SCO vs OGC Nice Angers, France - Stade Raymond Kopa Sun, 08 Nov 2026 17:15",
-      "event_date": "2026-11-08T17:15:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392233",
-      "source_group": "ligue-1",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Angers SCO vs OGC Nice Angers, France - Stade Raymond Kopa Sun, 08 Nov 2026 17:15 From USD $ 62",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 27,
       "recommended": true
     },
     {
@@ -335,7 +331,59 @@
       "target_markets": [
         "US"
       ],
-      "context_preview": "Formula 1 (Car Racing) Formula 1 Las Vegas Grand Prix - 3 Day Pass (11/19 - 11/21) Las Vegas, NV, USA - Las Vegas Street Circuit Thu, 19 Nov 2026 07:45 Only a few tickets left From USD $ 2,346",
+      "context_preview": "Formula 1 (Car Racing) Formula 1 Las Vegas Grand Prix - 3 Day Pass (11/19 - 11/21) Las Vegas, NV, USA - Las Vegas Street Circuit Thu, 19 Nov 2026 07:45 Only a few tickets left From USD $ 2,358",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "398792",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al Diriyah Riyadh, Saudi Arabia - Kingdom Arena Fri, 20 Nov 2026 19:00 Not Final Date not final",
+      "event_date": "2026-11-20T19:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398792",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al Diriyah Riyadh, Saudi Arabia - Kingdom Arena Fri, 20 Nov 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 164",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 29,
+      "recommended": true
+    },
+    {
+      "event_id": "398794",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Qadsiah Riyadh, Saudi Arabia - King Saud University Fri, 20 Nov 2026 19:00 Not Final Date not final",
+      "event_date": "2026-11-20T19:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398794",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Qadsiah Riyadh, Saudi Arabia - King Saud University Fri, 20 Nov 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 164",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -398,31 +446,31 @@
       "recommended": true
     },
     {
-      "event_id": "402350",
-      "title": "Football (Soccer) Liverpool vs RC Lens UEFA Champions League Anfield Liverpool, England Wed, 27 Jan 2027",
-      "event_date": "2027-01-27T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402350",
+      "event_id": "402457",
+      "title": "Football (Soccer) Sporting Club Portugal (Lisbon) vs FC Barcelona UEFA Champions League Est&aacute;dio Jos&eacute; Alvalade Lisbon, Portugal Wed, 20 Jan 2027",
+      "event_date": "2027-01-20T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402457",
       "source_group": "top-events",
       "source_geo": "GLOBAL",
       "target_markets": [
         "GB",
+        "EU",
         "AE",
         "SA",
         "QA",
         "KW",
-        "OM",
-        "IE"
+        "OM"
       ],
-      "context_preview": "Football (Soccer) Liverpool vs RC Lens UEFA Champions League Anfield Liverpool, England Wed, 27 Jan 2027",
+      "context_preview": "Football (Soccer) Sporting Club Portugal (Lisbon) vs FC Barcelona UEFA Champions League Est&aacute;dio Jos&eacute; Alvalade Lisbon, Portugal Wed, 20 Jan 2027",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
-        "geo_fit": 5,
+        "geo_fit": 4,
         "visual_potential": 5,
         "freshness": 5
       },
-      "total_score": 29,
+      "total_score": 28,
       "recommended": true
     },
     {
@@ -482,62 +530,6 @@
       "recommended": true
     },
     {
-      "event_id": "392240",
-      "title": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Lille LOSC Rennes, France - Roazhon Park Sun, 08 Nov 2026 15:00",
-      "event_date": "2026-11-08T15:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392240",
-      "source_group": "ligue-1",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Lille LOSC Rennes, France - Roazhon Park Sun, 08 Nov 2026 15:00 Only a few tickets left From USD $ 88",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
-      "event_id": "392233",
-      "title": "French Ligue 1 (Football (Soccer)) Angers SCO vs OGC Nice Angers, France - Stade Raymond Kopa Sun, 08 Nov 2026 17:15",
-      "event_date": "2026-11-08T17:15:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392233",
-      "source_group": "ligue-1",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Angers SCO vs OGC Nice Angers, France - Stade Raymond Kopa Sun, 08 Nov 2026 17:15 From USD $ 62",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 5
-      },
-      "total_score": 27,
-      "recommended": true
-    },
-    {
       "event_id": "401639",
       "title": "Basketball Miami Heat vs Indiana Pacers NBA (Basketball) Kaseya Center Miami, FL, USA Sat, 06 Mar 2027",
       "event_date": "2027-03-06T00:00:00+00:00",
@@ -588,32 +580,6 @@
       "recommended": true
     },
     {
-      "event_id": "398783",
-      "title": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Kholood Riyadh, Saudi Arabia - King Saud University Thu, 29 Oct 2026 20:00",
-      "event_date": "2026-10-29T20:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/398783",
-      "source_group": "saudi-arabia",
-      "source_geo": "SA",
-      "target_markets": [
-        "SA",
-        "AE",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Nassr FC vs Al Kholood Riyadh, Saudi Arabia - King Saud University Thu, 29 Oct 2026 20:00 Only a few tickets left From USD $ 164",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 5,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 26,
-      "recommended": false
-    },
-    {
       "event_id": "393762",
       "title": "English Premier League (Football (Soccer)) Chelsea vs Manchester United London, England - Stamford Bridge Sat, 31 Oct 2026 12:30",
       "event_date": "2026-10-31T12:30:00+00:00",
@@ -629,7 +595,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Chelsea vs Manchester United London, England - Stamford Bridge Sat, 31 Oct 2026 12:30 From USD $ 364",
+      "context_preview": "English Premier League (Football (Soccer)) Chelsea vs Manchester United London, England - Stamford Bridge Sat, 31 Oct 2026 12:30 From USD $ 287",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -657,7 +623,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Manchester City vs Brighton & Hove Albion Manchester, England - Etihad Stadium Sat, 31 Oct 2026 15:00 From USD $ 85",
+      "context_preview": "English Premier League (Football (Soccer)) Manchester City vs Brighton & Hove Albion Manchester, England - Etihad Stadium Sat, 31 Oct 2026 15:00 From USD $ 81",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -685,7 +651,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Brentford vs Nottingham Forest London, England - Brentford Community Stadium (Gtech) Sat, 31 Oct 2026 15:00 From USD $ 132",
+      "context_preview": "English Premier League (Football (Soccer)) Brentford vs Nottingham Forest London, England - Brentford Community Stadium (Gtech) Sat, 31 Oct 2026 15:00 From USD $ 133",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -713,7 +679,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Coventry City vs Sunderland AFC Coventry, England - Coventry Building Society Arena Sat, 31 Oct 2026 15:00 Only a few tickets left From USD $ 118",
+      "context_preview": "English Premier League (Football (Soccer)) Coventry City vs Sunderland AFC Coventry, England - Coventry Building Society Arena Sat, 31 Oct 2026 15:00 Only a few tickets left From USD $ 100",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -741,7 +707,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Crystal Palace London, England - Tottenham Hotspur Stadium Sat, 31 Oct 2026 17:30 From USD $ 129",
+      "context_preview": "English Premier League (Football (Soccer)) Tottenham Hotspur vs Crystal Palace London, England - Tottenham Hotspur Stadium Sat, 31 Oct 2026 17:30 From USD $ 130",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -769,7 +735,33 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Aston Villa vs Fulham FC Birmingham, England - Villa Park Sat, 31 Oct 2026 20:00 From USD $ 82",
+      "context_preview": "English Premier League (Football (Soccer)) Aston Villa vs Fulham FC Birmingham, England - Villa Park Sat, 31 Oct 2026 20:00 From USD $ 100",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
+      "event_id": "398781",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al Fateh Riyadh, Saudi Arabia - Kingdom Arena Sat, 31 Oct 2026 20:00",
+      "event_date": "2026-10-31T20:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398781",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Hilal FC vs Al Fateh Riyadh, Saudi Arabia - Kingdom Arena Sat, 31 Oct 2026 20:00 Only a few tickets left From USD $ 109",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -797,7 +789,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Liverpool vs Arsenal Liverpool, England - Anfield Sun, 01 Nov 2026 16:30 From USD $ 309",
+      "context_preview": "English Premier League (Football (Soccer)) Liverpool vs Arsenal Liverpool, England - Anfield Sun, 01 Nov 2026 16:30 From USD $ 324",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -825,7 +817,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Newcastle United vs Everton FC Newcastle, England - St James Park Mon, 02 Nov 2026 20:00 From USD $ 108",
+      "context_preview": "English Premier League (Football (Soccer)) Newcastle United vs Everton FC Newcastle, England - St James Park Mon, 02 Nov 2026 20:00 From USD $ 100",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -853,7 +845,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Manchester United vs AS Roma Manchester, England - Old Trafford Tue, 03 Nov 2026 20:00 From USD $ 141",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Manchester United vs AS Roma Manchester, England - Old Trafford Tue, 03 Nov 2026 20:00 From USD $ 132",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -881,7 +873,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Shakhtar Donetsk vs Sporting Club Portugal (Lisbon) London, England - Stamford Bridge Tue, 03 Nov 2026 20:00 From USD $ 87",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Shakhtar Donetsk vs Sporting Club Portugal (Lisbon) London, England - Stamford Bridge Tue, 03 Nov 2026 20:00 From USD $ 88",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -909,7 +901,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) RB Leipzig vs Manchester City Leipzig, Germany - Red Bull Arena (Leipzig) Wed, 04 Nov 2026 21:00 From USD $ 62",
+      "context_preview": "UEFA Champions League (Football (Soccer)) RB Leipzig vs Manchester City Leipzig, Germany - Red Bull Arena (Leipzig) Wed, 04 Nov 2026 21:00 From USD $ 63",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -937,7 +929,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Coventry City Liverpool, England - Hill Dickinson Stadium Fri, 06 Nov 2026 20:00 From USD $ 127",
+      "context_preview": "English Premier League (Football (Soccer)) Everton FC vs Coventry City Liverpool, England - Hill Dickinson Stadium Fri, 06 Nov 2026 20:00 From USD $ 128",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -965,7 +957,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Leeds United vs Tottenham Hotspur Leeds, England - Elland Road Sat, 07 Nov 2026 12:30 From USD $ 315",
+      "context_preview": "English Premier League (Football (Soccer)) Leeds United vs Tottenham Hotspur Leeds, England - Elland Road Sat, 07 Nov 2026 12:30 From USD $ 317",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -993,7 +985,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Arsenal vs Hull City London, England - Emirates Stadium Sat, 07 Nov 2026 15:00 From USD $ 159",
+      "context_preview": "English Premier League (Football (Soccer)) Arsenal vs Hull City London, England - Emirates Stadium Sat, 07 Nov 2026 15:00 From USD $ 160",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1021,7 +1013,7 @@
         "OM",
         "IE"
       ],
-      "context_preview": "English Premier League (Football (Soccer)) Fulham FC vs Newcastle United London, England - Craven Cottage Sat, 07 Nov 2026 15:00 From USD $ 129",
+      "context_preview": "English Premier League (Football (Soccer)) Fulham FC vs Newcastle United London, England - Craven Cottage Sat, 07 Nov 2026 15:00 From USD $ 130",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1034,21 +1026,77 @@
       "recommended": false
     },
     {
-      "event_id": "387902",
-      "title": "Formula 1 (Car Racing) Brazilian Grand Prix Sao Paulo, Brazil - Interlagos Circuit Sun, 08 Nov 2026 15:00",
-      "event_date": "2026-11-08T15:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/387902",
-      "source_group": "formula-one",
-      "source_geo": "GLOBAL",
+      "event_id": "398787",
+      "title": "Saudi Pro League (Football (Soccer)) Al Ettifaq vs Al-Hilal FC Dammam, Saudi Arabia - Prince Mohamed bin Fahd Stadium Sat, 07 Nov 2026 17:30",
+      "event_date": "2026-11-07T17:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398787",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
       "target_markets": [
-        "GLOBAL"
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
       ],
-      "context_preview": "Formula 1 (Car Racing) Brazilian Grand Prix Sao Paulo, Brazil - Interlagos Circuit Sun, 08 Nov 2026 15:00 From USD $ 383",
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Ettifaq vs Al-Hilal FC Dammam, Saudi Arabia - Prince Mohamed bin Fahd Stadium Sat, 07 Nov 2026 17:30 Only a few tickets left From USD $ 203",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
         "affiliate_readiness": 4,
-        "geo_fit": 2,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
+      "event_id": "398791",
+      "title": "Saudi Pro League (Football (Soccer)) Al-Ahli Saudi FC vs Al-Faisaly Jeddah, Saudi Arabia - King Abdullah Sports City Fri, 20 Nov 2026 19:00 Not Final Date not final",
+      "event_date": "2026-11-20T19:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398791",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Ahli Saudi FC vs Al-Faisaly Jeddah, Saudi Arabia - King Abdullah Sports City Fri, 20 Nov 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 109",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 26,
+      "recommended": false
+    },
+    {
+      "event_id": "398796",
+      "title": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al Ettifaq Riyadh, Saudi Arabia - Al-Shabab Club Stadium Fri, 20 Nov 2026 19:00 Not Final Date not final",
+      "event_date": "2026-11-20T19:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398796",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Shabab FC (Riyadh) vs Al Ettifaq Riyadh, Saudi Arabia - Al-Shabab Club Stadium Fri, 20 Nov 2026 19:00 Not Final Date not final Only a few tickets left From USD $ 117",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
         "visual_potential": 5,
         "freshness": 5
       },
@@ -1065,7 +1113,7 @@
       "target_markets": [
         "GLOBAL"
       ],
-      "context_preview": "Formula 1 (Car Racing) Qatar Grand Prix | 27-29 November Lusail, Qatar - Lusail International Circuit Sun, 29 Nov 2026 19:00 From USD $ 153",
+      "context_preview": "Formula 1 (Car Racing) Qatar Grand Prix | 27-29 November Lusail, Qatar - Lusail International Circuit Sun, 29 Nov 2026 19:00 From USD $ 154",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1087,7 +1135,7 @@
       "target_markets": [
         "GLOBAL"
       ],
-      "context_preview": "Formula 1 (Car Racing) Abu Dhabi Grand Prix Abu Dhabi, United Arab Emirates (UAE) - Yas Marina Circuit Sun, 06 Dec 2026 14:00 From USD $ 384",
+      "context_preview": "Formula 1 (Car Racing) Abu Dhabi Grand Prix Abu Dhabi, United Arab Emirates (UAE) - Yas Marina Circuit Sun, 06 Dec 2026 14:00 From USD $ 387",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1165,7 +1213,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) FC Barcelona vs Deportivo Alaves Barcelona, Spain - Camp Nou Sat, 31 Oct 2026 21:00 From USD $ 152",
+      "context_preview": "Spanish La Liga (Football (Soccer)) FC Barcelona vs Deportivo Alaves Barcelona, Spain - Camp Nou Sat, 31 Oct 2026 21:00 From USD $ 96",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1193,7 +1241,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Racing Santander vs Real Madrid Santander, Spain - Estadio El Sardinero Sun, 01 Nov 2026 16:15 Only a few tickets left From USD $ 722",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Racing Santander vs Real Madrid Santander, Spain - Estadio El Sardinero Sun, 01 Nov 2026 16:15 Only a few tickets left From USD $ 726",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1221,7 +1269,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Atletico Madrid vs Bayern Munich Madrid, Spain - Estadio Metropolitano Madrid Tue, 03 Nov 2026 21:00 From USD $ 127",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Atletico Madrid vs Bayern Munich Madrid, Spain - Estadio Metropolitano Madrid Tue, 03 Nov 2026 21:00 From USD $ 120",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1249,35 +1297,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) FC Barcelona vs Aston Villa Barcelona, Spain - Camp Nou Tue, 03 Nov 2026 21:00 From USD $ 281",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 25,
-      "recommended": false
-    },
-    {
-      "event_id": "402375",
-      "title": "UEFA Champions League (Football (Soccer)) Villarreal FC vs Paris SG Villarreal, Spain - Estadio de la Cerámica Tue, 03 Nov 2026 21:00",
-      "event_date": "2026-11-03T21:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/402375",
-      "source_group": "champions-league",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Villarreal FC vs Paris SG Villarreal, Spain - Estadio de la Cerámica Tue, 03 Nov 2026 21:00 Only a few tickets left From USD $ 664",
+      "context_preview": "UEFA Champions League (Football (Soccer)) FC Barcelona vs Aston Villa Barcelona, Spain - Camp Nou Tue, 03 Nov 2026 21:00 From USD $ 248",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1305,7 +1325,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Feyenoord vs Inter Rotterdam, Netherlands - De Kuip Tue, 03 Nov 2026 21:00 Only a few tickets left From USD $ 152",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Feyenoord vs Inter Rotterdam, Netherlands - De Kuip Tue, 03 Nov 2026 21:00 Only a few tickets left From USD $ 153",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1333,7 +1353,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) AEK Athens vs Real Madrid Athens, Greece - OPAP Arena (Agia Sophia) Wed, 04 Nov 2026 19:45 From USD $ 593",
+      "context_preview": "UEFA Champions League (Football (Soccer)) AEK Athens vs Real Madrid Athens, Greece - OPAP Arena (Agia Sophia) Wed, 04 Nov 2026 19:45 From USD $ 598",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1445,7 +1465,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Valencia CF vs Real Madrid Valencia, Spain - Estadio Mestalla Sat, 07 Nov 2026 21:00 From USD $ 189",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Valencia CF vs Real Madrid Valencia, Spain - Estadio Mestalla Sat, 07 Nov 2026 21:00 From USD $ 190",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -1542,6 +1562,34 @@
       "recommended": false
     },
     {
+      "event_id": "388441",
+      "title": "Rugby France vs Wales Six Nations Stade de France Paris, France Sat, 06 Feb 2027",
+      "event_date": "2027-02-06T00:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/388441",
+      "source_group": "top-events",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Rugby France vs Wales Six Nations Stade de France Paris, France Sat, 06 Feb 2027",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 5
+      },
+      "total_score": 25,
+      "recommended": false
+    },
+    {
       "event_id": "392224",
       "title": "French Ligue 1 (Football (Soccer)) Le Havre vs Paris SG Le Havre, France - Stade Océane Fri, 30 Oct 2026 19:00",
       "event_date": "2026-10-30T19:00:00+00:00",
@@ -1557,7 +1605,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Le Havre vs Paris SG Le Havre, France - Stade Océane Fri, 30 Oct 2026 19:00 From USD $ 120",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Le Havre vs Paris SG Le Havre, France - Stade Océane Fri, 30 Oct 2026 19:00 From USD $ 112",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1613,7 +1661,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Lille LOSC vs RC Lens Lille, France - Stade Pierre-Mauroy Fri, 30 Oct 2026 21:05 From USD $ 85",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Lille LOSC vs RC Lens Lille, France - Stade Pierre-Mauroy Fri, 30 Oct 2026 21:05 From USD $ 86",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1669,7 +1717,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Levante UD vs Atletico Madrid Valencia, Spain - Estadi Ciutat de Valencia Sat, 31 Oct 2026 14:00 Only a few tickets left From USD $ 229",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Levante UD vs Atletico Madrid Valencia, Spain - Estadi Ciutat de Valencia Sat, 31 Oct 2026 14:00 Only a few tickets left From USD $ 231",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1697,7 +1745,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Bologna FC vs A.C. Monza Bologna, Italy - Stadio Renato DallAra Sat, 31 Oct 2026 15:00 From USD $ 47",
+      "context_preview": "Italian Serie A (Football (Soccer)) Bologna FC vs A.C. Monza Bologna, Italy - Stadio Renato DallAra Sat, 31 Oct 2026 15:00 From USD $ 72",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1725,7 +1773,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) FC Augsburg vs SC Freiburg Augsburg, Germany - WWK ARENA Sat, 31 Oct 2026 15:30 From USD $ 96",
+      "context_preview": "German Bundesliga (Football (Soccer)) FC Augsburg vs SC Freiburg Augsburg, Germany - WWK ARENA Sat, 31 Oct 2026 15:30 From USD $ 108",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1753,7 +1801,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Mönchengladbach vs SC Paderborn Monchengladbach, Germany - Borussia Park Sat, 31 Oct 2026 15:30 From USD $ 46",
+      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Mönchengladbach vs SC Paderborn Monchengladbach, Germany - Borussia Park Sat, 31 Oct 2026 15:30 From USD $ 71",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1781,7 +1829,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Bayer Leverkusen vs VfB Stuttgart Leverkusen, Germany - BayArena Sat, 31 Oct 2026 15:30 From USD $ 87",
+      "context_preview": "German Bundesliga (Football (Soccer)) Bayer Leverkusen vs VfB Stuttgart Leverkusen, Germany - BayArena Sat, 31 Oct 2026 15:30 From USD $ 88",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1809,7 +1857,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Schalke 04 vs RB Leipzig Gelsenkirchen, Germany - Veltins-Arena Sat, 31 Oct 2026 15:30 From USD $ 92",
+      "context_preview": "German Bundesliga (Football (Soccer)) Schalke 04 vs RB Leipzig Gelsenkirchen, Germany - Veltins-Arena Sat, 31 Oct 2026 15:30 From USD $ 68",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1837,7 +1885,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Werder Bremen vs 1899 Hoffenheim Bremen, Germany - Weserstadion Sat, 31 Oct 2026 15:30 From USD $ 87",
+      "context_preview": "German Bundesliga (Football (Soccer)) Werder Bremen vs 1899 Hoffenheim Bremen, Germany - Weserstadion Sat, 31 Oct 2026 15:30 From USD $ 72",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1865,7 +1913,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Rayo Vallecano vs Celta de Vigo Madrid, Spain - Campo de Futbol de Vallecas Sat, 31 Oct 2026 16:15 Only a few tickets left From USD $ 220",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Rayo Vallecano vs Celta de Vigo Madrid, Spain - Campo de Futbol de Vallecas Sat, 31 Oct 2026 16:15 Only a few tickets left From USD $ 221",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1893,7 +1941,35 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Udinese vs AS Roma Udine, Italy - Stadio Friuli - Bluenergy Stadium Sat, 31 Oct 2026 18:00 Only a few tickets left From USD $ 129",
+      "context_preview": "Italian Serie A (Football (Soccer)) Udinese vs AS Roma Udine, Italy - Stadio Friuli - Bluenergy Stadium Sat, 31 Oct 2026 18:00 Only a few tickets left From USD $ 130",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "402306",
+      "title": "Spanish La Liga (Football (Soccer)) Real Betis Balompie vs Malaga CF Seville, Spain - Estadio Olimpico de La Cartuja Sat, 31 Oct 2026 18:30",
+      "event_date": "2026-10-31T18:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/402306",
+      "source_group": "la-liga",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Spanish La Liga (Football (Soccer)) Real Betis Balompie vs Malaga CF Seville, Spain - Estadio Olimpico de La Cartuja Sat, 31 Oct 2026 18:30 Only a few tickets left From USD $ 228",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -1921,63 +1997,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Bayern Munich vs Borussia Dortmund Munich, Germany - Allianz Arena Sat, 31 Oct 2026 18:30 From USD $ 208",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 24,
-      "recommended": false
-    },
-    {
-      "event_id": "392226",
-      "title": "French Ligue 1 (Football (Soccer)) FC Lorient vs Stade Brestois 29 Lorient, France - Stade du Moustoir-Yves Allainmat Sat, 31 Oct 2026 20:45",
-      "event_date": "2026-10-31T20:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392226",
-      "source_group": "ligue-1",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) FC Lorient vs Stade Brestois 29 Lorient, France - Stade du Moustoir-Yves Allainmat Sat, 31 Oct 2026 20:45 Only a few tickets left From USD $ 44",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 4,
-        "affiliate_readiness": 4,
-        "geo_fit": 4,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 24,
-      "recommended": false
-    },
-    {
-      "event_id": "392227",
-      "title": "French Ligue 1 (Football (Soccer)) Lyon vs Angers SCO Lyon, France - Groupama Stadium Sat, 31 Oct 2026 20:45",
-      "event_date": "2026-10-31T20:45:00+00:00",
-      "source_url": "https://sportsevents365.com/event/392227",
-      "source_group": "ligue-1",
-      "source_geo": "EU",
-      "target_markets": [
-        "GB",
-        "EU",
-        "AE",
-        "SA",
-        "QA",
-        "KW",
-        "OM"
-      ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Lyon vs Angers SCO Lyon, France - Groupama Stadium Sat, 31 Oct 2026 20:45 Only a few tickets left From USD $ 72",
+      "context_preview": "German Bundesliga (Football (Soccer)) Bayern Munich vs Borussia Dortmund Munich, Germany - Allianz Arena Sat, 31 Oct 2026 18:30 From USD $ 216",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2033,7 +2053,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) Como vs Venezia Como, Italy - Stadio Giuseppe Sinigaglia Sun, 01 Nov 2026 12:30 Only a few tickets left From USD $ 191",
+      "context_preview": "Italian Serie A (Football (Soccer)) Como vs Venezia Como, Italy - Stadio Giuseppe Sinigaglia Sun, 01 Nov 2026 12:30 Only a few tickets left From USD $ 192",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2061,7 +2081,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Italian Serie A (Football (Soccer)) SS Lazio vs Cagliari Rome, Italy - Stadio Olimpico (Roma) Sun, 01 Nov 2026 15:00 From USD $ 47",
+      "context_preview": "Italian Serie A (Football (Soccer)) SS Lazio vs Cagliari Rome, Italy - Stadio Olimpico (Roma) Sun, 01 Nov 2026 15:00 From USD $ 54",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2102,6 +2122,34 @@
       "recommended": false
     },
     {
+      "event_id": "392227",
+      "title": "French Ligue 1 (Football (Soccer)) Lyon vs Angers SCO Lyon, France - Groupama Stadium Sun, 01 Nov 2026 17:15",
+      "event_date": "2026-11-01T17:15:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392227",
+      "source_group": "ligue-1",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "French Ligue 1 (Football (Soccer)) Lyon vs Angers SCO Lyon, France - Groupama Stadium Sun, 01 Nov 2026 17:15 From USD $ 48",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
       "event_id": "392230",
       "title": "French Ligue 1 (Football (Soccer)) Paris FC vs AS Monaco ( ASM ) Paris, France - Stade Jean Bouin Sun, 01 Nov 2026 17:15",
       "event_date": "2026-11-01T17:15:00+00:00",
@@ -2117,7 +2165,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Paris FC vs AS Monaco ( ASM ) Paris, France - Stade Jean Bouin Sun, 01 Nov 2026 17:15 From USD $ 81",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Paris FC vs AS Monaco ( ASM ) Paris, France - Stade Jean Bouin Sun, 01 Nov 2026 17:15 From USD $ 82",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2145,7 +2193,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Eintracht Frankfurt vs Hamburg SV Frankfurt, Germany - Deutsche Bank Park (Waldstadion) Sun, 01 Nov 2026 17:30 Only a few tickets left From USD $ 392",
+      "context_preview": "German Bundesliga (Football (Soccer)) Eintracht Frankfurt vs Hamburg SV Frankfurt, Germany - Deutsche Bank Park (Waldstadion) Sun, 01 Nov 2026 17:30 Only a few tickets left From USD $ 395",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2173,7 +2221,35 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Elche CF vs Valencia CF Elche, Spain - Estadio Manuel Martinez Valero Sun, 01 Nov 2026 18:30 From USD $ 137",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Elche CF vs Valencia CF Elche, Spain - Estadio Manuel Martinez Valero Sun, 01 Nov 2026 18:30 From USD $ 138",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "391614",
+      "title": "Italian Serie A (Football (Soccer)) Juventus FC vs SSC Napoli Turin, Italy - Juventus Stadium Sun, 01 Nov 2026 20:45",
+      "event_date": "2026-11-01T20:45:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391614",
+      "source_group": "serie-a",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Italian Serie A (Football (Soccer)) Juventus FC vs SSC Napoli Turin, Italy - Juventus Stadium Sun, 01 Nov 2026 20:45 Only a few tickets left From USD $ 1,209",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2229,7 +2305,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Athletic Club Bilbao vs Real Sociedad Bilbao, Spain - Estadio San Mames Sun, 01 Nov 2026 21:00 From USD $ 129",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Athletic Club Bilbao vs Real Sociedad Bilbao, Spain - Estadio San Mames Sun, 01 Nov 2026 21:00 From USD $ 127",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2258,6 +2334,34 @@
         "OM"
       ],
       "context_preview": "Italian Serie A (Football (Soccer)) Atalanta BC vs Parma FC Bergamo, Italy - Stadio di Bergamo (Gewiss Stadium) Mon, 02 Nov 2026 20:45 From USD $ 66",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "392226",
+      "title": "French Ligue 1 (Football (Soccer)) FC Lorient vs Stade Brestois 29 Lorient, France - Stade du Moustoir-Yves Allainmat Mon, 02 Nov 2026 20:45",
+      "event_date": "2026-11-02T20:45:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392226",
+      "source_group": "ligue-1",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "French Ligue 1 (Football (Soccer)) FC Lorient vs Stade Brestois 29 Lorient, France - Stade du Moustoir-Yves Allainmat Mon, 02 Nov 2026 20:45 Only a few tickets left From USD $ 44",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2313,7 +2417,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Hamburg SV vs Borussia Mönchengladbach Hamburg, Germany - Volksparkstadion Fri, 06 Nov 2026 20:30 From USD $ 172",
+      "context_preview": "German Bundesliga (Football (Soccer)) Hamburg SV vs Borussia Mönchengladbach Hamburg, Germany - Volksparkstadion Fri, 06 Nov 2026 20:30 From USD $ 173",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2397,7 +2501,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Spanish La Liga (Football (Soccer)) Sevilla FC vs Deportivo Alaves Seville, Spain - Estadio Ramon Sanchez Pizjuan Fri, 06 Nov 2026 21:00 From USD $ 80",
+      "context_preview": "Spanish La Liga (Football (Soccer)) Sevilla FC vs Deportivo Alaves Seville, Spain - Estadio Ramon Sanchez Pizjuan Fri, 06 Nov 2026 21:00 From USD $ 81",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2509,7 +2613,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Dortmund vs SV Elversberg Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Sat, 07 Nov 2026 15:30 From USD $ 149",
+      "context_preview": "German Bundesliga (Football (Soccer)) Borussia Dortmund vs SV Elversberg Dortmund, Germany - Signal Iduna Park (Westfalenstadion) Sat, 07 Nov 2026 15:30 From USD $ 172",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2537,7 +2641,7 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) FSV Mainz vs Bayern Munich Mainz, Germany - Mewa Arena (ex Opel arena) Sat, 07 Nov 2026 15:30 From USD $ 128",
+      "context_preview": "German Bundesliga (Football (Soccer)) FSV Mainz vs Bayern Munich Mainz, Germany - Mewa Arena (ex Opel arena) Sat, 07 Nov 2026 15:30 From USD $ 129",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2621,7 +2725,35 @@
         "KW",
         "OM"
       ],
-      "context_preview": "German Bundesliga (Football (Soccer)) VfB Stuttgart vs Werder Bremen Stuttgart, Germany - MHPArena Sat, 07 Nov 2026 17:30 From USD $ 137",
+      "context_preview": "German Bundesliga (Football (Soccer)) VfB Stuttgart vs Werder Bremen Stuttgart, Germany - MHPArena Sat, 07 Nov 2026 17:30 Only a few tickets left From USD $ 199",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "391619",
+      "title": "Italian Serie A (Football (Soccer)) AS Roma vs Sassuolo Rome, Italy - Stadio Olimpico (Roma) Sat, 07 Nov 2026 20:45",
+      "event_date": "2026-11-07T20:45:00+00:00",
+      "source_url": "https://sportsevents365.com/event/391619",
+      "source_group": "serie-a",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Italian Serie A (Football (Soccer)) AS Roma vs Sassuolo Rome, Italy - Stadio Olimpico (Roma) Sat, 07 Nov 2026 20:45 From USD $ 93",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2649,7 +2781,63 @@
         "KW",
         "OM"
       ],
-      "context_preview": "French Ligue 1 (Football (Soccer)) Paris SG vs Troyes Paris, France - Parc des Princes Sat, 07 Nov 2026 20:45 From USD $ 130",
+      "context_preview": "French Ligue 1 (Football (Soccer)) Paris SG vs Troyes Paris, France - Parc des Princes Sat, 07 Nov 2026 20:45 From USD $ 131",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "392240",
+      "title": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Lille LOSC Rennes, France - Roazhon Park Sun, 08 Nov 2026 15:00",
+      "event_date": "2026-11-08T15:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392240",
+      "source_group": "ligue-1",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "French Ligue 1 (Football (Soccer)) Stade Rennais F.C vs Lille LOSC Rennes, France - Roazhon Park Sun, 08 Nov 2026 15:00 Only a few tickets left From USD $ 88",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 4,
+        "affiliate_readiness": 4,
+        "geo_fit": 4,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 24,
+      "recommended": false
+    },
+    {
+      "event_id": "392233",
+      "title": "French Ligue 1 (Football (Soccer)) Angers SCO vs OGC Nice Angers, France - Stade Raymond Kopa Sun, 08 Nov 2026 17:15",
+      "event_date": "2026-11-08T17:15:00+00:00",
+      "source_url": "https://sportsevents365.com/event/392233",
+      "source_group": "ligue-1",
+      "source_geo": "EU",
+      "target_markets": [
+        "GB",
+        "EU",
+        "AE",
+        "SA",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "French Ligue 1 (Football (Soccer)) Angers SCO vs OGC Nice Angers, France - Stade Raymond Kopa Sun, 08 Nov 2026 17:15 From USD $ 63",
       "scores": {
         "search_intent": 5,
         "popularity": 4,
@@ -2690,28 +2878,6 @@
       "recommended": false
     },
     {
-      "event_id": "387897",
-      "title": "Formula 1 (Car Racing) Mexico Grand Prix Mexico CIty, Mexico - Autodromo Hermanos Rodriguez Sun, 01 Nov 2026 15:00",
-      "event_date": "2026-11-01T15:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/387897",
-      "source_group": "formula-one",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GLOBAL"
-      ],
-      "context_preview": "Formula 1 (Car Racing) Mexico Grand Prix Mexico CIty, Mexico - Autodromo Hermanos Rodriguez Sun, 01 Nov 2026 15:00 Only a few tickets left From USD $ 602",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 5,
-        "affiliate_readiness": 4,
-        "geo_fit": 2,
-        "visual_potential": 5,
-        "freshness": 2
-      },
-      "total_score": 23,
-      "recommended": false
-    },
-    {
       "event_id": "402452",
       "title": "UEFA Champions League (Football (Soccer)) Galatasaray SK vs VfB Stuttgart Istanbul, Turkey - Rams Park Stadium Tue, 03 Nov 2026 19:45",
       "event_date": "2026-11-03T19:45:00+00:00",
@@ -2721,7 +2887,7 @@
       "target_markets": [
         "GLOBAL"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Galatasaray SK vs VfB Stuttgart Istanbul, Turkey - Rams Park Stadium Tue, 03 Nov 2026 19:45 Only a few tickets left From USD $ 344",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Galatasaray SK vs VfB Stuttgart Istanbul, Turkey - Rams Park Stadium Tue, 03 Nov 2026 19:45 Only a few tickets left From USD $ 346",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2787,7 +2953,7 @@
       "target_markets": [
         "GLOBAL"
       ],
-      "context_preview": "UEFA Champions League (Football (Soccer)) Fenerbahce SK vs Liverpool Istanbul, Turkey - Fenerbahce Sukru Saracoglu Stadyumu Wed, 04 Nov 2026 19:45 Only a few tickets left From USD $ 482",
+      "context_preview": "UEFA Champions League (Football (Soccer)) Fenerbahce SK vs Liverpool Istanbul, Turkey - Fenerbahce Sukru Saracoglu Stadyumu Wed, 04 Nov 2026 19:45 From USD $ 484",
       "scores": {
         "search_intent": 5,
         "popularity": 5,
@@ -2822,6 +2988,58 @@
       "recommended": false
     },
     {
+      "event_id": "398790",
+      "title": "Saudi Pro League (Football (Soccer)) Al Qadsiah vs Al Fayha Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Thu, 05 Nov 2026 20:30",
+      "event_date": "2026-11-05T20:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398790",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Qadsiah vs Al Fayha Dammam, Saudi Arabia - Prince Saud bin Jalawi Sports City Thu, 05 Nov 2026 20:30 Only a few tickets left From USD $ 105",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "398789",
+      "title": "Saudi Pro League (Football (Soccer)) Al Ittihad vs Neom SC Jeddah, Saudi Arabia - King Abdullah Sports City Fri, 06 Nov 2026 20:30",
+      "event_date": "2026-11-06T20:30:00+00:00",
+      "source_url": "https://sportsevents365.com/event/398789",
+      "source_group": "saudi-arabia",
+      "source_geo": "SA",
+      "target_markets": [
+        "SA",
+        "AE",
+        "QA",
+        "KW",
+        "OM"
+      ],
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al Ittihad vs Neom SC Jeddah, Saudi Arabia - King Abdullah Sports City Fri, 06 Nov 2026 20:30 Only a few tickets left From USD $ 117",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 2,
+        "affiliate_readiness": 4,
+        "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
       "event_id": "398786",
       "title": "Saudi Pro League (Football (Soccer)) Al-Ahli Saudi FC vs Al Taawoun Jeddah, Saudi Arabia - King Abdullah Sports City Sat, 07 Nov 2026 20:30",
       "event_date": "2026-11-07T20:30:00+00:00",
@@ -2835,12 +3053,34 @@
         "KW",
         "OM"
       ],
-      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Ahli Saudi FC vs Al Taawoun Jeddah, Saudi Arabia - King Abdullah Sports City Sat, 07 Nov 2026 20:30 Only a few tickets left From USD $ 83",
+      "context_preview": "Saudi Pro League (Football (Soccer)) Al-Ahli Saudi FC vs Al Taawoun Jeddah, Saudi Arabia - King Abdullah Sports City Sat, 07 Nov 2026 20:30 Only a few tickets left From USD $ 90",
       "scores": {
         "search_intent": 5,
         "popularity": 2,
         "affiliate_readiness": 4,
         "geo_fit": 5,
+        "visual_potential": 5,
+        "freshness": 2
+      },
+      "total_score": 23,
+      "recommended": false
+    },
+    {
+      "event_id": "387902",
+      "title": "Formula 1 (Car Racing) Brazilian Grand Prix Sao Paulo, Brazil - Interlagos Circuit Sun, 08 Nov 2026 15:00",
+      "event_date": "2026-11-08T15:00:00+00:00",
+      "source_url": "https://sportsevents365.com/event/387902",
+      "source_group": "formula-one",
+      "source_geo": "GLOBAL",
+      "target_markets": [
+        "GLOBAL"
+      ],
+      "context_preview": "Formula 1 (Car Racing) Brazilian Grand Prix Sao Paulo, Brazil - Interlagos Circuit Sun, 08 Nov 2026 15:00 From USD $ 787",
+      "scores": {
+        "search_intent": 5,
+        "popularity": 5,
+        "affiliate_readiness": 4,
+        "geo_fit": 2,
         "visual_potential": 5,
         "freshness": 2
       },
@@ -2911,28 +3151,6 @@
         "freshness": 5
       },
       "total_score": 23,
-      "recommended": false
-    },
-    {
-      "event_id": "388448",
-      "title": "Rugby Scotland vs Ireland Six Nations Murrayfield Edinburgh, Scotland Fri, 05 Mar 2027",
-      "event_date": "2027-03-05T00:00:00+00:00",
-      "source_url": "https://sportsevents365.com/event/388448",
-      "source_group": "top-events",
-      "source_geo": "GLOBAL",
-      "target_markets": [
-        "GLOBAL"
-      ],
-      "context_preview": "Rugby Scotland vs Ireland Six Nations Murrayfield Edinburgh, Scotland Fri, 05 Mar 2027",
-      "scores": {
-        "search_intent": 5,
-        "popularity": 2,
-        "affiliate_readiness": 4,
-        "geo_fit": 2,
-        "visual_potential": 5,
-        "freshness": 4
-      },
-      "total_score": 22,
       "recommended": false
     },
     {
