@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-11-12T22:20:54.271Z",
+  "generated_at": "2026-11-13T16:39:55.993Z",
   "event_name": "schedule",
-  "status": "no-slot",
+  "status": "nothing-new",
   "channels": [
     {
       "service": "pinterest",
@@ -19,6 +19,11 @@
       "paused": false
     }
   ],
-  "posts": [],
+  "posts": [
+    {
+      "service": "youtube",
+      "status": "nothing-new"
+    }
+  ],
   "error": null
 }
